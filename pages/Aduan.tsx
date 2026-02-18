@@ -34,6 +34,7 @@ const Aduan: React.FC = () => {
   const [showRestoreNotice, setShowRestoreNotice] = useState(false);
   const [hasTouchedForm, setHasTouchedForm] = useState(false);
   const [messageHistory, setMessageHistory] = useState<string[]>([]);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -176,6 +177,7 @@ const Aduan: React.FC = () => {
     setAutoSaveStatus('idle');
     setLastSavedAt(null);
     clearStoredState();
+    setShowResetConfirm(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -359,7 +361,7 @@ const Aduan: React.FC = () => {
                 {hasTouchedForm && (
                   <button
                     type="button"
-                    onClick={handleResetDraft}
+                    onClick={() => setShowResetConfirm(true)}
                     className="uppercase tracking-widest text-stone-500 hover:text-white transition-colors border-b border-stone-700 hover:border-white"
                   >
                     Reset draf
@@ -379,6 +381,33 @@ const Aduan: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div className="w-full max-w-sm bg-stone-950 border border-stone-800 p-6">
+            <h2 className="font-serif text-lg text-white mb-2">Reset draf?</h2>
+            <p className="text-xs text-stone-400 mb-6 leading-relaxed">
+              Tindakan ini akan menghapus semua isi kotak aduan yang belum dikirim.
+            </p>
+            <div className="flex justify-end gap-3 text-[10px] uppercase tracking-widest">
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 text-stone-400 hover:text-white border border-stone-700 hover:border-white transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleResetDraft}
+                className="px-4 py-2 bg-white text-black font-bold hover:bg-stone-300 transition-colors"
+              >
+                Ya, reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
