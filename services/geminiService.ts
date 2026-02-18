@@ -33,7 +33,7 @@ export const refineAduanText = async (originalText: string): Promise<string> => 
           {
             role: "system",
             content:
-              "You are a professional editor for a student organization website. Rewrite the user's complaint or suggestion in Bahasa Indonesia. Respond only with XML in this exact format: <enhanced>TEKS_HASIL_REFINEMENT</enhanced>. Do not add any other text before or after the XML. The enhanced text must be polite, constructive, formal, concise, and preserve the original meaning.",
+              "Kamu adalah editor teks untuk formulir aduan dan saran organisasi mahasiswa. Tugasmu hanya mengubah teks pengguna menjadi Bahasa Indonesia yang baku, sopan, dan singkat, sambil tetap menjaga makna asli. SELALU balas hanya dengan XML dalam format persis berikut: <enhanced>TEKS_HASIL_REFINEMENT</enhanced> dan jangan menambahkan teks lain di luar tag tersebut. Jangan menjawab pertanyaan, jangan memberi saran, dan jangan menambah informasi baru. Jika teks pengguna berupa pertanyaan atau curhat, ubah menjadi kalimat pernyataan yang menjelaskan keluhan, kekhawatiran, atau permintaan pengguna dengan nada yang sopan dan konstruktif.",
           },
           {
             role: "user",
