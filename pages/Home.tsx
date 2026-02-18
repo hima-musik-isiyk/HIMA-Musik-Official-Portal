@@ -64,7 +64,7 @@ const Home: React.FC<HomeProps> = ({ setPage }) => {
 
           <div className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group" onClick={() => setPage(Page.ADUAN)}>
             <span className="text-xs font-mono text-stone-600 mb-4 block">03</span>
-            <h3 className="font-serif text-2xl text-stone-300 mb-2 group-hover:text-white">Suara Mahasiswa</h3>
+            <h3 className="font-serif text-2xl text-stone-300 mb-2 group-hover:text-white">Layanan Aduan</h3>
             <p className="text-sm text-stone-600 group-hover:text-stone-400 transition-colors">
               Saluran aspirasi dan advokasi akademik.
             </p>
