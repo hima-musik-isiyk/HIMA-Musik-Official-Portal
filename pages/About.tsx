@@ -2,12 +2,10 @@ import React from 'react';
 
 const About: React.FC = () => {
   const executives = [
-    { role: "Ketua Himpunan", name: "Raka Adhitama" },
-    { role: "Wakil Ketua", name: "Elena Sastroamidjojo" },
-    { role: "Sekretaris Jenderal", name: "Dimas Anggara" },
-    { role: "Bendahara", name: "Siti Nurhaliza" },
-    { role: "Divisi Pertunjukan", name: "Kevin Julio" },
-    { role: "Divisi Humas", name: "Sarah Azhari" },
+    { role: "Ketua Himpunan", name: "Vincent Nuridzati Adittama" },
+    { role: "Wakil Ketua", name: "Nadia Fibriani" },
+    { role: "Sekretaris", name: "Nuzulul Dian Maulida" },
+    { role: "Bendahara", name: "Elizabeth Ardhayu Maheswari" },
   ];
 
   return (
@@ -31,7 +29,7 @@ const About: React.FC = () => {
         </div>
 
         <div className="border-t border-stone-800 pt-16">
-          <h2 className="font-serif text-3xl text-white mb-10">Struktur Kabinet <br/><span className="italic text-stone-600 text-2xl">2024-2025</span></h2>
+          <h2 className="font-serif text-3xl text-white mb-10">Struktur Kabinet <br/><span className="italic text-stone-600 text-2xl">2026-2027</span></h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-12">
             {executives.map((exec, idx) => (
