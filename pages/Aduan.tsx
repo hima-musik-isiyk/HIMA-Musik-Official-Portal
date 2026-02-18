@@ -212,18 +212,35 @@ const Aduan: React.FC = () => {
     setHasTouchedForm(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAutoSaveStatus('saving');
-    setTimeout(() => {
-        setSubmitted(true);
-        setAutoSaveStatus('idle');
-        setLastSavedAt(null);
-        setMessageHistory([]);
-        setHasTouchedForm(false);
-        setShowRestoreNotice(false);
-        clearStoredState();
-    }, 1000);
+
+    try {
+      const response = await fetch('/api/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      setSubmitted(true);
+      setAutoSaveStatus('idle');
+      setLastSavedAt(null);
+      setMessageHistory([]);
+      setHasTouchedForm(false);
+      setShowRestoreNotice(false);
+      clearStoredState();
+    } catch (error) {
+      console.error('Submission error:', error);
+      setAutoSaveStatus('error');
+      alert('Gagal mengirim laporan. Silakan coba sesaat lagi.');
+    }
   };
 
   if (submitted) {
