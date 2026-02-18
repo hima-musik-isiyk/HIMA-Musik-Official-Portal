@@ -1,48 +1,70 @@
-import { GoogleGenAI } from "@google/genai";
+const apiKey = process.env.GROQ_API_KEY || process.env.API_KEY || "";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+if (!apiKey) {
+  console.warn("Groq API key is empty. Set GROQ_API_KEY in .env.local and restart the dev server.");
+} else {
+  console.info("Groq API key loaded for Groq client.");
+}
+
+type GroqChatCompletion = {
+  choices: { message?: { content?: string } }[];
+};
+
+const groqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
+const groqModel = "llama-3.1-8b-instant";
 
 export const refineAduanText = async (originalText: string): Promise<string> => {
+  if (!originalText.trim()) return originalText;
+
   if (!apiKey) {
-    console.warn("API Key is missing.");
     return originalText;
   }
-  
-  try {
-    const model = 'gemini-3-flash-preview';
-    const prompt = `
-      You are a professional editor for a student organization website.
-      Rewrite the following complaint or suggestion to be more constructive, professional, and clear, 
-      while maintaining the original intent. Keep it concise.
-      
-      Original text: "${originalText}"
-    `;
 
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
+  try {
+    const response = await fetch(groqEndpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: groqModel,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a professional editor for a student organization website. Rewrite the user's complaint or suggestion in Bahasa Indonesia. Respond only with XML in this exact format: <enhanced>TEKS_HASIL_REFINEMENT</enhanced>. Do not add any other text before or after the XML. The enhanced text must be polite, constructive, formal, concise, and preserve the original meaning.",
+          },
+          {
+            role: "user",
+            content: originalText,
+          },
+        ],
+        temperature: 0.4,
+        max_tokens: 256,
+      }),
     });
 
-    return response.text?.trim() || originalText;
+    const text = await response.text();
+
+    if (!response.ok) {
+      console.error("Groq API Error:", response.status, response.statusText, text);
+      return originalText;
+    }
+
+    const data = JSON.parse(text) as GroqChatCompletion;
+    const content = data.choices[0]?.message?.content;
+    if (!content) return originalText;
+
+    const match = content.match(/<enhanced>([\s\S]*?)<\/enhanced>/i);
+    const enhanced = match ? match[1].trim() : content.trim();
+    return enhanced || originalText;
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Error refining text with Groq:", error);
     return originalText;
   }
 };
 
 export const generateCreativeManifesto = async (): Promise<string> => {
-    if (!apiKey) return "Music is the silence between the notes.";
-    
-    try {
-        const model = 'gemini-3-flash-preview';
-        const prompt = "Generate a single, profound, short philosophical sentence about the power of music and community. Do not use quotes.";
-         const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-        });
-        return response.text?.trim() || "Harmony in diversity, rhythm in unity.";
-    } catch (e) {
-        return "Harmony in diversity, rhythm in unity.";
-    }
-}
+  return "Harmony in diversity, rhythm in unity.";
+};
