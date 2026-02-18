@@ -12,7 +12,7 @@ const About: React.FC = () => {
     <div className="pt-32 pb-20 px-6 min-h-screen bg-stone-950">
       <div className="max-w-4xl mx-auto">
         <p className="text-xs uppercase tracking-[0.3em] text-stone-500 mb-8">Profil Organisasi</p>
-        <h1 className="font-serif text-5xl md:text-7xl text-white mb-12">Arsitek <span className="italic text-stone-500">Bunyi</span></h1>
+        <h1 className="font-serif text-5xl md:text-7xl text-white mb-12">Kabinet <span className="italic text-stone-500">2026/2027</span></h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
           <div className="text-stone-400 text-lg leading-relaxed font-light">

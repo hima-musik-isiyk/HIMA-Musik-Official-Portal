@@ -53,7 +53,7 @@ const Footer: React.FC<FooterProps> = ({ setPage }) => {
       
       <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-stone-900 flex flex-col md:flex-row justify-between items-center text-xs text-stone-600">
         <p>&copy; {new Date().getFullYear()} Himpunan Mahasiswa Musik.</p>
-        <p className="mt-2 md:mt-0 tracking-widest uppercase">Embrace</p>
+        <p className="mt-2 md:mt-0 tracking-widest uppercase">Emergence</p>
       </div>
     </footer>
   );

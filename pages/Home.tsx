@@ -25,15 +25,15 @@ const Home: React.FC<HomeProps> = ({ setPage }) => {
             Himpunan Mahasiswa Musik
           </p>
           <h1 className="font-serif text-5xl md:text-8xl lg:text-9xl text-white leading-tight mix-blend-overlay">
-            RESONANSI <br /> 
-            <span className="italic text-stone-400">KOLEKTIF</span>
+            KABINET <br /> 
+            <span className="italic text-stone-400">2026/2027</span>
           </h1>
           <div className="mt-12 md:mt-16 flex flex-col md:flex-row gap-8 items-start md:items-center">
              <button 
-               onClick={() => setPage(Page.EVENTS)}
+               onClick={() => setPage(Page.ABOUT)}
                className="group relative px-8 py-4 bg-white text-black text-xs font-bold uppercase tracking-widest overflow-hidden transition-all hover:bg-stone-200"
              >
-               <span className="relative z-10">Jadwal Terkini</span>
+               <span className="relative z-10">About Us</span>
              </button>
              <p className="max-w-md text-stone-500 text-sm leading-relaxed border-l border-stone-700 pl-6">
                 {manifesto}
