@@ -12,7 +12,8 @@ const Footer: React.FC<FooterProps> = ({ setPage }) => {
         <div className="col-span-1 md:col-span-2">
           <h3 className="font-serif text-3xl mb-6 text-white">HIMA MUSIK</h3>
           <p className="text-stone-500 text-sm leading-relaxed max-w-md">
-            Wadah aspirasi dan kreasi mahasiswa musik. Membangun harmoni dalam keberagaman akademik dan artistik sejak 2015.
+            Himpunan Mahasiswa Program Studi Musik, Fakultas Seni Pertunjukan, Institut Seni Indonesia Yogyakarta.
+            Wadah aspirasi dan kreasi mahasiswa musik.
           </p>
         </div>
 
@@ -29,17 +30,30 @@ const Footer: React.FC<FooterProps> = ({ setPage }) => {
         <div>
           <h4 className="text-xs font-bold uppercase tracking-widest text-stone-300 mb-6">Kontak</h4>
           <ul className="space-y-4 text-sm text-stone-500">
-            <li>Gedung Kesenian Lt. 3</li>
-            <li>Universitas Negeri</li>
-            <li>info@himamusik.id</li>
-            <li>@himamusik</li>
+            <li>HIMA Prodi Musik, FSP ISI Yogyakarta</li>
+            <li>Gedung Jurasik (Jurusan Musik) Lt. 2</li>
+            <li>
+              <a href="mailto:musikisiyk@gmail.com" className="hover:text-white transition-colors">
+                musikisiyk@gmail.com
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.instagram.com/himamusikisi"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                @himamusikisi
+              </a>
+            </li>
           </ul>
         </div>
       </div>
       
       <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-stone-900 flex flex-col md:flex-row justify-between items-center text-xs text-stone-600">
         <p>&copy; {new Date().getFullYear()} Himpunan Mahasiswa Musik.</p>
-        <p className="mt-2 md:mt-0 tracking-widest uppercase">Estetika & Etika</p>
+        <p className="mt-2 md:mt-0 tracking-widest uppercase">Embrace</p>
       </div>
     </footer>
   );
