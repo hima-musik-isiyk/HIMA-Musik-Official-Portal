@@ -230,6 +230,9 @@ const Aduan: React.FC = () => {
       }
 
       setSubmitted(true);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      }
       setAutoSaveStatus('idle');
       setLastSavedAt(null);
       setMessageHistory([]);
