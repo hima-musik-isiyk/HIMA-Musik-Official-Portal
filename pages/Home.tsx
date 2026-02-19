@@ -18,7 +18,7 @@ const Home: React.FC<HomeProps> = ({ setPage }) => {
       {/* Hero Section */}
       <section className="relative h-screen flex flex-col justify-center px-6 border-b border-stone-800 overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://picsum.photos/1920/1080?grayscale&blur=2')] bg-cover bg-center opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950 to-transparent"></div>
+        <div className="absolute inset-0 bg-linear-to-t from-stone-950 to-transparent"></div>
         
         <div className="relative z-10 max-w-7xl mx-auto w-full">
           <p className="text-xs md:text-sm uppercase tracking-[0.3em] text-stone-400 mb-6 animate-pulse">
