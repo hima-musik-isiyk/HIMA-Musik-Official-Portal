@@ -30,6 +30,8 @@ const Aduan: React.FC = () => {
   });
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [showRestoreNotice, setShowRestoreNotice] = useState(false);
@@ -184,6 +186,7 @@ const Aduan: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setHasTouchedForm(true);
+    if (submitError) setSubmitError(null);
   };
 
   const handleEnhance = async () => {
@@ -234,6 +237,11 @@ const Aduan: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setSubmitError(null);
     setAutoSaveStatus('saving');
 
     try {
@@ -246,7 +254,12 @@ const Aduan: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = typeof errorData === 'object' && errorData && 'error' in errorData 
+          ? String(errorData.error) 
+          : 'Server error';
+        console.error('API Error:', { status: response.status, error: errorMessage, details: errorData });
+        throw new Error(errorMessage);
       }
 
       setSubmitted(true);
@@ -262,7 +275,19 @@ const Aduan: React.FC = () => {
     } catch (error) {
       console.error('Submission error:', error);
       setAutoSaveStatus('error');
-      alert('Gagal mengirim laporan. Silakan coba sesaat lagi.');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMsg.includes('env variables') || errorMsg.includes('misconfiguration')) {
+        setSubmitError('Sistem belum dikonfigurasi dengan benar. Hubungi administrator.');
+      } else if (errorMsg.includes('Telegram')) {
+        setSubmitError('Gagal mengirim ke Telegram. Coba lagi dalam beberapa saat.');
+      } else if (errorMsg.includes('Message is required')) {
+        setSubmitError('Pesan tidak boleh kosong.');
+      } else {
+        setSubmitError('Gagal mengirim laporan. Silakan coba lagi.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -275,7 +300,18 @@ const Aduan: React.FC = () => {
                     Laporan Anda telah kami terima dan akan ditinjau oleh Divisi Advokasi. Privasi identitas Anda terjamin.
                 </p>
                 <button 
-                    onClick={() => { setSubmitted(false); setFormData({...formData, message: ''}); }}
+                    onClick={() => { 
+                      setSubmitted(false); 
+                      setFormData({
+                        name: '',
+                        nim: '',
+                        category: 'Akademik',
+                        message: ''
+                      });
+                      setSubmitError(null);
+                      setMessageHistory([]);
+                      setHasTouchedForm(false);
+                    }}
                     className="mt-8 text-xs uppercase tracking-widest text-stone-400 border-b border-stone-700 pb-1 hover:text-white hover:border-white transition-all"
                 >
                     Kirim laporan lain
@@ -301,7 +337,8 @@ const Aduan: React.FC = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full bg-transparent border-b border-stone-800 py-3 text-stone-300 focus:outline-none focus:border-white transition-colors placeholder-stone-800"
+                disabled={isSubmitting}
+                className="w-full bg-transparent border-b border-stone-800 py-3 text-stone-300 focus:outline-none focus:border-white transition-colors placeholder-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Anonim"
               />
             </div>
@@ -312,7 +349,8 @@ const Aduan: React.FC = () => {
                 name="nim"
                 value={formData.nim}
                 onChange={handleChange}
-                className="w-full bg-transparent border-b border-stone-800 py-3 text-stone-300 focus:outline-none focus:border-white transition-colors placeholder-stone-800"
+                disabled={isSubmitting}
+                className="w-full bg-transparent border-b border-stone-800 py-3 text-stone-300 focus:outline-none focus:border-white transition-colors placeholder-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="12345678"
               />
             </div>
@@ -325,7 +363,8 @@ const Aduan: React.FC = () => {
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className="w-full bg-transparent border-b border-stone-800 py-3 text-stone-300 focus:outline-none focus:border-white transition-colors appearance-none rounded-none"
+                    disabled={isSubmitting}
+                    className="w-full bg-transparent border-b border-stone-800 py-3 text-stone-300 focus:outline-none focus:border-white transition-colors appearance-none rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <option className="bg-stone-900" value="Akademik">Akademik</option>
                     <option className="bg-stone-900" value="Fasilitas">Fasilitas Kampus</option>
@@ -344,7 +383,8 @@ const Aduan: React.FC = () => {
               value={formData.message}
               onChange={handleChange}
               rows={6}
-              className="w-full bg-stone-900/30 border border-stone-800 p-4 text-stone-300 focus:outline-none focus:border-white transition-colors resize-none"
+              disabled={isSubmitting}
+              className="w-full bg-stone-900/30 border border-stone-800 p-4 text-stone-300 focus:outline-none focus:border-white transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Tuliskan keluhan atau saran anda disini..."
               required
             ></textarea>
@@ -357,7 +397,7 @@ const Aduan: React.FC = () => {
                    <button
                       type="button"
                       onClick={handleEnhance}
-                      disabled={isEnhancing || !formData.message}
+                      disabled={isEnhancing || !formData.message || isSubmitting}
                       className="text-[10px] uppercase tracking-wider text-stone-500 hover:text-white disabled:text-stone-800 transition-colors flex items-center gap-2"
                    >
                       {isEnhancing ? 'Sedang Memproses...' : '[ ✨ AI Refine Text ]'}
@@ -366,7 +406,8 @@ const Aduan: React.FC = () => {
                      <button
                        type="button"
                        onClick={handleUndoEnhance}
-                       className="text-[10px] uppercase tracking-wider text-stone-500 hover:text-white transition-colors border-b border-transparent hover:border-stone-500"
+                       disabled={isSubmitting}
+                       className="text-[10px] uppercase tracking-wider text-stone-500 hover:text-white transition-colors border-b border-transparent hover:border-stone-500 disabled:text-stone-800 disabled:border-transparent"
                      >
                        Undo AI
                      </button>
@@ -402,7 +443,8 @@ const Aduan: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
-                    className="uppercase tracking-widest text-stone-500 hover:text-white transition-colors border-b border-stone-700 hover:border-white"
+                    disabled={isSubmitting}
+                    className="uppercase tracking-widest text-stone-500 hover:text-white transition-colors border-b border-stone-700 hover:border-white disabled:text-stone-800 disabled:border-transparent disabled:cursor-not-allowed"
                   >
                     Reset draf
                   </button>
@@ -412,12 +454,34 @@ const Aduan: React.FC = () => {
           )}
 
           <div className="pt-8 text-center">
+            {submitError && (
+              <div className="mb-6 p-4 bg-red-900/20 border border-red-800 text-red-400 text-sm">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">⚠️</span>
+                  <div className="flex-1 text-left">
+                    <p className="font-semibold mb-1">Pengiriman Gagal</p>
+                    <p className="text-xs leading-relaxed">{submitError}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitError(null)}
+                    className="text-red-400 hover:text-red-300 text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
             <button
               type="submit"
-              className="px-12 py-4 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-stone-300 transition-colors w-full md:w-auto"
+              disabled={isSubmitting}
+              className="px-12 py-4 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-stone-300 transition-colors w-full md:w-auto disabled:bg-stone-700 disabled:text-stone-500 disabled:cursor-not-allowed"
             >
-              Kirim Laporan
+              {isSubmitting ? 'Mengirim Laporan...' : 'Kirim Laporan'}
             </button>
+            {isSubmitting && (
+              <p className="text-xs text-stone-400 mt-4">Sedang memproses pengiriman laporan Anda...</p>
+            )}
           </div>
         </form>
       </div>
