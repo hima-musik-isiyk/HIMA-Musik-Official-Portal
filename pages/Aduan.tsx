@@ -1,5 +1,6 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { refineAduanText } from '../services/geminiService';
 
 type AduanFormData = {
   name: string;
@@ -196,9 +197,28 @@ const Aduan: React.FC = () => {
       return next;
     });
     setIsEnhancing(true);
-    const refined = await refineAduanText(formData.message);
-    setFormData(prev => ({ ...prev, message: refined }));
-    setIsEnhancing(false);
+    try {
+      const response = await fetch('/api/refine-aduan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: formData.message })
+      });
+      if (!response.ok) {
+        setIsEnhancing(false);
+        return;
+      }
+      const data = (await response.json()) as { enhanced?: string };
+      const nextMessage =
+        typeof data.enhanced === 'string' && data.enhanced.trim()
+          ? data.enhanced
+          : formData.message;
+      setFormData(prev => ({ ...prev, message: nextMessage }));
+    } catch {
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   const handleUndoEnhance = () => {
