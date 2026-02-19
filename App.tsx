@@ -51,22 +51,22 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case Page.HOME: return <Home setPage={setPage} />;
+      case Page.HOME: return <Home />;
       case Page.ABOUT: return <About />;
       case Page.EVENTS: return <Events />;
       case Page.ADUAN: return <Aduan />;
       case Page.GALLERY: return <Gallery />;
-      default: return <Home setPage={setPage} />;
+      default: return <Home />;
     }
   };
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-200 selection:bg-stone-700 selection:text-white flex flex-col">
-      <Navigation currentPage={currentPage} setPage={setPage} />
+      <Navigation />
       <main className="grow">
         {renderPage()}
       </main>
-      <Footer setPage={setPage} />
+      <Footer />
     </div>
   );
 };

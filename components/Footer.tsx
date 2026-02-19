@@ -1,15 +1,9 @@
+'use client';
+
 import React from 'react';
-import { Page } from '../types';
+import Link from 'next/link';
 
-interface FooterProps {
-  setPage: (page: Page) => void;
-}
-
-const Footer: React.FC<FooterProps> = ({ setPage }) => {
-  const handleNavClick = (page: Page) => {
-    setPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+const Footer: React.FC = () => {
 
   return (
     <footer className="bg-stone-950 border-t border-stone-800 pt-20 pb-10 px-6">
@@ -25,10 +19,26 @@ const Footer: React.FC<FooterProps> = ({ setPage }) => {
         <div>
           <h4 className="text-xs font-bold uppercase tracking-widest text-stone-300 mb-6">Navigasi</h4>
           <ul className="space-y-4 text-sm text-stone-500">
-            <li><button onClick={() => handleNavClick(Page.HOME)} className="hover:text-white transition-colors">Beranda</button></li>
-            <li><button onClick={() => handleNavClick(Page.ABOUT)} className="hover:text-white transition-colors">Tentang Kami</button></li>
-            <li><button onClick={() => handleNavClick(Page.EVENTS)} className="hover:text-white transition-colors">Jadwal Acara</button></li>
-            <li><button onClick={() => handleNavClick(Page.ADUAN)} className="hover:text-white transition-colors">Layanan Aduan</button></li>
+            <li>
+              <Link href="/" className="hover:text-white transition-colors">
+                Beranda
+              </Link>
+            </li>
+            <li>
+              <Link href="/about" className="hover:text-white transition-colors">
+                Tentang Kami
+              </Link>
+            </li>
+            <li>
+              <Link href="/events" className="hover:text-white transition-colors">
+                Jadwal Acara
+              </Link>
+            </li>
+            <li>
+              <Link href="/aduan" className="hover:text-white transition-colors">
+                Layanan Aduan
+              </Link>
+            </li>
           </ul>
         </div>
 
