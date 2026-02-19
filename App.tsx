@@ -11,33 +11,40 @@ import { Page } from './types';
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(Page.HOME);
 
-  // Simple hash router implementation
+  const pathToPage = (path: string): Page => {
+    if (path === '/about') return Page.ABOUT;
+    if (path === '/events') return Page.EVENTS;
+    if (path === '/aduan') return Page.ADUAN;
+    if (path === '/gallery') return Page.GALLERY;
+    return Page.HOME;
+  };
+
+  const pageToPath = (page: Page): string => {
+    if (page === Page.ABOUT) return '/about';
+    if (page === Page.EVENTS) return '/events';
+    if (page === Page.ADUAN) return '/aduan';
+    if (page === Page.GALLERY) return '/gallery';
+    return '/';
+  };
+
+  // Path-based router implementation
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (hash === 'about') setCurrentPage(Page.ABOUT);
-      else if (hash === 'events') setCurrentPage(Page.EVENTS);
-      else if (hash === 'aduan') setCurrentPage(Page.ADUAN);
-      else if (hash === 'gallery') setCurrentPage(Page.GALLERY);
-      else setCurrentPage(Page.HOME);
+    const handlePathChange = () => {
+      setCurrentPage(pathToPage(window.location.pathname));
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Check initial hash
+    window.addEventListener('popstate', handlePathChange);
+    handlePathChange(); // Check initial path
 
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('popstate', handlePathChange);
   }, []);
 
   const setPage = (page: Page) => {
-    let hash = '';
-    switch (page) {
-      case Page.ABOUT: hash = 'about'; break;
-      case Page.EVENTS: hash = 'events'; break;
-      case Page.ADUAN: hash = 'aduan'; break;
-      case Page.GALLERY: hash = 'gallery'; break;
-      default: hash = '';
+    const path = pageToPath(page);
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
     }
-    window.location.hash = hash;
+
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -56,7 +63,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-stone-950 text-stone-200 selection:bg-stone-700 selection:text-white flex flex-col">
       <Navigation currentPage={currentPage} setPage={setPage} />
-      <main className="flex-grow">
+      <main className="grow">
         {renderPage()}
       </main>
       <Footer setPage={setPage} />
