@@ -1,7 +1,6 @@
-import React from 'react';
-import Aduan from '../../pages/Aduan';
+import React from "react";
+import Aduan from "../../pages/Aduan";
 
 export default function AduanPage() {
   return <Aduan />;
 }
-

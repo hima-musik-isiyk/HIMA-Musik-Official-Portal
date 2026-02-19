@@ -1,7 +1,9 @@
 const apiKey = process.env.GROQ_API_KEY || process.env.API_KEY || "";
 
 if (!apiKey) {
-  console.warn("Groq API key is empty. Set GROQ_API_KEY in .env.local and restart the dev server.");
+  console.warn(
+    "Groq API key is empty. Set GROQ_API_KEY in .env.local and restart the dev server.",
+  );
 } else {
   console.info("Groq API key loaded for Groq client.");
 }
@@ -13,7 +15,9 @@ type GroqChatCompletion = {
 const groqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
 const groqModel = "llama-3.1-8b-instant";
 
-export const refineAduanText = async (originalText: string): Promise<string> => {
+export const refineAduanText = async (
+  originalText: string,
+): Promise<string> => {
   if (!originalText.trim()) return originalText;
 
   if (!apiKey) {
@@ -48,7 +52,12 @@ export const refineAduanText = async (originalText: string): Promise<string> => 
     const text = await response.text();
 
     if (!response.ok) {
-      console.error("Groq API Error:", response.status, response.statusText, text);
+      console.error(
+        "Groq API Error:",
+        response.status,
+        response.statusText,
+        text,
+      );
       return originalText;
     }
 

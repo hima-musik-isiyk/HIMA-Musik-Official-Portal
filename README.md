@@ -4,6 +4,7 @@ This repository contains the official portal for Himpunan Mahasiswa Musik (HIMA 
 It is a single-page React application with a custom hash-based router, built with Vite and Tailwind CSS.
 
 The portal focuses on:
+
 - Presenting organizational information for the 2026/2027 cabinet
 - Showcasing events and visual documentation
 - Providing a student feedback channel with AI-assisted text refinement
@@ -40,11 +41,13 @@ The portal focuses on:
 ### Installation
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Create a `.env.local` file in the project root and configure the environment variables:
+
    ```bash
    GROQ_API_KEY=your_groq_api_key
    TELEGRAM_BOT_TOKEN=your_telegram_bot_token

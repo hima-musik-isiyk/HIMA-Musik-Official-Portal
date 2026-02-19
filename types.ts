@@ -1,9 +1,9 @@
 export enum Page {
-  HOME = 'HOME',
-  ABOUT = 'ABOUT',
-  EVENTS = 'EVENTS',
-  ADUAN = 'ADUAN',
-  GALLERY = 'GALLERY'
+  HOME = "HOME",
+  ABOUT = "ABOUT",
+  EVENTS = "EVENTS",
+  ADUAN = "ADUAN",
+  GALLERY = "GALLERY",
 }
 
 export interface EventItem {

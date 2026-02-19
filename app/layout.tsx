@@ -1,8 +1,8 @@
-import React from 'react';
-import Script from 'next/script';
-import '../index.css';
-import Navigation from '../components/Navigation';
-import Footer from '../components/Footer';
+import React from "react";
+import Script from "next/script";
+import "../index.css";
+import Navigation from "../components/Navigation";
+import Footer from "../components/Footer";
 
 type RootLayoutProps = {
   children: React.ReactNode;
@@ -35,12 +35,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
 })();`}
         </Script>
         <Navigation />
-        <main className="grow pt-20">
-          {children}
-        </main>
+        <main className="grow pt-20">{children}</main>
         <Footer />
       </body>
     </html>
   );
 }
-
