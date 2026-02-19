@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const currentPath = pathname ?? '/';
+  const currentPath = pathname ?? "/";
 
   const navItems = [
-    { href: '/', label: 'Beranda' },
-    { href: '/about', label: 'Tentang' },
-    { href: '/events', label: 'Acara' },
-    { href: '/gallery', label: 'Galeri' },
-    { href: '/aduan', label: 'Aduan' },
+    { href: "/", label: "Beranda" },
+    { href: "/about", label: "Tentang" },
+    { href: "/events", label: "Acara" },
+    { href: "/gallery", label: "Galeri" },
+    { href: "/aduan", label: "Aduan" },
   ];
 
   return (
@@ -33,9 +33,13 @@ const Navigation: React.FC = () => {
               key={item.href}
               href={item.href}
               className={`text-xs uppercase tracking-[0.2em] font-medium transition-all duration-300 ${
-                (item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href))
-                  ? 'text-white border-b border-white pb-1' 
-                  : 'text-stone-500 hover:text-stone-300'
+                (
+                  item.href === "/"
+                    ? currentPath === "/"
+                    : currentPath.startsWith(item.href)
+                )
+                  ? "text-white border-b border-white pb-1"
+                  : "text-stone-500 hover:text-stone-300"
               }`}
             >
               {item.label}
@@ -43,11 +47,11 @@ const Navigation: React.FC = () => {
           ))}
         </div>
 
-        <button 
+        <button
           className="md:hidden text-xs uppercase tracking-widest text-stone-300"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
-          {isMenuOpen ? 'Close' : 'Menu'}
+          {isMenuOpen ? "Close" : "Menu"}
         </button>
       </div>
 
@@ -59,9 +63,13 @@ const Navigation: React.FC = () => {
               href={item.href}
               onClick={() => setIsMenuOpen(false)}
               className={`text-left text-sm uppercase tracking-[0.2em] ${
-                (item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href))
-                  ? 'text-white pl-4 border-l border-white'
-                  : 'text-stone-500'
+                (
+                  item.href === "/"
+                    ? currentPath === "/"
+                    : currentPath.startsWith(item.href)
+                )
+                  ? "text-white pl-4 border-l border-white"
+                  : "text-stone-500"
               }`}
             >
               {item.label}
