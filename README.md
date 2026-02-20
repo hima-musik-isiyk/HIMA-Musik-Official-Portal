@@ -5,7 +5,7 @@ It is a single-page React application with a custom hash-based router, built wit
 
 The portal focuses on:
 
-- Presenting organizational information for the 2026/2027 cabinet
+- Presenting organizational information for the 2026 cabinet
 - Showcasing events and visual documentation
 - Providing a student feedback channel with AI-assisted text refinement
 

@@ -15,7 +15,7 @@ const About: React.FC = () => {
           Profil Organisasi
         </p>
         <h1 className="font-serif text-5xl md:text-7xl text-white mb-12">
-          Kabinet <span className="italic text-stone-500">2026/2027</span>
+          Kabinet <span className="italic text-stone-500">2026</span>
         </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-24">
