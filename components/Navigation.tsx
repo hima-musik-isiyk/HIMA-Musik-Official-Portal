@@ -18,63 +18,72 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-stone-950/80 backdrop-blur-md border-b border-stone-800">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5 transition-all duration-500">
+      <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
         <Link
           href="/"
-          className="cursor-pointer font-serif text-2xl tracking-tighter hover:text-white transition-colors text-stone-300"
+          className="cursor-pointer font-serif text-2xl tracking-widest hover:text-gold-300 transition-colors text-white flex items-center gap-2"
         >
-          HIMA<span className="italic text-stone-500">MUSIK</span>
+          HIMA<span className="italic text-gold-400 font-light">MUSIK</span>
         </Link>
 
-        <div className="hidden md:flex space-x-12">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`text-xs uppercase tracking-[0.2em] font-medium transition-all duration-300 ${
-                (
-                  item.href === "/"
-                    ? currentPath === "/"
-                    : currentPath.startsWith(item.href)
-                )
-                  ? "text-white border-b border-white pb-1"
-                  : "text-stone-500 hover:text-stone-300"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div className="hidden md:flex space-x-14">
+          {navItems.map((item) => {
+            const isActive = item.href === "/"
+              ? currentPath === "/"
+              : currentPath.startsWith(item.href);
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-[11px] uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group ${
+                  isActive
+                    ? "text-gold-300"
+                    : "text-neutral-500 hover:text-white"
+                }`}
+              >
+                {item.label}
+                <span 
+                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-[1px] bg-gold-400 transition-all duration-500 ${
+                    isActive ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
+                  }`}
+                />
+              </Link>
+            );
+          })}
         </div>
 
         <button
-          className="md:hidden text-xs uppercase tracking-widest text-stone-300"
+          className="md:hidden text-[11px] uppercase tracking-widest text-neutral-400 hover:text-gold-300 transition-colors"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
-          {isMenuOpen ? "Close" : "Menu"}
+          {isMenuOpen ? "Tutup" : "Menu"}
         </button>
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden absolute top-20 left-0 w-full bg-stone-950 border-b border-stone-800 p-6 flex flex-col space-y-6 animate-fade-in">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsMenuOpen(false)}
-              className={`text-left text-sm uppercase tracking-[0.2em] ${
-                (
-                  item.href === "/"
-                    ? currentPath === "/"
-                    : currentPath.startsWith(item.href)
-                )
-                  ? "text-white pl-4 border-l border-white"
-                  : "text-stone-500"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <div className="md:hidden absolute top-24 left-0 w-full bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5 p-8 flex flex-col space-y-8 animate-fade-in">
+          {navItems.map((item) => {
+            const isActive = item.href === "/"
+              ? currentPath === "/"
+              : currentPath.startsWith(item.href);
+              
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsMenuOpen(false)}
+                className={`text-left text-xs uppercase tracking-[0.25em] transition-all duration-300 ${
+                  isActive
+                    ? "text-gold-300 pl-4 border-l border-gold-400"
+                    : "text-neutral-500 hover:text-white hover:pl-2"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
       )}
     </nav>
