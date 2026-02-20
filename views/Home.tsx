@@ -8,20 +8,16 @@ const Home: React.FC = () => {
     <div className="w-full bg-[#0a0a0a]">
       {/* Hero Section */}
       <section className="relative h-screen flex flex-col justify-center px-6 border-b border-white/5 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://picsum.photos/1920/1080?grayscale&blur=2')] bg-cover bg-center opacity-10"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_60%)]"></div>
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gold-900/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-stone-800/20 rounded-full blur-[120px]" />
 
         <div className="relative z-10 max-w-7xl mx-auto w-full">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="h-[1px] w-12 bg-gold-500/50"></div>
-            <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-gold-400 font-medium">
-              Himpunan Mahasiswa Musik
-            </p>
-          </div>
-          <h1 className="font-serif text-6xl md:text-8xl lg:text-[10rem] text-white leading-[0.9] tracking-tight">
-            KABINET <br />
-            <span className="italic text-gold-500/80 font-light">2026</span>
+          <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-stone-300/50 font-medium mb-12">
+            Institut Seni Indonesia Yogyakarta
+          </p>
+          <h1 className="font-serif text-6xl md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight">
+            HIMA <br />
+            <span className="italic text-stone-700/50 hover:text-stone-600 transition-colors duration-1000 font-light">MUSIK</span>
           </h1>
           <div className="mt-16 md:mt-24 flex flex-col md:flex-row gap-10 items-start md:items-center">
             <Link
