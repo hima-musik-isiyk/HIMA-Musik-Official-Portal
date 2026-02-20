@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extractEnhancedText } from "@/services/refineParser";
 
 type GroqChatCompletion = {
   choices: { message?: { content?: string } }[];
@@ -62,8 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ enhanced: originalText });
     }
 
-    const match = content.match(/<enhanced>([\s\S]*?)<\/enhanced>/i);
-    const enhanced = match ? match[1].trim() : content.trim();
+    const enhanced = extractEnhancedText(content, originalText);
     return NextResponse.json({ enhanced: enhanced || originalText });
   } catch (error) {
     console.error("Error refining text with Groq:", error);
