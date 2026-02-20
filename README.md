@@ -77,7 +77,7 @@ High-level structure:
 - `App.tsx` – Root application shell with simple hash-based routing
 - `pages/` – Top-level pages (Home, About, Events, Aduan, Gallery)
 - `components/` – Shared UI components (Navigation, Footer)
-- `services/geminiService.ts` – AI helpers for text refinement using Groq
+- `services/aiTextService.ts` – AI helpers for text refinement using Groq
 - `api/submit.ts` – Serverless endpoint that forwards Aduan submissions to Telegram
 
 ## Deployment Notes
