@@ -17,7 +17,7 @@ const Home: React.FC = () => {
           </p>
           <h1 className="font-serif text-5xl md:text-8xl lg:text-9xl text-white leading-tight mix-blend-overlay">
             KABINET <br />
-            <span className="italic text-stone-400">2026/2027</span>
+            <span className="italic text-stone-400">2026</span>
           </h1>
           <div className="mt-12 md:mt-16 flex flex-col md:flex-row gap-8 items-start md:items-center">
             <Link
