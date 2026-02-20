@@ -8,7 +8,17 @@ export async function POST(request: Request) {
     const body = await request
       .json()
       .catch(() => ({}) as Record<string, unknown>);
-    const { name, nim, category, message } = body as Record<string, unknown>;
+    const { intent, name, nim, category, message } = body as Record<
+      string,
+      unknown
+    >;
+
+    if (intent !== "submit-aduan") {
+      return NextResponse.json(
+        { error: "Invalid submit intent" },
+        { status: 400 },
+      );
+    }
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json(

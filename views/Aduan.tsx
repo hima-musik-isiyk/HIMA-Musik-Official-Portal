@@ -259,7 +259,10 @@ const Aduan: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          intent: "submit-aduan",
+        }),
       });
 
       if (!response.ok) {
