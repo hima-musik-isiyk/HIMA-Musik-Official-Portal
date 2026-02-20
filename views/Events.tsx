@@ -1,25 +1,31 @@
 import React from "react";
 const Events: React.FC = () => {
   return (
-    <div className="pt-32 pb-20 px-6 min-h-screen bg-stone-950">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 pb-6 border-b border-stone-800">
+    <div className="pt-40 pb-32 px-6 min-h-screen bg-[#0a0a0a] relative">
+      <div className="absolute top-0 left-0 w-1/2 h-screen bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 pb-10 border-b border-white/5 relative">
+          <div className="absolute bottom-0 left-0 w-32 h-[1px] bg-gold-500/50"></div>
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-stone-500 mb-2">
-              Agenda
-            </p>
-            <h1 className="font-serif text-4xl md:text-6xl text-white">
-              Kalender Acara
+            <div className="flex items-center gap-4 mb-6">
+              <div className="h-[1px] w-8 bg-gold-500/50"></div>
+              <p className="text-[10px] uppercase tracking-[0.4em] text-gold-400 font-medium">
+                Agenda
+              </p>
+            </div>
+            <h1 className="font-serif text-5xl md:text-7xl text-white tracking-tight">
+              Kalender <span className="italic text-gold-500/80 font-light">Acara</span>
             </h1>
           </div>
-          <p className="text-stone-600 text-sm mt-4 md:mt-0">
+          <p className="text-neutral-500 text-sm mt-8 md:mt-0 font-light tracking-widest uppercase">
             Semester Genap 2026
           </p>
         </div>
 
         <div className="space-y-0">
-          <div className="border border-dashed border-stone-800 rounded-lg py-10 px-6 text-center text-stone-500 text-sm tracking-widest uppercase">
-            Konten kalender acara akan segera diisi
+          <div className="border border-white/5 bg-white/[0.01] rounded-none py-24 px-6 text-center text-neutral-500 text-[11px] tracking-[0.3em] uppercase relative overflow-hidden group hover:border-gold-500/30 transition-colors duration-500">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            <span className="relative z-10">Konten kalender acara akan segera diisi</span>
           </div>
         </div>
       </div>
