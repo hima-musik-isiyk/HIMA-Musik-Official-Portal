@@ -68,7 +68,7 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto mt-32 pt-12 border-t border-stone-900/50 flex flex-col md:flex-row justify-between items-center text-[8px] uppercase tracking-[0.5em] text-stone-700">
+      <div className="max-w-7xl mx-auto mt-32 pt-12 border-t border-stone-900/50 flex flex-col md:flex-row justify-between items-center text-xs uppercase tracking-[0.5em] text-stone-700">
         <p>&copy; {currentYear} HIMA MUSIK ISI YOGYAKARTA</p>
         <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500">
           Emergence
