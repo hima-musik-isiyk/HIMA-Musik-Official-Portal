@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-gold-50: #fffbeb;
-  --color-gold-100: #fef3c7;
-  --color-gold-200: #fde68a;
-  --color-gold-300: #fcd34d;
-  --color-gold-400: #fbbf24;
-  --color-gold-500: #f59e0b;
-  --color-gold-600: #d97706;
-  --color-gold-700: #b45309;
-  --color-gold-800: #92400e;
-  --color-gold-900: #78350f;
-  --color-gold-950: #451a03;
+  --color-gold-50: #fff4ed;
+  --color-gold-100: #ffe5d6;
+  --color-gold-200: #ffc7ad;
+  --color-gold-300: #ffa07a;
+  --color-gold-400: #ff7f45;
+  --color-gold-500: #ff6501;
+  --color-gold-600: #e25500;
+  --color-gold-700: #b74300;
+  --color-gold-800: #8f3500;
+  --color-gold-900: #742c00;
+  --color-gold-950: #3f1600;
 }
 
 body {
@@ -34,7 +34,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d4a64d;
+  background: #ff7f45;
 }
 
 .font-sans {
@@ -53,12 +53,12 @@ body {
 
 /* Custom utilities for elite aesthetic */
 .text-gold-gradient {
-  background: linear-gradient(to right, #dfc279, #b1702a);
+  background: linear-gradient(to right, #ffa07a, #b74300);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .border-gold-gradient {
-  border-image: linear-gradient(to right, #dfc279, #b1702a) 1;
+  border-image: linear-gradient(to right, #ffa07a, #b74300) 1;
 }

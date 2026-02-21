@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import LogoHima from "./LogoHima";
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,19 +21,22 @@ const Navigation: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5 transition-all duration-500">
       <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
-        <Link
-          href="/"
-          className="cursor-pointer font-serif text-2xl tracking-widest hover:text-gold-300 transition-colors text-white flex items-center gap-2"
-        >
-          HIMA<span className="italic text-gold-400 font-light">MUSIK</span>
+        <Link href="/" className="cursor-pointer">
+          <LogoHima
+            lineColor="white"
+            glyphColor="var(--color-gold-500)"
+            textColor="white"
+            className="h-32 w-auto"
+          />
         </Link>
 
         <div className="hidden md:flex space-x-14">
           {navItems.map((item) => {
-            const isActive = item.href === "/"
-              ? currentPath === "/"
-              : currentPath.startsWith(item.href);
-            
+            const isActive =
+              item.href === "/"
+                ? currentPath === "/"
+                : currentPath.startsWith(item.href);
+
             return (
               <Link
                 key={item.href}
@@ -44,9 +48,11 @@ const Navigation: React.FC = () => {
                 }`}
               >
                 {item.label}
-                <span 
+                <span
                   className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-[1px] bg-gold-400 transition-all duration-500 ${
-                    isActive ? "w-full opacity-100" : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
+                    isActive
+                      ? "w-full opacity-100"
+                      : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
                   }`}
                 />
               </Link>
@@ -65,10 +71,11 @@ const Navigation: React.FC = () => {
       {isMenuOpen && (
         <div className="md:hidden absolute top-24 left-0 w-full bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/5 p-8 flex flex-col space-y-8 animate-fade-in">
           {navItems.map((item) => {
-            const isActive = item.href === "/"
-              ? currentPath === "/"
-              : currentPath.startsWith(item.href);
-              
+            const isActive =
+              item.href === "/"
+                ? currentPath === "/"
+                : currentPath.startsWith(item.href);
+
             return (
               <Link
                 key={item.href}
