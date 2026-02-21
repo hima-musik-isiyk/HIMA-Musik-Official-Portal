@@ -138,6 +138,13 @@ const Navigation: React.FC = () => {
     mobileLinkRefs.current[index] = element;
   };
 
+  const handleNavItemClick = (href: string) => {
+    if (href === "/" && typeof window !== "undefined") {
+      window.sessionStorage.setItem("skipHomeGsapOnce", "true");
+    }
+    setIsMenuOpen(false);
+  };
+
   return (
     <>
       <nav ref={navBarRef} className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
@@ -171,6 +178,7 @@ const Navigation: React.FC = () => {
                   key={item.href}
                   href={item.href}
                   ref={(element) => setDesktopLinkRef(element, index)}
+                  onClick={() => handleNavItemClick(item.href)}
                   className={`text-sm uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group opacity-100 ${
                     isActive
                       ? "text-gold-500"
@@ -219,7 +227,7 @@ const Navigation: React.FC = () => {
                 key={item.href}
                 href={item.href}
                 ref={(element) => setMobileLinkRef(element, idx)}
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => handleNavItemClick(item.href)}
                 className={`text-3xl font-serif italic transition-all duration-500 ${
                   isActive
                     ? "text-gold-500"
