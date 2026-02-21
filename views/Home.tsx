@@ -82,19 +82,19 @@ const Home: React.FC = () => {
     <div ref={rootRef} className="w-full bg-[#0a0a0a]">
       {/* Hero Section */}
       <section className="relative h-[calc(100svh-5rem)] flex flex-col justify-center px-6 border-b border-white/5 overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gold-900/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gold-300/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-stone-800/20 rounded-full blur-[120px]" />
 
         <div className="relative z-10 max-w-7xl mx-auto w-full">
           <p
             ref={heroEyebrowRef}
-            className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-stone-300/50 font-medium mb-12"
+            className="text-xs md:text-sm uppercase tracking-[0.4em] text-stone-300/50 font-medium mb-12"
           >
             Institut Seni Indonesia Yogyakarta
           </p>
           <h1
             ref={heroTitleRef}
-            className="font-serif text-6xl md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight"
+            className="font-serif text-[8rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight"
           >
             HIMA <br />
             <span className="italic text-stone-700/50 hover:text-stone-600 transition-colors duration-1000 font-light">
@@ -107,7 +107,7 @@ const Home: React.FC = () => {
           >
             <Link
               href="/about"
-              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-600 hover:text-white"
+              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-300 hover:text-white"
             >
               <span className="relative z-10">Tentang Kami</span>
               <div className="absolute inset-0 bg-gold-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>

@@ -11,7 +11,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="id">
-      <body className="min-h-screen bg-[#0a0a0a] text-neutral-200 selection:bg-gold-600/30 selection:text-gold-200 flex flex-col font-sans">
+      <body className="min-h-screen bg-[#0a0a0a] text-neutral-200 selection:bg-gold-300/30 selection:text-gold-500 flex flex-col font-sans">
         <Script id="legacy-hash-route-redirect" strategy="beforeInteractive">
           {`(() => {
   const rawHash = window.location.hash.slice(1).trim();
