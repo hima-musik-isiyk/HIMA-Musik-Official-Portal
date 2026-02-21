@@ -324,7 +324,7 @@ const Aduan: React.FC = () => {
         <div className="text-center relative z-10">
           <div className="flex items-center justify-center gap-4 mb-8">
             <div className="h-[1px] w-8 bg-gold-500/50"></div>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-gold-400 font-medium">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
               Status Laporan
             </p>
             <div className="h-[1px] w-8 bg-gold-500/50"></div>
@@ -349,7 +349,7 @@ const Aduan: React.FC = () => {
             }}
             className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-[10px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-500/50"
           >
-            <span className="relative z-10 group-hover:text-gold-400 transition-colors duration-500">Kirim laporan lain</span>
+            <span className="relative z-10 group-hover:text-gold-600 transition-colors duration-500">Kirim laporan lain</span>
             <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
           </button>
         </div>
@@ -363,7 +363,7 @@ const Aduan: React.FC = () => {
       <div className="w-full max-w-3xl relative z-10">
         <div className="flex items-center justify-center gap-4 mb-8">
           <div className="h-[1px] w-8 bg-gold-500/50"></div>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-gold-400 font-medium text-center">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium text-center">
             Layanan Advokasi
           </p>
           <div className="h-[1px] w-8 bg-gold-500/50"></div>
@@ -379,7 +379,7 @@ const Aduan: React.FC = () => {
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold-500/20 to-transparent"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="group relative">
-              <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-400 transition-colors duration-500">
+              <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-600 transition-colors duration-500">
                 Nama (Opsional)
               </label>
               <input
@@ -393,7 +393,7 @@ const Aduan: React.FC = () => {
               />
             </div>
             <div className="group relative">
-              <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-400 transition-colors duration-500">
+              <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-600 transition-colors duration-500">
                 NIM (Opsional)
               </label>
               <input
@@ -409,7 +409,7 @@ const Aduan: React.FC = () => {
           </div>
 
           <div className="group relative">
-            <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-400 transition-colors duration-500">
+            <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-600 transition-colors duration-500">
               Kategori
             </label>
             <div className="relative">
@@ -433,14 +433,14 @@ const Aduan: React.FC = () => {
                   Lainnya
                 </option>
               </select>
-              <div className="absolute right-0 top-4 pointer-events-none text-[10px] text-gold-500/50 group-focus-within:text-gold-400 transition-colors duration-500">
+              <div className="absolute right-0 top-4 pointer-events-none text-[10px] text-gold-500/50 group-focus-within:text-gold-600 transition-colors duration-500">
                 ▼
               </div>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-400 transition-colors duration-500">
+            <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-600 transition-colors duration-500">
               Pesan
             </label>
             <textarea
@@ -463,7 +463,7 @@ const Aduan: React.FC = () => {
                   type="button"
                   onClick={handleEnhance}
                   disabled={isEnhancing || !formData.message || isSubmitting}
-                  className="text-[10px] uppercase tracking-[0.2em] text-gold-500/60 hover:text-gold-400 disabled:text-neutral-700 transition-colors duration-300 flex items-center gap-2"
+                  className="text-[10px] uppercase tracking-[0.2em] text-gold-500/60 hover:text-gold-600 disabled:text-neutral-700 transition-colors duration-300 flex items-center gap-2"
                 >
                   {isEnhancing
                     ? "Sedang Memproses..."
@@ -547,7 +547,7 @@ const Aduan: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative px-12 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-400 hover:text-white w-full md:w-auto disabled:bg-[#222] disabled:text-neutral-600 disabled:cursor-not-allowed"
+              className="group relative px-12 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-600 hover:text-white w-full md:w-auto disabled:bg-[#222] disabled:text-neutral-600 disabled:cursor-not-allowed"
             >
               <span className="relative z-10">{isSubmitting ? "Mengirim Laporan..." : "Kirim Laporan"}</span>
               {!isSubmitting && <div className="absolute inset-0 bg-gold-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>}
@@ -581,7 +581,7 @@ const Aduan: React.FC = () => {
               <button
                 type="button"
                 onClick={handleResetDraft}
-                className="px-6 py-3 bg-white text-black hover:bg-gold-400 hover:text-white transition-colors duration-300"
+                className="px-6 py-3 bg-white text-black hover:bg-gold-600 hover:text-white transition-colors duration-300"
               >
                 Ya, reset
               </button>

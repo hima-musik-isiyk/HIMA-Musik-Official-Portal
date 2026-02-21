@@ -24,7 +24,7 @@ const Home: React.FC = () => {
           <div className="mt-16 md:mt-24 flex flex-col md:flex-row gap-10 items-start md:items-center">
             <Link
               href="/about"
-              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-400 hover:text-white"
+              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-600 hover:text-white"
             >
               <span className="relative z-10">Tentang Kami</span>
               <div className="absolute inset-0 bg-gold-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>

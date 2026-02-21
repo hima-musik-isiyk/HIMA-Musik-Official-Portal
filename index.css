@@ -34,7 +34,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff7f45;
+  background: var(--color-gold-500);
 }
 
 .font-sans {

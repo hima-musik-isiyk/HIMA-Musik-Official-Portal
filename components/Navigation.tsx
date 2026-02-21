@@ -43,13 +43,13 @@ const Navigation: React.FC = () => {
                 href={item.href}
                 className={`text-[11px] uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group ${
                   isActive
-                    ? "text-gold-300"
+                    ? "text-gold-500"
                     : "text-neutral-500 hover:text-white"
                 }`}
               >
                 {item.label}
                 <span
-                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-[1px] bg-gold-400 transition-all duration-500 ${
+                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-[1px] bg-gold-500 transition-all duration-500 ${
                     isActive
                       ? "w-full opacity-100"
                       : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
@@ -61,7 +61,7 @@ const Navigation: React.FC = () => {
         </div>
 
         <button
-          className="md:hidden text-[11px] uppercase tracking-widest text-neutral-400 hover:text-gold-300 transition-colors"
+          className="md:hidden text-[11px] uppercase tracking-widest text-neutral-400 hover:text-gold-600 transition-colors"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? "Tutup" : "Menu"}
@@ -83,7 +83,7 @@ const Navigation: React.FC = () => {
                 onClick={() => setIsMenuOpen(false)}
                 className={`text-left text-xs uppercase tracking-[0.25em] transition-all duration-300 ${
                   isActive
-                    ? "text-gold-300 pl-4 border-l border-gold-400"
+                    ? "text-gold-500 pl-4 border-l border-gold-500"
                     : "text-neutral-500 hover:text-white hover:pl-2"
                 }`}
               >
