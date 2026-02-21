@@ -7,6 +7,7 @@ import LogoHima from "./LogoHima";
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
 
@@ -21,12 +22,17 @@ const Navigation: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5 transition-all duration-500">
       <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
-        <Link href="/" className="cursor-pointer">
+        <Link
+          href="/"
+          className="cursor-pointer"
+          onMouseEnter={() => setIsLogoHovered(true)}
+          onMouseLeave={() => setIsLogoHovered(false)}
+        >
           <LogoHima
-            lineColor="white"
-            glyphColor="var(--color-gold-500)"
-            textColor="white"
-            className="h-32 w-auto"
+            lineColor={isLogoHovered ? "white" : "white"}
+            glyphColor={isLogoHovered ? "white" : "var(--color-gold-500)"}
+            textColor={isLogoHovered ? "white" : "white"}
+            className="h-32 w-auto transition-colors duration-300"
           />
         </Link>
 

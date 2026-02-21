@@ -25,41 +25,102 @@ const LogoHima: React.FC<LogoHimaProps> = ({
         {/* Lines */}
         <g>
           <g transform="matrix(1.291412,0,0,1.291412,-182.87743,-147.018893)">
-            <path d="M156,461L325,461" fill="none" stroke={lineColor} strokeWidth="2.42" />
+            <path
+              d="M156,461L325,461"
+              fill="none"
+              strokeWidth="2.42"
+              style={{ stroke: lineColor, transition: "stroke 300ms ease" }}
+            />
           </g>
           <g transform="matrix(1.291412,0,0,1.291412,-182.87743,-119.253537)">
-            <path d="M156,461L325,461" fill="none" stroke={lineColor} strokeWidth="2.42" />
+            <path
+              d="M156,461L325,461"
+              fill="none"
+              strokeWidth="2.42"
+              style={{ stroke: lineColor, transition: "stroke 300ms ease" }}
+            />
           </g>
           <g transform="matrix(1.291412,0,0,1.291412,-182.87743,-91.488182)">
-            <path d="M156,461L325,461" fill="none" stroke={lineColor} strokeWidth="2.42" />
+            <path
+              d="M156,461L325,461"
+              fill="none"
+              strokeWidth="2.42"
+              style={{ stroke: lineColor, transition: "stroke 300ms ease" }}
+            />
           </g>
           <g transform="matrix(1.291412,0,0,1.291412,-182.87743,-63.722826)">
-            <path d="M156,461L325,461" fill="none" stroke={lineColor} strokeWidth="2.42" />
+            <path
+              d="M156,461L325,461"
+              fill="none"
+              strokeWidth="2.42"
+              style={{ stroke: lineColor, transition: "stroke 300ms ease" }}
+            />
           </g>
           <g transform="matrix(1.291412,0,0,1.291412,-182.87743,-35.957471)">
-            <path d="M156,461L325,461" fill="none" stroke={lineColor} strokeWidth="2.42" />
+            <path
+              d="M156,461L325,461"
+              fill="none"
+              strokeWidth="2.42"
+              style={{ stroke: lineColor, transition: "stroke 300ms ease" }}
+            />
           </g>
         </g>
 
         {/* Glyph */}
         <g>
           <g transform="matrix(1.291412,0,0,7.231907,-176.420371,-2718.736518)">
-            <rect x="317" y="434" width="14" height="25" fill={glyphColor} />
+            <rect
+              x="317"
+              y="434"
+              width="14"
+              height="25"
+              style={{ fill: glyphColor, transition: "fill 300ms ease" }}
+            />
           </g>
           <g transform="matrix(3.773419,-3.777321,3.031481,3.02835,-2276.284382,387.878671)">
-            <rect x="317" y="434" width="14" height="25" fill={glyphColor} />
+            <rect
+              x="317"
+              y="434"
+              width="14"
+              height="25"
+              style={{ fill: glyphColor, transition: "fill 300ms ease" }}
+            />
           </g>
           <g transform="matrix(6.075937,-6.08222,0.446656,0.446194,-1819.747829,2303.741034)">
-            <rect x="317" y="434" width="14" height="25" fill={glyphColor} />
+            <rect
+              x="317"
+              y="434"
+              width="14"
+              height="25"
+              style={{ fill: glyphColor, transition: "fill 300ms ease" }}
+            />
           </g>
           <g transform="matrix(3.682456,-3.492579,2.991335,3.153962,-2344.324062,235.048024)">
-            <rect x="317" y="434" width="14" height="25" fill={glyphColor} />
+            <rect
+              x="317"
+              y="434"
+              width="14"
+              height="25"
+              style={{ fill: glyphColor, transition: "fill 300ms ease" }}
+            />
           </g>
           <g transform="matrix(7.859034,-7.453802,0.730417,0.770127,-2630.146603,2585.135639)">
-            <rect x="317" y="434" width="14" height="25" fill={glyphColor} />
+            <rect
+              x="317"
+              y="434"
+              width="14"
+              height="25"
+              style={{ fill: glyphColor, transition: "fill 300ms ease" }}
+            />
           </g>
           <g transform="matrix(6.330114,-6.003717,0.45017,0.474644,-2117.893172,2229.161406)">
-            <rect x="317" y="434" width="14" height="25" fill={glyphColor} />
+            <rect
+              x="317"
+              y="434"
+              width="14"
+              height="25"
+              style={{ fill: glyphColor, transition: "fill 300ms ease" }}
+            />
           </g>
         </g>
 
@@ -69,10 +130,10 @@ const LogoHima: React.FC<LogoHimaProps> = ({
             <text
               x="472.124"
               y="595.215"
-              fill={textColor}
               fontFamily="LucidaGrande, Lucida Grande, sans-serif"
               fontWeight="500"
               fontSize="45.833"
+              style={{ fill: textColor, transition: "fill 300ms ease" }}
             >
               Hima Musik
             </text>
@@ -81,10 +142,10 @@ const LogoHima: React.FC<LogoHimaProps> = ({
             <text
               x="472.124"
               y="595.215"
-              fill={textColor}
               fontFamily="LucidaGrande, Lucida Grande, sans-serif"
               fontWeight="500"
               fontSize="45.833"
+              style={{ fill: textColor, transition: "fill 300ms ease" }}
             >
               Yogyakarta
             </text>
@@ -93,10 +154,10 @@ const LogoHima: React.FC<LogoHimaProps> = ({
             <text
               x="472.124"
               y="595.215"
-              fill={textColor}
               fontFamily="LucidaGrande, Lucida Grande, sans-serif"
               fontWeight="500"
               fontSize="45.833"
+              style={{ fill: textColor, transition: "fill 300ms ease" }}
             >
               Institut Seni Indonesia
             </text>
