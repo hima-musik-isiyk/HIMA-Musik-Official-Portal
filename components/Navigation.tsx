@@ -49,7 +49,7 @@ const Navigation: React.FC = () => {
               >
                 {item.label}
                 <span
-                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-[1px] bg-gold-500 transition-all duration-500 ${
+                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-px bg-gold-500 transition-all duration-500 ${
                     isActive
                       ? "w-full opacity-100"
                       : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"

@@ -6,7 +6,7 @@ import Link from "next/link";
 const Footer: React.FC = () => {
   return (
     <footer className="bg-[#0a0a0a] border-t border-white/5 pt-24 pb-12 px-6 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-gold-500/20 to-transparent"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
         <div className="col-span-1 md:col-span-2">
           <h3 className="font-serif text-3xl mb-6 text-white tracking-widest">
