@@ -52,7 +52,7 @@ body {
 }
 
 .font-serif {
-  font-family: "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif), ui-serif, Georgia, "Times New Roman", serif;
 }
 
 /* Custom utilities for elite aesthetic */

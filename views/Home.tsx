@@ -1,23 +1,41 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import BlurText from "@/components/BlurText";
+import TextPressure from "@/components/TextPressure";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const Home: React.FC = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const heroEyebrowRef = useRef<HTMLParagraphElement | null>(null);
-  const heroTitleRef = useRef<HTMLHeadingElement | null>(null);
   const heroCtaRef = useRef<HTMLDivElement | null>(null);
   const quickLinksRef = useRef<HTMLDivElement | null>(null);
-  const cardRefs = useRef<HTMLAnchorElement[]>([]);
   const skipAnimationRef = useRef(false);
+  const [disableEntranceEffects, setDisableEntranceEffects] = useState(false);
+  const [disablePressureEffect, setDisablePressureEffect] = useState(false);
+  const [musikPressureActive, setMusikPressureActive] = useState(false);
+
+  useEffect(() => {
+    if (disablePressureEffect) {
+      setMusikPressureActive(false);
+      return;
+    }
+
+    if (disableEntranceEffects) {
+      setMusikPressureActive(true);
+      return;
+    }
+
+    setMusikPressureActive(false);
+  }, [disableEntranceEffects, disablePressureEffect]);
 
   useEffect(() => {
     if (skipAnimationRef.current) {
+      setDisableEntranceEffects(true);
       return;
     }
 
@@ -28,16 +46,19 @@ const Home: React.FC = () => {
     if (shouldSkipAnimation && typeof window !== "undefined") {
       skipAnimationRef.current = true;
       window.sessionStorage.removeItem("skipHomeGsapOnce");
+      setDisableEntranceEffects(true);
       return;
     }
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) {
+      setDisableEntranceEffects(true);
+      setDisablePressureEffect(true);
       return;
     }
 
     const context = gsap.context(() => {
-      if (heroEyebrowRef.current && heroTitleRef.current && heroCtaRef.current) {
+      if (heroEyebrowRef.current && heroCtaRef.current) {
         const heroTimeline = gsap.timeline({ defaults: { ease: "power3.out" } });
         heroTimeline
           .from(heroEyebrowRef.current, {
@@ -46,27 +67,24 @@ const Home: React.FC = () => {
             duration: 0.6,
           })
           .from(
-            heroTitleRef.current,
-            {
-              y: 32,
-              opacity: 0,
-              duration: 0.9,
-            },
-            "-=0.25"
-          )
-          .from(
-            heroCtaRef.current,
+            Array.from(heroCtaRef.current.children),
             {
               y: 20,
               opacity: 0,
               duration: 0.7,
+              stagger: 0.15,
             },
             "-=0.4"
           );
       }
 
-      if (quickLinksRef.current && cardRefs.current.length > 0) {
-        gsap.from(cardRefs.current, {
+      if (quickLinksRef.current) {
+        const quickLinkCards = quickLinksRef.current.querySelectorAll("a[data-quick-link='true']");
+        if (quickLinkCards.length === 0) {
+          return;
+        }
+
+        gsap.from(quickLinkCards, {
           y: 28,
           opacity: 0,
           duration: 0.7,
@@ -86,13 +104,6 @@ const Home: React.FC = () => {
     };
   }, []);
 
-  const setCardRef = (element: HTMLAnchorElement | null, index: number) => {
-    if (!element) {
-      return;
-    }
-    cardRefs.current[index] = element;
-  };
-
   return (
     <div ref={rootRef} className="w-full bg-[#0a0a0a]">
       {/* Hero Section */}
@@ -108,13 +119,39 @@ const Home: React.FC = () => {
             Institut Seni Indonesia Yogyakarta
           </p>
           <h1
-            ref={heroTitleRef}
-            className="font-serif text-[8rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight"
+            className="font-serif text-[8rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight flex flex-col"
           >
-            HIMA <br />
-            <span className="italic text-stone-700/50 hover:text-stone-600 transition-colors duration-1000 font-light">
-              MUSIK
-            </span>
+            {disableEntranceEffects ? (
+              <span className="inline-flex">HIMA</span>
+            ) : (
+              <BlurText text="HIMA" className="inline-flex" animateBy="letters" />
+            )}
+            <div className="italic text-stone-700/50 font-light h-[1em] relative w-full">
+              {disablePressureEffect ? (
+                <span className="inline-block">MUSIK</span>
+              ) : musikPressureActive ? (
+                <TextPressure
+                  text="MUSIK"
+                  fontFamily="var(--font-serif)"
+                  fontUrl=""
+                  width={false}
+                  textColor="currentColor"
+                  stroke={false}
+                  flex={false}
+                  warmupDuration={1200}
+                  actuationDuration={1200}
+                  actuationWghtFrom={300}
+                  minWghtFloor={300}
+                />
+              ) : (
+                <BlurText
+                  text="MUSIK"
+                  className="inline-flex"
+                  animateBy="letters"
+                  onAnimationComplete={() => setMusikPressureActive(true)}
+                />
+              )}
+            </div>
           </h1>
           <div
             ref={heroCtaRef}
@@ -122,12 +159,12 @@ const Home: React.FC = () => {
           >
             <Link
               href="/about"
-              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-300 hover:text-white"
+              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden shrink-0"
             >
               <span className="relative z-10">Tentang Kami</span>
               <div className="absolute inset-0 bg-gold-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
             </Link>
-            <p className="max-w-md text-neutral-400 text-sm leading-relaxed border-l border-gold-500/30 pl-8 font-light">
+            <p className="max-w-md text-neutral-400 text-sm leading-relaxed border-t md:border-t-0 md:border-l border-gold-500/30 pt-8 md:pt-0 md:pl-8 font-light">
               Harmony in diversity, rhythm in unity. Membangun ekosistem
               akademik yang inklusif dan progresif.
             </p>
@@ -143,7 +180,7 @@ const Home: React.FC = () => {
         >
           <Link
             href="/about"
-            ref={(element) => setCardRef(element, 0)}
+            data-quick-link="true"
             className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group block"
           >
             <span className="text-xs font-mono text-stone-600 mb-4 block">
@@ -159,7 +196,7 @@ const Home: React.FC = () => {
 
           <Link
             href="/events"
-            ref={(element) => setCardRef(element, 1)}
+            data-quick-link="true"
             className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group block"
           >
             <span className="text-xs font-mono text-stone-600 mb-4 block">
@@ -175,7 +212,7 @@ const Home: React.FC = () => {
 
           <Link
             href="/aduan"
-            ref={(element) => setCardRef(element, 2)}
+            data-quick-link="true"
             className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group block"
           >
             <span className="text-xs font-mono text-stone-600 mb-4 block">
