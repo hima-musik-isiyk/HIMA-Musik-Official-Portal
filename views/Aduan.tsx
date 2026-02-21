@@ -347,7 +347,7 @@ const Aduan: React.FC = () => {
               setMessageHistory([]);
               setHasTouchedForm(false);
             }}
-            className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-[10px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-500/50"
+            className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-[10px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-600/50"
           >
             <span className="relative z-10 group-hover:text-gold-600 transition-colors duration-500">Kirim laporan lain</span>
             <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
