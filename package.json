@@ -10,6 +10,7 @@
     "lint": "echo \"Linting disabled: ESLint dependencies removed to achieve npm audit = 0\""
   },
   "dependencies": {
+    "gsap": "^3.14.2",
     "next": "^16.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
