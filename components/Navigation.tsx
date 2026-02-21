@@ -46,7 +46,6 @@ const Navigation: React.FC = () => {
           desktopLinkRefs.current,
           {
             y: -8,
-            opacity: 0,
             duration: 0.35,
             stagger: 0.035,
           },
@@ -172,7 +171,7 @@ const Navigation: React.FC = () => {
             />
           </Link>
 
-          <div className="hidden md:flex space-x-14">
+          <div className="hidden md:flex space-x-8">
             {navItems.map((item, index) => {
               const isActive =
                 item.href === "/"
@@ -184,10 +183,10 @@ const Navigation: React.FC = () => {
                   key={item.href}
                   href={item.href}
                   ref={(element) => setDesktopLinkRef(element, index)}
-                  className={`text-[11px] uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group ${
+                  className={`text-sm uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group opacity-100 ${
                     isActive
                       ? "text-gold-500"
-                      : "text-neutral-500 hover:text-white"
+                      : "text-neutral-300 hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -236,7 +235,7 @@ const Navigation: React.FC = () => {
                 className={`text-3xl font-serif italic transition-all duration-500 ${
                   isActive
                     ? "text-gold-500"
-                    : "text-neutral-400 hover:text-white"
+                    : "text-neutral-300 hover:text-white"
                 }`}
               >
                 {item.label}

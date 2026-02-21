@@ -65,8 +65,8 @@ const About: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-16">
             {executives.map((exec, idx) => (
-              <div key={idx} className="group relative pl-6 border-l border-white/5 hover:border-gold-500/50 transition-colors duration-500">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500 mb-4 group-hover:text-gold-600 transition-colors duration-500">
+              <div key={idx} className="group relative pl-6 border-l border-white/5 hover:border-gold-300 transition-colors duration-500">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500 mb-4 group-hover:text-gold-300 transition-colors duration-500">
                   {exec.role}
                 </p>
                 <p className="font-serif text-xl text-neutral-300 group-hover:text-white transition-colors duration-500">
