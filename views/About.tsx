@@ -1,4 +1,5 @@
 import React from "react";
+import LightPillar from "../components/LightPillar";
 
 const About: React.FC = () => {
   const executives = [
@@ -10,7 +11,7 @@ const About: React.FC = () => {
 
   return (
     <div className="pt-40 pb-32 px-6 min-h-screen bg-[#0a0a0a] relative">
-      <div className="absolute top-0 right-0 w-1/2 h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-full h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-12">
           <div className="h-px w-8 bg-gold-500/50"></div>
@@ -18,32 +19,40 @@ const About: React.FC = () => {
             Profil Organisasi
           </p>
         </div>
-        <h1 className="font-serif text-6xl md:text-8xl text-white mb-20 tracking-tight">
-          Kabinet <span className="italic text-gold-500/80 font-light">2026</span>
-        </h1>
-
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-24 mb-32">
-          <div className="md:col-span-7 text-neutral-400 text-lg leading-relaxed font-light">
-            <p className="mb-8 first-letter:text-7xl first-letter:font-serif first-letter:text-gold-500 first-letter:mr-3 first-letter:float-left">
-              Himpunan Mahasiswa Musik (HIMA MUSIK) didirikan pada tahun 2015
-              sebagai respons terhadap kebutuhan akan wadah kolektif bagi
-              mahasiswa seni musik. Kami percaya bahwa musik bukan sekadar
-              hiburan, melainkan disiplin intelektual yang membentuk budaya.
-            </p>
-            <p>
-              Visi kami adalah menciptakan ekosistem akademik yang inklusif,
-              progresif, dan berdaya saing global, di mana setiap mahasiswa
-              memiliki ruang untuk mengekspresikan identitas artistik mereka.
-            </p>
+          <div className="md:col-span-7 flex flex-col gap-12">
+            <h1 className="font-serif text-6xl md:text-8xl text-white tracking-tight">
+              Kabinet <span className="italic text-gold-500/80 font-light">2026</span>
+            </h1>
+
+            <div className="text-neutral-400 text-lg leading-relaxed font-light">
+              <p className="mb-8 first-letter:text-7xl first-letter:font-serif first-letter:text-gold-500 first-letter:mr-3 first-letter:float-left">
+                Himpunan Mahasiswa Musik (HIMA MUSIK) adalah ruang kolektif
+                mahasiswa musik di lingkungan ISI Yogyakarta yang berfokus pada
+                pengembangan keilmuan, praktik artistik, dan solidaritas
+                antarmahasiswa. Akar ekosistem musik kampus ini tidak lepas dari
+                warisan Akademi Musik Indonesia (AMI) yang kemudian berproses
+                dalam struktur ISI Yogyakarta.
+              </p>
+              <p>
+                Dalam perjalanannya, bentuk organisasi mahasiswa musik dapat
+                mengalami fase transisi, reorganisasi, dan pembaruan antar
+                generasi. Karena itu, profil ini menempatkan HIMA MUSIK sebagai
+                kelanjutan semangat kolaborasi mahasiswa musik: merawat tradisi,
+                mendorong eksplorasi kontemporer, serta memperkuat kontribusi
+                bagi ekosistem seni pertunjukan.
+              </p>
+            </div>
           </div>
-          <div className="md:col-span-5 relative h-80 md:h-auto w-full bg-[#111] overflow-hidden group">
+          <div className="md:col-span-5 relative aspect-3/4 w-full bg-[#111] overflow-hidden group">
             <div className="absolute inset-0 bg-gold-500/10 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-700"></div>
-            <img
-              src="https://picsum.photos/600/800?grayscale"
-              alt="Music Hall"
-              className="object-cover w-full h-full opacity-70 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-out"
+            <LightPillar
+              topColor="#D4A64D"
+              bottomColor="#0a0a0a"
+              intensity={1.5}
+              className="opacity-70 group-hover:opacity-100 transition-opacity duration-1000 ease-out"
             />
-            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-linear-to-t from-[#0a0a0a] to-transparent z-20"></div>
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-linear-to-t from-[#0a0a0a] to-transparent z-20 pointer-events-none"></div>
           </div>
         </div>
 
