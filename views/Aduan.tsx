@@ -323,11 +323,11 @@ const Aduan: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] pointer-events-none"></div>
         <div className="text-center relative z-10">
           <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="h-[1px] w-8 bg-gold-500/50"></div>
+            <div className="h-px w-8 bg-gold-500/50"></div>
             <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
               Status Laporan
             </p>
-            <div className="h-[1px] w-8 bg-gold-500/50"></div>
+            <div className="h-px w-8 bg-gold-500/50"></div>
           </div>
           <h2 className="font-serif text-4xl md:text-5xl text-white mb-6 tracking-tight">Terima <span className="italic text-gold-500/80 font-light">Kasih</span></h2>
           <p className="text-neutral-400 max-w-md mx-auto leading-relaxed font-light mb-12">
@@ -362,11 +362,11 @@ const Aduan: React.FC = () => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-screen bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
       <div className="w-full max-w-3xl relative z-10">
         <div className="flex items-center justify-center gap-4 mb-8">
-          <div className="h-[1px] w-8 bg-gold-500/50"></div>
+          <div className="h-px w-8 bg-gold-500/50"></div>
           <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium text-center">
             Layanan Advokasi
           </p>
-          <div className="h-[1px] w-8 bg-gold-500/50"></div>
+          <div className="h-px w-8 bg-gold-500/50"></div>
         </div>
         <h1 className="font-serif text-5xl md:text-7xl text-white mb-6 text-center tracking-tight">
           Kotak <span className="italic text-gold-500/80 font-light">Aduan</span>
@@ -376,7 +376,7 @@ const Aduan: React.FC = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-10 bg-[#111]/50 p-8 md:p-12 border border-white/5 relative">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold-500/20 to-transparent"></div>
+          <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="group relative">
               <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-600 transition-colors duration-500">
@@ -564,7 +564,7 @@ const Aduan: React.FC = () => {
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
           <div className="w-full max-w-md bg-[#111] border border-white/10 p-8 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold-500/50 to-transparent"></div>
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
             <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">Reset draf?</h2>
             <p className="text-sm text-neutral-400 mb-10 leading-relaxed font-light">
               Tindakan ini akan menghapus semua isi kotak aduan yang belum

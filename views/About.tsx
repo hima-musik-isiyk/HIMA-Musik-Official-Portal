@@ -13,7 +13,7 @@ const About: React.FC = () => {
       <div className="absolute top-0 right-0 w-1/2 h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-12">
-          <div className="h-[1px] w-8 bg-gold-500/50"></div>
+          <div className="h-px w-8 bg-gold-500/50"></div>
           <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
             Profil Organisasi
           </p>
@@ -43,12 +43,12 @@ const About: React.FC = () => {
               alt="Music Hall"
               className="object-cover w-full h-full opacity-70 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-out"
             />
-            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#0a0a0a] to-transparent z-20"></div>
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-linear-to-t from-[#0a0a0a] to-transparent z-20"></div>
           </div>
         </div>
 
         <div className="border-t border-white/5 pt-24 relative">
-          <div className="absolute top-0 left-0 w-24 h-[1px] bg-gold-500/50"></div>
+          <div className="absolute top-0 left-0 w-24 h-px bg-gold-500/50"></div>
           <h2 className="font-serif text-4xl md:text-5xl text-white mb-16 tracking-tight">
             Struktur Kabinet <br />
             <span className="italic text-gold-500 text-3xl font-light">2026</span>
