@@ -7,11 +7,19 @@ const Footer: React.FC = () => {
   return (
     <footer className="bg-[#0a0a0a] border-t border-white/5 pt-24 pb-12 px-6 relative overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
-        <div className="col-span-1 md:col-span-2">
-          <h3 className="font-serif text-3xl mb-6 text-white tracking-widest">
-            HIMA<span className="italic text-gold-500 font-light">MUSIK</span>
-          </h3>
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-16">
+        <div className="md:col-span-5">
+          <div className="mb-8">
+            <h3 className="font-serif text-3xl tracking-wide text-white leading-none">
+              HIMA
+              <span className="italic text-stone-500 hover:text-gold-500 transition-colors">
+                MUSIK
+              </span>
+            </h3>
+            <span className="block text-[8px] uppercase tracking-[0.6em] text-stone-600 mt-2">
+              Institut Seni Indonesia Yogyakarta
+            </span>
+          </div>
           <p className="text-neutral-400 text-sm leading-relaxed max-w-md font-light">
             Himpunan Mahasiswa Program Studi Musik, Fakultas Seni Pertunjukan,
             Institut Seni Indonesia Yogyakarta. Wadah aspirasi dan kreasi
@@ -19,7 +27,7 @@ const Footer: React.FC = () => {
           </p>
         </div>
 
-        <div>
+        <div className="md:col-span-3">
           <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold-500 mb-8">
             Navigasi
           </h4>
@@ -56,7 +64,7 @@ const Footer: React.FC = () => {
           </ul>
         </div>
 
-        <div>
+        <div className="md:col-span-4">
           <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold-500 mb-8">
             Kontak
           </h4>
@@ -87,7 +95,9 @@ const Footer: React.FC = () => {
 
       <div className="max-w-7xl mx-auto mt-24 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-[11px] text-neutral-500 font-light tracking-wider">
         <p>&copy; {new Date().getFullYear()} Himpunan Mahasiswa Musik.</p>
-        <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500">Emergence</p>
+        <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500">
+          Emergence
+        </p>
       </div>
     </footer>
   );
