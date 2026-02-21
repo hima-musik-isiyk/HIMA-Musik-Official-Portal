@@ -10,7 +10,7 @@ const Gallery: React.FC = () => {
           <div>
             <div className="flex items-center gap-4 mb-6">
               <div className="h-[1px] w-8 bg-gold-500/50"></div>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-gold-400 font-medium">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
                 Dokumentasi
               </p>
             </div>

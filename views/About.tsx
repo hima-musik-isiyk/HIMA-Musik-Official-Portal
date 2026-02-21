@@ -14,7 +14,7 @@ const About: React.FC = () => {
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-12">
           <div className="h-[1px] w-8 bg-gold-500/50"></div>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-gold-400 font-medium">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
             Profil Organisasi
           </p>
         </div>
@@ -24,7 +24,7 @@ const About: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-24 mb-32">
           <div className="md:col-span-7 text-neutral-400 text-lg leading-relaxed font-light">
-            <p className="mb-8 first-letter:text-7xl first-letter:font-serif first-letter:text-gold-400 first-letter:mr-3 first-letter:float-left">
+            <p className="mb-8 first-letter:text-7xl first-letter:font-serif first-letter:text-gold-500 first-letter:mr-3 first-letter:float-left">
               Himpunan Mahasiswa Musik (HIMA MUSIK) didirikan pada tahun 2015
               sebagai respons terhadap kebutuhan akan wadah kolektif bagi
               mahasiswa seni musik. Kami percaya bahwa musik bukan sekadar
@@ -51,13 +51,13 @@ const About: React.FC = () => {
           <div className="absolute top-0 left-0 w-24 h-[1px] bg-gold-500/50"></div>
           <h2 className="font-serif text-4xl md:text-5xl text-white mb-16 tracking-tight">
             Struktur Kabinet <br />
-            <span className="italic text-gold-500/60 text-3xl font-light">2026-2027</span>
+            <span className="italic text-gold-500 text-3xl font-light">2026</span>
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-16">
             {executives.map((exec, idx) => (
               <div key={idx} className="group relative pl-6 border-l border-white/5 hover:border-gold-500/50 transition-colors duration-500">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500/60 mb-4 group-hover:text-gold-400 transition-colors duration-500">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500 mb-4 group-hover:text-gold-600 transition-colors duration-500">
                   {exec.role}
                 </p>
                 <p className="font-serif text-xl text-neutral-300 group-hover:text-white transition-colors duration-500">

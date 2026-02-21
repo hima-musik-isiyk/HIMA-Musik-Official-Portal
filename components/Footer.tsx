@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
         <div className="col-span-1 md:col-span-2">
           <h3 className="font-serif text-3xl mb-6 text-white tracking-widest">
-            HIMA<span className="italic text-gold-400 font-light">MUSIK</span>
+            HIMA<span className="italic text-gold-500 font-light">MUSIK</span>
           </h3>
           <p className="text-neutral-400 text-sm leading-relaxed max-w-md font-light">
             Himpunan Mahasiswa Program Studi Musik, Fakultas Seni Pertunjukan,
@@ -20,19 +20,19 @@ const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold-400 mb-8">
+          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold-500 mb-8">
             Navigasi
           </h4>
           <ul className="space-y-5 text-sm text-neutral-400 font-light">
             <li>
-              <Link href="/" className="hover:text-gold-300 transition-colors">
+              <Link href="/" className="hover:text-gold-600 transition-colors">
                 Beranda
               </Link>
             </li>
             <li>
               <Link
                 href="/about"
-                className="hover:text-gold-300 transition-colors"
+                className="hover:text-gold-600 transition-colors"
               >
                 Tentang Kami
               </Link>
@@ -40,7 +40,7 @@ const Footer: React.FC = () => {
             <li>
               <Link
                 href="/events"
-                className="hover:text-gold-300 transition-colors"
+                className="hover:text-gold-600 transition-colors"
               >
                 Jadwal Acara
               </Link>
@@ -48,7 +48,7 @@ const Footer: React.FC = () => {
             <li>
               <Link
                 href="/aduan"
-                className="hover:text-gold-300 transition-colors"
+                className="hover:text-gold-600 transition-colors"
               >
                 Layanan Aduan
               </Link>
@@ -57,7 +57,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold-400 mb-8">
+          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold-500 mb-8">
             Kontak
           </h4>
           <ul className="space-y-5 text-sm text-neutral-400 font-light">
@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
             <li>
               <a
                 href="mailto:musikisiyk@gmail.com"
-                className="hover:text-gold-300 transition-colors"
+                className="hover:text-gold-600 transition-colors"
               >
                 musikisiyk@gmail.com
               </a>
@@ -76,7 +76,7 @@ const Footer: React.FC = () => {
                 href="https://www.instagram.com/himamusikisi"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-gold-300 transition-colors"
+                className="hover:text-gold-600 transition-colors"
               >
                 @himamusikisi
               </a>
@@ -87,7 +87,7 @@ const Footer: React.FC = () => {
 
       <div className="max-w-7xl mx-auto mt-24 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-[11px] text-neutral-500 font-light tracking-wider">
         <p>&copy; {new Date().getFullYear()} Himpunan Mahasiswa Musik.</p>
-        <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500/50">Emergence</p>
+        <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500">Emergence</p>
       </div>
     </footer>
   );
