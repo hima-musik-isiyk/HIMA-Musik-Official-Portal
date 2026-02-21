@@ -41,18 +41,6 @@ const Navigation: React.FC = () => {
         });
       }
 
-      if (desktopLinkRefs.current.length > 0) {
-        timeline.from(
-          desktopLinkRefs.current,
-          {
-            y: -8,
-            duration: 0.35,
-            stagger: 0.035,
-          },
-          "<0.08"
-        );
-      }
-
       if (mobileMenuRef.current) {
         gsap.set(mobileMenuRef.current, {
           yPercent: -100,
