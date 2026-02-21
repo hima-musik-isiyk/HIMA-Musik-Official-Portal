@@ -14,8 +14,23 @@ const Home: React.FC = () => {
   const heroCtaRef = useRef<HTMLDivElement | null>(null);
   const quickLinksRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<HTMLAnchorElement[]>([]);
+  const skipAnimationRef = useRef(false);
 
   useEffect(() => {
+    if (skipAnimationRef.current) {
+      return;
+    }
+
+    const shouldSkipAnimation =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("skipHomeGsapOnce") === "true";
+
+    if (shouldSkipAnimation && typeof window !== "undefined") {
+      skipAnimationRef.current = true;
+      window.sessionStorage.removeItem("skipHomeGsapOnce");
+      return;
+    }
+
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) {
       return;
