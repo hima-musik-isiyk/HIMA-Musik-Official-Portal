@@ -9,10 +9,15 @@ import LogoHima from "./LogoHima";
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const navBarRef = useRef<HTMLElement | null>(null);
   const desktopLinkRefs = useRef<HTMLAnchorElement[]>([]);
   const mobileLinkRefs = useRef<HTMLAnchorElement[]>([]);
+  const mobileRippleRefs = useRef<HTMLSpanElement[]>([]);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const fullscreenCircleBaseRef = useRef<HTMLDivElement | null>(null);
+  const fullscreenCircleTopRef = useRef<HTMLDivElement | null>(null);
+  const isNavigatingRef = useRef(false);
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
 
@@ -106,22 +111,40 @@ const Navigation: React.FC = () => {
         if (mobileMenuRef.current) {
           gsap.set(mobileMenuRef.current, { pointerEvents: "none" });
         }
+        isNavigatingRef.current = false;
+        setIsNavigating(false);
       },
     });
-    closeTimeline
-      .to(activeMobileLinks, {
-        y: 6,
-        opacity: 0,
-        duration: 0.16,
-        stagger: 0.015,
-        ease: "power1.in",
-      })
-      .to(mobileMenuRef.current, {
-        yPercent: -100,
-        autoAlpha: 0,
-        duration: 0.32,
-        ease: "power2.inOut",
-      }, "<0.02");
+
+    if (isNavigatingRef.current) {
+      closeTimeline
+        .to(activeMobileLinks, {
+          opacity: 0,
+          duration: 0.2,
+        })
+        .to(mobileMenuRef.current, {
+          autoAlpha: 0,
+          duration: 0.8,
+          ease: "power2.inOut",
+          delay: 0.4,
+        })
+        .set(mobileMenuRef.current, { yPercent: -100 });
+    } else {
+      closeTimeline
+        .to(activeMobileLinks, {
+          y: 6,
+          opacity: 0,
+          duration: 0.16,
+          stagger: 0.015,
+          ease: "power1.in",
+        })
+        .to(mobileMenuRef.current, {
+          yPercent: -100,
+          autoAlpha: 0,
+          duration: 0.32,
+          ease: "power2.inOut",
+        }, "<0.02");
+    }
   }, [isMenuOpen]);
 
   const setDesktopLinkRef = (element: HTMLAnchorElement | null, index: number) => {
@@ -138,15 +161,132 @@ const Navigation: React.FC = () => {
     mobileLinkRefs.current[index] = element;
   };
 
-  const handleNavItemClick = (href: string) => {
+  const setMobileRippleRef = (element: HTMLSpanElement | null, index: number) => {
+    if (!element) {
+      return;
+    }
+    mobileRippleRefs.current[index] = element;
+  };
+
+  const animateMobileRipple = (index: number) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      return;
+    }
+
+    const ripple = mobileRippleRefs.current[index];
+    if (!ripple) {
+      return;
+    }
+
+    gsap.killTweensOf(ripple);
+
+    gsap.fromTo(
+      ripple,
+      { scale: 0, autoAlpha: 0.6 },
+      {
+        scale: 2.2,
+        autoAlpha: 0,
+        duration: 0.45,
+        ease: "power2.out",
+        clearProps: "transform,opacity",
+      },
+    );
+  };
+
+  const animateFullscreenCircle = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      return;
+    }
+
+    const circleBase = fullscreenCircleBaseRef.current;
+    const circleTop = fullscreenCircleTopRef.current;
+    if (!circleBase || !circleTop) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    const maxDistance = Math.max(
+      Math.hypot(x, y),
+      Math.hypot(window.innerWidth - x, y),
+      Math.hypot(x, window.innerHeight - y),
+      Math.hypot(window.innerWidth - x, window.innerHeight - y)
+    );
+
+    const diameter = maxDistance * 2;
+
+    gsap.killTweensOf([circleBase, circleTop]);
+
+    gsap.set([circleBase, circleTop], {
+      left: x,
+      top: y,
+      width: 0,
+      height: 0,
+      opacity: 1,
+      xPercent: -50,
+      yPercent: -50,
+    });
+
+    const timeline = gsap.timeline({ defaults: { ease: "expo.out" } });
+    timeline
+      .to(circleBase, {
+        width: diameter,
+        height: diameter,
+        duration: 1.6,
+      }, 0)
+      .to(circleTop, {
+        width: diameter,
+        height: diameter,
+        duration: 1.6,
+      }, 0)
+      .to(circleTop, {
+        opacity: 0,
+        duration: 0.5,
+        ease: "power2.out",
+      }, 0.18)
+      .to(circleBase, {
+        opacity: 0,
+        duration: 4.0,
+        ease: "expo.out",
+      }, 0.2)
+      .set([circleBase, circleTop], { width: 0, height: 0, opacity: 0 });
+  };
+
+  const handleNavItemClick = (href: string, event: React.MouseEvent<HTMLAnchorElement>) => {
+    isNavigatingRef.current = true;
+    setIsNavigating(true);
+    animateFullscreenCircle(event);
     if (href === "/" && typeof window !== "undefined") {
       window.sessionStorage.setItem("skipHomeGsapOnce", "true");
     }
-    setIsMenuOpen(false);
+    setTimeout(() => {
+      setIsMenuOpen(false);
+    }, 100);
   };
 
   return (
     <>
+      <div
+        ref={fullscreenCircleBaseRef}
+        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-[2]"
+      />
+      <div
+        ref={fullscreenCircleTopRef}
+        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-[4]"
+      />
+
       <nav ref={navBarRef} className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
         isMenuOpen ? "bg-transparent border-transparent" : "bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5"
       }`}>
@@ -178,7 +318,11 @@ const Navigation: React.FC = () => {
                   key={item.href}
                   href={item.href}
                   ref={(element) => setDesktopLinkRef(element, index)}
-                  onClick={() => handleNavItemClick(item.href)}
+                  onClick={(e) => {
+                    if (item.href === "/" && typeof window !== "undefined") {
+                      window.sessionStorage.setItem("skipHomeGsapOnce", "true");
+                    }
+                  }}
                   className={`text-sm uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group opacity-100 ${
                     isActive
                       ? "text-gold-500"
@@ -213,9 +357,11 @@ const Navigation: React.FC = () => {
       {/* Mobile Menu */}
       <div
         ref={mobileMenuRef}
-        className="md:hidden fixed inset-0 bg-[#0a0a0a] z-40 will-change-transform"
+        className={`md:hidden fixed inset-0 z-40 will-change-transform ${
+          isNavigating ? "bg-transparent" : "bg-[#0a0a0a]"
+        } ${isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
       >
-        <div className="h-full flex flex-col justify-center items-center space-y-10 px-8 pt-24">
+        <div className="h-full flex flex-col justify-center items-center space-y-10 px-8 pt-24 relative z-10">
           {navItems.map((item, idx) => {
             const isActive =
               item.href === "/"
@@ -227,14 +373,21 @@ const Navigation: React.FC = () => {
                 key={item.href}
                 href={item.href}
                 ref={(element) => setMobileLinkRef(element, idx)}
-                onClick={() => handleNavItemClick(item.href)}
-                className={`text-3xl font-serif italic transition-all duration-500 ${
+                onClick={(e) => {
+                  animateMobileRipple(idx);
+                  handleNavItemClick(item.href, e);
+                }}
+                className={`relative overflow-hidden text-3xl font-serif italic transition-all duration-500 ${
                   isActive
                     ? "text-gold-500"
                     : "text-neutral-300 hover:text-white"
                 }`}
               >
-                {item.label}
+                <span className="relative z-10">{item.label}</span>
+                <span
+                  ref={(element) => setMobileRippleRef(element, idx)}
+                  className="pointer-events-none absolute inset-0 rounded-full bg-gold-500/20 opacity-0 scale-0"
+                />
               </Link>
             );
           })}

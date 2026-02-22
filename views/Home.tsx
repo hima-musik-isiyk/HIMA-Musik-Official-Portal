@@ -105,7 +105,7 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <div ref={rootRef} className="w-full bg-[#0a0a0a]">
+    <div ref={rootRef} className="w-full">
       {/* Hero Section */}
       <section className="relative h-[calc(100svh-5rem)] flex flex-col justify-center px-6 border-b border-white/5 overflow-hidden">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gold-300/10 rounded-full blur-[120px]" />
@@ -122,13 +122,13 @@ const Home: React.FC = () => {
             className="font-serif text-[8rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight flex flex-col"
           >
             {disableEntranceEffects ? (
-              <span className="inline-flex">HIMA</span>
+              <span className="inline-flex whitespace-nowrap">HIMA</span>
             ) : (
               <BlurText text="HIMA" className="inline-flex" animateBy="letters" />
             )}
             <div className="italic text-stone-700/50 font-light h-[1em] relative w-full">
               {disablePressureEffect ? (
-                <span className="inline-block">MUSIK</span>
+                <span className="inline-block whitespace-nowrap">MUSIK</span>
               ) : musikPressureActive ? (
                 <TextPressure
                   text="MUSIK"

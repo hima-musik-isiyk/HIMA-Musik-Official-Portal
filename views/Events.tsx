@@ -1,7 +1,7 @@
 import React from "react";
 const Events: React.FC = () => {
   return (
-    <div className="pt-40 pb-32 px-6 min-h-screen bg-[#0a0a0a] relative">
+    <div className="pt-40 pb-32 px-6 min-h-screen relative">
       <div className="absolute top-0 left-0 w-full h-screen bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 pb-10 border-b border-white/5 relative">

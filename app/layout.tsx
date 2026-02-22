@@ -17,7 +17,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="id">
-      <body className={`${fraunces.variable} min-h-screen bg-[#0a0a0a] text-neutral-200 selection:bg-gold-300/30 selection:text-gold-500 flex flex-col font-sans`}>
+      <body className={`${fraunces.variable} min-h-screen bg-transparent text-neutral-200 selection:bg-gold-300/30 selection:text-gold-500 flex flex-col font-sans`}>
         <Script id="legacy-hash-route-redirect" strategy="beforeInteractive">
           {`(() => {
   const rawHash = window.location.hash.slice(1).trim();
@@ -40,8 +40,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   }
 })();`}
         </Script>
+        <div className="fixed inset-0 bg-[#0a0a0a] z-[1]" aria-hidden="true" />
         <Navigation />
-        <main className="grow pt-20">{children}</main>
+        <main className="grow pt-20 relative z-[3]">{children}</main>
         <Footer />
       </body>
     </html>
