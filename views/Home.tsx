@@ -171,10 +171,10 @@ const Home: React.FC = () => {
           >
             <Link
               href="/about"
-              className="group relative px-10 py-5 bg-white text-black text-[11px] font-bold uppercase tracking-[0.3em] overflow-hidden shrink-0"
+              className="btn-primary shrink-0"
             >
-              <span className="relative z-10">Tentang Kami</span>
-              <div className="absolute inset-0 bg-gold-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+              <span className="btn-primary-label">Tentang Kami</span>
+              <div className="btn-primary-overlay"></div>
             </Link>
             <p className="max-w-md text-neutral-400 text-sm leading-relaxed border-t md:border-t-0 md:border-l border-gold-500/30 pt-8 md:pt-0 md:pl-8 font-light">
               Harmony in diversity, rhythm in unity. Membangun ekosistem
