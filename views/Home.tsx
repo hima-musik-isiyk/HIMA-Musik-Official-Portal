@@ -11,6 +11,12 @@ gsap.registerPlugin(ScrollTrigger);
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
+const AccentLine: React.FC = () => (
+  <span className="block w-8 md:w-12 h-px bg-gold-500/40" aria-hidden="true" />
+);
+
+const MUSIK_COLOR = "rgb(68 64 60)";
+
 const Home: React.FC = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const heroEyebrowRef = useRef<HTMLParagraphElement | null>(null);
@@ -120,47 +126,51 @@ const Home: React.FC = () => {
   return (
     <div ref={rootRef} className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[calc(100svh-5rem)] flex flex-col justify-center px-6 border-b border-white/5">
+      <section className="relative min-h-[calc(100svh-5rem)] flex flex-col justify-between px-6 border-b border-white/5">
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
           <div
-            className="absolute top-1/4 -left-20 w-96 h-96 rounded-full"
+            className="absolute top-1/4 -left-20 w-lg h-128 rounded-full"
             style={{
-              background: 'radial-gradient(closest-side, rgba(255, 160, 122, 0.10), transparent 70%)'
+              background: 'radial-gradient(closest-side, rgba(255, 160, 122, 0.07), transparent 70%)'
             }}
           />
           <div
-            className="absolute bottom-1/4 -right-20 w-96 h-96 rounded-full"
+            className="absolute bottom-1/3 -right-20 w-md h-112 rounded-full"
             style={{
-              background: 'radial-gradient(closest-side, rgba(28, 25, 23, 0.20), transparent 70%)'
+              background: 'radial-gradient(closest-side, rgba(28, 25, 23, 0.15), transparent 70%)'
             }}
           />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto w-full">
-          <p
-            ref={heroEyebrowRef}
-            className={`text-xs md:text-sm uppercase tracking-[0.4em] text-stone-300/50 font-medium mb-12 ${!disableEntranceEffects ? 'opacity-0' : ''}`}
-          >
-            Institut Seni Indonesia Yogyakarta
-          </p>
+        <div className="relative z-10 max-w-7xl mx-auto w-full flex-1 flex flex-col justify-center">
+          <div className="flex items-center gap-4 mb-6 md:mb-8">
+            <AccentLine />
+            <p
+              ref={heroEyebrowRef}
+              className={`text-[0.65rem] md:text-xs uppercase tracking-[0.4em] text-stone-400/60 font-medium ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+            >
+              Institut Seni Indonesia Yogyakarta
+            </p>
+          </div>
+
           <h1
-            className="font-serif text-[6rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight flex flex-col"
+            className="font-serif text-[5.5rem] md:text-[9rem] lg:text-[11rem] text-white leading-[0.88] tracking-tight flex flex-col"
           >
             {disableEntranceEffects ? (
               <span className="inline-flex whitespace-nowrap">HIMA</span>
             ) : (
               <BlurText text="HIMA" className="inline-flex" animateBy="letters" />
             )}
-            <div className="italic text-stone-700/50 font-light min-h-[1em] relative w-full overflow-visible isolate">
+            <div className="italic text-stone-700 font-light min-h-[1em] relative w-full overflow-visible isolate">
               {disablePressureEffect ? (
-                <span className="inline-block whitespace-nowrap">MUSIK</span>
+                <span className="inline-block whitespace-nowrap text-stone-700">MUSIK</span>
               ) : musikPressureActive ? (
                 <TextPressure
                   text="MUSIK"
                   fontFamily="var(--font-serif)"
                   fontUrl=""
                   width={false}
-                  textColor="currentColor"
+                  textColor={MUSIK_COLOR}
                   stroke={false}
                   flex={false}
                   warmupDuration={1200}
@@ -171,85 +181,122 @@ const Home: React.FC = () => {
               ) : (
                 <BlurText
                   text="MUSIK"
-                  className="inline-flex"
+                  className="inline-flex text-stone-700"
                   animateBy="letters"
                   onAnimationComplete={() => setMusikPressureActive(true)}
                 />
               )}
             </div>
           </h1>
-          <div
-            ref={heroCtaRef}
-            className="mt-16 md:mt-24 flex flex-col md:flex-row gap-10 items-start md:items-center"
-          >
-            <Link
-              href="/about"
-              className={`btn-primary shrink-0 ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+
+          <div className="mt-10 md:mt-14">
+            <div className="w-full h-px bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent mb-10 md:mb-12" aria-hidden="true" />
+            <div
+              ref={heroCtaRef}
+              className="flex flex-col md:flex-row gap-8 md:gap-12 items-start md:items-center"
             >
-              <span className="btn-primary-label">Tentang Kami</span>
-              <div className="btn-primary-overlay"></div>
-            </Link>
-            <p className={`max-w-md text-neutral-400 text-sm leading-relaxed border-t md:border-t-0 md:border-l border-gold-500/30 pt-8 md:pt-0 md:pl-8 font-light ${!disableEntranceEffects ? 'opacity-0' : ''}`}>
-              Harmony in diversity, rhythm in unity. Membangun ekosistem
-              akademik yang inklusif dan progresif.
-            </p>
+              <Link
+                href="/about"
+                className={`btn-primary shrink-0 ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+              >
+                <span className="btn-primary-label">Tentang Kami</span>
+                <div className="btn-primary-overlay"></div>
+              </Link>
+              <p className={`max-w-sm text-stone-500 text-[0.8125rem] leading-[1.7] md:border-l border-stone-800 md:pl-12 font-light ${!disableEntranceEffects ? 'opacity-0' : ''}`}>
+                Harmony in diversity, rhythm in unity. Membangun ekosistem
+                akademik yang inklusif dan progresif.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="relative z-10 flex justify-center pb-8 md:pb-10">
+          <div className="flex flex-col items-center gap-3 text-stone-600">
+            <span className="text-[0.6rem] uppercase tracking-[0.35em]">Scroll</span>
+            <span className="block w-px h-6 bg-stone-700 animate-pulse" />
           </div>
         </div>
       </section>
 
       {/* Quick Links / Featured */}
-      <section className="py-24 px-6 bg-stone-950">
-        <div
-          ref={quickLinksRef}
-          className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-stone-800 border-t border-b border-stone-800"
-        >
-          <Link
-            href="/about"
-            data-quick-link="true"
-            className={`p-12 hover:bg-stone-900 transition-colors cursor-pointer group block ${!disableEntranceEffects ? 'opacity-0' : ''}`}
-          >
-            <span className="text-xs font-mono text-stone-600 mb-4 block">
-              01
-            </span>
-            <h3 className="font-serif text-2xl text-stone-300 mb-2 group-hover:text-white">
-              Tentang Kami
-            </h3>
-            <p className="text-sm text-stone-600 group-hover:text-stone-400 transition-colors">
-              Sejarah, visi, dan struktur organisasi HIMA.
-            </p>
-          </Link>
+      <section className="py-20 md:py-28 px-6 bg-stone-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-12 md:mb-16">
+            <AccentLine />
+            <span className="text-[0.65rem] uppercase tracking-[0.4em] text-stone-600 font-medium">Jelajahi</span>
+          </div>
 
-          <Link
-            href="/events"
-            data-quick-link="true"
-            className={`p-12 hover:bg-stone-900 transition-colors cursor-pointer group block ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+          <div
+            ref={quickLinksRef}
+            className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-stone-800/60 border-t border-b border-stone-800/60"
           >
-            <span className="text-xs font-mono text-stone-600 mb-4 block">
-              02
-            </span>
-            <h3 className="font-serif text-2xl text-stone-300 mb-2 group-hover:text-white">
-              Program Kerja
-            </h3>
-            <p className="text-sm text-stone-600 group-hover:text-stone-400 transition-colors">
-              Konser tahunan, workshop, dan diskusi publik.
-            </p>
-          </Link>
+            <Link
+              href="/about"
+              data-quick-link="true"
+              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+            >
+              <div>
+                <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
+                  01
+                </span>
+                <h3 className="font-serif text-xl md:text-2xl text-stone-300 mb-3 group-hover:text-white transition-colors duration-300">
+                  Tentang Kami
+                </h3>
+                <p className="text-[0.8125rem] leading-relaxed text-stone-600 group-hover:text-stone-400 transition-colors duration-300">
+                  Sejarah, visi, dan struktur organisasi HIMA.
+                </p>
+              </div>
+              <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
+                Selengkapnya
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              </span>
+            </Link>
 
-          <Link
-            href="/aduan"
-            data-quick-link="true"
-            className={`p-12 hover:bg-stone-900 transition-colors cursor-pointer group block ${!disableEntranceEffects ? 'opacity-0' : ''}`}
-          >
-            <span className="text-xs font-mono text-stone-600 mb-4 block">
-              03
-            </span>
-            <h3 className="font-serif text-2xl text-stone-300 mb-2 group-hover:text-white">
-              Layanan Aduan
-            </h3>
-            <p className="text-sm text-stone-600 group-hover:text-stone-400 transition-colors">
-              Saluran aspirasi dan advokasi akademik.
-            </p>
-          </Link>
+            <Link
+              href="/events"
+              data-quick-link="true"
+              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+            >
+              <div>
+                <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
+                  02
+                </span>
+                <h3 className="font-serif text-xl md:text-2xl text-stone-300 mb-3 group-hover:text-white transition-colors duration-300">
+                  Program Kerja
+                </h3>
+                <p className="text-[0.8125rem] leading-relaxed text-stone-600 group-hover:text-stone-400 transition-colors duration-300">
+                  Konser tahunan, workshop, dan diskusi publik.
+                </p>
+              </div>
+              <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
+                Selengkapnya
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              </span>
+            </Link>
+
+            <Link
+              href="/aduan"
+              data-quick-link="true"
+              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+            >
+              <div>
+                <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
+                  03
+                </span>
+                <h3 className="font-serif text-xl md:text-2xl text-stone-300 mb-3 group-hover:text-white transition-colors duration-300">
+                  Layanan Aduan
+                </h3>
+                <p className="text-[0.8125rem] leading-relaxed text-stone-600 group-hover:text-stone-400 transition-colors duration-300">
+                  Saluran aspirasi dan advokasi akademik.
+                </p>
+              </div>
+              <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
+                Selengkapnya
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              </span>
+            </Link>
+          </div>
         </div>
       </section>
     </div>

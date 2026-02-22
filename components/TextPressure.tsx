@@ -402,22 +402,28 @@ const TextPressure: React.FC<TextPressureProps> = ({
           overflow: 'visible'
         }}
       >
-        {chars.map((char, i) => (
-          <span
-            key={i}
-            ref={el => {
-              spansRef.current[i] = el;
-            }}
-            data-char={char}
-            style={{
-              display: 'inline-block',
-              color: stroke ? undefined : textColor,
-              overflow: 'visible'
-            }}
-          >
-            {char}
-          </span>
-        ))}
+        {chars.map((char, i) => {
+          const initWght = actuationWghtFrom ?? (weight ? 100 : 400);
+          const initWdth = actuationWdthFrom ?? (width ? 5 : 100);
+          const initItal = actuationItalFrom ?? 0;
+          return (
+            <span
+              key={i}
+              ref={el => {
+                spansRef.current[i] = el;
+              }}
+              data-char={char}
+              style={{
+                display: 'inline-block',
+                color: stroke ? undefined : textColor,
+                overflow: 'visible',
+                fontVariationSettings: `'wght' ${initWght}, 'wdth' ${initWdth}, 'ital' ${initItal}`,
+              }}
+            >
+              {char}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
