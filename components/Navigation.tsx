@@ -372,12 +372,12 @@ const Navigation: React.FC = () => {
     <>
       <div
         ref={fullscreenCircleBaseRef}
-        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-[2]"
+        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-2"
         style={{ zIndex: circleLayers.base }}
       />
       <div
         ref={fullscreenCircleTopRef}
-        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-[4]"
+        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-4"
         style={{ zIndex: circleLayers.top }}
       />
 
@@ -441,9 +441,9 @@ const Navigation: React.FC = () => {
             onClick={handleMenuToggle}
             aria-label="Toggle menu"
           >
-            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 rotate-45 translate-y-[7px]" : "w-6"}`} />
+            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 rotate-45 translate-y-1.75" : "w-6"}`} />
             <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "opacity-0" : "w-4"}`} />
-            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -rotate-45 -translate-y-[7px]" : "w-6"}`} />
+            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -rotate-45 -translate-y-1.75" : "w-6"}`} />
           </button>
         </div>
       </nav>
