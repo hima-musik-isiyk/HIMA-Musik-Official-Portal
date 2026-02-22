@@ -10,7 +10,7 @@ const About: React.FC = () => {
   ];
 
   return (
-    <div className="pt-40 pb-32 px-6 min-h-screen bg-[#0a0a0a] relative">
+    <div className="pt-40 pb-32 px-6 min-h-screen relative">
       <div className="absolute top-0 right-0 w-full h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-12">

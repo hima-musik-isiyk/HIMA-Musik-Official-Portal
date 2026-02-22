@@ -90,8 +90,10 @@ const BlurText: React.FC<BlurTextProps> = ({
   const totalDuration = stepDuration * (stepCount - 1);
   const times = Array.from({ length: stepCount }, (_, i) => (stepCount === 1 ? 0 : i / (stepCount - 1)));
 
+  const containerClassName = `${animateBy === 'words' ? 'flex-wrap' : 'flex-nowrap'} ${className || 'flex'}`;
+
   return (
-    <span ref={ref} className={`flex-wrap ${className || 'flex'}`}>
+    <span ref={ref} className={containerClassName}>
       {elements.map((segment, index) => {
         const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
 
