@@ -66,19 +66,29 @@ const BlurText: React.FC<BlurTextProps> = ({
   }, [threshold, rootMargin]);
 
   const defaultFrom = useMemo(
-    () =>
-      direction === 'top' ? { filter: 'blur(10px)', opacity: 0, y: -50 } : { filter: 'blur(10px)', opacity: 0, y: 50 },
+    () => ({
+      opacity: 0,
+      y: direction === 'top' ? -50 : 50,
+      textShadow: '0 0 30px currentColor, 0 0 30px transparent',
+      WebkitTextFillColor: 'transparent',
+    }),
     [direction]
   );
 
   const defaultTo = useMemo(
     () => [
       {
-        filter: 'blur(5px)',
-        opacity: 0.5,
-        y: direction === 'top' ? 5 : -5
+        opacity: 0.6,
+        y: direction === 'top' ? 5 : -5,
+        textShadow: '0 0 12px currentColor, 0 0 30px transparent',
+        WebkitTextFillColor: 'transparent',
       },
-      { filter: 'blur(0px)', opacity: 1, y: 0 }
+      {
+        opacity: 1,
+        y: 0,
+        textShadow: '0 0 0px currentColor, 0 0 30px transparent',
+        WebkitTextFillColor: 'unset'
+      }
     ],
     [direction]
   );
@@ -93,7 +103,7 @@ const BlurText: React.FC<BlurTextProps> = ({
   const containerClassName = `${animateBy === 'words' ? 'flex-wrap' : 'flex-nowrap'} ${className || 'flex'}`;
 
   return (
-    <span ref={ref} className={containerClassName}>
+    <span ref={ref} className={containerClassName} style={{ overflow: 'visible' }}>
       {elements.map((segment, index) => {
         const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
 
@@ -113,7 +123,9 @@ const BlurText: React.FC<BlurTextProps> = ({
             onAnimationComplete={index === elements.length - 1 ? onAnimationComplete : undefined}
             style={{
               display: 'inline-block',
-              willChange: 'transform, filter, opacity'
+              overflow: 'visible',
+              willChange: 'transform, opacity',
+              backfaceVisibility: 'hidden',
             }}
           >
             {segment === ' ' ? '\u00A0' : segment}
