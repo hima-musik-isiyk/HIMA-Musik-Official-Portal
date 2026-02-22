@@ -420,7 +420,7 @@ const Navigation: React.FC = () => {
                   className={`text-sm uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group opacity-100 ${
                     isActive
                       ? "text-gold-500"
-                      : "text-neutral-300 hover:text-white"
+                      : "text-neutral-500 hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -478,7 +478,7 @@ const Navigation: React.FC = () => {
                     ? "text-white z-20"
                     : isActive
                       ? "text-gold-500"
-                      : "text-neutral-300 hover:text-white"
+                      : "text-neutral-500 hover:text-white"
                 } ${activeMobileIndex === idx && !isClicked ? "bg-gold-500/20" : ""}`}
               >
                 <span className="relative z-10">{item.label}</span>
