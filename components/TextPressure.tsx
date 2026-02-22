@@ -378,7 +378,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
         position: 'relative',
         width: '100%',
         height: '100%',
-        background: 'transparent'
+        background: 'transparent',
+        overflow: 'visible'
       }}
     >
       {styleElement}
@@ -397,7 +398,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
           userSelect: 'none',
           whiteSpace: 'nowrap',
           fontWeight: 100,
-          width: '100%'
+          width: '100%',
+          overflow: 'visible'
         }}
       >
         {chars.map((char, i) => (
@@ -409,7 +411,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
             data-char={char}
             style={{
               display: 'inline-block',
-              color: stroke ? undefined : textColor
+              color: stroke ? undefined : textColor,
+              overflow: 'visible'
             }}
           >
             {char}

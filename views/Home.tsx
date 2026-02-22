@@ -107,9 +107,21 @@ const Home: React.FC = () => {
   return (
     <div ref={rootRef} className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[calc(100svh-5rem)] flex flex-col justify-center px-6 border-b border-white/5 overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-gold-300/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-stone-800/20 rounded-full blur-[120px]" />
+      <section className="relative h-[calc(100svh-5rem)] flex flex-col justify-center px-6 border-b border-white/5">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div
+            className="absolute top-1/4 -left-20 w-96 h-96 rounded-full"
+            style={{
+              background: 'radial-gradient(closest-side, rgba(255, 160, 122, 0.10), transparent 70%)'
+            }}
+          />
+          <div
+            className="absolute bottom-1/4 -right-20 w-96 h-96 rounded-full"
+            style={{
+              background: 'radial-gradient(closest-side, rgba(28, 25, 23, 0.20), transparent 70%)'
+            }}
+          />
+        </div>
 
         <div className="relative z-10 max-w-7xl mx-auto w-full">
           <p
@@ -119,14 +131,14 @@ const Home: React.FC = () => {
             Institut Seni Indonesia Yogyakarta
           </p>
           <h1
-            className="font-serif text-[8rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight flex flex-col"
+            className="font-serif text-[6rem] md:text-[10rem] lg:text-[12rem] text-white leading-[0.9] tracking-tight flex flex-col"
           >
             {disableEntranceEffects ? (
               <span className="inline-flex whitespace-nowrap">HIMA</span>
             ) : (
               <BlurText text="HIMA" className="inline-flex" animateBy="letters" />
             )}
-            <div className="italic text-stone-700/50 font-light h-[1em] relative w-full">
+            <div className="italic text-stone-700/50 font-light min-h-[1em] relative w-full overflow-visible isolate">
               {disablePressureEffect ? (
                 <span className="inline-block whitespace-nowrap">MUSIK</span>
               ) : musikPressureActive ? (
