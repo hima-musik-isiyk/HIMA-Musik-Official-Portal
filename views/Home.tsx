@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -8,6 +8,8 @@ import BlurText from "@/components/BlurText";
 import TextPressure from "@/components/TextPressure";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const Home: React.FC = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -33,7 +35,7 @@ const Home: React.FC = () => {
     setMusikPressureActive(false);
   }, [disableEntranceEffects, disablePressureEffect]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (skipAnimationRef.current) {
       setDisableEntranceEffects(true);
       return;
@@ -59,20 +61,28 @@ const Home: React.FC = () => {
 
     const context = gsap.context(() => {
       if (heroEyebrowRef.current && heroCtaRef.current) {
+        const heroCtaChildren = Array.from(heroCtaRef.current.children);
         const heroTimeline = gsap.timeline({ defaults: { ease: "power3.out" } });
         heroTimeline
-          .from(heroEyebrowRef.current, {
-            y: 16,
-            opacity: 0,
-            duration: 0.6,
-          })
-          .from(
-            Array.from(heroCtaRef.current.children),
+          .fromTo(heroEyebrowRef.current,
+            { y: 16, opacity: 0 },
             {
-              y: 20,
-              opacity: 0,
+              y: 0,
+              opacity: 1,
+              duration: 0.6,
+              immediateRender: true,
+            }
+          )
+          .fromTo(
+            heroCtaChildren,
+            { y: 20, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
               duration: 0.7,
               stagger: 0.15,
+              immediateRender: true,
+              clearProps: "transform",
             },
             "-=0.4"
           );
@@ -84,18 +94,21 @@ const Home: React.FC = () => {
           return;
         }
 
-        gsap.from(quickLinkCards, {
-          y: 28,
-          opacity: 0,
-          duration: 0.7,
-          stagger: 0.12,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: quickLinksRef.current,
-            start: "top 80%",
-            once: true,
-          },
-        });
+        gsap.fromTo(quickLinkCards,
+          { y: 28, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.7,
+            stagger: 0.12,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: quickLinksRef.current,
+              start: "top 80%",
+              once: true,
+            },
+          }
+        );
       }
     }, rootRef);
 
@@ -126,7 +139,7 @@ const Home: React.FC = () => {
         <div className="relative z-10 max-w-7xl mx-auto w-full">
           <p
             ref={heroEyebrowRef}
-            className="text-xs md:text-sm uppercase tracking-[0.4em] text-stone-300/50 font-medium mb-12"
+            className={`text-xs md:text-sm uppercase tracking-[0.4em] text-stone-300/50 font-medium mb-12 ${!disableEntranceEffects ? 'opacity-0' : ''}`}
           >
             Institut Seni Indonesia Yogyakarta
           </p>
@@ -171,12 +184,12 @@ const Home: React.FC = () => {
           >
             <Link
               href="/about"
-              className="btn-primary shrink-0"
+              className={`btn-primary shrink-0 ${!disableEntranceEffects ? 'opacity-0' : ''}`}
             >
               <span className="btn-primary-label">Tentang Kami</span>
               <div className="btn-primary-overlay"></div>
             </Link>
-            <p className="max-w-md text-neutral-400 text-sm leading-relaxed border-t md:border-t-0 md:border-l border-gold-500/30 pt-8 md:pt-0 md:pl-8 font-light">
+            <p className={`max-w-md text-neutral-400 text-sm leading-relaxed border-t md:border-t-0 md:border-l border-gold-500/30 pt-8 md:pt-0 md:pl-8 font-light ${!disableEntranceEffects ? 'opacity-0' : ''}`}>
               Harmony in diversity, rhythm in unity. Membangun ekosistem
               akademik yang inklusif dan progresif.
             </p>
@@ -193,7 +206,7 @@ const Home: React.FC = () => {
           <Link
             href="/about"
             data-quick-link="true"
-            className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group block"
+            className={`p-12 hover:bg-stone-900 transition-colors cursor-pointer group block ${!disableEntranceEffects ? 'opacity-0' : ''}`}
           >
             <span className="text-xs font-mono text-stone-600 mb-4 block">
               01
@@ -209,7 +222,7 @@ const Home: React.FC = () => {
           <Link
             href="/events"
             data-quick-link="true"
-            className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group block"
+            className={`p-12 hover:bg-stone-900 transition-colors cursor-pointer group block ${!disableEntranceEffects ? 'opacity-0' : ''}`}
           >
             <span className="text-xs font-mono text-stone-600 mb-4 block">
               02
@@ -225,7 +238,7 @@ const Home: React.FC = () => {
           <Link
             href="/aduan"
             data-quick-link="true"
-            className="p-12 hover:bg-stone-900 transition-colors cursor-pointer group block"
+            className={`p-12 hover:bg-stone-900 transition-colors cursor-pointer group block ${!disableEntranceEffects ? 'opacity-0' : ''}`}
           >
             <span className="text-xs font-mono text-stone-600 mb-4 block">
               03
