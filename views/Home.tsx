@@ -15,8 +15,6 @@ const AccentLine: React.FC = () => (
   <span className="block w-8 md:w-12 h-px bg-gold-500/40" aria-hidden="true" />
 );
 
-const MUSIK_COLOR = "rgb(68 64 60)";
-
 const Home: React.FC = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const heroEyebrowRef = useRef<HTMLParagraphElement | null>(null);
@@ -170,7 +168,7 @@ const Home: React.FC = () => {
                   fontFamily="var(--font-serif)"
                   fontUrl=""
                   width={false}
-                  textColor={MUSIK_COLOR}
+                  textColor={"var(--color-stone-700)"}
                   stroke={false}
                   flex={false}
                   warmupDuration={1200}
