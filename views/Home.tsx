@@ -129,13 +129,13 @@ const Home: React.FC = () => {
           <div
             className="absolute top-1/4 -left-20 w-lg h-128 rounded-full"
             style={{
-              background: 'radial-gradient(closest-side, rgba(255, 160, 122, 0.07), transparent 70%)'
+              background: 'radial-gradient(circle, rgba(255, 160, 122, 0.15)_0%, transparent 70%)'
             }}
           />
           <div
             className="absolute bottom-1/3 -right-20 w-md h-112 rounded-full"
             style={{
-              background: 'radial-gradient(closest-side, rgba(28, 25, 23, 0.15), transparent 70%)'
+              background: 'radial-gradient(circle, rgba(28, 25, 23, 0.3)_0%, transparent 70%)'
             }}
           />
         </div>
