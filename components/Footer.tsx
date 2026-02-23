@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-stone-950 border-t border-stone-900 pt-24 md:pt-28 pb-14 md:pb-16 px-8 relative z-3">
+    <footer className="bg-stone-950 border-t border-stone-900 pt-24 md:pt-28 pb-14 md:pb-16 px-8 relative z-[2]">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8">
         <div className="md:col-span-6">
           <Link href="/" className="group inline-flex flex-col mb-8">
@@ -41,6 +41,9 @@ const Footer: React.FC = () => {
             </li>
             <li>
               <Link href="/aduan" className="hover:text-gold-300 transition-colors">Layanan Aduan</Link>
+            </li>
+            <li>
+              <Link href="/pendaftaran" className="hover:text-gold-300 transition-colors">Pendaftaran</Link>
             </li>
           </ul>
         </div>
