@@ -297,6 +297,70 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <section className="py-24 md:py-32 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div>
+            <div className="flex items-center gap-4 mb-6">
+              <AccentLine />
+              <span className="text-[0.65rem] uppercase tracking-[0.4em] text-stone-600 font-medium">
+                Open Recruitment
+              </span>
+            </div>
+            <h2 className="font-serif text-4xl md:text-6xl text-white tracking-tight">
+              Jadi <span className="italic text-gold-500/80 font-light">Pengurus</span> HIMA
+            </h2>
+            <p className="text-neutral-500 text-sm mt-5 leading-relaxed max-w-xl">
+              Mulai dari pilih posisi yang kamu minati, isi data diri, sampai kirim pendaftaran.
+              Alurnya singkat dan jelas supaya kamu bisa fokus ke kontribusi.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <Link href="/pendaftaran" className="btn-primary">
+                <span className="btn-primary-label">Lihat Posisi & Daftar</span>
+                <div className="btn-primary-overlay"></div>
+              </Link>
+              <Link
+                href="/pendaftaran"
+                className="px-6 py-3 text-[10px] uppercase tracking-[0.3em] border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors duration-300 inline-flex items-center justify-center"
+              >
+                Baca Alur Pendaftaran
+              </Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-6">
+            {[
+              {
+                step: "01",
+                title: "Pilih Divisi",
+                detail: "Lihat ringkasan posisi dan pilih prioritas utama.",
+              },
+              {
+                step: "02",
+                title: "Isi Data & Motivasi",
+                detail: "Lengkapi data diri dan ceritakan alasanmu bergabung.",
+              },
+              {
+                step: "03",
+                title: "Review & Submit",
+                detail: "Cek ulang jawaban lalu kirim pendaftaran.",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="border border-white/5 bg-white/2 p-6 md:p-8 flex items-start gap-6"
+              >
+                <span className="text-[0.75rem] font-mono text-stone-700 tracking-wider">
+                  {item.step}
+                </span>
+                <div>
+                  <h3 className="font-serif text-xl text-white mb-2">{item.title}</h3>
+                  <p className="text-sm text-neutral-500 leading-relaxed">{item.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

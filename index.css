@@ -215,6 +215,7 @@ body {
   background-color: var(--color-gold-500);
   transform: translateY(100%);
   transition: transform 500ms ease-out;
+  pointer-events: none;
 }
 
 .btn-primary:hover .btn-primary-overlay {

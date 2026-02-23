@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 .vercel
 *.tsbuildinfo
+
+# Trae
+.trae

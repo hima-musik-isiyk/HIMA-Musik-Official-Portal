@@ -35,6 +35,7 @@ const Navigation: React.FC = () => {
     { href: "/events", label: "Acara" },
     { href: "/gallery", label: "Galeri" },
     { href: "/aduan", label: "Aduan" },
+    { href: "/pendaftaran", label: "Pendaftaran" },
   ];
 
   useEffect(() => {
