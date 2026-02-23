@@ -8,6 +8,30 @@ type GroqChatCompletion = {
 const apiKey = process.env.GROQ_API_KEY || process.env.API_KEY || "";
 const groqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
 const groqModel = "llama-3.1-8b-instant";
+const groqCooldownMs = 15000;
+
+const groqLastCall = new Map<string, number>();
+
+const getClientIdentifier = (request: Request): string => {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const parts = forwardedFor
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length > 0) {
+      return parts[0] as string;
+    }
+  }
+
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp;
+  }
+
+  const userAgent = request.headers.get("user-agent") || "unknown";
+  return `ua:${userAgent}`;
+};
 
 export async function POST(request: Request) {
   const body = await request
@@ -19,6 +43,30 @@ export async function POST(request: Request) {
   if (!originalText.trim() || !apiKey) {
     return NextResponse.json({ enhanced: originalText });
   }
+
+  const now = Date.now();
+  const identifier = getClientIdentifier(request);
+  const lastCall = groqLastCall.get(identifier) ?? 0;
+  const elapsed = now - lastCall;
+
+  if (elapsed < groqCooldownMs) {
+    const retryAfterMs = groqCooldownMs - elapsed;
+    return NextResponse.json(
+      {
+        enhanced: originalText,
+        error: "Too many requests. Please wait before trying again.",
+        retryAfterMs,
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil(retryAfterMs / 1000)),
+        },
+      },
+    );
+  }
+
+  groqLastCall.set(identifier, now);
 
   try {
     const response = await fetch(groqEndpoint, {
