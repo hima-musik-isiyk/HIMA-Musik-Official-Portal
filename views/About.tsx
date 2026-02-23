@@ -15,7 +15,7 @@ const About: React.FC = () => {
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="flex items-center gap-4 mb-12">
           <div className="h-px w-8 bg-gold-500/50"></div>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
+          <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
             Profil Organisasi
           </p>
         </div>
@@ -44,7 +44,7 @@ const About: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="md:col-span-5 relative aspect-3/4 w-full bg-[#111] overflow-hidden group">
+          <div className="md:col-span-5 relative aspect-3/4 w-full bg-[#111] overflow-hidden group" aria-hidden="true">
             <div className="absolute inset-0 bg-gold-500/10 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-700"></div>
             <LightPillar
               topColor="#D4A64D"
@@ -66,7 +66,7 @@ const About: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-16">
             {executives.map((exec, idx) => (
               <div key={idx} className="group relative pl-6 border-l border-white/5 hover:border-gold-300 transition-colors duration-500">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-gold-500 mb-4 group-hover:text-gold-300 transition-colors duration-500">
+                <p className="text-xs uppercase tracking-[0.3em] text-gold-500 mb-4 group-hover:text-gold-300 transition-colors duration-500">
                   {exec.role}
                 </p>
                 <p className="font-serif text-xl text-neutral-300 group-hover:text-white transition-colors duration-500">

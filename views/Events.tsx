@@ -9,7 +9,7 @@ const Events: React.FC = () => {
           <div>
             <div className="flex items-center gap-4 mb-6">
               <div className="h-px w-8 bg-gold-500/50"></div>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
+              <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
                 Agenda
               </p>
             </div>
@@ -23,9 +23,25 @@ const Events: React.FC = () => {
         </div>
 
         <div className="space-y-0">
-          <div className="border border-white/5 bg-white/1 rounded-none py-24 px-6 text-center text-neutral-500 text-[11px] tracking-[0.3em] uppercase relative overflow-hidden group hover:border-gold-500/30 transition-colors duration-500">
+          <div className="border border-white/5 bg-white/1 rounded-none py-24 px-8 text-center relative overflow-hidden group hover:border-gold-500/30 transition-colors duration-500">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-            <span className="relative z-10">Konten kalender acara akan segera diisi</span>
+            <div className="relative z-10 flex flex-col items-center gap-6">
+              <p className="text-neutral-400 text-sm tracking-wide">
+                Kalender acara Semester Genap 2026 sedang dalam penyusunan dan akan dipublikasikan sebelum perkuliahan dimulai.
+              </p>
+              <p className="text-neutral-500 text-xs tracking-wide">
+                Sementara itu, ikuti informasi terbaru melalui kanal resmi kami:
+              </p>
+              <a
+                href="https://instagram.com/himamusikisi"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-3 px-6 py-3 border border-gold-500/30 text-gold-300 text-xs uppercase tracking-[0.3em] hover:bg-gold-500/10 transition-colors duration-300"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+                Ikuti @himamusikisi
+              </a>
+            </div>
           </div>
         </div>
       </div>

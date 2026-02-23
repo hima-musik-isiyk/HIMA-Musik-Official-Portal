@@ -73,8 +73,8 @@ const Footer: React.FC = () => {
 
       <div className="max-w-7xl mx-auto mt-24 md:mt-28 pt-10 md:pt-12 border-t border-stone-900/50 flex flex-col md:flex-row justify-between items-center text-xs uppercase tracking-[0.5em] text-stone-700">
         <p className="text-center md:text-left">&copy; {currentYear} HIMA MUSIK ISI YOGYAKARTA</p>
-        <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500">
-          Emergence
+        <p className="mt-4 md:mt-0 uppercase tracking-[0.3em] text-gold-500" title="Nama Kabinet HIMA Musik 2026">
+          Kabinet Emergence
         </p>
       </div>
     </footer>
