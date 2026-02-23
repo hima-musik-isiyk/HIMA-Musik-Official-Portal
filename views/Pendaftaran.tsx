@@ -175,6 +175,7 @@ const Pendaftaran: React.FC = () => {
   const [showStepErrors, setShowStepErrors] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const stepBarRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollOnStepChangeRef = useRef(false);
 
@@ -567,7 +568,7 @@ const Pendaftaran: React.FC = () => {
     setStep(targetStep);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isSubmitting) return;
     if (step < steps.length - 1) {
@@ -580,15 +581,65 @@ const Pendaftaran: React.FC = () => {
     if (step !== steps.length - 1) return;
 
     setIsSubmitting(true);
-    setSubmittedAt(new Date());
-    setSubmitted(true);
-    setAutoSaveStatus("idle");
-    setHasTouchedForm(false);
-    setShowRestoreNotice(false);
-    setLastSavedAt(null);
-    clearStoredState();
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    setSubmitError(null);
+
+    const payload = {
+      intent: "submit-pendaftaran",
+      data: {
+        firstChoice: formData.firstChoice,
+        secondChoice: formData.secondChoice,
+        fullName: trimmedFullName,
+        nim: trimmedNim,
+        email: trimmedEmail,
+        phone: trimmedPhone,
+        instagram: formData.instagram.trim(),
+        motivation: trimmedMotivation,
+        experience: formData.experience.trim(),
+        availability: formData.availability,
+        portfolio: formData.portfolio.trim(),
+        submittedAt: new Date().toISOString(),
+      },
+    };
+
+    try {
+      const response = await fetch("/api/pendaftaran", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let message = "Gagal mengirim bukti pendaftaran. Coba lagi sebentar lagi.";
+        try {
+          const body = await response.json();
+          if (body && typeof body.error === "string" && body.error.trim()) {
+            message = body.error;
+          }
+        } catch {
+        }
+        setSubmitError(message);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const submittedTime = new Date();
+      setSubmittedAt(submittedTime);
+      setSubmitted(true);
+      setAutoSaveStatus("idle");
+      setHasTouchedForm(false);
+      setShowRestoreNotice(false);
+      setLastSavedAt(null);
+      clearStoredState();
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      }
+    } catch {
+      setSubmitError(
+        "Terjadi kesalahan saat menghubungi server. Coba lagi sebentar lagi.",
+      );
+      setIsSubmitting(false);
     }
   };
 
@@ -1273,6 +1324,11 @@ const Pendaftaran: React.FC = () => {
                   {autoSaveStatus === "idle" &&
                     showRestoreNotice &&
                     "Draf sebelumnya dipulihkan."}
+                </span>
+              )}
+              {submitError && (
+                <span className="text-red-400">
+                  {submitError}
                 </span>
               )}
             </div>
