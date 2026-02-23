@@ -11,6 +11,7 @@ const Navigation: React.FC = () => {
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeMobileIndex, setActiveMobileIndex] = useState<number | null>(null);
+  const [isCompactMobileMenu, setIsCompactMobileMenu] = useState(false);
   const [mobileMenuLayer, setMobileMenuLayer] = useState(40);
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
   const [navLayer, setNavLayer] = useState(50);
@@ -369,6 +370,33 @@ const Navigation: React.FC = () => {
     }, 100);
   };
 
+  const handleMobileMenuClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    const anchor = target.closest("a");
+    if (!anchor) {
+      setIsMenuOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    const updateCompactMobileMenu = () => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const height = window.innerHeight;
+      setIsCompactMobileMenu(height < 640);
+    };
+
+    updateCompactMobileMenu();
+    window.addEventListener("resize", updateCompactMobileMenu);
+    return () => {
+      window.removeEventListener("resize", updateCompactMobileMenu);
+    };
+  }, []);
+
   return (
     <>
       <div
@@ -449,15 +477,21 @@ const Navigation: React.FC = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
       <div
         ref={mobileMenuRef}
         style={{ zIndex: mobileMenuLayer }}
-        className={`md:hidden fixed inset-0 will-change-transform ${
+        className={`md:hidden fixed inset-0 flex flex-col pt-24 will-change-transform ${
           isNavigating ? "bg-transparent" : "bg-[#0a0a0a]"
         } ${isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+        onClick={handleMobileMenuClick}
       >
-        <div className="h-full flex flex-col justify-center items-center space-y-10 px-8 pt-24 relative z-10">
+        <div
+          className={`flex-1 flex flex-col items-center px-8 relative z-10 ${
+            isCompactMobileMenu
+              ? "justify-start space-y-4 overflow-y-auto"
+              : "justify-center space-y-10"
+          }`}
+        >
           {navItems.map((item, idx) => {
             const isActive =
               item.href === "/"
@@ -474,7 +508,9 @@ const Navigation: React.FC = () => {
                   animateMobileRipple(idx);
                   handleNavItemClick(item.href, idx, e);
                 }}
-                className={`relative overflow-hidden text-3xl font-serif italic transition-all duration-500 ${
+                className={`relative font-serif italic transition-all duration-500 ${
+                  isCompactMobileMenu ? "text-2xl" : "text-3xl"
+                } ${
                   isClicked
                     ? "text-white z-20"
                     : isActive
