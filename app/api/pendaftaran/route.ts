@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.SENDGRID_API_KEY;
+    const apiKey = process.env.BREVO_API_KEY;
     const fromEmail = process.env.FROM_EMAIL || "musikisiyk@gmail.com";
     const adminEmail = process.env.ADMIN_EMAIL;
 
@@ -192,35 +192,37 @@ export async function POST(request: Request) {
 
     const text = textLines.join("\n");
 
-    const sgPayload = {
-      personalizations: [
+    const brevoPayload = {
+      sender: {
+        email: fromEmail,
+      },
+      to: [
         {
-          to: [{ email }],
-          ...(adminEmail
-            ? { bcc: [{ email: adminEmail }] }
-            : {}),
+          email,
+          name: fullName || email,
         },
       ],
-      from: {
-        email: fromEmail,
-      },
-      reply_to: {
-        email: fromEmail,
-      },
+      ...(adminEmail
+        ? {
+            bcc: [
+              {
+                email: adminEmail,
+              },
+            ],
+          }
+        : {}),
       subject,
-      content: [
-        { type: "text/plain", value: text },
-        { type: "text/html", value: html },
-      ],
+      htmlContent: html,
+      textContent: text,
     };
 
-    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "api-key": apiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(sgPayload),
+      body: JSON.stringify(brevoPayload),
     });
 
     if (!response.ok) {
