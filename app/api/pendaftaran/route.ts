@@ -19,6 +19,31 @@ type PendaftaranPayload = {
   };
 };
 
+const MIN_MOTIVATION_CHARS = 100;
+const MAX_MOTIVATION_CHARS = 600;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NIM_PATTERN = /^\d{10,12}$/;
+const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
+
+const divisionLabels: Record<string, string> = {
+  kaderisasi: "Kaderisasi & Pengembangan",
+  humas: "Humas & Kemitraan",
+  kreatif: "Kreatif & Media",
+  acara: "Acara & Program Kerja",
+  advokasi: "Advokasi & Aspirasi",
+};
+
+const htmlEscapes: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (char) => htmlEscapes[char] ?? char);
+
 const pendaftaranCooldownMs = 5 * 60 * 1000;
 
 const pendaftaranLastSubmit = new Map<string, number>();
@@ -42,13 +67,115 @@ export async function POST(request: Request) {
       );
     }
 
-    const email = typeof data.email === "string" ? data.email.trim() : "";
+    const firstChoice =
+      typeof data.firstChoice === "string" ? data.firstChoice.trim() : "";
+    const secondChoice =
+      typeof data.secondChoice === "string" ? data.secondChoice.trim() : "";
     const fullName =
       typeof data.fullName === "string" ? data.fullName.trim() : "";
+    const nim = typeof data.nim === "string" ? data.nim.trim() : "";
+    const email = typeof data.email === "string" ? data.email.trim() : "";
+    const phone = typeof data.phone === "string" ? data.phone.trim() : "";
+    const instagram =
+      typeof data.instagram === "string" ? data.instagram.trim() : "";
+    const motivation =
+      typeof data.motivation === "string" ? data.motivation.trim() : "";
+    const experience =
+      typeof data.experience === "string" ? data.experience.trim() : "";
+    const availability = Array.isArray(data.availability)
+      ? data.availability
+          .filter((item) => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+    const portfolio =
+      typeof data.portfolio === "string" ? data.portfolio.trim() : "";
+
+    if (!firstChoice) {
+      return NextResponse.json(
+        { error: "Divisi prioritas 1 wajib dipilih." },
+        { status: 400 },
+      );
+    }
+
+    if (secondChoice && secondChoice === firstChoice) {
+      return NextResponse.json(
+        { error: "Divisi prioritas 2 harus berbeda dari prioritas 1." },
+        { status: 400 },
+      );
+    }
+
+    if (!fullName) {
+      return NextResponse.json(
+        { error: "Nama lengkap wajib diisi." },
+        { status: 400 },
+      );
+    }
+
+    if (!nim) {
+      return NextResponse.json(
+        { error: "NIM wajib diisi." },
+        { status: 400 },
+      );
+    }
+
+    if (!NIM_PATTERN.test(nim)) {
+      return NextResponse.json(
+        { error: "NIM harus 10–12 digit angka." },
+        { status: 400 },
+      );
+    }
 
     if (!email) {
       return NextResponse.json(
-        { error: "Email is required" },
+        { error: "Email wajib diisi." },
+        { status: 400 },
+      );
+    }
+
+    if (!EMAIL_PATTERN.test(email)) {
+      return NextResponse.json(
+        { error: "Format email tidak valid." },
+        { status: 400 },
+      );
+    }
+
+    if (!phone) {
+      return NextResponse.json(
+        { error: "Nomor WhatsApp wajib diisi." },
+        { status: 400 },
+      );
+    }
+
+    if (!PHONE_PATTERN.test(phone)) {
+      return NextResponse.json(
+        { error: "Gunakan format 08xxxxxxxxxx atau +628xxxxxxxxxx." },
+        { status: 400 },
+      );
+    }
+
+    if (!motivation) {
+      return NextResponse.json(
+        { error: "Motivasi wajib diisi." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      motivation.length < MIN_MOTIVATION_CHARS ||
+      motivation.length > MAX_MOTIVATION_CHARS
+    ) {
+      return NextResponse.json(
+        {
+          error: `Motivasi harus ${MIN_MOTIVATION_CHARS}–${MAX_MOTIVATION_CHARS} karakter.`,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (availability.length === 0) {
+      return NextResponse.json(
+        { error: "Pilih minimal satu ketersediaan waktu." },
         { status: 400 },
       );
     }
@@ -91,28 +218,28 @@ export async function POST(request: Request) {
 
     const subject = "Bukti Pendaftaran HIMA Musik";
 
-    const submittedAt =
-      typeof data.submittedAt === "string" && data.submittedAt
-        ? new Date(data.submittedAt)
-        : new Date();
+    const submittedAt = new Date();
 
     const submittedAtFormatted = submittedAt.toLocaleString("id-ID", {
       dateStyle: "full",
       timeStyle: "short",
     });
 
-    const divisionName = data.firstChoice || "-";
-    const secondaryDivisionName =
-      typeof data.secondChoice === "string" ? data.secondChoice.trim() : "";
-    const nim = typeof data.nim === "string" ? data.nim.trim() : "";
-    const phone = typeof data.phone === "string" ? data.phone.trim() : "";
-    const instagram =
-      typeof data.instagram === "string" ? data.instagram.trim() : "";
-    const availability = Array.isArray(data.availability)
-      ? data.availability.filter((item) => typeof item === "string" && item.trim())
-      : [];
-    const portfolio =
-      typeof data.portfolio === "string" ? data.portfolio.trim() : "";
+    const divisionLabel = divisionLabels[firstChoice] ?? firstChoice;
+    const secondaryDivisionLabel = secondChoice
+      ? divisionLabels[secondChoice] ?? secondChoice
+      : "";
+    const safeFullName = escapeHtml(fullName || "Calon Pengurus");
+    const safeEmail = escapeHtml(email);
+    const safeNim = escapeHtml(nim);
+    const safePhone = escapeHtml(phone);
+    const safeInstagram = escapeHtml(instagram);
+    const safeDivisionLabel = escapeHtml(divisionLabel || "-");
+    const safeSecondaryDivisionLabel = escapeHtml(secondaryDivisionLabel);
+    const safeAvailability = availability.map((item) => escapeHtml(item));
+    const safePortfolio = escapeHtml(portfolio);
+    const safeMotivation = escapeHtml(motivation);
+    const safeExperience = escapeHtml(experience);
 
     const html = `
       <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #050505; color: #e5e5e5; padding: 24px;">
@@ -121,7 +248,7 @@ export async function POST(request: Request) {
             Bukti Pendaftaran
           </p>
           <h1 style="font-size: 24px; margin: 0 0 16px; color: #f5f5f5;">
-            Terima kasih, ${fullName || "Calon Pengurus"}.
+            Terima kasih, ${safeFullName}.
           </h1>
           <p style="font-size: 14px; line-height: 1.6; color: #a3a3a3; margin: 0 0 20px;">
             Pendaftaran kamu sebagai calon pengurus HIMA Musik telah kami terima.
@@ -131,19 +258,41 @@ export async function POST(request: Request) {
             <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #737373; margin: 0 0 8px;">
               Ringkasan Pendaftaran
             </p>
-            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Nama:</strong> ${fullName || "-"}</p>
-            ${nim ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>NIM:</strong> ${nim}</p>` : ""}
+            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Nama:</strong> ${safeFullName || "-"}</p>
+            ${nim ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>NIM:</strong> ${safeNim}</p>` : ""}
             <p style="font-size: 14px; margin: 0 0 4px;"><strong>Waktu:</strong> ${submittedAtFormatted}</p>
-            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 1:</strong> ${divisionName}</p>
+            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 1:</strong> ${safeDivisionLabel}</p>
             ${
-              secondaryDivisionName
-                ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 2:</strong> ${secondaryDivisionName}</p>`
+              secondaryDivisionLabel
+                ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 2:</strong> ${safeSecondaryDivisionLabel}</p>`
                 : ""
             }
-            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Email:</strong> ${email}</p>
-            ${phone ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>WhatsApp:</strong> ${phone}</p>` : ""}
-            ${instagram ? `<p style="font-size: 14px; margin: 0;"><strong>Instagram:</strong> ${instagram}</p>` : ""}
+            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Email:</strong> ${safeEmail}</p>
+            ${phone ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>WhatsApp:</strong> ${safePhone}</p>` : ""}
+            ${instagram ? `<p style="font-size: 14px; margin: 0;"><strong>Instagram:</strong> ${safeInstagram}</p>` : ""}
           </div>
+          <div style="border: 1px solid rgba(255,255,255,0.06); background-color: rgba(255,255,255,0.01); padding: 16px; margin-bottom: 20px; border-radius: 12px;">
+            <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #737373; margin: 0 0 8px;">
+              Motivasi
+            </p>
+            <p style="font-size: 13px; margin: 0; color: #d4d4d4; white-space: pre-line;">
+              ${safeMotivation}
+            </p>
+          </div>
+          ${
+            experience
+              ? `
+          <div style="border: 1px solid rgba(255,255,255,0.06); background-color: rgba(255,255,255,0.01); padding: 16px; margin-bottom: 20px; border-radius: 12px;">
+            <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #737373; margin: 0 0 8px;">
+              Pengalaman
+            </p>
+            <p style="font-size: 13px; margin: 0; color: #d4d4d4; white-space: pre-line;">
+              ${safeExperience}
+            </p>
+          </div>
+              `
+              : ""
+          }
           ${
             availability.length > 0
               ? `
@@ -152,7 +301,7 @@ export async function POST(request: Request) {
               Ketersediaan Waktu
             </p>
             <p style="font-size: 13px; margin: 0; color: #d4d4d4;">
-              ${availability.join(", ")}
+              ${safeAvailability.join(", ")}
             </p>
           </div>
               `
@@ -166,7 +315,7 @@ export async function POST(request: Request) {
               Portofolio / Lampiran
             </p>
             <p style="font-size: 13px; margin: 0; color: #d4d4d4; white-space: pre-line;">
-              ${portfolio}
+              ${safePortfolio}
             </p>
           </div>
               `
@@ -196,9 +345,9 @@ export async function POST(request: Request) {
       `Nama           : ${fullName || "-"}`,
       nim ? `NIM            : ${nim}` : "",
       `Waktu          : ${submittedAtFormatted}`,
-      `Divisi prio 1  : ${divisionName}`,
-      secondaryDivisionName
-        ? `Divisi prio 2  : ${secondaryDivisionName}`
+      `Divisi prio 1  : ${divisionLabel}`,
+      secondaryDivisionLabel
+        ? `Divisi prio 2  : ${secondaryDivisionLabel}`
         : "",
       `Email          : ${email}`,
       phone ? `WhatsApp       : ${phone}` : "",
@@ -206,6 +355,8 @@ export async function POST(request: Request) {
       availability.length > 0
         ? `Ketersediaan   : ${availability.join(", ")}`
         : "",
+      motivation ? `Motivasi      : ${motivation}` : "",
+      experience ? `Pengalaman    : ${experience}` : "",
       portfolio ? `Portofolio    : ${portfolio}` : "",
       "",
       "Simpan email ini sebagai bukti pendaftaran.",
@@ -268,15 +419,15 @@ export async function POST(request: Request) {
     try {
       await prisma.pendaftaran.create({
         data: {
-          firstChoice: divisionName,
-          secondChoice: secondaryDivisionName || null,
+          firstChoice,
+          secondChoice: secondChoice || null,
           fullName: fullName || "",
           nim: nim || null,
           email,
           phone: phone || null,
           instagram: instagram || null,
-          motivation: typeof data.motivation === "string" ? data.motivation.trim() : null,
-          experience: typeof data.experience === "string" ? data.experience.trim() : null,
+          motivation: motivation || null,
+          experience: experience || null,
           availability,
           portfolio: portfolio || null,
           submittedAt,

@@ -234,15 +234,10 @@ const Pendaftaran: React.FC = () => {
     return false;
   };
 
-  const isStepValid: boolean = ((): boolean => {
-    if (step >= 0 && step <= 2) {
-      return isStepComplete(step);
-    }
-    if (step === 3) {
-      return isStepComplete(0) && isStepComplete(1) && isStepComplete(2);
-    }
-    return false;
-  })();
+  const isStepValid =
+    step === 3
+      ? isStepComplete(0) && isStepComplete(1) && isStepComplete(2)
+      : isStepComplete(step);
 
   const hasEditedCurrentStep: boolean = ((): boolean => {
     if (step === 0) {
@@ -530,15 +525,6 @@ const Pendaftaran: React.FC = () => {
     setHasTouchedForm(true);
   };
 
-  const handleNext = () => {
-    if (step < steps.length - 1) {
-      setShowStepErrors(false);
-      saveDraftNow();
-      shouldScrollOnStepChangeRef.current = true;
-      setStep((prev) => prev + 1);
-    }
-  };
-
   const handleNextWithValidation = (
     event?: React.MouseEvent<HTMLButtonElement>,
   ) => {
@@ -551,7 +537,6 @@ const Pendaftaran: React.FC = () => {
       return;
     }
     setShowStepErrors(false);
-    saveDraftNow();
     shouldScrollOnStepChangeRef.current = true;
     setStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
@@ -847,6 +832,9 @@ const Pendaftaran: React.FC = () => {
                 <button
                   key={item.id}
                   type="button"
+                  aria-disabled={isLocked}
+                  disabled={isLocked}
+                  title={isLocked ? "Lengkapi langkah sebelumnya" : item.label}
                   onClick={() => {
                     if (!canClick) return;
                     handleStepClick(item.id);
@@ -962,11 +950,17 @@ const Pendaftaran: React.FC = () => {
                         >
                           Pilih Prioritas 1
                         </button>
-                        <div className="relative group flex flex-col gap-2">
+                        <div className="relative flex flex-col gap-2">
                           <button
                             type="button"
                             onClick={() => handleSelect("secondChoice", division.id)}
                             aria-disabled={!formData.firstChoice}
+                            disabled={!formData.firstChoice}
+                            title={
+                              formData.firstChoice
+                                ? "Pilih prioritas 2"
+                                : "Pilih prioritas 1 dulu"
+                            }
                             className={`px-4 py-3 text-[10px] uppercase tracking-[0.3em] border transition-colors duration-300 ${
                               !formData.firstChoice
                                 ? "border-white/10 text-neutral-600 cursor-not-allowed"
@@ -981,9 +975,9 @@ const Pendaftaran: React.FC = () => {
                             Opsional
                           </span>
                           {!formData.firstChoice && (
-                            <div className="pointer-events-none absolute left-0 top-full mt-2 rounded border border-white/10 bg-black/90 px-3 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <span className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
                               Pilih prioritas 1 dulu
-                            </div>
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1035,7 +1029,7 @@ const Pendaftaran: React.FC = () => {
                     value={formData.nim}
                     onChange={handleInputChange}
                     className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
-                    placeholder="2024xxxxxx"
+                    placeholder="24xxxxxxxx"
                     inputMode="numeric"
                     pattern="\d{10,12}"
                     required
