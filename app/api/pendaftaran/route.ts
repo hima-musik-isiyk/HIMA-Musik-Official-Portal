@@ -76,10 +76,21 @@ export async function POST(request: Request) {
     });
 
     const divisionName = data.firstChoice || "-";
+    const secondaryDivisionName =
+      typeof data.secondChoice === "string" ? data.secondChoice.trim() : "";
+    const nim = typeof data.nim === "string" ? data.nim.trim() : "";
+    const phone = typeof data.phone === "string" ? data.phone.trim() : "";
+    const instagram =
+      typeof data.instagram === "string" ? data.instagram.trim() : "";
+    const availability = Array.isArray(data.availability)
+      ? data.availability.filter((item) => typeof item === "string" && item.trim())
+      : [];
+    const portfolio =
+      typeof data.portfolio === "string" ? data.portfolio.trim() : "";
 
     const html = `
       <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #050505; color: #e5e5e5; padding: 24px;">
-        <div style="max-width: 520px; margin: 0 auto; background-color: #0b0b0b; border: 1px solid rgba(255,255,255,0.08); padding: 24px;">
+        <div style="max-width: 520px; margin: 0 auto; background-color: #0b0b0b; border: 1px solid rgba(255,255,255,0.08); padding: 24px; border-radius: 16px;">
           <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #d4a64d; margin: 0 0 16px;">
             Bukti Pendaftaran
           </p>
@@ -90,18 +101,60 @@ export async function POST(request: Request) {
             Pendaftaran kamu sebagai calon pengurus HIMA Musik telah kami terima.
             Tim akan menghubungi kamu melalui email atau WhatsApp untuk informasi tahap berikutnya.
           </p>
-          <div style="border: 1px solid rgba(255,255,255,0.08); background-color: rgba(255,255,255,0.02); padding: 16px; margin-bottom: 20px;">
+          <div style="border: 1px solid rgba(255,255,255,0.08); background-color: rgba(255,255,255,0.02); padding: 16px; margin-bottom: 20px; border-radius: 12px;">
             <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #737373; margin: 0 0 8px;">
               Ringkasan Pendaftaran
             </p>
             <p style="font-size: 14px; margin: 0 0 4px;"><strong>Nama:</strong> ${fullName || "-"}</p>
+            ${nim ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>NIM:</strong> ${nim}</p>` : ""}
             <p style="font-size: 14px; margin: 0 0 4px;"><strong>Waktu:</strong> ${submittedAtFormatted}</p>
-            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi pilihan utama:</strong> ${divisionName}</p>
-            <p style="font-size: 14px; margin: 0;"><strong>Email terdaftar:</strong> ${email}</p>
+            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 1:</strong> ${divisionName}</p>
+            ${
+              secondaryDivisionName
+                ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 2:</strong> ${secondaryDivisionName}</p>`
+                : ""
+            }
+            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Email:</strong> ${email}</p>
+            ${phone ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>WhatsApp:</strong> ${phone}</p>` : ""}
+            ${instagram ? `<p style="font-size: 14px; margin: 0;"><strong>Instagram:</strong> ${instagram}</p>` : ""}
           </div>
-          <p style="font-size: 12px; line-height: 1.6; color: #737373; margin: 0 0 16px;">
+          ${
+            availability.length > 0
+              ? `
+          <div style="border: 1px solid rgba(255,255,255,0.06); background-color: rgba(255,255,255,0.01); padding: 16px; margin-bottom: 20px; border-radius: 12px;">
+            <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #737373; margin: 0 0 8px;">
+              Ketersediaan Waktu
+            </p>
+            <p style="font-size: 13px; margin: 0; color: #d4d4d4;">
+              ${availability.join(", ")}
+            </p>
+          </div>
+              `
+              : ""
+          }
+          ${
+            portfolio
+              ? `
+          <div style="border: 1px solid rgba(255,255,255,0.06); background-color: rgba(255,255,255,0.01); padding: 16px; margin-bottom: 20px; border-radius: 12px;">
+            <p style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: #737373; margin: 0 0 8px;">
+              Portofolio / Lampiran
+            </p>
+            <p style="font-size: 13px; margin: 0; color: #d4d4d4; white-space: pre-line;">
+              ${portfolio}
+            </p>
+          </div>
+              `
+              : ""
+          }
+          <p style="font-size: 12px; line-height: 1.6; color: #737373; margin: 0 0 12px;">
             Simpan email ini sebagai bukti pendaftaran. Jika ada data yang tidak sesuai,
             kamu bisa membalas email ini ke panitia.
+          </p>
+          <p style="font-size: 12px; line-height: 1.6; color: #737373; margin: 0 0 16px;">
+            Jika email ini muncul di folder <span style="color:#e5e5e5;">Spam</span> atau
+            <span style="color:#e5e5e5;">Junk</span>, tandai sebagai
+            <span style="color:#e5e5e5;"> “Bukan spam” </span> dan pindahkan ke kotak masuk
+            utama supaya informasi berikutnya tidak terlewat.
           </p>
           <p style="font-size: 12px; line-height: 1.6; color: #525252; margin: 0;">
             Salam hangat,<br/>
@@ -114,11 +167,28 @@ export async function POST(request: Request) {
     const textLines = [
       "Bukti Pendaftaran HIMA Musik",
       "",
-      `Nama: ${fullName || "-"}`,
-      `Waktu: ${submittedAtFormatted}`,
-      `Divisi pilihan utama: ${divisionName}`,
-      `Email terdaftar: ${email}`,
-    ];
+      `Nama           : ${fullName || "-"}`,
+      nim ? `NIM            : ${nim}` : "",
+      `Waktu          : ${submittedAtFormatted}`,
+      `Divisi prio 1  : ${divisionName}`,
+      secondaryDivisionName
+        ? `Divisi prio 2  : ${secondaryDivisionName}`
+        : "",
+      `Email          : ${email}`,
+      phone ? `WhatsApp       : ${phone}` : "",
+      instagram ? `Instagram      : ${instagram}` : "",
+      availability.length > 0
+        ? `Ketersediaan   : ${availability.join(", ")}`
+        : "",
+      portfolio ? `Portofolio    : ${portfolio}` : "",
+      "",
+      "Simpan email ini sebagai bukti pendaftaran.",
+      "Jika email ini masuk ke folder Spam/Junk, tandai sebagai \"Bukan spam\"",
+      "agar informasi berikutnya tidak terlewat.",
+      "",
+      "Salam hangat,",
+      "HIMA Musik",
+    ].filter(Boolean);
 
     const text = textLines.join("\n");
 
