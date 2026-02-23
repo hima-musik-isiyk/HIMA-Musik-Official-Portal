@@ -29,6 +29,7 @@ const Aduan: React.FC = () => {
     message: "",
   });
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceStatus, setEnhanceStatus] = useState<"idle" | "success" | "rate-limited" | "error">("idle");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -200,14 +201,9 @@ const Aduan: React.FC = () => {
 
   const handleEnhance = async () => {
     if (!formData.message.trim()) return;
+    const currentMessage = formData.message;
     setHasTouchedForm(true);
-    setMessageHistory((prev) => {
-      const next = [...prev, formData.message];
-      if (next.length > MAX_HISTORY_LENGTH) {
-        next.shift();
-      }
-      return next;
-    });
+    setEnhanceStatus("idle");
     setIsEnhancing(true);
     try {
       const response = await fetch("/api/refine-aduan", {
@@ -217,7 +213,13 @@ const Aduan: React.FC = () => {
         },
         body: JSON.stringify({ message: formData.message }),
       });
+      if (response.status === 429) {
+        setEnhanceStatus("rate-limited");
+        setIsEnhancing(false);
+        return;
+      }
       if (!response.ok) {
+        setEnhanceStatus("error");
         setIsEnhancing(false);
         return;
       }
@@ -225,9 +227,21 @@ const Aduan: React.FC = () => {
       const nextMessage =
         typeof data.enhanced === "string" && data.enhanced.trim()
           ? data.enhanced
-          : formData.message;
+          : currentMessage;
+      const wasChanged = nextMessage !== currentMessage;
+      if (wasChanged) {
+        setMessageHistory((prev) => {
+          const next = [...prev, currentMessage];
+          if (next.length > MAX_HISTORY_LENGTH) {
+            next.shift();
+          }
+          return next;
+        });
+      }
       setFormData((prev) => ({ ...prev, message: nextMessage }));
+      setEnhanceStatus(wasChanged ? "success" : "idle");
     } catch {
+      setEnhanceStatus("error");
     } finally {
       setIsEnhancing(false);
     }
@@ -241,6 +255,7 @@ const Aduan: React.FC = () => {
       setFormData((current) => ({ ...current, message: last }));
       return next;
     });
+    setEnhanceStatus("idle");
     setHasTouchedForm(true);
   };
 
@@ -324,7 +339,7 @@ const Aduan: React.FC = () => {
         <div className="text-center relative z-10">
           <div className="flex items-center justify-center gap-4 mb-8">
             <div className="h-px w-8 bg-gold-500/50"></div>
-            <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium">
+            <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
               Status Laporan
             </p>
             <div className="h-px w-8 bg-gold-500/50"></div>
@@ -347,7 +362,7 @@ const Aduan: React.FC = () => {
               setMessageHistory([]);
               setHasTouchedForm(false);
             }}
-            className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-[10px] font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-300/50"
+            className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-300/50"
           >
             <span className="relative z-10 group-hover:text-gold-300 transition-colors duration-500">Kirim laporan lain</span>
             <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
@@ -363,7 +378,7 @@ const Aduan: React.FC = () => {
       <div className="w-full max-w-3xl relative z-10">
         <div className="flex items-center justify-center gap-4 mb-8">
           <div className="h-px w-8 bg-gold-500/50"></div>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-gold-500 font-medium text-center">
+          <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium text-center">
             Layanan Advokasi
           </p>
           <div className="h-px w-8 bg-gold-500/50"></div>
@@ -379,7 +394,7 @@ const Aduan: React.FC = () => {
           <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="group relative">
-              <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
                 Nama (Opsional)
               </label>
               <input
@@ -393,7 +408,7 @@ const Aduan: React.FC = () => {
               />
             </div>
             <div className="group relative">
-              <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
                 NIM (Opsional)
               </label>
               <input
@@ -409,7 +424,7 @@ const Aduan: React.FC = () => {
           </div>
 
           <div className="group relative">
-            <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
               Kategori
             </label>
             <div className="relative">
@@ -433,14 +448,14 @@ const Aduan: React.FC = () => {
                   Lainnya
                 </option>
               </select>
-              <div className="absolute right-0 top-4 pointer-events-none text-[10px] text-gold-500/50 group-focus-within:text-gold-300 transition-colors duration-500">
+              <div className="absolute right-0 top-0 bottom-0 flex items-center pr-2 pointer-events-none text-sm text-gold-500/50 group-focus-within:text-gold-300 transition-colors duration-500">
                 ▼
               </div>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
               Pesan
             </label>
             <textarea
@@ -455,7 +470,7 @@ const Aduan: React.FC = () => {
             ></textarea>
 
             <div className="flex justify-between items-center mt-4">
-              <span className="text-[10px] text-neutral-600 uppercase tracking-[0.2em]">
+              <span className="text-xs text-neutral-600 uppercase tracking-[0.2em]">
                 {formData.message.length} Karakter
               </span>
               <div className="flex items-center gap-6">
@@ -463,30 +478,43 @@ const Aduan: React.FC = () => {
                   type="button"
                   onClick={handleEnhance}
                   disabled={isEnhancing || !formData.message || isSubmitting}
-                  className="text-[10px] uppercase tracking-[0.2em] text-gold-500/60 hover:text-gold-300 disabled:text-neutral-700 transition-colors duration-300 flex items-center gap-2"
+                  title="Perbaiki tata bahasa dan nada pesan menggunakan AI secara otomatis"
+                  className="text-xs uppercase tracking-[0.2em] text-gold-500/60 hover:text-gold-300 disabled:text-neutral-700 transition-colors duration-300 flex items-center gap-2"
                 >
                   {isEnhancing
                     ? "Sedang Memproses..."
-                    : "[ ✨ AI Refine Text ]"}
+                    : enhanceStatus === "success"
+                      ? "✓ Teks Diperbarui"
+                      : "✨ Perbaiki Teks"}
                 </button>
                 {messageHistory.length > 0 && (
                   <button
                     type="button"
                     onClick={handleUndoEnhance}
                     disabled={isSubmitting}
-                    className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 hover:text-white transition-colors duration-300 border-b border-transparent hover:border-neutral-500 disabled:text-neutral-700 disabled:border-transparent"
+                    className="text-xs uppercase tracking-[0.2em] text-neutral-500 hover:text-white transition-colors duration-300 border-b border-transparent hover:border-neutral-500 disabled:text-neutral-700 disabled:border-transparent"
                   >
-                    Undo AI
+                    Undo
                   </button>
                 )}
               </div>
             </div>
+            {enhanceStatus === "rate-limited" && (
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-400/80 mt-2">
+                Terlalu cepat — tunggu beberapa detik sebelum mencoba lagi.
+              </p>
+            )}
+            {enhanceStatus === "error" && (
+              <p className="text-xs uppercase tracking-[0.2em] text-red-400/80 mt-2">
+                Gagal memperbaiki teks. Silakan coba lagi.
+              </p>
+            )}
           </div>
 
           {(hasTouchedForm ||
             showRestoreNotice ||
             autoSaveStatus === "error") && (
-            <div className="pt-4 border-t border-white/5 text-[10px] text-neutral-500 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-light">
+            <div className="pt-4 border-t border-white/5 text-xs text-neutral-500 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-light">
               <div className="flex items-center gap-3">
                 {autoSaveStatus === "saving" && (
                   <span className="tracking-[0.2em] uppercase">
@@ -495,7 +523,7 @@ const Aduan: React.FC = () => {
                 )}
                 {autoSaveStatus === "saved" && lastSavedAt && (
                   <span className="tracking-[0.2em] uppercase">
-                    Draf tersimpan otomatis • {lastSavedAt}
+                    Draf tersimpan di perangkat ini &bull; {lastSavedAt}
                   </span>
                 )}
                 {autoSaveStatus === "error" && (
@@ -504,7 +532,7 @@ const Aduan: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-4 justify-between md:justify-end">
+              <div className="flex items-center gap-4 justify-between md:justify-end min-w-fit">
                 {showRestoreNotice && (
                   <span className="tracking-[0.2em] uppercase text-gold-500/50">
                     Draf sebelumnya dipulihkan.
@@ -515,7 +543,7 @@ const Aduan: React.FC = () => {
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
                     disabled={isSubmitting}
-                    className="uppercase tracking-[0.2em] text-neutral-500 hover:text-white transition-colors duration-300 border-b border-white/10 hover:border-white disabled:text-neutral-700 disabled:border-transparent disabled:cursor-not-allowed"
+                    className="uppercase tracking-[0.2em] whitespace-nowrap min-w-fit text-neutral-500 hover:text-white transition-colors duration-300 border-b border-white/10 hover:border-white disabled:text-neutral-700 disabled:border-transparent disabled:cursor-not-allowed"
                   >
                     Reset draf
                   </button>
@@ -555,7 +583,7 @@ const Aduan: React.FC = () => {
               {!isSubmitting && <div className="btn-primary-overlay"></div>}
             </button>
             {isSubmitting && (
-              <p className="text-[10px] uppercase tracking-[0.2em] text-gold-500/60 mt-6 font-light">
+              <p className="text-xs uppercase tracking-[0.2em] text-gold-500/60 mt-6 font-light">
                 Sedang memproses pengiriman laporan Anda...
               </p>
             )}
@@ -572,7 +600,7 @@ const Aduan: React.FC = () => {
               Tindakan ini akan menghapus semua isi kotak aduan yang belum
               dikirim.
             </p>
-            <div className="flex justify-end gap-4 text-[10px] uppercase tracking-[0.2em] font-medium">
+            <div className="flex justify-end gap-4 text-xs uppercase tracking-[0.2em] font-medium">
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}

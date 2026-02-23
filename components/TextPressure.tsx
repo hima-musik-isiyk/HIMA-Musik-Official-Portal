@@ -330,7 +330,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
   const styleElement = useMemo(() => {
     return (
       <style>{`
-        ${fontUrl ? `
+        ${fontUrl?.trim() ? `
         @font-face {
           font-family: '${fontFamily}';
           src: url('${fontUrl}');

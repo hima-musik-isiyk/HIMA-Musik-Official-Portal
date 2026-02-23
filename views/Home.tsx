@@ -145,9 +145,9 @@ const Home: React.FC = () => {
             <AccentLine />
             <p
               ref={heroEyebrowRef}
-              className={`text-[0.65rem] md:text-xs uppercase tracking-[0.4em] text-stone-400/60 font-medium ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+              className={`text-xs md:text-sm uppercase tracking-[0.4em] text-stone-400/80 font-medium ${!disableEntranceEffects ? 'opacity-0' : ''}`}
             >
-              Institut Seni Indonesia Yogyakarta
+              Himpunan Mahasiswa Musik &mdash; Institut Seni Indonesia Yogyakarta
             </p>
           </div>
 
@@ -201,7 +201,7 @@ const Home: React.FC = () => {
                 <div className="btn-primary-overlay"></div>
               </Link>
               <p className={`max-w-sm text-stone-500 text-[0.8125rem] leading-[1.7] md:border-l border-stone-800 md:pl-12 font-light ${!disableEntranceEffects ? 'opacity-0' : ''}`}>
-                Harmony in diversity, rhythm in unity. Membangun ekosistem
+                Wadah kolektif mahasiswa musik. Membangun ekosistem
                 akademik yang inklusif dan progresif.
               </p>
             </div>
@@ -321,7 +321,7 @@ const Home: React.FC = () => {
               </Link>
               <Link
                 href="/pendaftaran"
-                className="px-6 py-3 text-[10px] uppercase tracking-[0.3em] border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors duration-300 inline-flex items-center justify-center"
+                className="px-6 py-3 text-xs uppercase tracking-[0.3em] border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors duration-300 inline-flex items-center justify-center"
               >
                 Baca Alur Pendaftaran
               </Link>
