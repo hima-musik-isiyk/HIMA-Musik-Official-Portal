@@ -658,16 +658,32 @@ const Pendaftaran: React.FC = () => {
           <h1 className="font-serif text-5xl md:text-6xl text-white mb-6 tracking-tight">
             Terima <span className="italic text-gold-500/80 font-light">Kasih</span>
           </h1>
-          <p className="text-neutral-400 max-w-2xl mx-auto leading-relaxed font-light mb-12">
-            Data pendaftaran sudah kami terima. Tim HIMA akan menghubungi kamu
-            melalui kontak yang tertera untuk tahap berikutnya.
+          <p className="text-neutral-400 max-w-2xl mx-auto leading-relaxed font-light mb-4">
+            Data pendaftaran sudah kami terima. Bukti pendaftaran telah kami kirim
+            ke email{" "}
+            <span className="text-gold-300">
+              {formData.email || "yang kamu tulis di formulir"}
+            </span>
+            . Tim HIMA akan menghubungi kamu melalui kontak yang tertera untuk
+            tahap berikutnya.
           </p>
+          <div className="max-w-xl mx-auto text-xs text-neutral-500 mb-12">
+            <p className="leading-relaxed">
+              Jika email belum muncul di kotak masuk, cek juga folder{" "}
+              <span className="text-neutral-300">Spam</span> atau{" "}
+              <span className="text-neutral-300">Junk</span> dan tandai email dari{" "}
+              <span className="text-gold-300">HIMA Musik</span> sebagai{" "}
+              <span className="text-neutral-300">“Bukan spam”</span> supaya informasi
+              berikutnya tidak terlewat.
+            </p>
+          </div>
           <div className="border border-white/10 bg-white/5 p-6 max-w-lg mx-auto mb-10">
             <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">
               Bukti Pendaftaran
             </p>
             <div className="text-sm text-neutral-200 space-y-2">
               <p>Nama: {formData.fullName}</p>
+              <p>Email: {formData.email}</p>
               <p>
                 Waktu:{" "}
                 {submittedAt
