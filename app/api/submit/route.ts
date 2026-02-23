@@ -107,6 +107,43 @@ export async function POST(request: Request) {
       });
     } catch (dbError) {
       console.error("DB write failed (aduan):", dbError);
+
+      const errorToken = process.env.TELEGRAM_BOT_TOKEN;
+      const errorChatId = process.env.TELEGRAM_CHAT_ID;
+      const errorTopicId = process.env.TELEGRAM_ERROR_TOPIC_ID;
+
+      if (errorToken && errorChatId) {
+        const errorText = [
+          "\u26a0\ufe0f *DB WRITE FAILED \\- ADUAN*",
+          "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          `\ud83d\udce2 *Kategori:* ${safeCategory}`,
+          `\ud83d\udc64 *Nama:* ${safeName}`,
+          "",
+          "\u2757 Telegram berhasil terkirim tetapi data TIDAK tersimpan di database\\.",
+          "Manual data entry required\\.",
+        ].join("\n");
+
+        const errorPayload: Record<string, unknown> = {
+          chat_id: errorChatId,
+          text: errorText,
+          parse_mode: "MarkdownV2",
+        };
+
+        const topicId = errorTopicId ? Number(errorTopicId) : undefined;
+        if (typeof topicId === "number" && Number.isInteger(topicId) && topicId !== 0) {
+          errorPayload.message_thread_id = topicId;
+        }
+
+        try {
+          await fetch(`https://api.telegram.org/bot${errorToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(errorPayload),
+          });
+        } catch (telegramError) {
+          console.error("Failed to send DB error notification to Telegram:", telegramError);
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

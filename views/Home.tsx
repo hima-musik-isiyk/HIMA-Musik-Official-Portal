@@ -57,7 +57,8 @@ const Home: React.FC = () => {
     }
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) {
+    const isTouchOnly = window.matchMedia("(pointer: coarse)").matches && !window.matchMedia("(pointer: fine)").matches;
+    if (reduceMotion || isTouchOnly) {
       setDisableEntranceEffects(true);
       setDisablePressureEffect(true);
       return;
@@ -310,7 +311,7 @@ const Home: React.FC = () => {
             <h2 className="font-serif text-4xl md:text-6xl text-white tracking-tight">
               Jadi <span className="italic text-gold-500/80 font-light">Pengurus</span> HIMA
             </h2>
-            <p className="text-neutral-500 text-sm mt-5 leading-relaxed max-w-xl">
+            <p className="text-neutral-400 text-sm mt-5 leading-relaxed max-w-xl">
               Mulai dari pilih posisi yang kamu minati, isi data diri, sampai kirim pendaftaran.
               Alurnya singkat dan jelas supaya kamu bisa fokus ke kontribusi.
             </p>
@@ -354,7 +355,7 @@ const Home: React.FC = () => {
                 </span>
                 <div>
                   <h3 className="font-serif text-xl text-white mb-2">{item.title}</h3>
-                  <p className="text-sm text-neutral-500 leading-relaxed">{item.detail}</p>
+                  <p className="text-sm text-neutral-400 leading-relaxed">{item.detail}</p>
                 </div>
               </div>
             ))}

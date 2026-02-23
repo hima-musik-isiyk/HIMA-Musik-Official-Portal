@@ -205,6 +205,10 @@ const Aduan: React.FC = () => {
     setHasTouchedForm(true);
     setEnhanceStatus("idle");
     setIsEnhancing(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
       const response = await fetch("/api/refine-aduan", {
         method: "POST",
@@ -212,7 +216,11 @@ const Aduan: React.FC = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: formData.message }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
       if (response.status === 429) {
         setEnhanceStatus("rate-limited");
         setIsEnhancing(false);
@@ -241,6 +249,7 @@ const Aduan: React.FC = () => {
       setFormData((prev) => ({ ...prev, message: nextMessage }));
       setEnhanceStatus(wasChanged ? "success" : "idle");
     } catch {
+      clearTimeout(timeoutId);
       setEnhanceStatus("error");
     } finally {
       setIsEnhancing(false);
@@ -386,7 +395,7 @@ const Aduan: React.FC = () => {
         <h1 className="font-serif text-5xl md:text-7xl text-white mb-6 text-center tracking-tight">
           Kotak <span className="italic text-gold-500/80 font-light">Aduan</span>
         </h1>
-        <p className="text-neutral-500 text-center mb-20 text-sm font-light tracking-wide">
+        <p className="text-neutral-400 text-center mb-20 text-sm font-light tracking-wide">
           Sampaikan aspirasi, kritik, atau saran dengan bijak.
         </p>
 
@@ -394,7 +403,7 @@ const Aduan: React.FC = () => {
           <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="group relative">
-              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
                 Nama (Opsional)
               </label>
               <input
@@ -403,12 +412,12 @@ const Aduan: React.FC = () => {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed font-light"
+                className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed font-light px-3"
                 placeholder="Anonim"
               />
             </div>
             <div className="group relative">
-              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
                 NIM (Opsional)
               </label>
               <input
@@ -417,14 +426,17 @@ const Aduan: React.FC = () => {
                 value={formData.nim}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed font-light"
+                className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed font-light px-3"
                 placeholder="12345678"
               />
+              <p className="text-[0.6rem] text-neutral-500 mt-1.5 tracking-wide font-light">
+                Kosongkan jika ingin 100% anonim. Sistem kami tidak melacak IP.
+              </p>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
               Kategori
             </label>
             <div className="relative">
@@ -433,7 +445,7 @@ const Aduan: React.FC = () => {
                 value={formData.category}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 appearance-none rounded-none disabled:opacity-50 disabled:cursor-not-allowed font-light"
+                className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 appearance-none rounded-none disabled:opacity-50 disabled:cursor-not-allowed font-light px-3"
               >
                 <option className="bg-[#111] text-neutral-300" value="Akademik">
                   Akademik
@@ -455,7 +467,7 @@ const Aduan: React.FC = () => {
           </div>
 
           <div className="group relative">
-            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
               Pesan
             </label>
             <textarea
@@ -464,7 +476,7 @@ const Aduan: React.FC = () => {
               onChange={handleChange}
               rows={6}
               disabled={isSubmitting}
-              className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed font-light placeholder-neutral-700"
+              className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed font-light placeholder-neutral-600"
               placeholder="Tuliskan keluhan atau saran anda disini..."
               required
             ></textarea>
@@ -478,14 +490,14 @@ const Aduan: React.FC = () => {
                   type="button"
                   onClick={handleEnhance}
                   disabled={isEnhancing || !formData.message || isSubmitting}
-                  title="Perbaiki tata bahasa dan nada pesan menggunakan AI secara otomatis"
+                  title="Rapikan tata bahasa dan format pesan menggunakan AI secara otomatis"
                   className="text-xs uppercase tracking-[0.2em] text-gold-500/60 hover:text-gold-300 disabled:text-neutral-700 transition-colors duration-300 flex items-center gap-2"
                 >
                   {isEnhancing
                     ? "Sedang Memproses..."
                     : enhanceStatus === "success"
                       ? "✓ Teks Diperbarui"
-                      : "✨ Perbaiki Teks"}
+                      : "✨ Rapikan Tata Bahasa"}
                 </button>
                 {messageHistory.length > 0 && (
                   <button
@@ -517,12 +529,12 @@ const Aduan: React.FC = () => {
             <div className="pt-4 border-t border-white/5 text-xs text-neutral-500 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-light">
               <div className="flex items-center gap-3">
                 {autoSaveStatus === "saving" && (
-                  <span className="tracking-[0.2em] uppercase">
+                  <span className="tracking-[0.2em] uppercase text-neutral-500">
                     Menyimpan draf...
                   </span>
                 )}
                 {autoSaveStatus === "saved" && lastSavedAt && (
-                  <span className="tracking-[0.2em] uppercase">
+                  <span className="tracking-[0.2em] uppercase text-neutral-500">
                     Draf tersimpan di perangkat ini &bull; {lastSavedAt}
                   </span>
                 )}
@@ -543,7 +555,7 @@ const Aduan: React.FC = () => {
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
                     disabled={isSubmitting}
-                    className="uppercase tracking-[0.2em] whitespace-nowrap min-w-fit text-neutral-500 hover:text-white transition-colors duration-300 border-b border-white/10 hover:border-white disabled:text-neutral-700 disabled:border-transparent disabled:cursor-not-allowed"
+                    className="uppercase tracking-[0.2em] whitespace-nowrap min-w-fit text-neutral-500 hover:text-red-400 transition-colors duration-300 border-b border-transparent hover:border-red-400/30 disabled:text-neutral-700 disabled:border-transparent disabled:cursor-not-allowed"
                   >
                     Reset draf
                   </button>

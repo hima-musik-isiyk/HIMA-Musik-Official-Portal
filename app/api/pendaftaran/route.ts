@@ -20,7 +20,7 @@ type PendaftaranPayload = {
 };
 
 const MIN_MOTIVATION_CHARS = 100;
-const MAX_MOTIVATION_CHARS = 600;
+const MAX_MOTIVATION_CHARS = 1500;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NIM_PATTERN = /^\d{10,12}$/;
 const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       typeof data.fullName === "string" ? data.fullName.trim() : "";
     const nim = typeof data.nim === "string" ? data.nim.trim() : "";
     const email = typeof data.email === "string" ? data.email.trim() : "";
-    const phone = typeof data.phone === "string" ? data.phone.trim() : "";
+    const phone = typeof data.phone === "string" ? data.phone.trim().replace(/\D/g, "") : "";
     const instagram =
       typeof data.instagram === "string" ? data.instagram.trim() : "";
     const motivation =
@@ -240,6 +240,8 @@ export async function POST(request: Request) {
     const safePortfolio = escapeHtml(portfolio);
     const safeMotivation = escapeHtml(motivation);
     const safeExperience = escapeHtml(experience);
+    const safeMotivationHtml = safeMotivation.replace(/\n/g, "<br />");
+    const safeExperienceHtml = safeExperience.replace(/\n/g, "<br />");
 
     const html = `
       <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #050505; color: #e5e5e5; padding: 24px;">
@@ -276,7 +278,7 @@ export async function POST(request: Request) {
               Motivasi
             </p>
             <p style="font-size: 13px; margin: 0; color: #d4d4d4; white-space: pre-line;">
-              ${safeMotivation}
+              ${safeMotivationHtml}
             </p>
           </div>
           ${
@@ -287,7 +289,7 @@ export async function POST(request: Request) {
               Pengalaman
             </p>
             <p style="font-size: 13px; margin: 0; color: #d4d4d4; white-space: pre-line;">
-              ${safeExperience}
+              ${safeExperienceHtml}
             </p>
           </div>
               `
@@ -435,6 +437,45 @@ export async function POST(request: Request) {
       });
     } catch (dbError) {
       console.error("DB write failed (pendaftaran):", dbError);
+
+      const errorToken = process.env.TELEGRAM_BOT_TOKEN;
+      const errorChatId = process.env.TELEGRAM_CHAT_ID;
+      const errorTopicId = process.env.TELEGRAM_ERROR_TOPIC_ID;
+
+      if (errorToken && errorChatId) {
+        const errorText = [
+          "\u26a0\ufe0f *DB WRITE FAILED \\- PENDAFTARAN*",
+          "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          `\ud83d\udc64 *Nama:* ${escapeHtml(fullName).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
+          `\ud83c\udd94 *NIM:* ${escapeHtml(nim).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
+          `\ud83d\udce7 *Email:* ${escapeHtml(email).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
+          `\ud83c\udfaf *Divisi:* ${escapeHtml(divisionLabel).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
+          "",
+          "\u2757 Email berhasil terkirim tetapi data TIDAK tersimpan di database\\.",
+          "Manual data entry required\\.",
+        ].join("\n");
+
+        const errorPayload: Record<string, unknown> = {
+          chat_id: errorChatId,
+          text: errorText,
+          parse_mode: "MarkdownV2",
+        };
+
+        const topicId = errorTopicId ? Number(errorTopicId) : undefined;
+        if (typeof topicId === "number" && Number.isInteger(topicId) && topicId !== 0) {
+          errorPayload.message_thread_id = topicId;
+        }
+
+        try {
+          await fetch(`https://api.telegram.org/bot${errorToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(errorPayload),
+          });
+        } catch (telegramError) {
+          console.error("Failed to send DB error notification to Telegram:", telegramError);
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

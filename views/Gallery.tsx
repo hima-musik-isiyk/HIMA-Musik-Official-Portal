@@ -18,7 +18,7 @@ const Gallery: React.FC = () => {
               Galeri <span className="italic text-gold-500/80 font-light">Visual</span>
             </h1>
           </div>
-          <p className="text-neutral-500 text-sm mt-8 md:mt-0 font-light tracking-widest uppercase">
+          <p className="text-neutral-400 text-sm mt-8 md:mt-0 font-light tracking-widest uppercase">
             Arsip Kegiatan
           </p>
         </div>
