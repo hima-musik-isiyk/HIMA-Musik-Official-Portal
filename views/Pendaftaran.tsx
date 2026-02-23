@@ -18,8 +18,6 @@ type RecruitmentFormData = {
   secondChoice: string;
   fullName: string;
   nim: string;
-  program: string;
-  year: string;
   email: string;
   phone: string;
   instagram: string;
@@ -124,6 +122,35 @@ const availabilityOptions = [
   "Sabtu",
 ];
 
+const RECRUITMENT_PERIOD = "01–21 Maret 2026";
+const SELECTION_TIMELINE = [
+  {
+    title: "Pendaftaran",
+    date: RECRUITMENT_PERIOD,
+    description: "Isi formulir dan pastikan data kontak aktif.",
+  },
+  {
+    title: "Seleksi Administrasi",
+    date: "22–25 Maret 2026",
+    description: "Panitia melakukan verifikasi data pendaftar.",
+  },
+  {
+    title: "Wawancara",
+    date: "26–28 Maret 2026",
+    description: "Wawancara singkat untuk divisi tertentu jika diperlukan.",
+  },
+  {
+    title: "Pengumuman",
+    date: "30 Maret 2026",
+    description: "Hasil seleksi diumumkan via email dan kanal resmi.",
+  },
+];
+const MIN_MOTIVATION_CHARS = 100;
+const MAX_MOTIVATION_CHARS = 600;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NIM_PATTERN = /^\d{10,12}$/;
+const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
+
 const Pendaftaran: React.FC = () => {
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -132,8 +159,6 @@ const Pendaftaran: React.FC = () => {
     secondChoice: "",
     fullName: "",
     nim: "",
-    program: "",
-    year: "",
     email: "",
     phone: "",
     instagram: "",
@@ -148,10 +173,47 @@ const Pendaftaran: React.FC = () => {
   const [hasTouchedForm, setHasTouchedForm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showStepErrors, setShowStepErrors] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const stepBarRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollOnStepChangeRef = useRef(false);
 
   const currentDivision = divisions.find((division) => division.id === formData.firstChoice);
+  const trimmedFullName = formData.fullName.trim();
+  const trimmedNim = formData.nim.trim();
+  const trimmedEmail = formData.email.trim();
+  const trimmedPhone = formData.phone.trim();
+  const trimmedMotivation = formData.motivation.trim();
+  const motivationLength = trimmedMotivation.length;
+  const isEmailValid = EMAIL_PATTERN.test(trimmedEmail);
+  const isNimValid = NIM_PATTERN.test(trimmedNim);
+  const isPhoneValid = PHONE_PATTERN.test(trimmedPhone);
+  const isMotivationValid =
+    motivationLength >= MIN_MOTIVATION_CHARS &&
+    motivationLength <= MAX_MOTIVATION_CHARS;
+  const fullNameError = !trimmedFullName ? "Nama lengkap wajib diisi." : "";
+  const nimError = !trimmedNim
+    ? "NIM wajib diisi."
+    : !isNimValid
+      ? "NIM harus 10–12 digit angka."
+      : "";
+  const emailError = !trimmedEmail
+    ? "Email wajib diisi."
+    : !isEmailValid
+      ? "Format email tidak valid."
+      : "";
+  const phoneError = !trimmedPhone
+    ? "Nomor WhatsApp wajib diisi."
+    : !isPhoneValid
+      ? "Gunakan format 08xxxxxxxxxx atau +628xxxxxxxxxx."
+      : "";
+  const motivationError = !trimmedMotivation
+    ? "Motivasi wajib diisi."
+    : motivationLength < MIN_MOTIVATION_CHARS
+      ? `Minimal ${MIN_MOTIVATION_CHARS} karakter.`
+      : motivationLength > MAX_MOTIVATION_CHARS
+        ? `Maksimal ${MAX_MOTIVATION_CHARS} karakter.`
+        : "";
 
   const isStepComplete = (stepId: number): boolean => {
     if (stepId === 0) {
@@ -159,16 +221,14 @@ const Pendaftaran: React.FC = () => {
     }
     if (stepId === 1) {
       return Boolean(
-        formData.fullName.trim() &&
-          formData.nim.trim() &&
-          formData.program.trim() &&
-          formData.year.trim() &&
-          formData.email.trim() &&
-          formData.phone.trim(),
+        trimmedFullName &&
+          isNimValid &&
+          isEmailValid &&
+          isPhoneValid,
       );
     }
     if (stepId === 2) {
-      return Boolean(formData.motivation.trim() && formData.availability.length > 0);
+      return Boolean(isMotivationValid && formData.availability.length > 0);
     }
     return false;
   };
@@ -191,8 +251,6 @@ const Pendaftaran: React.FC = () => {
       return Boolean(
         formData.fullName.trim() ||
           formData.nim.trim() ||
-          formData.program.trim() ||
-          formData.year.trim() ||
           formData.email.trim() ||
           formData.phone.trim(),
       );
@@ -244,8 +302,6 @@ const Pendaftaran: React.FC = () => {
         "secondChoice",
         "fullName",
         "nim",
-        "program",
-        "year",
         "email",
         "phone",
         "instagram",
@@ -280,8 +336,6 @@ const Pendaftaran: React.FC = () => {
         secondChoice: data.secondChoice,
         fullName: data.fullName,
         nim: data.nim,
-        program: data.program,
-        year: data.year,
         email: data.email,
         phone: data.phone,
         instagram: data.instagram,
@@ -412,8 +466,6 @@ const Pendaftaran: React.FC = () => {
       secondChoice: "",
       fullName: "",
       nim: "",
-      program: "",
-      year: "",
       email: "",
       phone: "",
       instagram: "",
@@ -459,7 +511,7 @@ const Pendaftaran: React.FC = () => {
   };
 
   const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -517,6 +569,7 @@ const Pendaftaran: React.FC = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
     if (step < steps.length - 1) {
       handleNextWithValidation();
       return;
@@ -526,6 +579,8 @@ const Pendaftaran: React.FC = () => {
 
     if (step !== steps.length - 1) return;
 
+    setIsSubmitting(true);
+    setSubmittedAt(new Date());
     setSubmitted(true);
     setAutoSaveStatus("idle");
     setHasTouchedForm(false);
@@ -556,19 +611,36 @@ const Pendaftaran: React.FC = () => {
             Data pendaftaran sudah kami terima. Tim HIMA akan menghubungi kamu
             melalui kontak yang tertera untuk tahap berikutnya.
           </p>
+          <div className="border border-white/10 bg-white/5 p-6 max-w-lg mx-auto mb-10">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">
+              Bukti Pendaftaran
+            </p>
+            <div className="text-sm text-neutral-200 space-y-2">
+              <p>Nama: {formData.fullName}</p>
+              <p>
+                Waktu:{" "}
+                {submittedAt
+                  ? submittedAt.toLocaleString("id-ID", {
+                      dateStyle: "full",
+                      timeStyle: "short",
+                    })
+                  : "-"}
+              </p>
+            </div>
+          </div>
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <button
               type="button"
               onClick={() => {
                 setSubmitted(false);
+                setIsSubmitting(false);
+                setSubmittedAt(null);
                 setStep(0);
                 setFormData({
                   firstChoice: "",
                   secondChoice: "",
                   fullName: "",
                   nim: "",
-                  program: "",
-                  year: "",
                   email: "",
                   phone: "",
                   instagram: "",
@@ -619,7 +691,7 @@ const Pendaftaran: React.FC = () => {
             </p>
           </div>
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">
-            Periode: 01–21 Maret 2026
+            Periode: {RECRUITMENT_PERIOD}
           </div>
         </div>
 
@@ -654,6 +726,33 @@ const Pendaftaran: React.FC = () => {
               </p>
             </div>
           ))}
+        </div>
+
+        <div className="border border-white/5 bg-white/2 p-8 md:p-10 mb-16">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-px w-8 bg-gold-500/40"></div>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-gold-500 font-medium">
+              Timeline Seleksi
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {SELECTION_TIMELINE.map((item) => (
+              <div
+                key={item.title}
+                className="border border-white/5 bg-[#0f0f0f] p-6 flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="font-serif text-xl text-white">{item.title}</h3>
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-gold-300/80">
+                    {item.date}
+                  </span>
+                </div>
+                <p className="text-sm text-neutral-500 leading-relaxed font-light">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div ref={stepBarRef} className="border border-white/5 bg-[#111]/50 p-6 md:p-10 mb-12">
@@ -796,7 +895,7 @@ const Pendaftaran: React.FC = () => {
                         >
                           Pilih Prioritas 1
                         </button>
-                        <div className="relative group">
+                        <div className="relative group flex flex-col gap-2">
                           <button
                             type="button"
                             onClick={() => handleSelect("secondChoice", division.id)}
@@ -811,6 +910,9 @@ const Pendaftaran: React.FC = () => {
                           >
                             Pilih Prioritas 2
                           </button>
+                          <span className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+                            Opsional
+                          </span>
                           {!formData.firstChoice && (
                             <div className="pointer-events-none absolute left-0 top-full mt-2 rounded border border-white/10 bg-black/90 px-3 py-2 text-[10px] uppercase tracking-[0.25em] text-neutral-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               Pilih prioritas 1 dulu
@@ -837,29 +939,85 @@ const Pendaftaran: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                {[
-                  { label: "Nama Lengkap", name: "fullName", placeholder: "Nama sesuai KTM" },
-                  { label: "NIM", name: "nim", placeholder: "2024xxxxxx" },
-                  { label: "Program Studi", name: "program", placeholder: "S-1 Musik" },
-                  { label: "Angkatan", name: "year", placeholder: "2024" },
-                  { label: "Email Aktif", name: "email", placeholder: "nama@email.com" },
-                  { label: "No. WhatsApp", name: "phone", placeholder: "08xxxxxxxxxx" },
-                ].map((field) => (
-                  <div key={field.name} className="group relative">
-                    <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
-                      {field.label}
-                    </label>
-                    <input
-                      type="text"
-                      name={field.name}
-                      value={formData[field.name as keyof RecruitmentFormData] as string}
-                      onChange={handleInputChange}
-                      className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
-                      placeholder={field.placeholder}
-                      required
-                    />
-                  </div>
-                ))}
+                <div className="group relative">
+                  <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
+                    placeholder="Nama sesuai KTM"
+                    required
+                  />
+                  {showStepErrors && fullNameError && (
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mt-2">
+                      {fullNameError}
+                    </p>
+                  )}
+                </div>
+                <div className="group relative">
+                  <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                    NIM
+                  </label>
+                  <input
+                    type="text"
+                    name="nim"
+                    value={formData.nim}
+                    onChange={handleInputChange}
+                    className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
+                    placeholder="2024xxxxxx"
+                    inputMode="numeric"
+                    pattern="\d{10,12}"
+                    required
+                  />
+                  {showStepErrors && nimError && (
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mt-2">
+                      {nimError}
+                    </p>
+                  )}
+                </div>
+                <div className="group relative">
+                  <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                    Email Aktif
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
+                    placeholder="nama@email.com"
+                    required
+                  />
+                  {showStepErrors && emailError && (
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mt-2">
+                      {emailError}
+                    </p>
+                  )}
+                </div>
+                <div className="group relative">
+                  <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                    No. WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
+                    placeholder="08xxxxxxxxxx"
+                    inputMode="tel"
+                    required
+                  />
+                  {showStepErrors && phoneError && (
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mt-2">
+                      {phoneError}
+                    </p>
+                  )}
+                </div>
                 <div className="group relative">
                   <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
                     Instagram (Opsional)
@@ -898,14 +1056,23 @@ const Pendaftaran: React.FC = () => {
                     value={formData.motivation}
                     onChange={handleInputChange}
                     rows={6}
+                    maxLength={MAX_MOTIVATION_CHARS}
                     className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none font-light placeholder-neutral-700"
                     placeholder={`Ceritakan alasan memilih ${
                       currentDivision?.name ?? "divisi ini"
                     } dan kontribusi yang ingin kamu berikan.`}
                   ></textarea>
-                  {showStepErrors && !formData.motivation.trim() && (
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-neutral-600 mt-3">
+                    <span>
+                      Minimal {MIN_MOTIVATION_CHARS} • Maksimal {MAX_MOTIVATION_CHARS}
+                    </span>
+                    <span>
+                      {motivationLength}/{MAX_MOTIVATION_CHARS}
+                    </span>
+                  </div>
+                  {showStepErrors && motivationError && (
                     <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mt-2">
-                      Motivasi wajib diisi untuk melanjutkan.
+                      {motivationError}
                     </p>
                   )}
                 </div>
@@ -961,14 +1128,17 @@ const Pendaftaran: React.FC = () => {
                   <label className="block text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
                     Portofolio/Link Karya (Opsional)
                   </label>
-                  <input
-                    type="text"
+                  <textarea
                     name="portfolio"
                     value={formData.portfolio}
                     onChange={handleInputChange}
-                    className="w-full bg-transparent border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-700 font-light"
-                    placeholder="Behance / Drive / Instagram / YouTube"
-                  />
+                    rows={3}
+                    className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none font-light placeholder-neutral-700"
+                    placeholder="Behance, Drive, Instagram, YouTube, dsb."
+                  ></textarea>
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-neutral-600">
+                    Boleh lebih dari satu link, pisahkan dengan koma atau baris baru.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1008,7 +1178,6 @@ const Pendaftaran: React.FC = () => {
                     <div className="text-sm text-neutral-300 space-y-2">
                       <p>{formData.fullName}</p>
                       <p>{formData.nim}</p>
-                      <p>{formData.program} • {formData.year}</p>
                       <p>{formData.email}</p>
                       <p>{formData.phone}</p>
                       {formData.instagram && <p>{formData.instagram}</p>}
@@ -1047,7 +1216,15 @@ const Pendaftaran: React.FC = () => {
                       <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">
                         Portofolio
                       </p>
-                      <p className="text-sm text-neutral-300">{formData.portfolio}</p>
+                      <div className="text-sm text-neutral-300 space-y-1">
+                        {formData.portfolio
+                          .split(/[\n,]+/)
+                          .map((entry) => entry.trim())
+                          .filter(Boolean)
+                          .map((entry) => (
+                            <p key={entry}>{entry}</p>
+                          ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1074,12 +1251,14 @@ const Pendaftaran: React.FC = () => {
                         ? "Review semua data sebelum mengirim"
                         : "Lengkapi langkah berikutnya"
                       : step === 2
-                        ? !formData.motivation.trim()
+                        ? !trimmedMotivation
                           ? "Isi motivasi untuk melanjutkan"
-                          : formData.availability.length === 0
-                            ? "Pilih minimal satu ketersediaan waktu"
-                            : "Isi motivasi dan pilih ketersediaan waktu"
-                        : "Ada data wajib yang belum diisi"}
+                          : !isMotivationValid
+                            ? "Motivasi belum memenuhi batas karakter"
+                            : formData.availability.length === 0
+                              ? "Pilih minimal satu ketersediaan waktu"
+                              : "Lengkapi motivasi dan ketersediaan"
+                        : "Periksa kembali data diri yang belum valid"}
                   </span>
                 </span>
               )}
@@ -1128,10 +1307,12 @@ const Pendaftaran: React.FC = () => {
               ) : (
                 <button
                   type="submit"
-                  disabled={!isStepValid}
-                  className={`btn-primary ${!isStepValid ? "opacity-60 pointer-events-none" : ""}`}
+                  disabled={!isStepValid || isSubmitting}
+                  className={`btn-primary ${!isStepValid || isSubmitting ? "opacity-60 pointer-events-none" : ""}`}
                 >
-                  <span className="btn-primary-label">Kirim Pendaftaran</span>
+                  <span className="btn-primary-label">
+                    {isSubmitting ? "Mengirim..." : "Kirim Pendaftaran"}
+                  </span>
                   <div className="btn-primary-overlay"></div>
                 </button>
               )}
