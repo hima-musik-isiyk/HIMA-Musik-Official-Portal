@@ -18,6 +18,10 @@ type PendaftaranPayload = {
   };
 };
 
+const pendaftaranCooldownMs = 5 * 60 * 1000;
+
+const pendaftaranLastSubmit = new Map<string, number>();
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as PendaftaranPayload;
@@ -45,6 +49,27 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Email is required" },
         { status: 400 },
+      );
+    }
+
+    const now = Date.now();
+    const lastSubmit = pendaftaranLastSubmit.get(email) ?? 0;
+    const elapsed = now - lastSubmit;
+
+    if (elapsed < pendaftaranCooldownMs) {
+      const retryAfterMs = pendaftaranCooldownMs - elapsed;
+      return NextResponse.json(
+        {
+          error:
+            "Kamu baru saja mengirim pendaftaran. Coba lagi beberapa menit lagi.",
+          retryAfterMs,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil(retryAfterMs / 1000)),
+          },
+        },
       );
     }
 
@@ -215,6 +240,8 @@ export async function POST(request: Request) {
       htmlContent: html,
       textContent: text,
     };
+
+    pendaftaranLastSubmit.set(email, now);
 
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
