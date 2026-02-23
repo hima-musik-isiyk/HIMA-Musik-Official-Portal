@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const sanitize = (str: string) =>
   str.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
@@ -93,6 +94,19 @@ export async function POST(request: Request) {
         { error: "Failed to send to Telegram", details: data },
         { status: 500 },
       );
+    }
+
+    try {
+      await prisma.aduan.create({
+        data: {
+          name: typeof name === "string" && name.trim() ? name.trim() : null,
+          nim: typeof nim === "string" && nim.trim() ? nim.trim() : null,
+          category: typeof category === "string" && category.trim() ? category.trim() : "Umum",
+          message: message.trim(),
+        },
+      });
+    } catch (dbError) {
+      console.error("DB write failed (aduan):", dbError);
     }
 
     return NextResponse.json({ success: true });

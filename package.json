@@ -10,12 +10,15 @@
     "lint": "echo \"Linting disabled: ESLint dependencies removed to achieve npm audit = 0\""
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.1",
+    "@prisma/client": "^7.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gsap": "^3.14.2",
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",
     "next": "^16.1.6",
+    "prisma": "^7.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^3.5.0",

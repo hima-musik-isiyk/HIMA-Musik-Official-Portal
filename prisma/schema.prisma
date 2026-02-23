@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Aduan {
+  id        String   @id @default(cuid())
+  name      String?
+  nim       String?
+  category  String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Pendaftaran {
+  id           String   @id @default(cuid())
+  firstChoice  String
+  secondChoice String?
+  fullName     String
+  nim          String?
+  email        String
+  phone        String?
+  instagram    String?
+  motivation   String?
+  experience   String?
+  availability String[]
+  portfolio    String?
+  submittedAt  DateTime @default(now())
+}

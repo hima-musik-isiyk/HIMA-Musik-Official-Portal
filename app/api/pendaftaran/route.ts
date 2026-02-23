@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 type PendaftaranPayload = {
   intent?: string;
@@ -262,6 +263,27 @@ export async function POST(request: Request) {
         { error: "Failed to send registration email" },
         { status: 500 },
       );
+    }
+
+    try {
+      await prisma.pendaftaran.create({
+        data: {
+          firstChoice: divisionName,
+          secondChoice: secondaryDivisionName || null,
+          fullName: fullName || "",
+          nim: nim || null,
+          email,
+          phone: phone || null,
+          instagram: instagram || null,
+          motivation: typeof data.motivation === "string" ? data.motivation.trim() : null,
+          experience: typeof data.experience === "string" ? data.experience.trim() : null,
+          availability,
+          portfolio: portfolio || null,
+          submittedAt,
+        },
+      });
+    } catch (dbError) {
+      console.error("DB write failed (pendaftaran):", dbError);
     }
 
     return NextResponse.json({ success: true });
