@@ -16,6 +16,8 @@ type Division = {
 type RecruitmentFormData = {
   firstChoice: string;
   secondChoice: string;
+  angkatan: string;
+  pddSubfocus: string;
   fullName: string;
   nim: string;
   email: string;
@@ -40,69 +42,69 @@ const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const divisions: Division[] = [
   {
-    id: "kaderisasi",
-    name: "Kaderisasi & Pengembangan",
-    summary: "Merancang pembinaan anggota, kegiatan orientasi, dan pelatihan soft skills.",
-    focus: "Kepemimpinan & internal growth",
-    tasks: [
-      "Menyusun agenda kaderisasi dan mentoring",
-      "Membangun culture kolaboratif",
-      "Mengevaluasi progres anggota",
-    ],
-    skills: ["Leadership", "Facilitation", "Empathy"],
-    commitment: "Rapat mingguan + sesi mentoring berkala",
-  },
-  {
     id: "humas",
     name: "Humas & Kemitraan",
-    summary: "Menjaga relasi eksternal, kolaborasi event, dan komunikasi antar organisasi.",
-    focus: "Relasi eksternal & komunikasi strategis",
+    summary: "Menjaga relasi internal kampus dan eksternal, kolaborasi event, dan komunikasi antar organisasi. Slot: 2 orang, terbuka untuk angkatan 2023–2025.",
+    focus: "Relasi internal & eksternal, komunikasi strategis",
     tasks: [
-      "Mengelola komunikasi dengan mitra",
+      "Mengelola komunikasi dengan mitra internal (prodi, dosen, HIMA lain, KKM) dan eksternal (sponsor, komunitas musik, media partner)",
       "Menyusun proposal kolaborasi",
-      "Menjadi penghubung antar divisi",
+      "Menjadi penghubung antar divisi dan pihak luar",
     ],
     skills: ["Communication", "Negotiation", "Networking"],
     commitment: "Fleksibel sesuai agenda kolaborasi",
   },
   {
-    id: "kreatif",
-    name: "Kreatif & Media",
-    summary: "Menghasilkan konten visual, dokumentasi kegiatan, dan identitas kampanye.",
-    focus: "Branding & storytelling",
+    id: "program-event",
+    name: "Divisi Program & Event",
+    summary: "Merancang konsep kegiatan, menyusun rundown, manajemen kepanitiaan, dan eksekusi event HIMA. Slot: 2 orang, terbuka untuk angkatan 2023–2025.",
+    focus: "Perencanaan, konsep acara & eksekusi event",
     tasks: [
-      "Mendesain poster dan materi publikasi",
-      "Mendokumentasikan kegiatan",
-      "Mengelola konten media sosial",
-    ],
-    skills: ["Design", "Photography", "Storytelling"],
-    commitment: "Menyesuaikan timeline publikasi",
-  },
-  {
-    id: "acara",
-    name: "Acara & Program Kerja",
-    summary: "Merancang konsep kegiatan, menyusun rundown, dan eksekusi event HIMA.",
-    focus: "Event management & koordinasi",
-    tasks: [
-      "Menyusun konsep acara",
-      "Koordinasi teknis dan logistik",
+      "Menyusun konsep dan perencanaan acara",
+      "Koordinasi teknis, logistik, dan manajemen kepanitiaan",
       "Menjaga flow acara saat eksekusi",
     ],
     skills: ["Planning", "Coordination", "Problem Solving"],
     commitment: "Intensif saat persiapan event",
   },
   {
-    id: "advokasi",
-    name: "Advokasi & Aspirasi",
-    summary: "Menampung isu mahasiswa, merumuskan tindak lanjut, dan advokasi ke pihak kampus.",
-    focus: "Kesejahteraan mahasiswa",
+    id: "pdd",
+    name: "Publikasi, Desain & Dokumentasi",
+    summary: "Menghasilkan konten visual, dokumentasi kegiatan, dan identitas kampanye. Slot: 3 orang, terbuka untuk angkatan 2023–2025. Terdapat 3 sub-fokus: Desain (visual identity, poster, brand guideline), Publikasi & Media Sosial (content calendar, distribusi info), Dokumentasi (foto/video, aftermovie).",
+    focus: "Branding, storytelling & dokumentasi",
     tasks: [
-      "Menyusun forum aspirasi",
-      "Mengelola data aduan",
-      "Koordinasi tindak lanjut ke pihak terkait",
+      "Desain: membuat visual identity, poster, feed IG, template, brand guideline",
+      "Publikasi & Media Sosial: menyusun content calendar, distribusi info, kelola platform",
+      "Dokumentasi: fotografi/videografi kegiatan, seleksi & arsip, aftermovie",
     ],
-    skills: ["Critical Thinking", "Empathy", "Analysis"],
-    commitment: "Rutin monitoring dan follow-up",
+    skills: ["Design", "Photography", "Storytelling", "Content Creation"],
+    commitment: "Menyesuaikan timeline publikasi dan jadwal event",
+  },
+  {
+    id: "co-sekretaris",
+    name: "Co-Sekretaris",
+    summary: "Membantu kinerja Sekretaris dalam administrasi internal harian, notulensi, dan database keanggotaan. Slot: 1 orang, khusus angkatan 2024–2025.",
+    focus: "Administrasi & dokumentasi internal",
+    tasks: [
+      "Membantu administrasi internal harian",
+      "Notulensi rapat dan kegiatan",
+      "Mengelola database keanggotaan",
+    ],
+    skills: ["Organization", "Attention to Detail", "Communication"],
+    commitment: "Rutin mengikuti rapat dan koordinasi internal",
+  },
+  {
+    id: "co-bendahara",
+    name: "Co-Bendahara",
+    summary: "Membantu Bendahara dalam pencatatan transaksi, kwitansi, laporan keuangan per acara, dan penyusunan RAB. Slot: 1 orang, khusus angkatan 2024–2025.",
+    focus: "Keuangan & transparansi anggaran",
+    tasks: [
+      "Pencatatan transaksi dan kwitansi",
+      "Menyusun laporan keuangan per acara",
+      "Membantu penyusunan Rencana Anggaran Biaya (RAB)",
+    ],
+    skills: ["Accounting basics", "Organization", "Integrity"],
+    commitment: "Rutin mengikuti rapat dan koordinasi keuangan",
   },
 ];
 
@@ -158,6 +160,8 @@ const Pendaftaran: React.FC = () => {
   const [formData, setFormData] = useState<RecruitmentFormData>({
     firstChoice: "",
     secondChoice: "",
+    angkatan: "",
+    pddSubfocus: "",
     fullName: "",
     nim: "",
     email: "",
@@ -219,9 +223,18 @@ const Pendaftaran: React.FC = () => {
         ? `Maksimal ${MAX_MOTIVATION_CHARS} karakter.`
         : "";
 
+  const isAngkatanRestricted =
+    (formData.firstChoice === "co-sekretaris" || formData.firstChoice === "co-bendahara") &&
+    formData.angkatan === "2023";
+  const angkatanError = !formData.angkatan
+    ? "Angkatan wajib dipilih."
+    : isAngkatanRestricted
+      ? "Posisi ini hanya tersedia untuk angkatan 2024\u20132025."
+      : "";
+
   const isStepComplete = (stepId: number): boolean => {
     if (stepId === 0) {
-      return Boolean(formData.firstChoice);
+      return Boolean(formData.firstChoice && formData.angkatan && !isAngkatanRestricted);
     }
     if (stepId === 1) {
       return Boolean(
@@ -244,7 +257,7 @@ const Pendaftaran: React.FC = () => {
 
   const hasEditedCurrentStep: boolean = ((): boolean => {
     if (step === 0) {
-      return Boolean(formData.firstChoice);
+      return Boolean(formData.firstChoice || formData.angkatan);
     }
     if (step === 1) {
       return Boolean(
@@ -299,6 +312,8 @@ const Pendaftaran: React.FC = () => {
       const stringFields: (keyof RecruitmentFormData)[] = [
         "firstChoice",
         "secondChoice",
+        "angkatan",
+        "pddSubfocus",
         "fullName",
         "nim",
         "email",
@@ -333,6 +348,8 @@ const Pendaftaran: React.FC = () => {
       setFormData({
         firstChoice: data.firstChoice,
         secondChoice: data.secondChoice,
+        angkatan: data.angkatan || "",
+        pddSubfocus: data.pddSubfocus || "",
         fullName: data.fullName,
         nim: data.nim,
         email: data.email,
@@ -467,6 +484,8 @@ const Pendaftaran: React.FC = () => {
     setFormData({
       firstChoice: "",
       secondChoice: "",
+      angkatan: "",
+      pddSubfocus: "",
       fullName: "",
       nim: "",
       email: "",
@@ -491,6 +510,7 @@ const Pendaftaran: React.FC = () => {
       ...prev,
       firstChoice: divisionId,
       secondChoice: prev.secondChoice === divisionId ? "" : prev.secondChoice,
+      pddSubfocus: divisionId === "pdd" ? prev.pddSubfocus : "",
     }));
     setHasTouchedForm(true);
   };
@@ -589,6 +609,8 @@ const Pendaftaran: React.FC = () => {
       data: {
         firstChoice: formData.firstChoice,
         secondChoice: formData.secondChoice,
+        angkatan: formData.angkatan,
+        pddSubfocus: formData.firstChoice === "pdd" ? formData.pddSubfocus : "",
         fullName: trimmedFullName,
         nim: trimmedNim,
         email: trimmedEmail,
@@ -707,6 +729,8 @@ const Pendaftaran: React.FC = () => {
                 setFormData({
                   firstChoice: "",
                   secondChoice: "",
+                  angkatan: "",
+                  pddSubfocus: "",
                   fullName: "",
                   nim: "",
                   email: "",
@@ -885,6 +909,85 @@ const Pendaftaran: React.FC = () => {
                     Pilihan 2 tidak dapat sama dengan Pilihan 1.
                   </p>
                 </div>
+
+                <div className="space-y-4">
+                  <label htmlFor="angkatan" className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                    Angkatan <span className="text-gold-500">*</span>
+                  </label>
+                  <select
+                    id="angkatan"
+                    name="angkatan"
+                    value={formData.angkatan}
+                    onChange={handleInputChange}
+                    className="w-full bg-white/5 focus:bg-white/10 border border-white/10 py-3 px-4 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 font-light"
+                  >
+                    <option value="">— Pilih angkatan —</option>
+                    <option value="2023">2023</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                  </select>
+                  {showStepErrors && angkatanError && (
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                    >
+                      {angkatanError}
+                    </p>
+                  )}
+                </div>
+
+                {formData.firstChoice === "pdd" && (
+                  <div className="space-y-4">
+                    <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                      Sub-fokus PDD (Opsional)
+                    </label>
+                    <p className="text-xs text-neutral-500">
+                      Sub-fokus mana yang paling sesuai dengan skill-mu?
+                    </p>
+                    <div className="space-y-3">
+                      {[
+                        { value: "desain", label: "Desain", desc: "Visual identity, poster, feed IG, template, brand guideline" },
+                        { value: "publikasi", label: "Publikasi & Media Sosial", desc: "Content calendar, distribusi info, kelola platform" },
+                        { value: "dokumentasi", label: "Dokumentasi", desc: "Fotografer/videografer, seleksi & arsip, aftermovie" },
+                      ].map((option) => (
+                        <div key={option.value} className="flex items-center">
+                          <input
+                            type="radio"
+                            id={`pdd-${option.value}`}
+                            name="pddSubfocus"
+                            value={option.value}
+                            checked={formData.pddSubfocus === option.value}
+                            onChange={handleInputChange}
+                            className="w-4 h-4 accent-gold-500 cursor-pointer"
+                          />
+                          <label
+                            htmlFor={`pdd-${option.value}`}
+                            className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.05]"
+                            style={{
+                              borderColor:
+                                formData.pddSubfocus === option.value
+                                  ? "rgba(212, 166, 77, 0.4)"
+                                  : undefined,
+                              backgroundColor:
+                                formData.pddSubfocus === option.value
+                                  ? "rgba(212, 166, 77, 0.05)"
+                                  : undefined,
+                            }}
+                          >
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-medium text-white">
+                                {option.label}
+                              </span>
+                              <span className="text-xs text-neutral-400">
+                                {option.desc}
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1190,6 +1293,21 @@ const Pendaftaran: React.FC = () => {
                       {divisions.find((division) => division.id === formData.secondChoice)?.name ||
                         "—"}
                     </p>
+                    <p className="text-sm text-neutral-400 mt-1">
+                      Angkatan: {formData.angkatan || "—"}
+                    </p>
+                    {formData.firstChoice === "pdd" && formData.pddSubfocus && (
+                      <p className="text-sm text-neutral-400 mt-1">
+                        Sub-fokus PDD:{" "}
+                        {formData.pddSubfocus === "desain"
+                          ? "Desain"
+                          : formData.pddSubfocus === "publikasi"
+                            ? "Publikasi & Media Sosial"
+                            : formData.pddSubfocus === "dokumentasi"
+                              ? "Dokumentasi"
+                              : "—"}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
