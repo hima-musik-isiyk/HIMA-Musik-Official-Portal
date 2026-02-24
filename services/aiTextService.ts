@@ -6,8 +6,6 @@ if (!apiKey) {
   console.warn(
     "Groq API key is empty. Set GROQ_API_KEY in .env.local and restart the dev server.",
   );
-} else {
-  console.info("Groq API key loaded for Groq client.");
 }
 
 type GroqChatCompletion = {

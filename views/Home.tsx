@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Link from "next/link";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+
 import BlurText from "@/components/BlurText";
 import TextPressure from "@/components/TextPressure";
 
@@ -13,7 +14,7 @@ const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const AccentLine: React.FC = () => (
-  <span className="block w-8 md:w-12 h-px bg-gold-500/40" aria-hidden="true" />
+  <span className="bg-gold-500/40 block h-px w-8 md:w-12" aria-hidden="true" />
 );
 
 const Home: React.FC = () => {
@@ -140,20 +141,20 @@ const Home: React.FC = () => {
   return (
     <div ref={rootRef} className="w-full">
       {/* Hero Section */}
-      <section className="relative min-h-[calc(100svh-5rem)] flex flex-col justify-between px-6 border-b border-white/5">
+      <section className="relative flex min-h-[calc(100svh-5rem)] flex-col justify-between border-b border-white/5 px-6">
         <div
-          className="absolute inset-0 overflow-hidden pointer-events-none"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
           aria-hidden="true"
         >
           <div
-            className="absolute top-1/4 -left-20 w-lg h-128 rounded-full"
+            className="absolute top-1/4 -left-20 h-128 w-lg rounded-full"
             style={{
               background:
                 "radial-gradient(circle, rgba(255, 160, 122, 0.15)_0%, transparent 70%)",
             }}
           />
           <div
-            className="absolute bottom-1/3 -right-20 w-md h-112 rounded-full"
+            className="absolute -right-20 bottom-1/3 h-112 w-md rounded-full"
             style={{
               background:
                 "radial-gradient(circle, rgba(28, 25, 23, 0.3)_0%, transparent 70%)",
@@ -161,19 +162,19 @@ const Home: React.FC = () => {
           />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto w-full flex-1 flex flex-col justify-center">
-          <div className="flex items-center gap-4 mb-6 md:mb-8">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center">
+          <div className="mb-6 flex items-center gap-4 md:mb-8">
             <AccentLine />
             <p
               ref={heroEyebrowRef}
-              className={`text-xs md:text-sm uppercase tracking-[0.4em] text-stone-400/80 font-medium ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className={`text-xs font-medium tracking-[0.4em] text-stone-400/80 uppercase md:text-sm ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               Himpunan Mahasiswa Musik &mdash; Institut Seni Indonesia
               Yogyakarta
             </p>
           </div>
 
-          <h1 className="font-serif text-[5.5rem] md:text-[9rem] lg:text-[11rem] text-white leading-[0.88] tracking-tight flex flex-col">
+          <h1 className="flex flex-col font-serif text-[5.5rem] leading-[0.88] tracking-tight text-white md:text-[9rem] lg:text-[11rem]">
             {disableEntranceEffects ? (
               <span className="inline-flex whitespace-nowrap">HIMA</span>
             ) : (
@@ -183,7 +184,7 @@ const Home: React.FC = () => {
                 animateBy="letters"
               />
             )}
-            <div className="italic text-stone-700 font-light min-h-[1em] relative w-full overflow-visible isolate">
+            <div className="relative isolate min-h-[1em] w-full overflow-visible font-light text-stone-700 italic">
               {disablePressureEffect ? (
                 disableEntranceEffects ? (
                   <span className="inline-block whitespace-nowrap text-stone-700">
@@ -224,12 +225,12 @@ const Home: React.FC = () => {
 
           <div className="mt-10 md:mt-14">
             <div
-              className="w-full h-px bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent mb-10 md:mb-12"
+              className="mb-10 h-px w-full bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent md:mb-12"
               aria-hidden="true"
             />
             <div
               ref={heroCtaRef}
-              className="flex flex-col md:flex-row gap-8 md:gap-12 items-start md:items-center"
+              className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12"
             >
               <Link
                 href="/about"
@@ -239,7 +240,7 @@ const Home: React.FC = () => {
                 <div className="btn-primary-overlay"></div>
               </Link>
               <p
-                className={`max-w-sm text-stone-500 text-[0.8125rem] leading-[1.7] md:border-l border-stone-800 md:pl-12 font-light ${!disableEntranceEffects ? "opacity-0" : ""}`}
+                className={`max-w-sm border-stone-800 text-[0.8125rem] leading-[1.7] font-light text-stone-500 md:border-l md:pl-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
               >
                 Wadah kolektif mahasiswa musik. Membangun ekosistem akademik
                 yang inklusif dan progresif.
@@ -251,45 +252,45 @@ const Home: React.FC = () => {
         {/* Scroll indicator */}
         <div className="relative z-10 flex justify-center pb-8 md:pb-10">
           <div className="flex flex-col items-center gap-3 text-stone-600">
-            <span className="text-[0.6rem] uppercase tracking-[0.35em]">
+            <span className="text-[0.6rem] tracking-[0.35em] uppercase">
               Scroll
             </span>
-            <span className="block w-px h-6 bg-stone-700 animate-pulse" />
+            <span className="block h-6 w-px animate-pulse bg-stone-700" />
           </div>
         </div>
       </section>
 
       {/* Quick Links / Featured */}
-      <section className="py-20 md:py-28 px-6 bg-stone-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-12 md:mb-16">
+      <section className="bg-stone-950 px-6 py-20 md:py-28">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 flex items-center gap-4 md:mb-16">
             <AccentLine />
-            <span className="text-[0.65rem] uppercase tracking-[0.4em] text-stone-600 font-medium">
+            <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
               Jelajahi
             </span>
           </div>
 
           <div
             ref={quickLinksRef}
-            className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-stone-800/60 border-t border-b border-stone-800/60"
+            className="grid grid-cols-1 gap-0 divide-y divide-stone-800/60 border-t border-b border-stone-800/60 md:grid-cols-3 md:divide-x md:divide-y-0"
           >
             <Link
               href="/about"
               data-quick-link="true"
-              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className={`group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               <div>
-                <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
+                <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
                   01
                 </span>
-                <h3 className="font-serif text-xl md:text-2xl text-stone-300 mb-3 group-hover:text-white transition-colors duration-300">
+                <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
                   Tentang Kami
                 </h3>
-                <p className="text-[0.8125rem] leading-relaxed text-stone-600 group-hover:text-stone-400 transition-colors duration-300">
+                <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
                   Sejarah, visi, dan struktur organisasi HIMA.
                 </p>
               </div>
-              <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
+              <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
                 Selengkapnya
                 <svg
                   width="14"
@@ -298,7 +299,7 @@ const Home: React.FC = () => {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.5"
-                  className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                  className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
                 >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
@@ -308,20 +309,20 @@ const Home: React.FC = () => {
             <Link
               href="/events"
               data-quick-link="true"
-              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className={`group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               <div>
-                <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
+                <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
                   02
                 </span>
-                <h3 className="font-serif text-xl md:text-2xl text-stone-300 mb-3 group-hover:text-white transition-colors duration-300">
+                <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
                   Program Kerja
                 </h3>
-                <p className="text-[0.8125rem] leading-relaxed text-stone-600 group-hover:text-stone-400 transition-colors duration-300">
+                <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
                   Konser tahunan, workshop, dan diskusi publik.
                 </p>
               </div>
-              <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
+              <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
                 Selengkapnya
                 <svg
                   width="14"
@@ -330,7 +331,7 @@ const Home: React.FC = () => {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.5"
-                  className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                  className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
                 >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
@@ -340,20 +341,20 @@ const Home: React.FC = () => {
             <Link
               href="/aduan"
               data-quick-link="true"
-              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className={`group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               <div>
-                <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
+                <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
                   03
                 </span>
-                <h3 className="font-serif text-xl md:text-2xl text-stone-300 mb-3 group-hover:text-white transition-colors duration-300">
+                <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
                   Layanan Aduan
                 </h3>
-                <p className="text-[0.8125rem] leading-relaxed text-stone-600 group-hover:text-stone-400 transition-colors duration-300">
+                <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
                   Saluran aspirasi dan advokasi akademik.
                 </p>
               </div>
-              <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
+              <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
                 Selengkapnya
                 <svg
                   width="14"
@@ -362,7 +363,7 @@ const Home: React.FC = () => {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.5"
-                  className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                  className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
                 >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
@@ -372,23 +373,23 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      <section className="py-24 md:py-32 px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <section className="border-t border-white/5 px-6 py-24 md:py-32">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div>
-            <div className="flex items-center gap-4 mb-6">
+            <div className="mb-6 flex items-center gap-4">
               <AccentLine />
-              <span className="text-[0.65rem] uppercase tracking-[0.4em] text-stone-600 font-medium">
+              <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
                 Open Recruitment
               </span>
             </div>
-            <h2 className="font-serif text-4xl md:text-6xl text-white tracking-tight">
+            <h2 className="font-serif text-4xl tracking-tight text-white md:text-6xl">
               Jadi{" "}
-              <span className="italic text-gold-500/80 font-light">
+              <span className="text-gold-500/80 font-light italic">
                 Pengurus
               </span>{" "}
               HIMA
             </h2>
-            <p className="text-neutral-400 text-sm mt-5 leading-relaxed max-w-xl">
+            <p className="mt-5 max-w-xl text-sm leading-relaxed text-neutral-400">
               Semua informasi rekrutmen ada di satu halaman: struktur kabinet,
               panduan divisi, timeline seleksi, lalu lanjut isi formulir saat
               kamu siap.
@@ -423,16 +424,16 @@ const Home: React.FC = () => {
             ].map((item) => (
               <div
                 key={item.step}
-                className="border border-white/5 bg-white/2 p-6 md:p-8 flex items-start gap-6"
+                className="flex items-start gap-6 border border-white/5 bg-white/2 p-6 md:p-8"
               >
-                <span className="text-[0.75rem] font-mono text-stone-700 tracking-wider">
+                <span className="font-mono text-[0.75rem] tracking-wider text-stone-700">
                   {item.step}
                 </span>
                 <div>
-                  <h3 className="font-serif text-xl text-white mb-2">
+                  <h3 className="mb-2 font-serif text-xl text-white">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed">
+                  <p className="text-sm leading-relaxed text-neutral-400">
                     {item.detail}
                   </p>
                 </div>

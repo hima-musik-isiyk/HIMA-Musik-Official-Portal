@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
+
 import { divisions } from "@/lib/pendaftaran-data";
 
 type RecruitmentFormData = {
@@ -543,21 +544,21 @@ const Pendaftaran: React.FC = () => {
 
   if (submitted) {
     return (
-      <div className="pt-40 pb-32 px-6 min-h-screen relative">
-        <div className="absolute top-0 right-0 w-full h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
-        <div className="max-w-3xl mx-auto relative z-10 text-center">
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="h-px w-8 bg-gold-500/50"></div>
-            <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
+      <div className="relative min-h-screen px-6 pt-40 pb-32">
+        <div className="pointer-events-none absolute top-0 right-0 h-screen w-full bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+        <div className="relative z-10 mx-auto max-w-3xl text-center">
+          <div className="mb-8 flex items-center justify-center gap-4">
+            <div className="bg-gold-500/50 h-px w-8"></div>
+            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
               Pendaftaran Terkirim
             </p>
-            <div className="h-px w-8 bg-gold-500/50"></div>
+            <div className="bg-gold-500/50 h-px w-8"></div>
           </div>
-          <h1 className="font-serif text-5xl md:text-6xl text-white mb-6 tracking-tight">
+          <h1 className="mb-6 font-serif text-5xl tracking-tight text-white md:text-6xl">
             Terima{" "}
-            <span className="italic text-gold-500/80 font-light">Kasih</span>
+            <span className="text-gold-500/80 font-light italic">Kasih</span>
           </h1>
-          <p className="text-neutral-400 max-w-2xl mx-auto leading-relaxed font-light mb-4">
+          <p className="mx-auto mb-4 max-w-2xl leading-relaxed font-light text-neutral-400">
             Data pendaftaran sudah kami terima. Bukti pendaftaran telah kami
             kirim ke email{" "}
             <span className="text-gold-300">
@@ -566,7 +567,7 @@ const Pendaftaran: React.FC = () => {
             . Tim HIMA akan menghubungi kamu melalui kontak yang tertera untuk
             tahap berikutnya.
           </p>
-          <div className="max-w-xl mx-auto text-xs text-neutral-500 mb-12">
+          <div className="mx-auto mb-12 max-w-xl text-xs text-neutral-500">
             <p className="leading-relaxed">
               Jika email belum muncul di kotak masuk, cek juga folder{" "}
               <span className="text-neutral-300">Spam</span> atau{" "}
@@ -576,11 +577,11 @@ const Pendaftaran: React.FC = () => {
               informasi berikutnya tidak terlewat.
             </p>
           </div>
-          <div className="border border-white/10 bg-white/5 p-6 max-w-lg mx-auto mb-10">
-            <p className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-2">
+          <div className="mx-auto mb-10 max-w-lg border border-white/10 bg-white/5 p-6">
+            <p className="mb-2 text-xs tracking-[0.3em] text-neutral-500 uppercase">
               Bukti Pendaftaran
             </p>
-            <div className="text-sm text-neutral-200 space-y-2">
+            <div className="space-y-2 text-sm text-neutral-200">
               <p>Nama: {formData.fullName}</p>
               <p>Email: {formData.email}</p>
               <p>
@@ -594,7 +595,7 @@ const Pendaftaran: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row justify-center gap-4">
+          <div className="flex flex-col justify-center gap-4 md:flex-row">
             <button
               type="button"
               onClick={() => {
@@ -618,16 +619,16 @@ const Pendaftaran: React.FC = () => {
                   portfolio: "",
                 });
               }}
-              className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-300/50"
+              className="group hover:border-gold-300/50 relative overflow-hidden border border-white/10 bg-transparent px-8 py-4 text-xs font-bold tracking-[0.3em] text-white uppercase transition-all"
             >
-              <span className="relative z-10 group-hover:text-gold-300 transition-colors duration-500">
+              <span className="group-hover:text-gold-300 relative z-10 transition-colors duration-500">
                 Daftar Lagi
               </span>
-              <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+              <div className="bg-gold-500/5 absolute inset-0 translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0"></div>
             </button>
             <Link
               href="/pendaftaran"
-              className="group relative px-8 py-4 bg-white text-black text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-300 hover:text-white"
+              className="group hover:bg-gold-300 relative overflow-hidden bg-white px-8 py-4 text-xs font-bold tracking-[0.3em] text-black uppercase transition-all hover:text-white"
             >
               Kembali ke Pendaftaran
             </Link>
@@ -638,44 +639,44 @@ const Pendaftaran: React.FC = () => {
   }
 
   return (
-    <div className="pt-40 pb-32 px-6 min-h-screen relative">
-      <div className="absolute top-0 left-0 w-full h-screen bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
-      <div className="max-w-6xl mx-auto relative z-10">
+    <div className="relative min-h-screen px-6 pt-40 pb-32">
+      <div className="pointer-events-none absolute top-0 left-0 h-screen w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+      <div className="relative z-10 mx-auto max-w-6xl">
         <Link
           href="/pendaftaran"
-          className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-neutral-500 hover:text-gold-300 transition-colors duration-300 mb-8"
+          className="hover:text-gold-300 mb-8 inline-flex items-center gap-2 text-xs tracking-[0.3em] text-neutral-500 uppercase transition-colors duration-300"
         >
           ← Kembali ke Info Pendaftaran
         </Link>
 
-        <div className="flex items-center gap-4 mb-8">
-          <div className="h-px w-8 bg-gold-500/50"></div>
-          <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
+        <div className="mb-8 flex items-center gap-4">
+          <div className="bg-gold-500/50 h-px w-8"></div>
+          <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
             Formulir Pendaftaran
           </p>
         </div>
         <div className="mb-12">
-          <h1 className="font-serif text-4xl md:text-5xl text-white tracking-tight mb-4">
+          <h1 className="mb-4 font-serif text-4xl tracking-tight text-white md:text-5xl">
             Isi Data{" "}
-            <span className="italic text-gold-500/80 font-light">
+            <span className="text-gold-500/80 font-light italic">
               Pendaftaran
             </span>
           </h1>
-          <p className="text-neutral-400 text-sm max-w-xl leading-relaxed">
+          <p className="max-w-xl text-sm leading-relaxed text-neutral-400">
             Pilih divisi, isi data diri, ceritakan motivasi, lalu kirim
             pendaftaran.
           </p>
         </div>
 
         <div ref={stepBarRef} className="mb-12">
-          <div className="flex items-center gap-3 mb-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-gold-500 font-medium">
+          <div className="mb-4 flex items-center gap-3">
+            <p className="text-gold-500 text-xs font-medium tracking-[0.3em] uppercase">
               Langkah {step + 1} dari {steps.length}: {steps[step].label}
             </p>
           </div>
-          <div className="h-1 bg-neutral-900 rounded-full overflow-hidden">
+          <div className="h-1 overflow-hidden rounded-full bg-neutral-900">
             <div
-              className="h-full bg-gold-500 rounded-full transition-all duration-500 ease-out"
+              className="bg-gold-500 h-full rounded-full transition-all duration-500 ease-out"
               style={{ width: `${((step + 1) / steps.length) * 100}%` }}
             ></div>
           </div>
@@ -688,33 +689,33 @@ const Pendaftaran: React.FC = () => {
         >
           {step === 0 && (
             <div className="space-y-10">
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
+                  <h2 className="font-serif text-3xl tracking-tight text-white md:text-4xl">
                     Divisi apa yang paling kamu minati?
                   </h2>
-                  <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-400">
                     Pilih divisi utama tempat kamu ingin berkontribusi.
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center">
                 <button
                   type="button"
                   onClick={() => setIsDivisionModalOpen(true)}
-                  className="group relative px-6 py-3 bg-transparent border border-gold-500/40 text-gold-300 text-xs font-medium uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-500/60"
+                  className="group border-gold-500/40 text-gold-300 hover:border-gold-500/60 relative overflow-hidden border bg-transparent px-6 py-3 text-xs font-medium tracking-[0.3em] uppercase transition-all"
                 >
-                  <span className="relative z-10 flex items-center gap-2 group-hover:text-gold-200 transition-colors duration-500">
+                  <span className="group-hover:text-gold-200 relative z-10 flex items-center gap-2 transition-colors duration-500">
                     Lihat Panduan dan Tugas Divisi
                   </span>
-                  <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+                  <div className="bg-gold-500/5 absolute inset-0 translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0"></div>
                 </button>
               </div>
 
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                  <label className="block text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase">
                     Pilihan 1 (Wajib) <span className="text-gold-500">*</span>
                   </label>
                   <div className="space-y-3">
@@ -729,11 +730,11 @@ const Pendaftaran: React.FC = () => {
                           onChange={(e) =>
                             handleFirstChoiceChange(e.target.value)
                           }
-                          className="w-4 h-4 accent-gold-500 cursor-pointer"
+                          className="accent-gold-500 h-4 w-4 cursor-pointer"
                         />
                         <label
                           htmlFor={`choice1-${division.id}`}
-                          className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/5"
+                          className="ml-4 flex-1 cursor-pointer rounded-sm border border-white/5 px-4 py-3 transition-all duration-300 hover:border-white/20 hover:bg-white/5"
                           style={{
                             borderColor:
                               formData.firstChoice === division.id
@@ -760,7 +761,7 @@ const Pendaftaran: React.FC = () => {
                   {showStepErrors && !formData.firstChoice && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                      className="mt-2 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       Pilih divisi utama terlebih dahulu.
                     </p>
@@ -770,7 +771,7 @@ const Pendaftaran: React.FC = () => {
                 <div className="space-y-4">
                   <label
                     htmlFor="secondChoice"
-                    className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium"
+                    className="block text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase"
                   >
                     Pilihan 2 (Opsional)
                   </label>
@@ -779,7 +780,7 @@ const Pendaftaran: React.FC = () => {
                     name="secondChoice"
                     value={formData.secondChoice}
                     onChange={(e) => handleSecondChoiceChange(e.target.value)}
-                    className="w-full bg-white/5 focus:bg-white/10 border border-white/10 py-3 px-4 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 font-light"
+                    className="focus:border-gold-500/50 w-full border border-white/10 bg-white/5 px-4 py-3 font-light text-neutral-200 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                   >
                     <option value="">
                       — Tidak ada / Hanya fokus pada Pilihan 1 —
@@ -797,7 +798,7 @@ const Pendaftaran: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-neutral-500 mt-2">
+                  <p className="mt-2 text-xs text-neutral-500">
                     Pilihan 2 tidak dapat sama dengan Pilihan 1.
                   </p>
                 </div>
@@ -805,7 +806,7 @@ const Pendaftaran: React.FC = () => {
                 <div className="space-y-4">
                   <label
                     htmlFor="angkatan"
-                    className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium"
+                    className="block text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase"
                   >
                     Angkatan <span className="text-gold-500">*</span>
                   </label>
@@ -814,7 +815,7 @@ const Pendaftaran: React.FC = () => {
                     name="angkatan"
                     value={formData.angkatan}
                     onChange={handleInputChange}
-                    className="w-full bg-white/5 focus:bg-white/10 border border-white/10 py-3 px-4 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 font-light"
+                    className="focus:border-gold-500/50 w-full border border-white/10 bg-white/5 px-4 py-3 font-light text-neutral-200 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                   >
                     <option value="">— Pilih angkatan —</option>
                     <option value="2023">2023</option>
@@ -824,7 +825,7 @@ const Pendaftaran: React.FC = () => {
                   {showStepErrors && angkatanError && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                      className="mt-2 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       {angkatanError}
                     </p>
@@ -833,7 +834,7 @@ const Pendaftaran: React.FC = () => {
 
                 {isPddSelected && (
                   <div className="space-y-4">
-                    <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                    <label className="block text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase">
                       Sub-fokus PDD (Opsional)
                     </label>
                     <p className="text-xs text-neutral-500">
@@ -865,11 +866,11 @@ const Pendaftaran: React.FC = () => {
                             value={option.value}
                             checked={formData.pddSubfocus === option.value}
                             onChange={handleInputChange}
-                            className="w-4 h-4 accent-gold-500 cursor-pointer"
+                            className="accent-gold-500 h-4 w-4 cursor-pointer"
                           />
                           <label
                             htmlFor={`pdd-${option.value}`}
-                            className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/5"
+                            className="ml-4 flex-1 cursor-pointer rounded-sm border border-white/5 px-4 py-3 transition-all duration-300 hover:border-white/20 hover:bg-white/5"
                             style={{
                               borderColor:
                                 formData.pddSubfocus === option.value
@@ -902,18 +903,18 @@ const Pendaftaran: React.FC = () => {
           {step === 1 && (
             <div className="space-y-10">
               <div>
-                <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
+                <h2 className="font-serif text-3xl tracking-tight text-white md:text-4xl">
                   Mari mulai dengan perkenalan
                 </h2>
-                <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-400">
                   Pastikan data kontak aktif agar panitia mudah menghubungi
                   kamu.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Nama Lengkap <span className="text-gold-500">*</span>
                   </label>
                   <div className="relative flex items-center">
@@ -922,12 +923,12 @@ const Pendaftaran: React.FC = () => {
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                       placeholder="Nama sesuai KTM"
                       required
                     />
                     {trimmedFullName && (
-                      <span className="absolute right-3 text-green-500 text-xs">
+                      <span className="absolute right-3 text-xs text-green-500">
                         OK
                       </span>
                     )}
@@ -935,14 +936,14 @@ const Pendaftaran: React.FC = () => {
                   {showStepErrors && fullNameError && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                      className="mt-2 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       {fullNameError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     NIM <span className="text-gold-500">*</span>
                   </label>
                   <div className="relative flex items-center">
@@ -951,32 +952,32 @@ const Pendaftaran: React.FC = () => {
                       name="nim"
                       value={formData.nim}
                       onChange={handleInputChange}
-                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                       placeholder="24xxxxxxxx"
                       inputMode="numeric"
                       pattern="\d{10,12}"
                       required
                     />
                     {trimmedNim && isNimValid && (
-                      <span className="absolute right-3 text-green-500 text-xs">
+                      <span className="absolute right-3 text-xs text-green-500">
                         OK
                       </span>
                     )}
                   </div>
-                  <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">
+                  <p className="mt-1 text-[0.6rem] tracking-wide text-neutral-500">
                     10–12 digit angka sesuai KTM
                   </p>
                   {showStepErrors && nimError && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                      className="mt-2 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       {nimError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Email Aktif <span className="text-gold-500">*</span>
                   </label>
                   <div className="relative flex items-center">
@@ -985,12 +986,12 @@ const Pendaftaran: React.FC = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                       placeholder="nama@email.com"
                       required
                     />
                     {trimmedEmail && isEmailValid && (
-                      <span className="absolute right-3 text-green-500 text-xs">
+                      <span className="absolute right-3 text-xs text-green-500">
                         OK
                       </span>
                     )}
@@ -998,14 +999,14 @@ const Pendaftaran: React.FC = () => {
                   {showStepErrors && emailError && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                      className="mt-2 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       {emailError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     No. WhatsApp <span className="text-gold-500">*</span>
                   </label>
                   <div className="relative flex items-center">
@@ -1014,31 +1015,31 @@ const Pendaftaran: React.FC = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                       placeholder="08xxxxxxxxxx"
                       inputMode="tel"
                       required
                     />
                     {trimmedPhone && isPhoneValid && (
-                      <span className="absolute right-3 text-green-500 text-xs">
+                      <span className="absolute right-3 text-xs text-green-500">
                         OK
                       </span>
                     )}
                   </div>
-                  <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">
+                  <p className="mt-1 text-[0.6rem] tracking-wide text-neutral-500">
                     Format: 08xx atau +628xx (spasi/strip diabaikan)
                   </p>
                   {showStepErrors && phoneError && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                      className="mt-2 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       {phoneError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Instagram (Opsional)
                   </label>
                   <input
@@ -1046,7 +1047,7 @@ const Pendaftaran: React.FC = () => {
                     name="instagram"
                     value={formData.instagram}
                     onChange={handleInputChange}
-                    className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                    className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none"
                     placeholder="@username"
                   />
                 </div>
@@ -1057,10 +1058,10 @@ const Pendaftaran: React.FC = () => {
           {step === 2 && (
             <div className="space-y-10">
               <div>
-                <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
+                <h2 className="font-serif text-3xl tracking-tight text-white md:text-4xl">
                   Ceritakan alasanmu & atur jadwalmu
                 </h2>
-                <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-400">
                   Berikan penjelasan lengkap tentang motivasimu dan pilih hari
                   ketersediaan.
                 </p>
@@ -1068,7 +1069,7 @@ const Pendaftaran: React.FC = () => {
 
               <div className="space-y-10">
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Motivasi Utama <span className="text-gold-500">*</span>
                   </label>
                   <textarea
@@ -1077,12 +1078,12 @@ const Pendaftaran: React.FC = () => {
                     onChange={handleInputChange}
                     rows={6}
                     maxLength={MAX_MOTIVATION_CHARS}
-                    className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none font-light placeholder-neutral-700 overflow-hidden"
+                    className="focus:border-gold-500/30 w-full resize-none overflow-hidden border border-white/5 bg-black/20 p-5 font-light text-neutral-200 placeholder-neutral-700 transition-colors duration-500 focus:outline-none"
                     style={{ overflowWrap: "break-word" }}
                     placeholder={`Contoh: Kenapa kamu tertarik dengan ${currentDivision ? currentDivision.name : "divisi ini"}? Apa yang ingin kamu pelajari atau ubah di HIMA Musik?`}
                   ></textarea>
                   <div className="mt-3 space-y-2">
-                    <div className="h-1.5 bg-neutral-900 rounded-full overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-neutral-900">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           motivationLength >= MIN_MOTIVATION_CHARS
@@ -1096,7 +1097,7 @@ const Pendaftaran: React.FC = () => {
                         }}
                       ></div>
                     </div>
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em]">
+                    <div className="flex items-center justify-between text-xs tracking-[0.2em] uppercase">
                       <span
                         className={
                           motivationLength >= MIN_MOTIVATION_CHARS
@@ -1118,7 +1119,7 @@ const Pendaftaran: React.FC = () => {
                   {showStepErrors && motivationError && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3"
+                      className="mt-3 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       {motivationError}
                     </p>
@@ -1126,14 +1127,14 @@ const Pendaftaran: React.FC = () => {
                 </div>
 
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-4 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-4 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Ketersediaan Waktu <span className="text-gold-500">*</span>
                   </label>
-                  <p className="text-xs text-neutral-500 mb-4">
+                  <p className="mb-4 text-xs text-neutral-500">
                     Pilih hari di mana kamu biasanya luang untuk
                     rapat/koordinasi (Bisa pilih lebih dari satu).
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                     {availabilityOptions.map((day) => {
                       const isActive = formData.availability.includes(day);
                       return (
@@ -1141,10 +1142,10 @@ const Pendaftaran: React.FC = () => {
                           key={day}
                           type="button"
                           onClick={() => toggleAvailability(day)}
-                          className={`border px-4 py-3 text-xs uppercase tracking-[0.3em] transition-all duration-300 rounded-sm font-medium ${
+                          className={`rounded-sm border px-4 py-3 text-xs font-medium tracking-[0.3em] uppercase transition-all duration-300 ${
                             isActive
                               ? "border-gold-500/60 text-gold-300 bg-gold-500/10"
-                              : "border-white/10 text-neutral-400 hover:text-white hover:border-white/30 hover:bg-white/5"
+                              : "border-white/10 text-neutral-400 hover:border-white/30 hover:bg-white/5 hover:text-white"
                           }`}
                         >
                           {day}
@@ -1155,7 +1156,7 @@ const Pendaftaran: React.FC = () => {
                   {showStepErrors && formData.availability.length === 0 && (
                     <p
                       data-error="true"
-                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3"
+                      className="mt-3 text-xs tracking-[0.2em] text-amber-500/80 uppercase"
                     >
                       Pilih minimal satu hari untuk rapat rutin.
                     </p>
@@ -1163,7 +1164,7 @@ const Pendaftaran: React.FC = () => {
                 </div>
 
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Pengalaman Organisasi (Opsional)
                   </label>
                   <textarea
@@ -1171,14 +1172,14 @@ const Pendaftaran: React.FC = () => {
                     value={formData.experience}
                     onChange={handleInputChange}
                     rows={4}
-                    className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none font-light placeholder-neutral-700 overflow-hidden"
+                    className="focus:border-gold-500/30 w-full resize-none overflow-hidden border border-white/5 bg-black/20 p-5 font-light text-neutral-200 placeholder-neutral-700 transition-colors duration-500 focus:outline-none"
                     style={{ overflowWrap: "break-word" }}
                     placeholder="Cerita singkat pengalaman organisasi atau proyek yang pernah kamu ikuti."
                   ></textarea>
                 </div>
 
                 <div className="group relative">
-                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+                  <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                     Portofolio/Link Karya (Opsional)
                   </label>
                   <textarea
@@ -1186,11 +1187,11 @@ const Pendaftaran: React.FC = () => {
                     value={formData.portfolio}
                     onChange={handleInputChange}
                     rows={3}
-                    className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none font-light placeholder-neutral-700 overflow-hidden"
+                    className="focus:border-gold-500/30 w-full resize-none overflow-hidden border border-white/5 bg-black/20 p-5 font-light text-neutral-200 placeholder-neutral-700 transition-colors duration-500 focus:outline-none"
                     style={{ overflowWrap: "break-word" }}
                     placeholder="Behance, Drive, Instagram, YouTube, dsb."
                   ></textarea>
-                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-neutral-600">
+                  <p className="mt-2 text-xs tracking-[0.2em] text-neutral-600 uppercase">
                     Boleh lebih dari satu link, pisahkan dengan koma atau baris
                     baru.
                   </p>
@@ -1202,23 +1203,23 @@ const Pendaftaran: React.FC = () => {
           {step === 3 && (
             <div className="space-y-10">
               <div>
-                <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
+                <h2 className="font-serif text-3xl tracking-tight text-white md:text-4xl">
                   Review Pendaftaran
                 </h2>
-                <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-400">
                   Satu langkah lagi! Pastikan data di atas sudah benar sebelum
                   dikirim.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
                 <div
-                  className="border border-white/5 bg-white/2 p-8 space-y-6 overflow-hidden"
+                  className="space-y-6 overflow-hidden border border-white/5 bg-white/2 p-8"
                   style={{ overflowWrap: "break-word" }}
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs tracking-[0.3em] text-neutral-400 uppercase">
                         Posisi Pilihan
                       </p>
                       <button
@@ -1228,27 +1229,27 @@ const Pendaftaran: React.FC = () => {
                           shouldScrollOnStepChangeRef.current = true;
                           setStep(0);
                         }}
-                        className="text-xs text-gold-500/60 hover:text-gold-300 transition-colors duration-300 uppercase tracking-[0.2em]"
+                        className="text-gold-500/60 hover:text-gold-300 text-xs tracking-[0.2em] uppercase transition-colors duration-300"
                       >
                         Edit
                       </button>
                     </div>
-                    <p className="text-white font-serif text-2xl">
+                    <p className="font-serif text-2xl text-white">
                       {divisions.find(
                         (division) => division.id === formData.firstChoice,
                       )?.name || "-"}
                     </p>
-                    <p className="text-sm text-neutral-400 mt-2">
+                    <p className="mt-2 text-sm text-neutral-400">
                       Pilihan 2:{" "}
                       {divisions.find(
                         (division) => division.id === formData.secondChoice,
                       )?.name || "—"}
                     </p>
-                    <p className="text-sm text-neutral-400 mt-1">
+                    <p className="mt-1 text-sm text-neutral-400">
                       Angkatan: {formData.angkatan || "—"}
                     </p>
                     {isPddSelected && formData.pddSubfocus && (
-                      <p className="text-sm text-neutral-400 mt-1">
+                      <p className="mt-1 text-sm text-neutral-400">
                         Sub-fokus PDD:{" "}
                         {formData.pddSubfocus === "desain"
                           ? "Desain"
@@ -1261,8 +1262,8 @@ const Pendaftaran: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs tracking-[0.3em] text-neutral-400 uppercase">
                         Kontak
                       </p>
                       <button
@@ -1272,13 +1273,13 @@ const Pendaftaran: React.FC = () => {
                           shouldScrollOnStepChangeRef.current = true;
                           setStep(1);
                         }}
-                        className="text-xs text-gold-500/60 hover:text-gold-300 transition-colors duration-300 uppercase tracking-[0.2em]"
+                        className="text-gold-500/60 hover:text-gold-300 text-xs tracking-[0.2em] uppercase transition-colors duration-300"
                       >
                         Edit
                       </button>
                     </div>
                     <div
-                      className="text-sm text-neutral-300 space-y-2 overflow-hidden"
+                      className="space-y-2 overflow-hidden text-sm text-neutral-300"
                       style={{ overflowWrap: "break-word" }}
                     >
                       <p
@@ -1317,12 +1318,12 @@ const Pendaftaran: React.FC = () => {
                   </div>
                 </div>
                 <div
-                  className="border border-white/5 bg-white/2 p-8 space-y-6 overflow-hidden"
+                  className="space-y-6 overflow-hidden border border-white/5 bg-white/2 p-8"
                   style={{ overflowWrap: "break-word" }}
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs tracking-[0.3em] text-neutral-400 uppercase">
                         Motivasi
                       </p>
                       <button
@@ -1332,20 +1333,20 @@ const Pendaftaran: React.FC = () => {
                           shouldScrollOnStepChangeRef.current = true;
                           setStep(2);
                         }}
-                        className="text-xs text-gold-500/60 hover:text-gold-300 transition-colors duration-300 uppercase tracking-[0.2em]"
+                        className="text-gold-500/60 hover:text-gold-300 text-xs tracking-[0.2em] uppercase transition-colors duration-300"
                       >
                         Edit
                       </button>
                     </div>
                     <p
-                      className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap overflow-hidden"
+                      className="overflow-hidden text-sm leading-relaxed whitespace-pre-wrap text-neutral-300"
                       style={{ overflowWrap: "break-word" }}
                     >
                       {formData.motivation || "-"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-2">
+                    <p className="mb-2 text-xs tracking-[0.3em] text-neutral-400 uppercase">
                       Ketersediaan
                     </p>
                     <p className="text-sm text-neutral-300">
@@ -1355,11 +1356,11 @@ const Pendaftaran: React.FC = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-2">
+                    <p className="mb-2 text-xs tracking-[0.3em] text-neutral-400 uppercase">
                       Pengalaman
                     </p>
                     <p
-                      className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap overflow-hidden"
+                      className="overflow-hidden text-sm leading-relaxed whitespace-pre-wrap text-neutral-300"
                       style={{ overflowWrap: "break-word" }}
                     >
                       {formData.experience || "Belum diisi"}
@@ -1367,11 +1368,11 @@ const Pendaftaran: React.FC = () => {
                   </div>
                   {formData.portfolio && (
                     <div>
-                      <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-2">
+                      <p className="mb-2 text-xs tracking-[0.3em] text-neutral-400 uppercase">
                         Portofolio
                       </p>
                       <div
-                        className="text-sm text-neutral-300 space-y-1 overflow-hidden"
+                        className="space-y-1 overflow-hidden text-sm text-neutral-300"
                         style={{ overflowWrap: "break-word" }}
                       >
                         {formData.portfolio
@@ -1395,13 +1396,13 @@ const Pendaftaran: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-t border-white/5 pt-8">
-            <div className="flex flex-col gap-2 text-xs uppercase tracking-[0.25em] text-neutral-500">
+          <div className="flex flex-col justify-between gap-6 border-t border-white/5 pt-8 md:flex-row md:items-center">
+            <div className="flex flex-col gap-2 text-xs tracking-[0.25em] text-neutral-500 uppercase">
               {(hasEditedCurrentStep || showStepErrors) && (
                 <span
                   className={
                     isStepValid
-                      ? "inline-flex items-center gap-2 text-gold-400"
+                      ? "text-gold-400 inline-flex items-center gap-2"
                       : "inline-flex items-center gap-2 text-red-400"
                   }
                 >
@@ -1442,12 +1443,12 @@ const Pendaftaran: React.FC = () => {
                 <span className="text-red-400">{submitError}</span>
               )}
             </div>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               {step > 0 && (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="px-6 py-3 text-xs uppercase tracking-[0.3em] border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors duration-300"
+                  className="border border-white/10 px-6 py-3 text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-300 hover:border-white/30 hover:text-white"
                 >
                   Kembali
                 </button>
@@ -1456,7 +1457,7 @@ const Pendaftaran: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowResetConfirm(true)}
-                  className="px-4 py-2 text-xs uppercase tracking-[0.2em] text-neutral-500 hover:text-red-400 transition-colors duration-300 border-b border-transparent hover:border-red-400/30"
+                  className="border-b border-transparent px-4 py-2 text-xs tracking-[0.2em] text-neutral-500 uppercase transition-colors duration-300 hover:border-red-400/30 hover:text-red-400"
                 >
                   Reset Draf
                 </button>
@@ -1474,7 +1475,7 @@ const Pendaftaran: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!isStepValid || isSubmitting}
-                  className={`btn-primary ${!isStepValid || isSubmitting ? "opacity-60 pointer-events-none" : ""}`}
+                  className={`btn-primary ${!isStepValid || isSubmitting ? "pointer-events-none opacity-60" : ""}`}
                 >
                   <span className="btn-primary-label">
                     {isSubmitting ? "Mengirim..." : "Kirim Pendaftaran"}
@@ -1487,28 +1488,28 @@ const Pendaftaran: React.FC = () => {
         </form>
       </div>
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
-          <div className="w-full max-w-md bg-[#111] border border-white/10 p-8 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
-            <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 px-6 backdrop-blur-sm">
+          <div className="relative w-full max-w-md overflow-hidden border border-white/10 bg-[#111] p-8">
+            <div className="via-gold-500/50 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
+            <h2 className="mb-4 font-serif text-2xl tracking-wide text-white">
               Reset draf?
             </h2>
-            <p className="text-sm text-neutral-400 mb-10 leading-relaxed font-light">
+            <p className="mb-10 text-sm leading-relaxed font-light text-neutral-400">
               Tindakan ini akan menghapus semua isian formulir pendaftaran yang
               belum dikirim.
             </p>
-            <div className="flex justify-end gap-4 text-xs uppercase tracking-[0.2em] font-medium">
+            <div className="flex justify-end gap-4 text-xs font-medium tracking-[0.2em] uppercase">
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
-                className="px-6 py-3 text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 transition-colors duration-300"
+                className="border border-white/10 px-6 py-3 text-neutral-400 transition-colors duration-300 hover:border-white/30 hover:text-white"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleResetDraft}
-                className="px-6 py-3 bg-white text-black hover:bg-gold-300 hover:text-white transition-colors duration-300"
+                className="hover:bg-gold-300 bg-white px-6 py-3 text-black transition-colors duration-300 hover:text-white"
               >
                 Ya, reset
               </button>
@@ -1519,7 +1520,7 @@ const Pendaftaran: React.FC = () => {
 
       {isDivisionModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6 py-12 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#0a0a0a]/90 px-6 py-12 backdrop-blur-sm"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               setIsDivisionModalOpen(false);
@@ -1527,24 +1528,24 @@ const Pendaftaran: React.FC = () => {
           }}
         >
           <div
-            className="w-full max-w-4xl bg-[#111] border border-white/10 relative overflow-hidden"
+            className="relative w-full max-w-4xl overflow-hidden border border-white/10 bg-[#111]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
+            <div className="via-gold-500/50 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
             <button
               type="button"
               onClick={() => setIsDivisionModalOpen(false)}
-              className="absolute top-6 right-6 text-neutral-500 hover:text-white transition-colors z-10 text-2xl leading-none"
+              className="absolute top-6 right-6 z-10 text-2xl leading-none text-neutral-500 transition-colors hover:text-white"
               aria-label="Tutup modal"
             >
               X
             </button>
 
             <div className="p-8 md:p-12">
-              <h2 className="font-serif text-4xl text-white mb-2 tracking-tight">
+              <h2 className="mb-2 font-serif text-4xl tracking-tight text-white">
                 Panduan Lengkap Divisi
               </h2>
-              <p className="text-neutral-400 text-sm mb-12">
+              <p className="mb-12 text-sm text-neutral-400">
                 Pelajari detail setiap divisi untuk memilih yang paling cocok
                 dengan minat dan keahlianmu.
               </p>
@@ -1556,23 +1557,23 @@ const Pendaftaran: React.FC = () => {
                     className="border border-white/10 bg-white/2 p-8"
                   >
                     <div className="mb-6">
-                      <h3 className="font-serif text-2xl text-white mb-2">
+                      <h3 className="mb-2 font-serif text-2xl text-white">
                         {division.name}
                       </h3>
-                      <p className="text-xs uppercase tracking-[0.3em] text-gold-500/70 mb-4">
+                      <p className="text-gold-500/70 mb-4 text-xs tracking-[0.3em] uppercase">
                         Fokus: {division.focus}
                       </p>
-                      <p className="text-sm text-neutral-400 leading-relaxed">
+                      <p className="text-sm leading-relaxed text-neutral-400">
                         {division.summary}
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                       <div>
-                        <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
+                        <h4 className="mb-3 text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase">
                           Tugas Utama
                         </h4>
-                        <ul className="text-sm text-neutral-300 space-y-2">
+                        <ul className="space-y-2 text-sm text-neutral-300">
                           {division.tasks.map((task) => (
                             <li key={task} className="flex gap-3">
                               <span className="text-gold-500 shrink-0">•</span>
@@ -1583,19 +1584,19 @@ const Pendaftaran: React.FC = () => {
                       </div>
 
                       <div>
-                        <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
+                        <h4 className="mb-3 text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase">
                           Skill Ideal & Komitmen
                         </h4>
                         <div className="space-y-3">
                           <div>
-                            <p className="text-xs text-neutral-500 mb-2">
+                            <p className="mb-2 text-xs text-neutral-500">
                               Skill:
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {division.skills.map((skill) => (
                                 <span
                                   key={skill}
-                                  className="text-xs border border-gold-500/30 bg-gold-500/5 px-3 py-1 text-gold-300"
+                                  className="border-gold-500/30 bg-gold-500/5 text-gold-300 border px-3 py-1 text-xs"
                                 >
                                   {skill}
                                 </span>
@@ -1603,7 +1604,7 @@ const Pendaftaran: React.FC = () => {
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-neutral-500 mb-2">
+                            <p className="mb-2 text-xs text-neutral-500">
                               Komitmen Waktu:
                             </p>
                             <p className="text-sm text-neutral-300">
@@ -1621,9 +1622,9 @@ const Pendaftaran: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsDivisionModalOpen(false)}
-                  className="group relative px-8 py-3 bg-white text-black text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-300"
+                  className="group hover:bg-gold-300 relative overflow-hidden bg-white px-8 py-3 text-xs font-bold tracking-[0.3em] text-black uppercase transition-all"
                 >
-                  <span className="relative z-10 group-hover:text-white transition-colors duration-500">
+                  <span className="relative z-10 transition-colors duration-500 group-hover:text-white">
                     Tutup
                   </span>
                 </button>

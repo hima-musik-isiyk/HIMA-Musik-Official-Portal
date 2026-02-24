@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import type { PointerEventHandler, TouchEventHandler } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface TextPressureProps {
   text?: string;
@@ -48,9 +48,12 @@ const getAttr = (
   return Math.max(minVal, val + minVal);
 };
 
-const debounce = (func: (...args: any[]) => void, delay: number) => {
+const debounce = <T extends unknown[]>(
+  func: (...args: T) => void,
+  delay: number,
+) => {
   let timeoutId: ReturnType<typeof setTimeout>;
-  return (...args: any[]) => {
+  return (...args: T) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       func.apply(this, args);

@@ -1,9 +1,11 @@
-import React from "react";
-import Script from "next/script";
-import { Fraunces } from "next/font/google";
 import "../index.css";
-import Navigation from "../components/Navigation";
+
+import { Fraunces } from "next/font/google";
+import Script from "next/script";
+import React from "react";
+
 import Footer from "../components/Footer";
+import Navigation from "../components/Navigation";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -18,7 +20,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="id">
       <body
-        className={`${fraunces.variable} min-h-screen bg-transparent text-neutral-200 selection:bg-gold-300/30 selection:text-gold-500 flex flex-col font-sans`}
+        className={`${fraunces.variable} selection:bg-gold-300/30 selection:text-gold-500 flex min-h-screen flex-col bg-transparent font-sans text-neutral-200`}
       >
         <Script id="legacy-hash-route-redirect" strategy="beforeInteractive">
           {`(() => {
@@ -42,9 +44,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   }
 })();`}
         </Script>
-        <div className="fixed inset-0 bg-[#0a0a0a] z-1" aria-hidden="true" />
+        <div className="fixed inset-0 z-1 bg-[#0a0a0a]" aria-hidden="true" />
         <Navigation />
-        <main className="grow pt-20 relative z-3">{children}</main>
+        <main className="relative z-3 grow pt-20">{children}</main>
         <Footer />
       </body>
     </html>

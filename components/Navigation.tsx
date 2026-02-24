@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import gsap from "gsap";
+import React, { useEffect, useRef, useState } from "react";
+
 import LogoHima from "./LogoHima";
 
 const Navigation: React.FC = () => {
@@ -462,12 +463,12 @@ const Navigation: React.FC = () => {
     <>
       <div
         ref={fullscreenCircleBaseRef}
-        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-2"
+        className="bg-gold-500 pointer-events-none fixed z-2 rounded-full opacity-0"
         style={{ zIndex: circleLayers.base }}
       />
       <div
         ref={fullscreenCircleTopRef}
-        className="pointer-events-none fixed rounded-full bg-gold-500 opacity-0 z-4"
+        className="bg-gold-500 pointer-events-none fixed z-4 rounded-full opacity-0"
         style={{ zIndex: circleLayers.top }}
       />
 
@@ -476,11 +477,11 @@ const Navigation: React.FC = () => {
         style={{ zIndex: navLayer }}
         className={`fixed top-0 left-0 w-full transition-all duration-500 ${
           isMenuOpen
-            ? "bg-transparent border-transparent"
-            : "bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5"
+            ? "border-transparent bg-transparent"
+            : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between relative z-50">
+        <div className="relative z-50 mx-auto flex h-24 max-w-7xl items-center justify-between px-6">
           <Link
             href="/"
             className="cursor-pointer"
@@ -496,7 +497,7 @@ const Navigation: React.FC = () => {
             />
           </Link>
 
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden space-x-8 md:flex">
             {navItems.map((item, index) => {
               const isActive =
                 item.href === "/"
@@ -513,7 +514,7 @@ const Navigation: React.FC = () => {
                       window.sessionStorage.setItem("skipHomeGsapOnce", "true");
                     }
                   }}
-                  className={`text-sm uppercase tracking-[0.25em] font-medium transition-all duration-500 relative group opacity-100 ${
+                  className={`group relative text-sm font-medium tracking-[0.25em] uppercase opacity-100 transition-all duration-500 ${
                     isActive
                       ? "text-gold-500"
                       : "text-neutral-500 hover:text-white"
@@ -521,7 +522,7 @@ const Navigation: React.FC = () => {
                 >
                   {item.label}
                   <span
-                    className={`absolute -bottom-2 left-1/2 -translate-x-1/2 h-px bg-gold-500 transition-all duration-500 ${
+                    className={`bg-gold-500 absolute -bottom-2 left-1/2 h-px -translate-x-1/2 transition-all duration-500 ${
                       isActive
                         ? "w-full opacity-100"
                         : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
@@ -533,18 +534,18 @@ const Navigation: React.FC = () => {
           </div>
 
           <button
-            className="md:hidden flex flex-col space-y-1.5 group relative z-50 p-2"
+            className="group relative z-50 flex flex-col space-y-1.5 p-2 md:hidden"
             onClick={handleMenuToggle}
             aria-label="Toggle menu"
           >
             <span
-              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 rotate-45 translate-y-1.75" : "w-6"}`}
+              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 translate-y-1.75 rotate-45" : "w-6"}`}
             />
             <span
               className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "opacity-0" : "w-4"}`}
             />
             <span
-              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -rotate-45 -translate-y-1.75" : "w-6"}`}
+              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -translate-y-1.75 -rotate-45" : "w-6"}`}
             />
           </button>
         </div>
@@ -553,13 +554,13 @@ const Navigation: React.FC = () => {
       <div
         ref={mobileMenuRef}
         style={{ zIndex: mobileMenuLayer }}
-        className={`md:hidden fixed inset-0 flex flex-col pt-24 will-change-transform ${
+        className={`fixed inset-0 flex flex-col pt-24 will-change-transform md:hidden ${
           isNavigating ? "bg-transparent" : "bg-[#0a0a0a]"
         } ${isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={handleMobileMenuClick}
       >
         <div
-          className={`flex-1 flex flex-col items-center px-8 relative z-10 ${
+          className={`relative z-10 flex flex-1 flex-col items-center px-8 ${
             isCompactMobileMenu
               ? "justify-start space-y-4 overflow-y-auto"
               : "justify-center space-y-10"
@@ -585,7 +586,7 @@ const Navigation: React.FC = () => {
                   isCompactMobileMenu ? "text-2xl" : "text-3xl"
                 } ${
                   isClicked
-                    ? "text-white z-20"
+                    ? "z-20 text-white"
                     : isActive
                       ? "text-gold-500"
                       : "text-neutral-500 hover:text-white"
@@ -594,7 +595,7 @@ const Navigation: React.FC = () => {
                 <span className="relative z-10">{item.label}</span>
                 <span
                   ref={(element) => setMobileRippleRef(element, idx)}
-                  className="pointer-events-none absolute inset-0 rounded-full bg-gold-500/20 opacity-0 scale-0"
+                  className="bg-gold-500/20 pointer-events-none absolute inset-0 scale-0 rounded-full opacity-0"
                 />
               </Link>
             );

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
-import * as THREE from "three";
 import "./LightPillar.css";
+
+import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 
 interface LightPillarProps {
   topColor?: string;

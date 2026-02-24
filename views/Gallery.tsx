@@ -2,44 +2,44 @@ import React from "react";
 
 const Gallery: React.FC = () => {
   return (
-    <div className="pt-40 pb-32 px-6 min-h-screen relative">
-      <div className="absolute top-0 right-0 w-full h-screen bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
-      <div className="max-w-6xl mx-auto relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 pb-10 border-b border-white/5 relative">
-          <div className="absolute bottom-0 left-0 w-32 h-px bg-gold-500/50"></div>
+    <div className="relative min-h-screen px-6 pt-40 pb-32">
+      <div className="pointer-events-none absolute top-0 right-0 h-screen w-full bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+      <div className="relative z-10 mx-auto max-w-6xl">
+        <div className="relative mb-20 flex flex-col items-start justify-between border-b border-white/5 pb-10 md:flex-row md:items-end">
+          <div className="bg-gold-500/50 absolute bottom-0 left-0 h-px w-32"></div>
           <div>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-px w-8 bg-gold-500/50"></div>
-              <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
+            <div className="mb-6 flex items-center gap-4">
+              <div className="bg-gold-500/50 h-px w-8"></div>
+              <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
                 Dokumentasi
               </p>
             </div>
-            <h1 className="font-serif text-5xl md:text-7xl text-white tracking-tight">
+            <h1 className="font-serif text-5xl tracking-tight text-white md:text-7xl">
               Galeri{" "}
-              <span className="italic text-gold-500/80 font-light">Visual</span>
+              <span className="text-gold-500/80 font-light italic">Visual</span>
             </h1>
           </div>
-          <p className="text-neutral-400 text-sm mt-8 md:mt-0 font-light tracking-widest uppercase">
+          <p className="mt-8 text-sm font-light tracking-widest text-neutral-400 uppercase md:mt-0">
             Arsip Kegiatan
           </p>
         </div>
 
         <div className="space-y-0">
-          <div className="border border-white/5 bg-white/1 rounded-none py-24 px-8 text-center relative overflow-hidden group hover:border-gold-500/30 transition-colors duration-500">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          <div className="group hover:border-gold-500/30 relative overflow-hidden rounded-none border border-white/5 bg-white/1 px-8 py-24 text-center transition-colors duration-500">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 transition-opacity duration-700 group-hover:opacity-100"></div>
             <div className="relative z-10 flex flex-col items-center gap-6">
-              <p className="text-neutral-400 text-sm tracking-wide">
+              <p className="text-sm tracking-wide text-neutral-400">
                 Galeri dokumentasi kegiatan HIMA Musik sedang dikurasi dan akan
                 segera tersedia.
               </p>
-              <p className="text-neutral-500 text-xs tracking-wide">
+              <p className="text-xs tracking-wide text-neutral-500">
                 Lihat dokumentasi terbaru di media sosial kami:
               </p>
               <a
                 href="https://instagram.com/himamusikisi"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-3 px-6 py-3 border border-gold-500/30 text-gold-300 text-xs uppercase tracking-[0.3em] hover:bg-gold-500/10 transition-colors duration-300"
+                className="border-gold-500/30 text-gold-300 hover:bg-gold-500/10 inline-flex items-center gap-3 border px-6 py-3 text-xs tracking-[0.3em] uppercase transition-colors duration-300"
               >
                 <svg
                   width="16"

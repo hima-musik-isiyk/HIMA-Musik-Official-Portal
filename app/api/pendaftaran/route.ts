@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
+import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 
 type PendaftaranPayload = {
