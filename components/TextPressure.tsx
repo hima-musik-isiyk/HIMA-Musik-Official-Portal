@@ -5,6 +5,7 @@ interface TextPressureProps {
   text?: string;
   fontFamily?: string;
   fontUrl?: string;
+  autoFit?: boolean;
   width?: boolean;
   weight?: boolean;
   italic?: boolean;
@@ -80,6 +81,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
   text = 'Compressa',
   fontFamily = 'Compressa VF',
   fontUrl = 'https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2',
+  autoFit = true,
   width = true,
   weight = true,
   italic = true,
@@ -103,8 +105,6 @@ const TextPressure: React.FC<TextPressureProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLDivElement | null>(null);
   const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const warmupStartRef = useRef<number | null>(null);
-  const blendFactorRef = useRef(warmupDuration > 0 ? 0 : 1);
   const actuationStartRef = useRef<number | null>(null);
   const actuationBlendRef = useRef((actuationDuration ?? warmupDuration) > 0 ? 0 : 1);
 
@@ -221,11 +221,12 @@ const TextPressure: React.FC<TextPressureProps> = ({
   }, [chars.length, minFontSize, scale]);
 
   useEffect(() => {
+    if (!autoFit) return;
     const debouncedSetSize = debounce(setSize, 100);
     debouncedSetSize();
     window.addEventListener('resize', debouncedSetSize);
     return () => window.removeEventListener('resize', debouncedSetSize);
-  }, [setSize]);
+  }, [autoFit, setSize]);
 
   useEffect(() => {
     let rafId: number;
@@ -363,9 +364,10 @@ const TextPressure: React.FC<TextPressureProps> = ({
         }
       `}</style>
     );
-  }, [fontFamily, fontUrl, flex, stroke, textColor, strokeColor]);
+  }, [fontFamily, fontUrl, textColor, strokeColor]);
 
   const dynamicClassName = [className, flex ? 'text-pressure-flex' : '', stroke ? 'text-pressure-stroke' : ''].filter(Boolean).join(' ');
+  const inlineMode = !autoFit;
 
   return (
     <div
@@ -376,10 +378,13 @@ const TextPressure: React.FC<TextPressureProps> = ({
       onTouchMove={handleTouchEvent}
       style={{
         position: 'relative',
-        width: '100%',
-        height: '100%',
+        display: inlineMode ? 'inline-block' : 'block',
+        width: inlineMode ? 'auto' : '100%',
+        height: inlineMode ? 'auto' : '100%',
         background: 'transparent',
-        overflow: 'visible'
+        overflow: 'visible',
+        lineHeight: inlineMode ? 'inherit' : 1,
+        verticalAlign: inlineMode ? 'baseline' : 'top'
       }}
     >
       {styleElement}
@@ -389,16 +394,19 @@ const TextPressure: React.FC<TextPressureProps> = ({
         style={{
           fontFamily,
           textTransform: 'uppercase',
-          fontSize: 'inherit',
-          lineHeight: 'inherit',
-          transform: `scale(1, ${scaleY})`,
+          fontSize: autoFit ? `${fontSize}px` : '1em',
+          lineHeight: inlineMode ? 'inherit' : lineHeight,
+          transform: scaleY !== 1 ? `scale(1, ${scaleY})` : undefined,
           transformOrigin: 'center top',
           margin: 0,
+          position: inlineMode ? 'relative' : undefined,
+          top: inlineMode ? '-0.04em' : undefined,
           textAlign: 'left',
           userSelect: 'none',
           whiteSpace: 'nowrap',
-          fontWeight: 100,
-          width: '100%',
+          fontWeight: inlineMode ? 'inherit' : 100,
+          display: 'inline-block',
+          width: inlineMode ? 'auto' : '100%',
           overflow: 'visible'
         }}
       >

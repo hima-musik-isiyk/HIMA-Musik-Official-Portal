@@ -441,7 +441,7 @@ const Navigation: React.FC = () => {
                   key={item.href}
                   href={item.href}
                   ref={(element) => setDesktopLinkRef(element, index)}
-                  onClick={(e) => {
+                  onClick={() => {
                     if (item.href === "/" && typeof window !== "undefined") {
                       window.sessionStorage.setItem("skipHomeGsapOnce", "true");
                     }

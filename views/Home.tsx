@@ -58,10 +58,14 @@ const Home: React.FC = () => {
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isTouchOnly = window.matchMedia("(pointer: coarse)").matches && !window.matchMedia("(pointer: fine)").matches;
-    if (reduceMotion || isTouchOnly) {
+    if (reduceMotion) {
       setDisableEntranceEffects(true);
       setDisablePressureEffect(true);
       return;
+    }
+
+    if (isTouchOnly) {
+      setDisablePressureEffect(true);
     }
 
     const context = gsap.context(() => {
@@ -162,12 +166,21 @@ const Home: React.FC = () => {
             )}
             <div className="italic text-stone-700 font-light min-h-[1em] relative w-full overflow-visible isolate">
               {disablePressureEffect ? (
-                <span className="inline-block whitespace-nowrap text-stone-700">MUSIK</span>
+                disableEntranceEffects ? (
+                  <span className="inline-block whitespace-nowrap text-stone-700">MUSIK</span>
+                ) : (
+                  <BlurText
+                    text="MUSIK"
+                    className="inline-flex text-stone-700"
+                    animateBy="letters"
+                  />
+                )
               ) : musikPressureActive ? (
                 <TextPressure
                   text="MUSIK"
                   fontFamily="var(--font-serif)"
                   fontUrl=""
+                  autoFit={false}
                   width={false}
                   textColor={"var(--color-stone-700)"}
                   stroke={false}
