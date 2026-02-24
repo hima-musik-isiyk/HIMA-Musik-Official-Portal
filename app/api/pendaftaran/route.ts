@@ -499,7 +499,9 @@ export async function POST(request: Request) {
 
       const errorToken = process.env.TELEGRAM_BOT_TOKEN;
       const errorChatId = process.env.TELEGRAM_CHAT_ID;
-      const errorTopicId = process.env.TELEGRAM_ERROR_TOPIC_ID;
+      const errorTopicIdRaw =
+        process.env.TELEGRAM_PENDAFTARAN_TOPIC_ID ??
+        process.env.TELEGRAM_ERROR_TOPIC_ID;
 
       if (errorToken && errorChatId) {
         const errorText = [
@@ -520,7 +522,7 @@ export async function POST(request: Request) {
           parse_mode: "MarkdownV2",
         };
 
-        const topicId = errorTopicId ? Number(errorTopicId) : undefined;
+        const topicId = errorTopicIdRaw ? Number(errorTopicIdRaw) : undefined;
         if (typeof topicId === "number" && Number.isInteger(topicId) && topicId !== 0) {
           errorPayload.message_thread_id = topicId;
         }
