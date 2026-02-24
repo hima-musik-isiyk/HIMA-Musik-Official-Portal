@@ -102,18 +102,18 @@ const PendaftaranLanding: React.FC = () => {
                 <div className="flex-1 flex flex-col items-center">
                   <div className="w-px h-8 bg-white/10" />
 
-                  <div className="border border-white/10 bg-white/2 py-4 px-6 text-center w-full max-w-55">
+                  <div className="border border-white/10 bg-white/2 py-4 px-6 text-center w-full max-w-60 min-h-[116px] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-neutral-500 mb-1">
                       {bphMembers[2].role}
                     </p>
-                    <p className="font-serif text-base text-neutral-200">
+                    <p className="font-serif text-base text-neutral-200 leading-snug">
                       {bphMembers[2].name}
                     </p>
                   </div>
 
                   <div className="h-6 w-0 border-l border-dashed border-gold-500/40" />
 
-                  <div className="border border-gold-500/30 bg-gold-500/4 py-4 px-6 text-center w-full max-w-55">
+                  <div className="border border-gold-500/30 bg-gold-500/4 py-4 px-6 text-center w-full max-w-60 min-h-[116px] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-gold-500 mb-1">
                       Co-Sekretaris
                     </p>
@@ -130,18 +130,18 @@ const PendaftaranLanding: React.FC = () => {
                 <div className="flex-1 flex flex-col items-center">
                   <div className="w-px h-8 bg-white/10" />
 
-                  <div className="border border-white/10 bg-white/2 py-4 px-6 text-center w-full max-w-55">
+                  <div className="border border-white/10 bg-white/2 py-4 px-6 text-center w-full max-w-60 min-h-[116px] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-neutral-500 mb-1">
                       {bphMembers[3].role}
                     </p>
-                    <p className="font-serif text-base text-neutral-200">
+                    <p className="font-serif text-base text-neutral-200 leading-snug">
                       {bphMembers[3].name}
                     </p>
                   </div>
 
                   <div className="h-6 w-0 border-l border-dashed border-gold-500/40" />
 
-                  <div className="border border-gold-500/30 bg-gold-500/4 py-4 px-6 text-center w-full max-w-55">
+                  <div className="border border-gold-500/30 bg-gold-500/4 py-4 px-6 text-center w-full max-w-60 min-h-[116px] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-gold-500 mb-1">
                       Co-Bendahara
                     </p>
