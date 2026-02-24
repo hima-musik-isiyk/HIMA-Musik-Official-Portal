@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 type AduanFormData = {
   name: string;
@@ -345,21 +345,21 @@ const Aduan: React.FC = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] pointer-events-none"></div>
-        <div className="text-center relative z-10">
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <div className="h-px w-8 bg-gold-500/50"></div>
-            <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
+      <div className="relative flex min-h-screen items-center justify-center px-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)]"></div>
+        <div className="relative z-10 text-center">
+          <div className="mb-8 flex items-center justify-center gap-4">
+            <div className="bg-gold-500/50 h-px w-8"></div>
+            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
               Status Laporan
             </p>
-            <div className="h-px w-8 bg-gold-500/50"></div>
+            <div className="bg-gold-500/50 h-px w-8"></div>
           </div>
-          <h2 className="font-serif text-4xl md:text-5xl text-white mb-6 tracking-tight">
+          <h2 className="mb-6 font-serif text-4xl tracking-tight text-white md:text-5xl">
             Terima{" "}
-            <span className="italic text-gold-500/80 font-light">Kasih</span>
+            <span className="text-gold-500/80 font-light italic">Kasih</span>
           </h2>
-          <p className="text-neutral-400 max-w-md mx-auto leading-relaxed font-light mb-12">
+          <p className="mx-auto mb-12 max-w-md leading-relaxed font-light text-neutral-400">
             Laporan Anda telah kami terima dan akan ditinjau oleh Divisi
             Advokasi. Privasi identitas Anda terjamin.
           </p>
@@ -376,12 +376,12 @@ const Aduan: React.FC = () => {
               setMessageHistory([]);
               setHasTouchedForm(false);
             }}
-            className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-300/50"
+            className="group hover:border-gold-300/50 relative overflow-hidden border border-white/10 bg-transparent px-8 py-4 text-xs font-bold tracking-[0.3em] text-white uppercase transition-all"
           >
-            <span className="relative z-10 group-hover:text-gold-300 transition-colors duration-500">
+            <span className="group-hover:text-gold-300 relative z-10 transition-colors duration-500">
               Kirim laporan lain
             </span>
-            <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+            <div className="bg-gold-500/5 absolute inset-0 translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0"></div>
           </button>
         </div>
       </div>
@@ -389,32 +389,32 @@ const Aduan: React.FC = () => {
   }
 
   return (
-    <div className="pt-40 pb-32 px-6 min-h-screen flex justify-center relative">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-screen bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
-      <div className="w-full max-w-3xl relative z-10">
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <div className="h-px w-8 bg-gold-500/50"></div>
-          <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium text-center">
+    <div className="relative flex min-h-screen justify-center px-6 pt-40 pb-32">
+      <div className="pointer-events-none absolute top-0 left-1/2 h-screen w-full -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+      <div className="relative z-10 w-full max-w-3xl">
+        <div className="mb-8 flex items-center justify-center gap-4">
+          <div className="bg-gold-500/50 h-px w-8"></div>
+          <p className="text-gold-500 text-center text-xs font-medium tracking-[0.4em] uppercase">
             Layanan Advokasi
           </p>
-          <div className="h-px w-8 bg-gold-500/50"></div>
+          <div className="bg-gold-500/50 h-px w-8"></div>
         </div>
-        <h1 className="font-serif text-5xl md:text-7xl text-white mb-6 text-center tracking-tight">
+        <h1 className="mb-6 text-center font-serif text-5xl tracking-tight text-white md:text-7xl">
           Kotak{" "}
-          <span className="italic text-gold-500/80 font-light">Aduan</span>
+          <span className="text-gold-500/80 font-light italic">Aduan</span>
         </h1>
-        <p className="text-neutral-400 text-center mb-20 text-sm font-light tracking-wide">
+        <p className="mb-20 text-center text-sm font-light tracking-wide text-neutral-400">
           Sampaikan aspirasi, kritik, atau saran dengan bijak.
         </p>
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-10 bg-[#111]/50 p-8 md:p-12 border border-white/5 relative"
+          className="relative space-y-10 border border-white/5 bg-[#111]/50 p-8 md:p-12"
         >
-          <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="via-gold-500/20 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
             <div className="group relative">
-              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+              <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                 Nama (Opsional)
               </label>
               <input
@@ -423,12 +423,12 @@ const Aduan: React.FC = () => {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed font-light px-3"
+                className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Anonim"
               />
             </div>
             <div className="group relative">
-              <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+              <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
                 NIM (Opsional)
               </label>
               <input
@@ -437,17 +437,17 @@ const Aduan: React.FC = () => {
                 value={formData.nim}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed font-light px-3"
+                className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="12345678"
               />
-              <p className="text-[0.6rem] text-neutral-500 mt-1.5 tracking-wide font-light">
+              <p className="mt-1.5 text-[0.6rem] font-light tracking-wide text-neutral-500">
                 Kosongkan jika ingin 100% anonim. Sistem kami tidak melacak IP.
               </p>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+            <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
               Kategori
             </label>
             <div className="relative">
@@ -456,7 +456,7 @@ const Aduan: React.FC = () => {
                 value={formData.category}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 appearance-none rounded-none disabled:opacity-50 disabled:cursor-not-allowed font-light px-3"
+                className="focus:border-gold-500/50 w-full appearance-none rounded-none border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 transition-colors duration-500 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option className="bg-[#111] text-neutral-300" value="Akademik">
                   Akademik
@@ -477,14 +477,14 @@ const Aduan: React.FC = () => {
                   Lainnya
                 </option>
               </select>
-              <div className="absolute right-0 top-0 bottom-0 flex items-center pr-2 pointer-events-none text-sm text-gold-500/50 group-focus-within:text-gold-300 transition-colors duration-500">
+              <div className="text-gold-500/50 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-2 text-sm transition-colors duration-500">
                 ▼
               </div>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
+            <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
               Pesan
             </label>
             <textarea
@@ -493,13 +493,13 @@ const Aduan: React.FC = () => {
               onChange={handleChange}
               rows={6}
               disabled={isSubmitting}
-              className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed font-light placeholder-neutral-600"
+              className="focus:border-gold-500/30 w-full resize-none border border-white/5 bg-black/20 p-5 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Tuliskan keluhan atau saran anda disini..."
               required
             ></textarea>
 
-            <div className="flex justify-between items-center mt-4">
-              <span className="text-xs text-neutral-600 uppercase tracking-[0.2em]">
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-xs tracking-[0.2em] text-neutral-600 uppercase">
                 {formData.message.length} Karakter
               </span>
               <div className="flex items-center gap-6">
@@ -508,7 +508,7 @@ const Aduan: React.FC = () => {
                   onClick={handleEnhance}
                   disabled={isEnhancing || !formData.message || isSubmitting}
                   title="Rapikan tata bahasa dan format pesan menggunakan AI secara otomatis"
-                  className="text-xs uppercase tracking-[0.2em] text-gold-500/60 hover:text-gold-300 disabled:text-neutral-700 transition-colors duration-300 flex items-center gap-2"
+                  className="text-gold-500/60 hover:text-gold-300 flex items-center gap-2 text-xs tracking-[0.2em] uppercase transition-colors duration-300 disabled:text-neutral-700"
                 >
                   {isEnhancing
                     ? "Sedang Memproses..."
@@ -521,7 +521,7 @@ const Aduan: React.FC = () => {
                     type="button"
                     onClick={handleUndoEnhance}
                     disabled={isSubmitting}
-                    className="text-xs uppercase tracking-[0.2em] text-neutral-500 hover:text-white transition-colors duration-300 border-b border-transparent hover:border-neutral-500 disabled:text-neutral-700 disabled:border-transparent"
+                    className="border-b border-transparent text-xs tracking-[0.2em] text-neutral-500 uppercase transition-colors duration-300 hover:border-neutral-500 hover:text-white disabled:border-transparent disabled:text-neutral-700"
                   >
                     Undo
                   </button>
@@ -529,12 +529,12 @@ const Aduan: React.FC = () => {
               </div>
             </div>
             {enhanceStatus === "rate-limited" && (
-              <p className="text-xs uppercase tracking-[0.2em] text-amber-400/80 mt-2">
+              <p className="mt-2 text-xs tracking-[0.2em] text-amber-400/80 uppercase">
                 Terlalu cepat — tunggu beberapa detik sebelum mencoba lagi.
               </p>
             )}
             {enhanceStatus === "error" && (
-              <p className="text-xs uppercase tracking-[0.2em] text-red-400/80 mt-2">
+              <p className="mt-2 text-xs tracking-[0.2em] text-red-400/80 uppercase">
                 Gagal memperbaiki teks. Silakan coba lagi.
               </p>
             )}
@@ -543,27 +543,27 @@ const Aduan: React.FC = () => {
           {(hasTouchedForm ||
             showRestoreNotice ||
             autoSaveStatus === "error") && (
-            <div className="pt-4 border-t border-white/5 text-xs text-neutral-500 flex flex-col md:flex-row md:items-center md:justify-between gap-4 font-light">
+            <div className="flex flex-col gap-4 border-t border-white/5 pt-4 text-xs font-light text-neutral-500 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 {autoSaveStatus === "saving" && (
-                  <span className="tracking-[0.2em] uppercase text-neutral-500">
+                  <span className="tracking-[0.2em] text-neutral-500 uppercase">
                     Menyimpan draf...
                   </span>
                 )}
                 {autoSaveStatus === "saved" && lastSavedAt && (
-                  <span className="tracking-[0.2em] uppercase text-neutral-500">
+                  <span className="tracking-[0.2em] text-neutral-500 uppercase">
                     Draf tersimpan di perangkat ini &bull; {lastSavedAt}
                   </span>
                 )}
                 {autoSaveStatus === "error" && (
-                  <span className="tracking-[0.2em] uppercase text-red-400/80">
+                  <span className="tracking-[0.2em] text-red-400/80 uppercase">
                     Gagal menyimpan draf. Periksa penyimpanan browser.
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-4 justify-between md:justify-end min-w-fit">
+              <div className="flex min-w-fit items-center justify-between gap-4 md:justify-end">
                 {showRestoreNotice && (
-                  <span className="tracking-[0.2em] uppercase text-gold-500/50">
+                  <span className="text-gold-500/50 tracking-[0.2em] uppercase">
                     Draf sebelumnya dipulihkan.
                   </span>
                 )}
@@ -572,7 +572,7 @@ const Aduan: React.FC = () => {
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
                     disabled={isSubmitting}
-                    className="uppercase tracking-[0.2em] whitespace-nowrap min-w-fit text-neutral-500 hover:text-red-400 transition-colors duration-300 border-b border-transparent hover:border-red-400/30 disabled:text-neutral-700 disabled:border-transparent disabled:cursor-not-allowed"
+                    className="min-w-fit border-b border-transparent tracking-[0.2em] whitespace-nowrap text-neutral-500 uppercase transition-colors duration-300 hover:border-red-400/30 hover:text-red-400 disabled:cursor-not-allowed disabled:border-transparent disabled:text-neutral-700"
                   >
                     Reset draf
                   </button>
@@ -583,12 +583,12 @@ const Aduan: React.FC = () => {
 
           <div className="pt-10 text-center">
             {submitError && (
-              <div className="mb-8 p-5 bg-red-950/20 border border-red-900/50 text-red-400/90 text-sm relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-900/50"></div>
+              <div className="relative mb-8 overflow-hidden border border-red-900/50 bg-red-950/20 p-5 text-sm text-red-400/90">
+                <div className="absolute top-0 bottom-0 left-0 w-1 bg-red-900/50"></div>
                 <div className="flex items-start gap-4">
                   <span className="text-lg opacity-80">!</span>
                   <div className="flex-1 text-left">
-                    <p className="font-medium mb-1 tracking-wide">
+                    <p className="mb-1 font-medium tracking-wide">
                       Pengiriman Gagal
                     </p>
                     <p className="text-xs leading-relaxed font-light opacity-80">
@@ -598,7 +598,7 @@ const Aduan: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSubmitError(null)}
-                    className="text-red-400/60 hover:text-red-400 text-xs transition-colors"
+                    className="text-xs text-red-400/60 transition-colors hover:text-red-400"
                   >
                     X
                   </button>
@@ -616,7 +616,7 @@ const Aduan: React.FC = () => {
               {!isSubmitting && <div className="btn-primary-overlay"></div>}
             </button>
             {isSubmitting && (
-              <p className="text-xs uppercase tracking-[0.2em] text-gold-500/60 mt-6 font-light">
+              <p className="text-gold-500/60 mt-6 text-xs font-light tracking-[0.2em] uppercase">
                 Sedang memproses pengiriman laporan Anda...
               </p>
             )}
@@ -625,28 +625,28 @@ const Aduan: React.FC = () => {
       </div>
 
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
-          <div className="w-full max-w-md bg-[#111] border border-white/10 p-8 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
-            <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 px-6 backdrop-blur-sm">
+          <div className="relative w-full max-w-md overflow-hidden border border-white/10 bg-[#111] p-8">
+            <div className="via-gold-500/50 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
+            <h2 className="mb-4 font-serif text-2xl tracking-wide text-white">
               Reset draf?
             </h2>
-            <p className="text-sm text-neutral-400 mb-10 leading-relaxed font-light">
+            <p className="mb-10 text-sm leading-relaxed font-light text-neutral-400">
               Tindakan ini akan menghapus semua isi kotak aduan yang belum
               dikirim.
             </p>
-            <div className="flex justify-end gap-4 text-xs uppercase tracking-[0.2em] font-medium">
+            <div className="flex justify-end gap-4 text-xs font-medium tracking-[0.2em] uppercase">
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
-                className="px-6 py-3 text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 transition-colors duration-300"
+                className="border border-white/10 px-6 py-3 text-neutral-400 transition-colors duration-300 hover:border-white/30 hover:text-white"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleResetDraft}
-                className="px-6 py-3 bg-white text-black hover:bg-gold-300 hover:text-white transition-colors duration-300"
+                className="hover:bg-gold-300 bg-white px-6 py-3 text-black transition-colors duration-300 hover:text-white"
               >
                 Ya, reset
               </button>

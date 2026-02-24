@@ -1,47 +1,37 @@
-import tsParser from "@typescript-eslint/parser";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
-import reactPlugin from "eslint-plugin-react";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+import prettier from "eslint-config-prettier";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
 
-export default [
+export default defineConfig([
+  ...nextVitals,
+  ...nextTs,
   {
-    ignores: ["dist", "node_modules", ".next", "out", "coverage"],
-  },
-  {
-    files: ["**/*.{ts,tsx}"],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        project: "./tsconfig.json",
-        ecmaVersion: "latest",
-        sourceType: "module",
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-    },
     plugins: {
-      "@typescript-eslint": tsPlugin,
-      react: reactPlugin,
-      "react-hooks": reactHooksPlugin,
+      "simple-import-sort": simpleImportSort,
     },
     rules: {
-      "no-console": "off",
-      "no-undef": "off",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "react/react-in-jsx-scope": "off",
-      "react/jsx-key": "warn",
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
-    },
-    settings: {
-      react: {
-        version: "detect",
-      },
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react-hooks/set-state-in-effect": "off",
+      "simple-import-sort/imports": "error",
+      "simple-import-sort/exports": "error",
     },
   },
-];
+  prettier,
+  globalIgnores([
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "coverage/**",
+    "next-env.d.ts",
+  ]),
+]);
