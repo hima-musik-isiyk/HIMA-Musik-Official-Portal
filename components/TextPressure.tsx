@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import type { PointerEventHandler, TouchEventHandler } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import type { PointerEventHandler, TouchEventHandler } from "react";
 
 interface TextPressureProps {
   text?: string;
@@ -38,7 +38,12 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => {
   return Math.sqrt(dx * dx + dy * dy);
 };
 
-const getAttr = (distance: number, maxDist: number, minVal: number, maxVal: number) => {
+const getAttr = (
+  distance: number,
+  maxDist: number,
+  minVal: number,
+  maxVal: number,
+) => {
   const val = maxVal - Math.abs((maxVal * distance) / maxDist);
   return Math.max(minVal, val + minVal);
 };
@@ -53,13 +58,13 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
   };
 };
 
-const CURSOR_STORAGE_KEY = 'hima-cursor-position';
+const CURSOR_STORAGE_KEY = "hima-cursor-position";
 
 // Module-level global cursor tracker — always up-to-date regardless of
 // whether a TextPressure instance is mounted.
 const globalCursor = { x: 0, y: 0, initialised: false };
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   const trackMouse = (e: MouseEvent) => {
     globalCursor.x = e.clientX;
     globalCursor.y = e.clientY;
@@ -73,14 +78,14 @@ if (typeof window !== 'undefined') {
       globalCursor.initialised = true;
     }
   };
-  window.addEventListener('mousemove', trackMouse, { passive: true });
-  window.addEventListener('touchmove', trackTouch, { passive: true });
+  window.addEventListener("mousemove", trackMouse, { passive: true });
+  window.addEventListener("touchmove", trackTouch, { passive: true });
 }
 
 const TextPressure: React.FC<TextPressureProps> = ({
-  text = 'Compressa',
-  fontFamily = 'Compressa VF',
-  fontUrl = 'https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2',
+  text = "Compressa",
+  fontFamily = "Compressa VF",
+  fontUrl = "https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2",
   autoFit = true,
   width = true,
   weight = true,
@@ -89,9 +94,9 @@ const TextPressure: React.FC<TextPressureProps> = ({
   flex = true,
   stroke = false,
   scale = false,
-  textColor = '#FFFFFF',
-  strokeColor = '#FF0000',
-  className = '',
+  textColor = "#FFFFFF",
+  strokeColor = "#FF0000",
+  className = "",
   minFontSize = 24,
   warmupDuration = 0,
   actuationDuration,
@@ -100,13 +105,15 @@ const TextPressure: React.FC<TextPressureProps> = ({
   actuationItalFrom,
   actuationAlphaFrom,
   minWghtFloor,
-  minWdthFloor
+  minWdthFloor,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLDivElement | null>(null);
   const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
   const actuationStartRef = useRef<number | null>(null);
-  const actuationBlendRef = useRef((actuationDuration ?? warmupDuration) > 0 ? 0 : 1);
+  const actuationBlendRef = useRef(
+    (actuationDuration ?? warmupDuration) > 0 ? 0 : 1,
+  );
 
   const mouseRef = useRef({ x: 0, y: 0 });
   const cursorRef = useRef({ x: 0, y: 0 });
@@ -121,7 +128,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
   const [scaleY, setScaleY] = useState(1);
   const [lineHeight, setLineHeight] = useState(1);
 
-  const chars = text.split('');
+  const chars = text.split("");
 
   const updateCursor = useCallback((x: number, y: number) => {
     cursorRef.current.x = x;
@@ -130,15 +137,18 @@ const TextPressure: React.FC<TextPressureProps> = ({
     globalCursor.y = y;
     globalCursor.initialised = true;
     try {
-      window.sessionStorage.setItem(CURSOR_STORAGE_KEY, JSON.stringify({ x, y }));
+      window.sessionStorage.setItem(
+        CURSOR_STORAGE_KEY,
+        JSON.stringify({ x, y }),
+      );
     } catch {}
   }, []);
 
-  const handlePointerEvent: PointerEventHandler<HTMLDivElement> = event => {
+  const handlePointerEvent: PointerEventHandler<HTMLDivElement> = (event) => {
     updateCursor(event.clientX, event.clientY);
   };
 
-  const handleTouchEvent: TouchEventHandler<HTMLDivElement> = event => {
+  const handleTouchEvent: TouchEventHandler<HTMLDivElement> = (event) => {
     const t = event.touches[0];
     if (t) {
       updateCursor(t.clientX, t.clientY);
@@ -157,9 +167,11 @@ const TextPressure: React.FC<TextPressureProps> = ({
       updateCursor(t.clientX, t.clientY);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("pointerdown", handlePointerDown, {
+      passive: true,
+    });
 
     // Immediately seed both refs with the real cursor position so the very
     // first animation frame uses correct distance calculations — no catch-up.
@@ -168,12 +180,12 @@ const TextPressure: React.FC<TextPressureProps> = ({
       mouseRef.current.y = globalCursor.y;
       cursorRef.current.x = globalCursor.x;
       cursorRef.current.y = globalCursor.y;
-    } else if (typeof window !== 'undefined') {
+    } else if (typeof window !== "undefined") {
       const stored = window.sessionStorage.getItem(CURSOR_STORAGE_KEY);
       if (stored) {
         try {
           const parsed = JSON.parse(stored) as { x: number; y: number };
-          if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
             updateCursor(parsed.x, parsed.y);
             mouseRef.current.x = parsed.x;
             mouseRef.current.y = parsed.y;
@@ -182,7 +194,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
       }
     } else if (containerRef.current) {
       // Fallback: centre of container (touch devices where no move fired yet)
-      const { left, top, width, height } = containerRef.current.getBoundingClientRect();
+      const { left, top, width, height } =
+        containerRef.current.getBoundingClientRect();
       mouseRef.current.x = left + width / 2;
       mouseRef.current.y = top + height / 2;
       cursorRef.current.x = mouseRef.current.x;
@@ -190,16 +203,17 @@ const TextPressure: React.FC<TextPressureProps> = ({
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("pointerdown", handlePointerDown);
     };
   }, [updateCursor]);
 
   const setSize = useCallback(() => {
     if (!containerRef.current || !titleRef.current) return;
 
-    const { width: containerW, height: containerH } = containerRef.current.getBoundingClientRect();
+    const { width: containerW, height: containerH } =
+      containerRef.current.getBoundingClientRect();
 
     let newFontSize = containerW / (chars.length / 2);
     newFontSize = Math.max(newFontSize, minFontSize);
@@ -224,8 +238,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
     if (!autoFit) return;
     const debouncedSetSize = debounce(setSize, 100);
     debouncedSetSize();
-    window.addEventListener('resize', debouncedSetSize);
-    return () => window.removeEventListener('resize', debouncedSetSize);
+    window.addEventListener("resize", debouncedSetSize);
+    return () => window.removeEventListener("resize", debouncedSetSize);
   }, [autoFit, setSize]);
 
   useEffect(() => {
@@ -267,17 +281,29 @@ const TextPressure: React.FC<TextPressureProps> = ({
           const rect = span.getBoundingClientRect();
           const charCenter = {
             x: rect.x + rect.width / 2,
-            y: rect.y + rect.height / 2
+            y: rect.y + rect.height / 2,
           };
 
           const d = dist(cursorRef.current, charCenter);
 
-          const baseWdth = width ? Math.floor(getAttr(d, maxDist, 5, 200)) : 100;
-          const baseWght = weight ? Math.floor(getAttr(d, maxDist, 100, 900)) : 400;
-          const targetWdth = width ? Math.max(minWdthFloor ?? 5, baseWdth) : baseWdth;
-          const targetWght = weight ? Math.max(minWghtFloor ?? 100, baseWght) : baseWght;
-          const targetItal = italic ? parseFloat(getAttr(d, maxDist, 0, 1).toFixed(2)) : 0;
-          const targetAlpha = alpha ? parseFloat(getAttr(d, maxDist, 0, 1).toFixed(2)) : 1;
+          const baseWdth = width
+            ? Math.floor(getAttr(d, maxDist, 5, 200))
+            : 100;
+          const baseWght = weight
+            ? Math.floor(getAttr(d, maxDist, 100, 900))
+            : 400;
+          const targetWdth = width
+            ? Math.max(minWdthFloor ?? 5, baseWdth)
+            : baseWdth;
+          const targetWght = weight
+            ? Math.max(minWghtFloor ?? 100, baseWght)
+            : baseWght;
+          const targetItal = italic
+            ? parseFloat(getAttr(d, maxDist, 0, 1).toFixed(2))
+            : 0;
+          const targetAlpha = alpha
+            ? parseFloat(getAttr(d, maxDist, 0, 1).toFixed(2))
+            : 1;
 
           if (restWdthRef.current[i] === undefined) {
             restWdthRef.current[i] = actuationWdthFrom ?? targetWdth;
@@ -292,10 +318,22 @@ const TextPressure: React.FC<TextPressureProps> = ({
             restAlphaRef.current[i] = actuationAlphaFrom ?? targetAlpha;
           }
 
-          const wdth = Math.floor(lerp(restWdthRef.current[i], targetWdth, blend));
-          const wght = Math.floor(lerp(restWghtRef.current[i], targetWght, blend));
-          const italVal = lerp(restItalRef.current[i], targetItal, blend).toFixed(2);
-          const alphaVal = lerp(restAlphaRef.current[i], targetAlpha, blend).toFixed(2);
+          const wdth = Math.floor(
+            lerp(restWdthRef.current[i], targetWdth, blend),
+          );
+          const wght = Math.floor(
+            lerp(restWghtRef.current[i], targetWght, blend),
+          );
+          const italVal = lerp(
+            restItalRef.current[i],
+            targetItal,
+            blend,
+          ).toFixed(2);
+          const alphaVal = lerp(
+            restAlphaRef.current[i],
+            targetAlpha,
+            blend,
+          ).toFixed(2);
 
           const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
 
@@ -325,19 +363,23 @@ const TextPressure: React.FC<TextPressureProps> = ({
     actuationItalFrom,
     actuationAlphaFrom,
     minWghtFloor,
-    minWdthFloor
+    minWdthFloor,
   ]);
 
   const styleElement = useMemo(() => {
     return (
       <style>{`
-        ${fontUrl?.trim() ? `
+        ${
+          fontUrl?.trim()
+            ? `
         @font-face {
           font-family: '${fontFamily}';
           src: url('${fontUrl}');
           font-style: normal;
         }
-        ` : ''}
+        `
+            : ""
+        }
 
         .text-pressure-flex {
           display: flex;
@@ -366,7 +408,13 @@ const TextPressure: React.FC<TextPressureProps> = ({
     );
   }, [fontFamily, fontUrl, textColor, strokeColor]);
 
-  const dynamicClassName = [className, flex ? 'text-pressure-flex' : '', stroke ? 'text-pressure-stroke' : ''].filter(Boolean).join(' ');
+  const dynamicClassName = [
+    className,
+    flex ? "text-pressure-flex" : "",
+    stroke ? "text-pressure-stroke" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const inlineMode = !autoFit;
 
   return (
@@ -377,14 +425,14 @@ const TextPressure: React.FC<TextPressureProps> = ({
       onTouchStart={handleTouchEvent}
       onTouchMove={handleTouchEvent}
       style={{
-        position: 'relative',
-        display: inlineMode ? 'inline-block' : 'block',
-        width: inlineMode ? 'auto' : '100%',
-        height: inlineMode ? 'auto' : '100%',
-        background: 'transparent',
-        overflow: 'visible',
-        lineHeight: inlineMode ? 'inherit' : 1,
-        verticalAlign: inlineMode ? 'baseline' : 'top'
+        position: "relative",
+        display: inlineMode ? "inline-block" : "block",
+        width: inlineMode ? "auto" : "100%",
+        height: inlineMode ? "auto" : "100%",
+        background: "transparent",
+        overflow: "visible",
+        lineHeight: inlineMode ? "inherit" : 1,
+        verticalAlign: inlineMode ? "baseline" : "top",
       }}
     >
       {styleElement}
@@ -393,21 +441,21 @@ const TextPressure: React.FC<TextPressureProps> = ({
         className={`text-pressure-title ${dynamicClassName}`}
         style={{
           fontFamily,
-          textTransform: 'uppercase',
-          fontSize: autoFit ? `${fontSize}px` : '1em',
-          lineHeight: inlineMode ? 'inherit' : lineHeight,
+          textTransform: "uppercase",
+          fontSize: autoFit ? `${fontSize}px` : "1em",
+          lineHeight: inlineMode ? "inherit" : lineHeight,
           transform: scaleY !== 1 ? `scale(1, ${scaleY})` : undefined,
-          transformOrigin: 'center top',
+          transformOrigin: "center top",
           margin: 0,
-          position: inlineMode ? 'relative' : undefined,
-          top: inlineMode ? '-0.04em' : undefined,
-          textAlign: 'left',
-          userSelect: 'none',
-          whiteSpace: 'nowrap',
-          fontWeight: inlineMode ? 'inherit' : 100,
-          display: 'inline-block',
-          width: inlineMode ? 'auto' : '100%',
-          overflow: 'visible'
+          position: inlineMode ? "relative" : undefined,
+          top: inlineMode ? "-0.04em" : undefined,
+          textAlign: "left",
+          userSelect: "none",
+          whiteSpace: "nowrap",
+          fontWeight: inlineMode ? "inherit" : 100,
+          display: "inline-block",
+          width: inlineMode ? "auto" : "100%",
+          overflow: "visible",
         }}
       >
         {chars.map((char, i) => {
@@ -417,14 +465,14 @@ const TextPressure: React.FC<TextPressureProps> = ({
           return (
             <span
               key={i}
-              ref={el => {
+              ref={(el) => {
                 spansRef.current[i] = el;
               }}
               data-char={char}
               style={{
-                display: 'inline-block',
+                display: "inline-block",
                 color: stroke ? undefined : textColor,
-                overflow: 'visible',
+                overflow: "visible",
                 fontVariationSettings: `'wght' ${initWght}, 'wdth' ${initWdth}, 'ital' ${initItal}`,
               }}
             >
