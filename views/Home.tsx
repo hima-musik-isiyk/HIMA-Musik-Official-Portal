@@ -6,6 +6,7 @@ import Link from "next/link";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import BlurText from "@/components/BlurText";
+import LightPillar from "@/components/LightPillar";
 import TextPressure from "@/components/TextPressure";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -30,6 +31,7 @@ const Home: React.FC = () => {
   const heroAccentLineRef = useRef<HTMLSpanElement | null>(null);
   const heroDividerRef = useRef<HTMLDivElement | null>(null);
   const heroScrollIndicatorRef = useRef<HTMLDivElement | null>(null);
+  const heroLightPillarRef = useRef<HTMLDivElement | null>(null);
   const quickLinksRef = useRef<HTMLDivElement | null>(null);
   const quickLinksHeaderRef = useRef<HTMLDivElement | null>(null);
   const skipAnimationRef = useRef(false);
@@ -91,6 +93,7 @@ const Home: React.FC = () => {
       const divider = heroDividerRef.current;
       const ctaContainer = heroCtaRef.current;
       const scrollIndicator = heroScrollIndicatorRef.current;
+      const lightPillar = heroLightPillarRef.current;
 
       if (
         accentLine &&
@@ -109,6 +112,9 @@ const Home: React.FC = () => {
         gsap.set(divider, { scaleX: 0, transformOrigin: "left center" });
         gsap.set([ctaButton, ctaParagraph], { opacity: 0, y: 10 });
         gsap.set(scrollIndicator, { opacity: 0 });
+        if (lightPillar) {
+          gsap.set(lightPillar, { opacity: 0, x: 24 });
+        }
 
         const tl = gsap.timeline({ delay: 0.25 });
 
@@ -146,6 +152,17 @@ const Home: React.FC = () => {
               clearProps: "transform",
             },
             "institute",
+          )
+          .to(
+            lightPillar,
+            {
+              opacity: 1,
+              x: 0,
+              duration: 8,
+              ease: "expo.out",
+              clearProps: "transform",
+            },
+            "institute-=0.08",
           )
           .addLabel("divider", "eyebrow+=0.5")
           .to(
@@ -246,7 +263,31 @@ const Home: React.FC = () => {
       {/* Hero Section */}
       <section className="relative flex min-h-[calc(100svh-5rem)] flex-col justify-between border-b border-white/5 px-6">
         <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
+          className="pointer-events-none absolute inset-x-0 top-0 -bottom-36 -z-10"
+          aria-hidden="true"
+        >
+          <div
+            ref={heroLightPillarRef}
+            className="relative h-full w-full md:ml-auto md:w-[60vw] lg:w-[52vw]"
+          >
+            <LightPillar
+              topColor="#D4A64D"
+              bottomColor="#0a0a0a"
+              intensity={1}
+              glowAmount={0.005}
+              pillarWidth={3.4}
+              pillarHeight={0.46}
+              noiseIntensity={0.35}
+              className="opacity-15"
+              mixBlendMode="screen"
+              quality="medium"
+            />
+            <div className="absolute inset-x-0 top-0 bottom-0 bg-linear-to-b from-transparent via-stone-950/25 to-stone-950" />
+          </div>
+        </div>
+
+        <div
+          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
           aria-hidden="true"
         >
           <div
@@ -336,7 +377,7 @@ const Home: React.FC = () => {
           <div className="mt-10 md:mt-14">
             <div
               ref={heroDividerRef}
-              className="mb-10 h-px w-full bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent md:mb-12"
+              className="mb-10 h-px w-full bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent md:mb-12 md:w-[50vw]"
               aria-hidden="true"
             />
             <div
