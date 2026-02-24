@@ -20,6 +20,8 @@ model Pendaftaran {
   id           String   @id @default(cuid())
   firstChoice  String
   secondChoice String?
+  angkatan     String
+  pddSubfocus  String?
   fullName     String
   nim          String?
   email        String

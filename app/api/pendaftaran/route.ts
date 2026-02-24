@@ -6,6 +6,8 @@ type PendaftaranPayload = {
   data?: {
     firstChoice?: string;
     secondChoice?: string;
+    angkatan?: string;
+    pddSubfocus?: string;
     fullName?: string;
     nim?: string;
     email?: string;
@@ -26,11 +28,21 @@ const NIM_PATTERN = /^\d{10,12}$/;
 const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
 
 const divisionLabels: Record<string, string> = {
-  kaderisasi: "Kaderisasi & Pengembangan",
   humas: "Humas & Kemitraan",
-  kreatif: "Kreatif & Media",
-  acara: "Acara & Program Kerja",
-  advokasi: "Advokasi & Aspirasi",
+  "program-event": "Divisi Program & Event",
+  pdd: "Publikasi, Desain & Dokumentasi",
+  "co-sekretaris": "Co-Sekretaris",
+  "co-bendahara": "Co-Bendahara",
+};
+
+const VALID_ANGKATAN = ["2023", "2024", "2025"];
+const ANGKATAN_RESTRICTED_POSITIONS = ["co-sekretaris", "co-bendahara"];
+const VALID_PDD_SUBFOCUS = ["desain", "publikasi", "dokumentasi"];
+
+const pddSubfocusLabels: Record<string, string> = {
+  desain: "Desain",
+  publikasi: "Publikasi & Media Sosial",
+  dokumentasi: "Dokumentasi",
 };
 
 const htmlEscapes: Record<string, string> = {
@@ -71,6 +83,10 @@ export async function POST(request: Request) {
       typeof data.firstChoice === "string" ? data.firstChoice.trim() : "";
     const secondChoice =
       typeof data.secondChoice === "string" ? data.secondChoice.trim() : "";
+    const angkatan =
+      typeof data.angkatan === "string" ? data.angkatan.trim() : "";
+    const pddSubfocus =
+      typeof data.pddSubfocus === "string" ? data.pddSubfocus.trim() : "";
     const fullName =
       typeof data.fullName === "string" ? data.fullName.trim() : "";
     const nim = typeof data.nim === "string" ? data.nim.trim() : "";
@@ -101,6 +117,33 @@ export async function POST(request: Request) {
     if (secondChoice && secondChoice === firstChoice) {
       return NextResponse.json(
         { error: "Divisi prioritas 2 harus berbeda dari prioritas 1." },
+        { status: 400 },
+      );
+    }
+
+    if (!angkatan || !VALID_ANGKATAN.includes(angkatan)) {
+      return NextResponse.json(
+        { error: "Angkatan wajib dipilih (2023, 2024, atau 2025)." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      ANGKATAN_RESTRICTED_POSITIONS.includes(firstChoice) &&
+      angkatan === "2023"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Posisi Co-Sekretaris dan Co-Bendahara hanya tersedia untuk angkatan 2024\u20132025.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (pddSubfocus && !VALID_PDD_SUBFOCUS.includes(pddSubfocus)) {
+      return NextResponse.json(
+        { error: "Sub-fokus PDD tidak valid." },
         { status: 400 },
       );
     }
@@ -229,6 +272,10 @@ export async function POST(request: Request) {
     const secondaryDivisionLabel = secondChoice
       ? divisionLabels[secondChoice] ?? secondChoice
       : "";
+    const subfocusLabel =
+      firstChoice === "pdd" && pddSubfocus
+        ? pddSubfocusLabels[pddSubfocus] ?? pddSubfocus
+        : "";
     const safeFullName = escapeHtml(fullName || "Calon Pengurus");
     const safeEmail = escapeHtml(email);
     const safeNim = escapeHtml(nim);
@@ -236,6 +283,8 @@ export async function POST(request: Request) {
     const safeInstagram = escapeHtml(instagram);
     const safeDivisionLabel = escapeHtml(divisionLabel || "-");
     const safeSecondaryDivisionLabel = escapeHtml(secondaryDivisionLabel);
+    const safeSubfocusLabel = escapeHtml(subfocusLabel);
+    const safeAngkatan = escapeHtml(angkatan);
     const safeAvailability = availability.map((item) => escapeHtml(item));
     const safePortfolio = escapeHtml(portfolio);
     const safeMotivation = escapeHtml(motivation);
@@ -267,6 +316,12 @@ export async function POST(request: Request) {
             ${
               secondaryDivisionLabel
                 ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>Divisi prioritas 2:</strong> ${safeSecondaryDivisionLabel}</p>`
+                : ""
+            }
+            <p style="font-size: 14px; margin: 0 0 4px;"><strong>Angkatan:</strong> ${safeAngkatan}</p>
+            ${
+              subfocusLabel
+                ? `<p style="font-size: 14px; margin: 0 0 4px;"><strong>Sub-fokus PDD:</strong> ${safeSubfocusLabel}</p>`
                 : ""
             }
             <p style="font-size: 14px; margin: 0 0 4px;"><strong>Email:</strong> ${safeEmail}</p>
@@ -351,6 +406,8 @@ export async function POST(request: Request) {
       secondaryDivisionLabel
         ? `Divisi prio 2  : ${secondaryDivisionLabel}`
         : "",
+      `Angkatan       : ${angkatan}`,
+      subfocusLabel ? `Sub-fokus PDD  : ${subfocusLabel}` : "",
       `Email          : ${email}`,
       phone ? `WhatsApp       : ${phone}` : "",
       instagram ? `Instagram      : ${instagram}` : "",
@@ -423,6 +480,8 @@ export async function POST(request: Request) {
         data: {
           firstChoice,
           secondChoice: secondChoice || null,
+          angkatan,
+          pddSubfocus: firstChoice === "pdd" && pddSubfocus ? pddSubfocus : null,
           fullName: fullName || "",
           nim: nim || null,
           email,
