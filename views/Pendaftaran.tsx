@@ -154,6 +154,7 @@ const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
 const Pendaftaran: React.FC = () => {
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [isDivisionModalOpen, setIsDivisionModalOpen] = useState(false);
   const [formData, setFormData] = useState<RecruitmentFormData>({
     firstChoice: "",
     secondChoice: "",
@@ -485,30 +486,20 @@ const Pendaftaran: React.FC = () => {
     setShowResetConfirm(false);
   };
 
-  const handleSelect = (priority: "firstChoice" | "secondChoice", id: string) => {
-    setFormData((prev) => {
-      if (priority === "secondChoice" && !prev.firstChoice) {
-        return prev;
-      }
-      const next = { ...prev };
-      if (priority === "firstChoice") {
-        const isSame = prev.firstChoice === id;
-        next.firstChoice = isSame ? "" : id;
-        if (isSame || next.secondChoice === id) {
-          next.secondChoice = "";
-        }
-        if (!next.firstChoice) {
-          next.secondChoice = "";
-        }
-      } else {
-        if (prev.firstChoice === id) {
-          next.secondChoice = "";
-        } else {
-          next.secondChoice = prev.secondChoice === id ? "" : id;
-        }
-      }
-      return next;
-    });
+  const handleFirstChoiceChange = (divisionId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      firstChoice: divisionId,
+      secondChoice: prev.secondChoice === divisionId ? "" : prev.secondChoice,
+    }));
+    setHasTouchedForm(true);
+  };
+
+  const handleSecondChoiceChange = (divisionId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      secondChoice: divisionId,
+    }));
     setHasTouchedForm(true);
   };
 
@@ -771,88 +762,18 @@ const Pendaftaran: React.FC = () => {
           </div>
         </div>
 
-        <details className="border border-white/5 bg-white/2 mb-12 group">
-          <summary className="flex items-center justify-between cursor-pointer p-6 md:p-8 select-none">
-            <div className="flex items-center gap-4">
-              <div className="h-px w-8 bg-gold-500/40"></div>
-              <p className="text-xs uppercase tracking-[0.35em] text-gold-500 font-medium">
-                Timeline Seleksi
-              </p>
-            </div>
-            <span className="text-xs text-neutral-500 group-open:rotate-180 transition-transform duration-300">▼</span>
-          </summary>
-          <div className="px-6 md:px-8 pb-6 md:pb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {SELECTION_TIMELINE.map((item) => (
-                <div
-                  key={item.title}
-                  className="border border-white/5 bg-[#0f0f0f] p-6 flex flex-col gap-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-serif text-xl text-white">{item.title}</h3>
-                    <span className="text-xs uppercase tracking-[0.3em] text-gold-300/80">
-                      {item.date}
-                    </span>
-                  </div>
-                  <p className="text-sm text-neutral-400 leading-relaxed font-light">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
-            </div>
+        <div ref={stepBarRef} className="mb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-gold-500 font-medium">
+              Langkah {step + 1} dari {steps.length}: {steps[step].label}
+            </p>
           </div>
-        </details>
-
-        <div ref={stepBarRef} className="border border-white/5 bg-[#111]/50 p-6 md:p-10 mb-12">
-          <nav aria-label="Langkah pendaftaran">
-          <div role="tablist" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs uppercase tracking-[0.25em] text-neutral-500">
-            {steps.map((item) => {
-              const isActive = step === item.id;
-              const canAccess = canAccessStep(item.id);
-              const canClick = canAccess && !isActive;
-              const isLocked = !canAccess;
-              const stepCompleted = isStepComplete(item.id);
-              const cursorClass = canClick
-                ? "cursor-pointer"
-                : isLocked
-                  ? "cursor-not-allowed"
-                  : "cursor-default";
-              const backgroundClass = isActive
-                ? "text-white border-gold-500/40 bg-gold-500/10"
-                : stepCompleted
-                  ? "text-gold-300/80 border-gold-500/20 bg-gold-500/5"
-                  : canClick
-                    ? "text-gold-300/70 border-gold-500/10 bg-gold-500/5/50"
-                    : "text-neutral-500/70 border-white/10 bg-transparent";
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-current={isActive ? "step" : undefined}
-                  aria-disabled={isLocked}
-                  disabled={isLocked}
-                  title={isLocked ? "Lengkapi langkah sebelumnya" : item.label}
-                  onClick={() => {
-                    if (!canClick) return;
-                    handleStepClick(item.id);
-                  }}
-                  className={`flex items-center gap-3 border px-4 py-3 w-full text-left ${cursorClass} ${backgroundClass}`}
-                >
-                  <span className="text-[0.65rem] font-mono">
-                    0{item.id + 1}
-                  </span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+          <div className="h-1 bg-neutral-900 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gold-500 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+            ></div>
           </div>
-          </nav>
-          <p className="text-xs text-neutral-600 mt-4" aria-live="polite">
-            Langkah {step + 1} dari {steps.length}
-          </p>
         </div>
 
         <form ref={formContainerRef} onSubmit={handleSubmit} className="space-y-12">
@@ -861,124 +782,109 @@ const Pendaftaran: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                 <div>
                   <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
-                    Pilih Divisi
+                    Divisi apa yang paling kamu minati?
                   </h2>
                   <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
-                    Pilih prioritas utama dan opsional prioritas kedua. Klik kartu
-                    divisi untuk memilih — klik pertama menjadi Pilihan 1, klik kedua
-                    menjadi Pilihan 2.
+                    Pilih divisi utama tempat kamu ingin berkontribusi.
                   </p>
-                </div>
-                <div className="text-xs uppercase tracking-[0.3em] text-neutral-500">
-                  Pilihan 2 bersifat opsional
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {divisions.map((division) => {
-                  const isPrimary = formData.firstChoice === division.id;
-                  const isSecondary = formData.secondChoice === division.id;
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsDivisionModalOpen(true)}
+                  className="group relative px-6 py-3 bg-transparent border border-gold-500/40 text-gold-300 text-xs font-medium uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-500/60"
+                >
+                  <span className="relative z-10 flex items-center gap-2 group-hover:text-gold-200 transition-colors duration-500">
+                    Lihat Panduan dan Tugas Divisi
+                  </span>
+                  <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+                </button>
+              </div>
 
-                  const handleCardClick = () => {
-                    if (!formData.firstChoice) {
-                      handleSelect("firstChoice", division.id);
-                    } else if (isPrimary) {
-                      handleSelect("firstChoice", division.id);
-                    } else if (isSecondary) {
-                      handleSelect("secondChoice", division.id);
-                    } else if (!formData.secondChoice) {
-                      handleSelect("secondChoice", division.id);
-                    } else {
-                      handleSelect("secondChoice", division.id);
-                    }
-                  };
-
-                  return (
-                    <div
-                      key={division.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={handleCardClick}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleCardClick();
-                        }
-                      }}
-                      className={`border p-7 bg-white/5 transition-all duration-300 cursor-pointer select-none ${
-                        isPrimary
-                          ? "border-gold-500/60 bg-gold-500/10 ring-1 ring-gold-500/30"
-                          : isSecondary
-                            ? "border-gold-500/30 bg-gold-500/5"
-                            : "border-white/5 hover:border-white/20 hover:bg-white/[0.07]"
-                      }`}
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                    Pilihan 1 (Wajib) <span className="text-gold-500">*</span>
+                  </label>
+                  <div className="space-y-3">
+                    {divisions.map((division) => (
+                      <div key={division.id} className="flex items-center">
+                        <input
+                          type="radio"
+                          id={`choice1-${division.id}`}
+                          name="firstChoice"
+                          value={division.id}
+                          checked={formData.firstChoice === division.id}
+                          onChange={(e) => handleFirstChoiceChange(e.target.value)}
+                          className="w-4 h-4 accent-gold-500 cursor-pointer"
+                        />
+                        <label
+                          htmlFor={`choice1-${division.id}`}
+                          className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.05]"
+                          style={{
+                            borderColor:
+                              formData.firstChoice === division.id
+                                ? "rgba(212, 166, 77, 0.4)"
+                                : undefined,
+                            backgroundColor:
+                              formData.firstChoice === division.id
+                                ? "rgba(212, 166, 77, 0.05)"
+                                : undefined,
+                          }}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-medium text-white">
+                              {division.name}
+                            </span>
+                            <span className="text-xs text-neutral-400">
+                              {division.summary}
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {showStepErrors && !formData.firstChoice && (
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="mt-4">
-                          <h3 className="font-serif text-2xl text-white">
-                            {division.name}
-                          </h3>
-                          <p className="text-[0.75rem] uppercase tracking-[0.25em] text-gold-500/70 mt-2">
-                            {division.focus}
-                          </p>
-                        </div>
-                        <div className="relative">
-                          {isPrimary && (
-                            <span className="inline-flex items-center gap-1.5 text-[0.65rem] uppercase tracking-[0.3em] text-gold-300 whitespace-nowrap bg-gold-500/15 px-3 py-1.5 border border-gold-500/30">
-                              <span className="text-xs">★</span> Pilihan 1
-                            </span>
-                          )}
-                          {isSecondary && !isPrimary && (
-                            <span className="inline-flex items-center gap-1.5 text-[0.65rem] uppercase tracking-[0.3em] text-gold-300/70 whitespace-nowrap bg-gold-500/10 px-3 py-1.5 border border-gold-500/20">
-                              <span className="text-xs">☆</span> Pilihan 2
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-neutral-400 leading-relaxed mb-6 font-light">
-                        {division.summary}
-                      </p>
-                      <div className="space-y-4 text-[0.7rem] uppercase tracking-[0.25em] text-neutral-400">
-                        <div>
-                          <span className="block text-neutral-500 mb-2">Fokus</span>
-                          <div className="text-neutral-400 normal-case tracking-normal text-sm">
-                            {division.commitment}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="block text-neutral-500 mb-2">Tugas Utama</span>
-                          <ul className="text-neutral-400 normal-case tracking-normal text-sm space-y-2">
-                            {division.tasks.map((task) => (
-                              <li key={task}>• {task}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <span className="block text-neutral-500 mb-2">Skill Ideal</span>
-                          <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.2em] text-neutral-400">
-                            {division.skills.map((skill) => (
-                              <span
-                                key={skill}
-                                className="border border-white/10 px-3 py-1"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-neutral-500 mt-6 uppercase tracking-[0.2em]">
-                        {isPrimary
-                          ? "Klik lagi untuk batalkan"
-                          : isSecondary
-                            ? "Klik lagi untuk batalkan"
-                            : !formData.firstChoice
-                              ? "Klik untuk pilih sebagai Pilihan 1"
-                              : "Klik untuk pilih sebagai Pilihan 2"}
-                      </p>
-                    </div>
-                  );
-                })}
+                      Pilih divisi utama terlebih dahulu.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <label htmlFor="secondChoice" className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                    Pilihan 2 (Opsional)
+                  </label>
+                  <select
+                    id="secondChoice"
+                    name="secondChoice"
+                    value={formData.secondChoice}
+                    onChange={(e) => handleSecondChoiceChange(e.target.value)}
+                    className="w-full bg-white/5 focus:bg-white/10 border border-white/10 py-3 px-4 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 font-light"
+                  >
+                    <option value="">
+                      — Tidak ada / Hanya fokus pada Pilihan 1 —
+                    </option>
+                    {divisions.map((division) => (
+                      <option
+                        key={division.id}
+                        value={division.id}
+                        disabled={division.id === formData.firstChoice}
+                      >
+                        {division.name}
+                        {division.id === formData.firstChoice ? " (dipilih sebagai Pilihan 1)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    Pilihan 2 tidak dapat sama dengan Pilihan 1.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -987,7 +893,7 @@ const Pendaftaran: React.FC = () => {
             <div className="space-y-10">
               <div>
                 <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
-                  Data Diri
+                  Mari mulai dengan perkenalan
                 </h2>
                 <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
                   Pastikan data kontak aktif agar panitia mudah menghubungi kamu.
@@ -997,81 +903,101 @@ const Pendaftaran: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="group relative">
                   <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
-                    Nama Lengkap <span className="text-red-400/60">*</span>
+                    Nama Lengkap <span className="text-gold-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
-                    placeholder="Nama sesuai KTM"
-                    required
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      placeholder="Nama sesuai KTM"
+                      required
+                    />
+                    {trimmedFullName && (
+                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                    )}
+                  </div>
                   {showStepErrors && fullNameError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-red-400 mt-2">
+                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
                       {fullNameError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
                   <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
-                    NIM <span className="text-red-400/60">*</span>
+                    NIM <span className="text-gold-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="nim"
-                    value={formData.nim}
-                    onChange={handleInputChange}
-                    className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
-                    placeholder="24xxxxxxxx"
-                    inputMode="numeric"
-                    pattern="\d{10,12}"
-                    required
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      name="nim"
+                      value={formData.nim}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      placeholder="24xxxxxxxx"
+                      inputMode="numeric"
+                      pattern="\d{10,12}"
+                      required
+                    />
+                    {trimmedNim && isNimValid && (
+                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                    )}
+                  </div>
                   <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">10–12 digit angka sesuai KTM</p>
                   {showStepErrors && nimError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-red-400 mt-2">
+                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
                       {nimError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
                   <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
-                    Email Aktif <span className="text-red-400/60">*</span>
+                    Email Aktif <span className="text-gold-500">*</span>
                   </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
-                    placeholder="nama@email.com"
-                    required
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      placeholder="nama@email.com"
+                      required
+                    />
+                    {trimmedEmail && isEmailValid && (
+                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                    )}
+                  </div>
                   {showStepErrors && emailError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-red-400 mt-2">
+                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
                       {emailError}
                     </p>
                   )}
                 </div>
                 <div className="group relative">
                   <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
-                    No. WhatsApp <span className="text-red-400/60">*</span>
+                    No. WhatsApp <span className="text-gold-500">*</span>
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
-                    placeholder="08xxxxxxxxxx"
-                    inputMode="tel"
-                    required
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/5 focus:bg-white/10 border-b border-white/10 py-3 text-neutral-200 focus:outline-none focus:border-gold-500/50 transition-colors duration-500 placeholder-neutral-600 font-light px-3"
+                      placeholder="08xxxxxxxxxx"
+                      inputMode="tel"
+                      required
+                    />
+                    {trimmedPhone && isPhoneValid && (
+                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                    )}
+                  </div>
                   <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">Format: 08xx atau +628xx (spasi/strip diabaikan)</p>
                   {showStepErrors && phoneError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-red-400 mt-2">
+                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
                       {phoneError}
                     </p>
                   )}
@@ -1097,17 +1023,17 @@ const Pendaftaran: React.FC = () => {
             <div className="space-y-10">
               <div>
                 <h2 className="font-serif text-3xl md:text-4xl text-white tracking-tight">
-                  Motivasi & Kesiapan
+                  Ceritakan alasanmu & atur jadwalmu
                 </h2>
                 <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
-                  Ceritakan alasanmu memilih divisi dan ketersediaan waktumu.
+                  Berikan penjelasan lengkap tentang motivasimu dan pilih hari ketersediaan.
                 </p>
               </div>
 
               <div className="space-y-10">
                 <div className="group relative">
                   <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 group-focus-within:text-gold-300 transition-colors duration-500">
-                    Motivasi Utama <span className="normal-case tracking-normal text-neutral-500">({MIN_MOTIVATION_CHARS}–{MAX_MOTIVATION_CHARS} karakter)</span>
+                    Motivasi Utama <span className="text-gold-500">*</span>
                   </label>
                   <textarea
                     name="motivation"
@@ -1117,20 +1043,44 @@ const Pendaftaran: React.FC = () => {
                     maxLength={MAX_MOTIVATION_CHARS}
                     className="w-full bg-black/20 border border-white/5 p-5 text-neutral-200 focus:outline-none focus:border-gold-500/30 transition-colors duration-500 resize-none font-light placeholder-neutral-700 overflow-hidden"
                     style={{ overflowWrap: "break-word" }}
-                    placeholder={`Ceritakan alasan memilih ${
-                      currentDivision?.name ?? "divisi ini"
-                    } dan kontribusi yang ingin kamu berikan.`}
+                    placeholder={`Contoh: Kenapa kamu tertarik dengan ${currentDivision ? currentDivision.name : "divisi ini"}? Apa yang ingin kamu pelajari atau ubah di HIMA Musik?`}
                   ></textarea>
-                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-neutral-600 mt-3">
-                    <span>
-                      Minimal {MIN_MOTIVATION_CHARS} • Maksimal {MAX_MOTIVATION_CHARS}
-                    </span>
-                    <span>
-                      {motivationLength}/{MAX_MOTIVATION_CHARS}
-                    </span>
+                  <div className="mt-3 space-y-2">
+                    <div className="h-1.5 bg-neutral-900 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          motivationLength >= MIN_MOTIVATION_CHARS
+                            ? "bg-green-500"
+                            : motivationLength >= MIN_MOTIVATION_CHARS - 30
+                              ? "bg-amber-500"
+                              : "bg-neutral-700"
+                        }`}
+                        style={{
+                          width: `${(motivationLength / MAX_MOTIVATION_CHARS) * 100}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em]">
+                      <span
+                        className={
+                          motivationLength >= MIN_MOTIVATION_CHARS
+                            ? "text-green-500"
+                            : motivationLength > 0
+                              ? "text-neutral-500"
+                              : "text-neutral-700"
+                        }
+                      >
+                        {motivationLength >= MIN_MOTIVATION_CHARS
+                          ? "Penjelasanmu sudah cukup detail."
+                          : `${MIN_MOTIVATION_CHARS - motivationLength} karakter lagi`}
+                      </span>
+                      <span className="text-neutral-600">
+                        {motivationLength}/{MAX_MOTIVATION_CHARS}
+                      </span>
+                    </div>
                   </div>
                   {showStepErrors && motivationError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-red-400 mt-2">
+                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3">
                       {motivationError}
                     </p>
                   )}
@@ -1138,8 +1088,11 @@ const Pendaftaran: React.FC = () => {
 
                 <div className="group relative">
                   <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 mb-4 group-focus-within:text-gold-300 transition-colors duration-500">
-                    Ketersediaan Waktu
+                    Ketersediaan Waktu <span className="text-gold-500">*</span>
                   </label>
+                  <p className="text-xs text-neutral-500 mb-4">
+                    Pilih hari di mana kamu biasanya luang untuk rapat/koordinasi (Bisa pilih lebih dari satu).
+                  </p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {availabilityOptions.map((day) => {
                       const isActive = formData.availability.includes(day);
@@ -1148,10 +1101,10 @@ const Pendaftaran: React.FC = () => {
                           key={day}
                           type="button"
                           onClick={() => toggleAvailability(day)}
-                          className={`border px-4 py-3 text-xs uppercase tracking-[0.3em] transition-colors duration-300 ${
+                          className={`border px-4 py-3 text-xs uppercase tracking-[0.3em] transition-all duration-300 rounded-sm font-medium ${
                             isActive
                               ? "border-gold-500/60 text-gold-300 bg-gold-500/10"
-                              : "border-white/10 text-neutral-400 hover:text-white hover:border-white/30"
+                              : "border-white/10 text-neutral-400 hover:text-white hover:border-white/30 hover:bg-white/[0.05]"
                           }`}
                         >
                           {day}
@@ -1159,12 +1112,9 @@ const Pendaftaran: React.FC = () => {
                       );
                     })}
                   </div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-neutral-600 mt-4">
-                    Pilih minimal satu hari untuk rapat rutin.
-                  </p>
                   {showStepErrors && formData.availability.length === 0 && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-red-400 mt-2">
-                      Pilih minimal satu ketersediaan waktu.
+                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3">
+                      Pilih minimal satu hari untuk rapat rutin.
                     </p>
                   )}
                 </div>
@@ -1212,7 +1162,7 @@ const Pendaftaran: React.FC = () => {
                   Review Pendaftaran
                 </h2>
                 <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
-                  Pastikan semua data sudah benar sebelum dikirim.
+                  Satu langkah lagi! Pastikan data di atas sudah benar sebelum dikirim.
                 </p>
               </div>
 
@@ -1331,7 +1281,7 @@ const Pendaftaran: React.FC = () => {
                   }
                 >
                   <span className="text-xs">
-                    {isStepValid ? "!" : "⚠"}
+                    {isStepValid ? "OK" : "!"}
                   </span>
                   <span>
                     {isStepValid
@@ -1412,6 +1362,38 @@ const Pendaftaran: React.FC = () => {
             </div>
           </div>
         </form>
+
+        <details className="border border-white/5 bg-white/2 mb-12 group mt-20">
+          <summary className="flex items-center justify-between cursor-pointer p-6 md:p-8 select-none">
+            <div className="flex items-center gap-4">
+              <div className="h-px w-8 bg-gold-500/40"></div>
+              <p className="text-xs uppercase tracking-[0.35em] text-gold-500 font-medium">
+                Timeline Seleksi
+              </p>
+            </div>
+            <span className="text-xs text-neutral-500 group-open:rotate-180 transition-transform duration-300">▼</span>
+          </summary>
+          <div className="px-6 md:px-8 pb-6 md:pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {SELECTION_TIMELINE.map((item) => (
+                <div
+                  key={item.title}
+                  className="border border-white/5 bg-[#0f0f0f] p-6 flex flex-col gap-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif text-xl text-white">{item.title}</h3>
+                    <span className="text-xs uppercase tracking-[0.3em] text-gold-300/80">
+                      {item.date}
+                    </span>
+                  </div>
+                  <p className="text-sm text-neutral-400 leading-relaxed font-light">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
       </div>
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
@@ -1436,6 +1418,117 @@ const Pendaftaran: React.FC = () => {
               >
                 Ya, reset
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDivisionModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6 py-12 overflow-y-auto"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsDivisionModalOpen(false);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-4xl bg-[#111] border border-white/10 relative overflow-hidden"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
+            <button
+              type="button"
+              onClick={() => setIsDivisionModalOpen(false)}
+              className="absolute top-6 right-6 text-neutral-500 hover:text-white transition-colors z-10 text-2xl leading-none"
+              aria-label="Tutup modal"
+            >
+              X
+            </button>
+
+            <div className="p-8 md:p-12">
+              <h2 className="font-serif text-4xl text-white mb-2 tracking-tight">
+                Panduan Lengkap Divisi
+              </h2>
+              <p className="text-neutral-400 text-sm mb-12">
+                Pelajari detail setiap divisi untuk memilih yang paling cocok dengan minat dan keahlianmu.
+              </p>
+
+              <div className="space-y-8">
+                {divisions.map((division) => (
+                  <div
+                    key={division.id}
+                    className="border border-white/10 bg-white/[0.02] p-8"
+                  >
+                    <div className="mb-6">
+                      <h3 className="font-serif text-2xl text-white mb-2">
+                        {division.name}
+                      </h3>
+                      <p className="text-xs uppercase tracking-[0.3em] text-gold-500/70 mb-4">
+                        Fokus: {division.focus}
+                      </p>
+                      <p className="text-sm text-neutral-400 leading-relaxed">
+                        {division.summary}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
+                          Tugas Utama
+                        </h4>
+                        <ul className="text-sm text-neutral-300 space-y-2">
+                          {division.tasks.map((task) => (
+                            <li key={task} className="flex gap-3">
+                              <span className="text-gold-500 flex-shrink-0">•</span>
+                              <span>{task}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
+                          Skill Ideal & Komitmen
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs text-neutral-500 mb-2">Skill:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {division.skills.map((skill) => (
+                                <span
+                                  key={skill}
+                                  className="text-xs border border-gold-500/30 bg-gold-500/5 px-3 py-1 text-gold-300"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-neutral-500 mb-2">Komitmen Waktu:</p>
+                            <p className="text-sm text-neutral-300">
+                              {division.commitment}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-12 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsDivisionModalOpen(false)}
+                  className="group relative px-8 py-3 bg-white text-black text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-300"
+                >
+                  <span className="relative z-10 group-hover:text-white transition-colors duration-500">
+                    Tutup
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
