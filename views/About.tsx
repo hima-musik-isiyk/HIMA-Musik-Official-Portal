@@ -12,13 +12,14 @@ const About: React.FC = () => {
 
   return (
     <div className="relative min-h-screen px-6 pt-40 pb-32">
-      <div className="pointer-events-none absolute top-0 right-0 h-screen w-full bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+      <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 mx-auto max-w-5xl">
         <div className="mb-12 flex items-center gap-4">
-          <div className="bg-gold-500/50 h-px w-8"></div>
-          <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
-            Profil Organisasi
-          </p>
+          <span
+            className="bg-gold-500/40 block h-px w-8 md:w-12"
+            aria-hidden="true"
+          />
+          <p className="text-gold-500 text-sm font-medium">Profil Organisasi</p>
         </div>
         <div className="mb-32 grid grid-cols-1 gap-16 md:grid-cols-12 md:gap-24">
           <div className="flex flex-col gap-12 md:col-span-7">
@@ -76,7 +77,7 @@ const About: React.FC = () => {
                 key={idx}
                 className="group hover:border-gold-300 relative border-l border-white/5 pl-6 transition-colors duration-500"
               >
-                <p className="text-gold-500 group-hover:text-gold-300 mb-4 text-xs tracking-[0.3em] uppercase transition-colors duration-500">
+                <p className="text-gold-500 group-hover:text-gold-300 mb-3 text-sm font-medium transition-colors duration-500">
                   {exec.role}
                 </p>
                 <p className="font-serif text-xl text-neutral-300 transition-colors duration-500 group-hover:text-white">
