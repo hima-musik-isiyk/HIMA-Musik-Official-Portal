@@ -312,19 +312,13 @@ const Home: React.FC = () => {
               Jadi <span className="italic text-gold-500/80 font-light">Pengurus</span> HIMA
             </h2>
             <p className="text-neutral-400 text-sm mt-5 leading-relaxed max-w-xl">
-              Mulai dari pilih posisi yang kamu minati, isi data diri, sampai kirim pendaftaran.
-              Alurnya singkat dan jelas supaya kamu bisa fokus ke kontribusi.
+              Semua informasi rekrutmen ada di satu halaman: struktur kabinet,
+              panduan divisi, timeline seleksi, lalu lanjut isi formulir saat kamu siap.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+            <div className="mt-8">
               <Link href="/pendaftaran" className="btn-primary">
-                <span className="btn-primary-label">Lihat Posisi & Daftar</span>
+                <span className="btn-primary-label">Buka Info Pendaftaran</span>
                 <div className="btn-primary-overlay"></div>
-              </Link>
-              <Link
-                href="/pendaftaran"
-                className="px-6 py-3 text-xs uppercase tracking-[0.3em] border border-white/10 text-neutral-400 hover:text-white hover:border-white/30 transition-colors duration-300 inline-flex items-center justify-center"
-              >
-                Baca Alur Pendaftaran
               </Link>
             </div>
           </div>
@@ -332,18 +326,18 @@ const Home: React.FC = () => {
             {[
               {
                 step: "01",
-                title: "Pilih Divisi",
-                detail: "Lihat ringkasan posisi dan pilih prioritas utama.",
+                title: "Struktur & Posisi Terbuka",
+                detail: "Lihat susunan BPH dan posisi yang sedang dibuka dengan visual yang jelas.",
               },
               {
                 step: "02",
-                title: "Isi Data & Motivasi",
-                detail: "Lengkapi data diri dan ceritakan alasanmu bergabung.",
+                title: "Panduan Divisi",
+                detail: "Bandingkan fokus kerja, tugas utama, skill ideal, dan komitmen tiap divisi.",
               },
               {
                 step: "03",
-                title: "Review & Submit",
-                detail: "Cek ulang jawaban lalu kirim pendaftaran.",
+                title: "Timeline Seleksi",
+                detail: "Pantau tahapan dari pendaftaran hingga pengumuman agar kamu bisa siap dari awal.",
               },
             ].map((item) => (
               <div

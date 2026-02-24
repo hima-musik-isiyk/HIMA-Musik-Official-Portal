@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type PendaftaranPayload = {
@@ -59,6 +61,55 @@ const escapeHtml = (value: string) =>
 const pendaftaranCooldownMs = 5 * 60 * 1000;
 
 const pendaftaranLastSubmit = new Map<string, number>();
+
+type LegacyPendaftaranInsertData = {
+  firstChoice: string;
+  secondChoice: string;
+  fullName: string;
+  nim: string;
+  email: string;
+  phone: string;
+  instagram: string;
+  motivation: string;
+  experience: string;
+  availability: string[];
+  portfolio: string;
+  submittedAt: Date;
+};
+
+const isMissingColumnError = (error: unknown, column: string) => {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== "P2022") {
+    return false;
+  }
+
+  const meta = error.meta as { column?: unknown } | undefined;
+  return typeof meta?.column === "string" && meta.column.includes(column);
+};
+
+const createLegacyPendaftaranRecord = async (
+  payload: LegacyPendaftaranInsertData,
+) => {
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "Pendaftaran" ("id", "firstChoice", "secondChoice", "fullName", "nim", "email", "phone", "instagram", "motivation", "experience", "availability", "portfolio", "submittedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+    randomUUID(),
+    payload.firstChoice,
+    payload.secondChoice || null,
+    payload.fullName,
+    payload.nim || null,
+    payload.email,
+    payload.phone || null,
+    payload.instagram || null,
+    payload.motivation || null,
+    payload.experience || null,
+    payload.availability,
+    payload.portfolio || null,
+    payload.submittedAt,
+  );
+};
 
 export async function POST(request: Request) {
   try {
@@ -476,6 +527,8 @@ export async function POST(request: Request) {
       );
     }
 
+    let dbWriteError: unknown = null;
+
     try {
       await prisma.pendaftaran.create({
         data: {
@@ -496,7 +549,36 @@ export async function POST(request: Request) {
         },
       });
     } catch (dbError) {
-      console.error("DB write failed (pendaftaran):", dbError);
+      const isLegacySchemaError =
+        isMissingColumnError(dbError, "angkatan") ||
+        isMissingColumnError(dbError, "pddSubfocus");
+
+      if (isLegacySchemaError) {
+        try {
+          await createLegacyPendaftaranRecord({
+            firstChoice,
+            secondChoice,
+            fullName,
+            nim,
+            email,
+            phone,
+            instagram,
+            motivation,
+            experience,
+            availability,
+            portfolio,
+            submittedAt,
+          });
+        } catch (legacyDbError) {
+          dbWriteError = legacyDbError;
+        }
+      } else {
+        dbWriteError = dbError;
+      }
+    }
+
+    if (dbWriteError) {
+      console.error("DB write failed (pendaftaran):", dbWriteError);
 
       const errorToken = process.env.TELEGRAM_BOT_TOKEN;
       const errorChatId = process.env.TELEGRAM_CHAT_ID;

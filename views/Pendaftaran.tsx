@@ -2,16 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-
-type Division = {
-  id: string;
-  name: string;
-  summary: string;
-  focus: string;
-  tasks: string[];
-  skills: string[];
-  commitment: string;
-};
+import { divisions } from "@/lib/pendaftaran-data";
 
 type RecruitmentFormData = {
   firstChoice: string;
@@ -40,74 +31,6 @@ type StoredRecruitmentState = {
 const STORAGE_KEY = "pendaftaran_form_state_v1";
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-const divisions: Division[] = [
-  {
-    id: "humas",
-    name: "Humas & Kemitraan",
-    summary: "Menjaga relasi internal kampus dan eksternal, kolaborasi event, dan komunikasi antar organisasi. Slot: 2 orang, terbuka untuk angkatan 2023–2025.",
-    focus: "Relasi internal & eksternal, komunikasi strategis",
-    tasks: [
-      "Mengelola komunikasi dengan mitra internal (prodi, dosen, HIMA lain, KKM) dan eksternal (sponsor, komunitas musik, media partner)",
-      "Menyusun proposal kolaborasi",
-      "Menjadi penghubung antar divisi dan pihak luar",
-    ],
-    skills: ["Communication", "Negotiation", "Networking"],
-    commitment: "Fleksibel sesuai agenda kolaborasi",
-  },
-  {
-    id: "program-event",
-    name: "Divisi Program & Event",
-    summary: "Merancang konsep kegiatan, menyusun rundown, manajemen kepanitiaan, dan eksekusi event HIMA. Slot: 2 orang, terbuka untuk angkatan 2023–2025.",
-    focus: "Perencanaan, konsep acara & eksekusi event",
-    tasks: [
-      "Menyusun konsep dan perencanaan acara",
-      "Koordinasi teknis, logistik, dan manajemen kepanitiaan",
-      "Menjaga flow acara saat eksekusi",
-    ],
-    skills: ["Planning", "Coordination", "Problem Solving"],
-    commitment: "Intensif saat persiapan event",
-  },
-  {
-    id: "pdd",
-    name: "Publikasi, Desain & Dokumentasi",
-    summary: "Menghasilkan konten visual, dokumentasi kegiatan, dan identitas kampanye. Slot: 3 orang, terbuka untuk angkatan 2023–2025. Terdapat 3 sub-fokus: Desain (visual identity, poster, brand guideline), Publikasi & Media Sosial (content calendar, distribusi info), Dokumentasi (foto/video, aftermovie).",
-    focus: "Branding, storytelling & dokumentasi",
-    tasks: [
-      "Desain: membuat visual identity, poster, feed IG, template, brand guideline",
-      "Publikasi & Media Sosial: menyusun content calendar, distribusi info, kelola platform",
-      "Dokumentasi: fotografi/videografi kegiatan, seleksi & arsip, aftermovie",
-    ],
-    skills: ["Design", "Photography", "Storytelling", "Content Creation"],
-    commitment: "Menyesuaikan timeline publikasi dan jadwal event",
-  },
-  {
-    id: "co-sekretaris",
-    name: "Co-Sekretaris",
-    summary: "Membantu kinerja Sekretaris dalam administrasi internal harian, notulensi, dan database keanggotaan. Slot: 1 orang, khusus angkatan 2024–2025.",
-    focus: "Administrasi & dokumentasi internal",
-    tasks: [
-      "Membantu administrasi internal harian",
-      "Notulensi rapat dan kegiatan",
-      "Mengelola database keanggotaan",
-    ],
-    skills: ["Organization", "Attention to Detail", "Communication"],
-    commitment: "Rutin mengikuti rapat dan koordinasi internal",
-  },
-  {
-    id: "co-bendahara",
-    name: "Co-Bendahara",
-    summary: "Membantu Bendahara dalam pencatatan transaksi, kwitansi, laporan keuangan per acara, dan penyusunan RAB. Slot: 1 orang, khusus angkatan 2024–2025.",
-    focus: "Keuangan & transparansi anggaran",
-    tasks: [
-      "Pencatatan transaksi dan kwitansi",
-      "Menyusun laporan keuangan per acara",
-      "Membantu penyusunan Rencana Anggaran Biaya (RAB)",
-    ],
-    skills: ["Accounting basics", "Organization", "Integrity"],
-    commitment: "Rutin mengikuti rapat dan koordinasi keuangan",
-  },
-];
-
 const steps = [
   { id: 0, label: "Posisi" },
   { id: 1, label: "Data Diri" },
@@ -124,29 +47,6 @@ const availabilityOptions = [
   "Sabtu",
 ];
 
-const RECRUITMENT_PERIOD = "01–21 Maret 2026";
-const SELECTION_TIMELINE = [
-  {
-    title: "Pendaftaran",
-    date: RECRUITMENT_PERIOD,
-    description: "Isi formulir dan pastikan data kontak aktif.",
-  },
-  {
-    title: "Seleksi Administrasi",
-    date: "22–25 Maret 2026",
-    description: "Panitia melakukan verifikasi data pendaftar.",
-  },
-  {
-    title: "Wawancara",
-    date: "26–28 Maret 2026",
-    description: "Wawancara singkat untuk divisi tertentu jika diperlukan.",
-  },
-  {
-    title: "Pengumuman",
-    date: "30 Maret 2026",
-    description: "Hasil seleksi diumumkan via email dan kanal resmi.",
-  },
-];
 const MIN_MOTIVATION_CHARS = 100;
 const MAX_MOTIVATION_CHARS = 1500;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -759,10 +659,10 @@ const Pendaftaran: React.FC = () => {
               <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
             </button>
             <Link
-              href="/"
+              href="/pendaftaran"
               className="group relative px-8 py-4 bg-white text-black text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:bg-gold-300 hover:text-white"
             >
-              Kembali ke Beranda
+              Kembali ke Pendaftaran
             </Link>
           </div>
         </div>
@@ -774,25 +674,27 @@ const Pendaftaran: React.FC = () => {
     <div className="pt-40 pb-32 px-6 min-h-screen relative">
       <div className="absolute top-0 left-0 w-full h-screen bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none"></div>
       <div className="max-w-6xl mx-auto relative z-10">
+        <Link
+          href="/pendaftaran"
+          className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-neutral-500 hover:text-gold-300 transition-colors duration-300 mb-8"
+        >
+          ← Kembali ke Info Pendaftaran
+        </Link>
+
         <div className="flex items-center gap-4 mb-8">
           <div className="h-px w-8 bg-gold-500/50"></div>
           <p className="text-xs uppercase tracking-[0.4em] text-gold-500 font-medium">
-            Open Recruitment
+            Formulir Pendaftaran
           </p>
         </div>
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-12">
-          <div>
-            <h1 className="font-serif text-5xl md:text-7xl text-white tracking-tight">
-              Pendaftaran <span className="italic text-gold-500/80 font-light">Pengurus</span>
-            </h1>
-            <p className="text-neutral-400 text-sm mt-4 max-w-xl leading-relaxed">
-              Pilih divisi yang paling cocok, isi data diri, ceritakan motivasi,
-              lalu kirim pendaftaran.
-            </p>
-          </div>
-          <div className="text-xs uppercase tracking-[0.3em] text-neutral-500">
-            Periode: {RECRUITMENT_PERIOD}
-          </div>
+        <div className="mb-12">
+          <h1 className="font-serif text-4xl md:text-5xl text-white tracking-tight mb-4">
+            Isi Data <span className="italic text-gold-500/80 font-light">Pendaftaran</span>
+          </h1>
+          <p className="text-neutral-400 text-sm max-w-xl leading-relaxed">
+            Pilih divisi, isi data diri, ceritakan motivasi, lalu kirim
+            pendaftaran.
+          </p>
         </div>
 
         <div ref={stepBarRef} className="mb-12">
@@ -1489,38 +1391,6 @@ const Pendaftaran: React.FC = () => {
             </div>
           </div>
         </form>
-
-        <details className="border border-white/5 bg-white/2 mb-12 group mt-20">
-          <summary className="flex items-center justify-between cursor-pointer p-6 md:p-8 select-none">
-            <div className="flex items-center gap-4">
-              <div className="h-px w-8 bg-gold-500/40"></div>
-              <p className="text-xs uppercase tracking-[0.35em] text-gold-500 font-medium">
-                Timeline Seleksi
-              </p>
-            </div>
-            <span className="text-xs text-neutral-500 group-open:rotate-180 transition-transform duration-300">▼</span>
-          </summary>
-          <div className="px-6 md:px-8 pb-6 md:pb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {SELECTION_TIMELINE.map((item) => (
-                <div
-                  key={item.title}
-                  className="border border-white/5 bg-[#0f0f0f] p-6 flex flex-col gap-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-serif text-xl text-white">{item.title}</h3>
-                    <span className="text-xs uppercase tracking-[0.3em] text-gold-300/80">
-                      {item.date}
-                    </span>
-                  </div>
-                  <p className="text-sm text-neutral-400 leading-relaxed font-light">
-                    {item.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </details>
       </div>
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
