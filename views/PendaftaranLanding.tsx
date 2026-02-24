@@ -1,6 +1,10 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import gsap from "gsap";
 import {
+  type Division,
   divisions,
   RECRUITMENT_PERIOD,
   SELECTION_TIMELINE,
@@ -23,7 +27,123 @@ const openDivisions = [
   },
 ];
 
+const DivisionAccordionItem: React.FC<{
+  division: Division;
+  isOpen: boolean;
+  onToggle: () => void;
+}> = ({ division, isOpen, onToggle }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    gsap.killTweensOf(content);
+
+    if (isOpen) {
+      gsap.to(content, {
+        height: "auto",
+        opacity: 1,
+        duration: 0.4,
+        ease: "power2.out",
+      });
+      return;
+    }
+
+    gsap.to(content, {
+      height: 0,
+      opacity: 0,
+      duration: 0.3,
+      ease: "power2.inOut",
+    });
+  }, [isOpen]);
+
+  return (
+    <div className="border border-white/5 bg-white/2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`division-panel-${division.id}`}
+        className="w-full flex items-center justify-between cursor-pointer p-6 md:p-8 select-none text-left"
+      >
+        <div>
+          <h3 className="font-serif text-xl md:text-2xl text-white mb-1">
+            {division.name}
+          </h3>
+          <p className="text-xs uppercase tracking-[0.25em] text-gold-500/70">
+            {division.focus}
+          </p>
+        </div>
+        <span
+          className={`text-xs text-neutral-500 transition-transform duration-300 shrink-0 ml-4 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        >
+          ▼
+        </span>
+      </button>
+
+      <div
+        ref={contentRef}
+        id={`division-panel-${division.id}`}
+        className="h-0 overflow-hidden opacity-0"
+      >
+        <div className="px-6 md:px-8 pb-6 md:pb-8 border-t border-white/5">
+          <p className="text-sm text-neutral-400 leading-relaxed mt-6 mb-6">
+            {division.summary}
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
+                Tugas Utama
+              </h4>
+              <ul className="text-sm text-neutral-300 space-y-2">
+                {division.tasks.map((task) => (
+                  <li key={task} className="flex gap-3">
+                    <span className="text-gold-500 shrink-0">•</span>
+                    <span>{task}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
+                Skill &amp; Komitmen
+              </h4>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {division.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="text-xs border border-gold-500/30 bg-gold-500/5 px-3 py-1 text-gold-300"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-sm text-neutral-300">{division.commitment}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PendaftaranLanding: React.FC = () => {
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleDivision = (id: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
   return (
     <div className="pt-40 pb-32 px-6 min-h-screen relative">
       <div className="absolute top-0 left-0 w-full h-screen bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)] pointer-events-none" />
@@ -97,12 +217,12 @@ const PendaftaranLanding: React.FC = () => {
               {/* Horizontal bar spanning column centres */}
               <div className="mx-auto h-px bg-white/10 w-1/2" />
 
-              <div className="flex">
+              <div className="flex gap-3 md:gap-6">
                 {/* ── Sekretaris → Co‑Sekretaris ── */}
                 <div className="flex-1 flex flex-col items-center">
                   <div className="w-px h-8 bg-white/10" />
 
-                  <div className="border border-white/10 bg-white/2 py-4 px-6 text-center w-full max-w-60 min-h-29 flex flex-col justify-center">
+                  <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-neutral-500 mb-1">
                       {bphMembers[2].role}
                     </p>
@@ -113,7 +233,7 @@ const PendaftaranLanding: React.FC = () => {
 
                   <div className="h-6 w-0 border-l border-dashed border-gold-500/40" />
 
-                  <div className="border border-gold-500/30 bg-gold-500/4 py-4 px-6 text-center w-full max-w-60 min-h-29 flex flex-col justify-center">
+                  <div className="border border-gold-500/30 bg-gold-500/4 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-gold-500 mb-1">
                       Co-Sekretaris
                     </p>
@@ -130,7 +250,7 @@ const PendaftaranLanding: React.FC = () => {
                 <div className="flex-1 flex flex-col items-center">
                   <div className="w-px h-8 bg-white/10" />
 
-                  <div className="border border-white/10 bg-white/2 py-4 px-6 text-center w-full max-w-60 min-h-29 flex flex-col justify-center">
+                  <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-neutral-500 mb-1">
                       {bphMembers[3].role}
                     </p>
@@ -141,7 +261,7 @@ const PendaftaranLanding: React.FC = () => {
 
                   <div className="h-6 w-0 border-l border-dashed border-gold-500/40" />
 
-                  <div className="border border-gold-500/30 bg-gold-500/4 py-4 px-6 text-center w-full max-w-60 min-h-29 flex flex-col justify-center">
+                  <div className="border border-gold-500/30 bg-gold-500/4 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-gold-500 mb-1">
                       Co-Bendahara
                     </p>
@@ -215,67 +335,12 @@ const PendaftaranLanding: React.FC = () => {
 
           <div className="space-y-4">
             {divisions.map((division) => (
-              <details
+              <DivisionAccordionItem
                 key={division.id}
-                className="group border border-white/5 bg-white/2"
-              >
-                <summary className="flex items-center justify-between cursor-pointer p-6 md:p-8 select-none">
-                  <div>
-                    <h3 className="font-serif text-xl md:text-2xl text-white mb-1">
-                      {division.name}
-                    </h3>
-                    <p className="text-xs uppercase tracking-[0.25em] text-gold-500/70">
-                      {division.focus}
-                    </p>
-                  </div>
-                  <span className="text-xs text-neutral-500 group-open:rotate-180 transition-transform duration-300 shrink-0 ml-4">
-                    ▼
-                  </span>
-                </summary>
-
-                <div className="px-6 md:px-8 pb-6 md:pb-8 border-t border-white/5">
-                  <p className="text-sm text-neutral-400 leading-relaxed mt-6 mb-6">
-                    {division.summary}
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                      <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
-                        Tugas Utama
-                      </h4>
-                      <ul className="text-sm text-neutral-300 space-y-2">
-                        {division.tasks.map((task) => (
-                          <li key={task} className="flex gap-3">
-                            <span className="text-gold-500 shrink-0">•</span>
-                            <span>{task}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-3 font-medium">
-                        Skill &amp; Komitmen
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap gap-2">
-                          {division.skills.map((skill) => (
-                            <span
-                              key={skill}
-                              className="text-xs border border-gold-500/30 bg-gold-500/5 px-3 py-1 text-gold-300"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-sm text-neutral-300">
-                          {division.commitment}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </details>
+                division={division}
+                isOpen={Boolean(openSections[division.id])}
+                onToggle={() => toggleDivision(division.id)}
+              />
             ))}
           </div>
         </section>
