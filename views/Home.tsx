@@ -13,15 +13,25 @@ gsap.registerPlugin(ScrollTrigger);
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-const AccentLine: React.FC = () => (
-  <span className="bg-gold-500/40 block h-px w-8 md:w-12" aria-hidden="true" />
-);
+const AccentLine = React.forwardRef<HTMLSpanElement>((_props, ref) => (
+  <span
+    ref={ref}
+    className="bg-gold-500/40 block h-px w-8 md:w-12"
+    aria-hidden="true"
+  />
+));
+AccentLine.displayName = "AccentLine";
 
 const Home: React.FC = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const heroEyebrowRef = useRef<HTMLParagraphElement | null>(null);
+  const heroInstituteRef = useRef<HTMLParagraphElement | null>(null);
   const heroCtaRef = useRef<HTMLDivElement | null>(null);
+  const heroAccentLineRef = useRef<HTMLSpanElement | null>(null);
+  const heroDividerRef = useRef<HTMLDivElement | null>(null);
+  const heroScrollIndicatorRef = useRef<HTMLDivElement | null>(null);
   const quickLinksRef = useRef<HTMLDivElement | null>(null);
+  const quickLinksHeaderRef = useRef<HTMLDivElement | null>(null);
   const skipAnimationRef = useRef(false);
   const [disableEntranceEffects, setDisableEntranceEffects] = useState(false);
   const [disablePressureEffect, setDisablePressureEffect] = useState(false);
@@ -75,35 +85,130 @@ const Home: React.FC = () => {
     }
 
     const context = gsap.context(() => {
-      if (heroEyebrowRef.current && heroCtaRef.current) {
-        const heroCtaChildren = Array.from(heroCtaRef.current.children);
-        const heroTimeline = gsap.timeline({
-          defaults: { ease: "power3.out" },
-        });
-        heroTimeline
-          .fromTo(
-            heroEyebrowRef.current,
-            { y: 16, opacity: 0 },
+      const accentLine = heroAccentLineRef.current;
+      const eyebrow = heroEyebrowRef.current;
+      const institute = heroInstituteRef.current;
+      const divider = heroDividerRef.current;
+      const ctaContainer = heroCtaRef.current;
+      const scrollIndicator = heroScrollIndicatorRef.current;
+
+      if (
+        accentLine &&
+        eyebrow &&
+        institute &&
+        divider &&
+        ctaContainer &&
+        scrollIndicator
+      ) {
+        const ctaButton = ctaContainer.children[0] as HTMLElement;
+        const ctaParagraph = ctaContainer.children[1] as HTMLElement;
+
+        gsap.set(accentLine, { opacity: 0, x: -10 });
+        gsap.set(eyebrow, { opacity: 0, y: 6 });
+        gsap.set(institute, { opacity: 0, y: 8 });
+        gsap.set(divider, { scaleX: 0, transformOrigin: "left center" });
+        gsap.set([ctaButton, ctaParagraph], { opacity: 0, y: 10 });
+        gsap.set(scrollIndicator, { opacity: 0 });
+
+        const tl = gsap.timeline({ delay: 0.25 });
+
+        tl.addLabel("eyebrow")
+          .to(
+            accentLine,
             {
-              y: 0,
               opacity: 1,
-              duration: 0.6,
-              immediateRender: true,
-            },
-          )
-          .fromTo(
-            heroCtaChildren,
-            { y: 20, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
+              x: 0,
               duration: 0.7,
-              stagger: 0.15,
-              immediateRender: true,
+              ease: "expo.out",
               clearProps: "transform",
             },
-            "-=0.4",
+            "eyebrow",
+          )
+          .to(
+            eyebrow,
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.85,
+              ease: "expo.out",
+              clearProps: "transform",
+            },
+            "eyebrow+=0.08",
+          )
+          .addLabel("institute", "eyebrow+=0.34")
+          .to(
+            institute,
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.75,
+              ease: "expo.out",
+              clearProps: "transform",
+            },
+            "institute",
+          )
+          .addLabel("divider", "eyebrow+=0.5")
+          .to(
+            divider,
+            {
+              scaleX: 1,
+              duration: 1.0,
+              ease: "expo.inOut",
+              clearProps: "transform",
+            },
+            "divider",
+          )
+          .addLabel("cta", "divider+=0.3")
+          .to(
+            ctaButton,
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.65,
+              ease: "expo.out",
+              clearProps: "transform",
+            },
+            "cta",
+          )
+          .to(
+            ctaParagraph,
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.85,
+              ease: "expo.out",
+              clearProps: "transform",
+            },
+            "cta+=0.12",
+          )
+          .addLabel("scroll", "cta+=0.45")
+          .to(
+            scrollIndicator,
+            {
+              opacity: 1,
+              duration: 0.9,
+              ease: "power2.out",
+            },
+            "scroll",
           );
+      }
+
+      if (quickLinksHeaderRef.current) {
+        const headerChildren = Array.from(quickLinksHeaderRef.current.children);
+        gsap.set(headerChildren, { opacity: 0, y: 8 });
+        gsap.to(headerChildren, {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          stagger: 0.1,
+          ease: "expo.out",
+          clearProps: "transform",
+          scrollTrigger: {
+            trigger: quickLinksHeaderRef.current,
+            start: "top 82%",
+            once: true,
+          },
+        });
       }
 
       if (quickLinksRef.current) {
@@ -114,22 +219,20 @@ const Home: React.FC = () => {
           return;
         }
 
-        gsap.fromTo(
-          quickLinkCards,
-          { y: 28, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.7,
-            stagger: 0.12,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: quickLinksRef.current,
-              start: "top 80%",
-              once: true,
-            },
+        gsap.set(quickLinkCards, { opacity: 0, y: 20 });
+        gsap.to(quickLinkCards, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.1,
+          ease: "expo.out",
+          clearProps: "transform",
+          scrollTrigger: {
+            trigger: quickLinksRef.current,
+            start: "top 80%",
+            once: true,
           },
-        );
+        });
       }
     }, rootRef);
 
@@ -164,13 +267,12 @@ const Home: React.FC = () => {
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center">
           <div className="mb-6 flex items-center gap-4 md:mb-8">
-            <AccentLine />
+            <AccentLine ref={heroAccentLineRef} />
             <p
               ref={heroEyebrowRef}
-              className={`text-xs font-medium tracking-[0.4em] text-stone-400/80 uppercase md:text-sm ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className="text-xs font-medium tracking-[0.4em] text-stone-400/80 uppercase md:text-sm"
             >
-              Himpunan Mahasiswa Musik &mdash; Institut Seni Indonesia
-              Yogyakarta
+              Himpunan Mahasiswa
             </p>
           </div>
 
@@ -224,8 +326,16 @@ const Home: React.FC = () => {
             </div>
           </h1>
 
+          <p
+            ref={heroInstituteRef}
+            className="mt-4 text-sm tracking-[0.08em] text-stone-500 md:text-base"
+          >
+            Institut Seni Indonesia Yogyakarta
+          </p>
+
           <div className="mt-10 md:mt-14">
             <div
+              ref={heroDividerRef}
               className="mb-10 h-px w-full bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent md:mb-12"
               aria-hidden="true"
             />
@@ -233,16 +343,11 @@ const Home: React.FC = () => {
               ref={heroCtaRef}
               className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12"
             >
-              <Link
-                href="/about"
-                className={`btn-primary shrink-0 ${!disableEntranceEffects ? "opacity-0" : ""}`}
-              >
+              <Link href="/about" className="btn-primary shrink-0">
                 <span className="btn-primary-label">Tentang Kami</span>
                 <div className="btn-primary-overlay"></div>
               </Link>
-              <p
-                className={`max-w-sm border-stone-800 text-[0.8125rem] leading-[1.7] font-light text-stone-500 md:border-l md:pl-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
-              >
+              <p className="max-w-sm border-stone-800 text-[0.8125rem] leading-[1.7] font-light text-stone-500 md:border-l md:pl-12">
                 Wadah kolektif mahasiswa musik. Membangun ekosistem akademik
                 yang inklusif dan progresif.
               </p>
@@ -251,7 +356,10 @@ const Home: React.FC = () => {
         </div>
 
         {/* Scroll indicator */}
-        <div className="relative z-10 flex justify-center pb-8 md:pb-10">
+        <div
+          ref={heroScrollIndicatorRef}
+          className="relative z-10 flex justify-center pb-8 md:pb-10"
+        >
           <div className="flex flex-col items-center gap-3 text-stone-600">
             <span className="text-[0.6rem] tracking-[0.35em] uppercase">
               Scroll
@@ -264,7 +372,10 @@ const Home: React.FC = () => {
       {/* Quick Links / Featured */}
       <section className="bg-stone-950 px-6 py-20 md:py-28">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-12 flex items-center gap-4 md:mb-16">
+          <div
+            ref={quickLinksHeaderRef}
+            className="mb-12 flex items-center gap-4 md:mb-16"
+          >
             <AccentLine />
             <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
               Jelajahi
@@ -278,7 +389,7 @@ const Home: React.FC = () => {
             <Link
               href="/about"
               data-quick-link="true"
-              className={`group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
               <div>
                 <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
@@ -310,7 +421,7 @@ const Home: React.FC = () => {
             <Link
               href="/events"
               data-quick-link="true"
-              className={`group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
               <div>
                 <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
@@ -342,7 +453,7 @@ const Home: React.FC = () => {
             <Link
               href="/aduan"
               data-quick-link="true"
-              className={`group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12 ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
               <div>
                 <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">

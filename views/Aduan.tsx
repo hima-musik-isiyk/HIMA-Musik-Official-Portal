@@ -349,11 +349,15 @@ const Aduan: React.FC = () => {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)]"></div>
         <div className="relative z-10 text-center">
           <div className="mb-8 flex items-center justify-center gap-4">
-            <div className="bg-gold-500/50 h-px w-8"></div>
-            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
-              Status Laporan
-            </p>
-            <div className="bg-gold-500/50 h-px w-8"></div>
+            <span
+              className="bg-gold-500/40 block h-px w-8 md:w-12"
+              aria-hidden="true"
+            />
+            <p className="text-gold-500 text-sm font-medium">Status Laporan</p>
+            <span
+              className="bg-gold-500/40 block h-px w-8 md:w-12"
+              aria-hidden="true"
+            />
           </div>
           <h2 className="mb-6 font-serif text-4xl tracking-tight text-white md:text-5xl">
             Terima{" "}
@@ -376,12 +380,10 @@ const Aduan: React.FC = () => {
               setMessageHistory([]);
               setHasTouchedForm(false);
             }}
-            className="group hover:border-gold-300/50 relative overflow-hidden border border-white/10 bg-transparent px-8 py-4 text-xs font-bold tracking-[0.3em] text-white uppercase transition-all"
+            className="border-gold-500/30 hover:border-gold-300/60 hover:bg-gold-500/10 inline-flex items-center justify-center border bg-transparent px-6 py-3 text-sm font-medium text-white transition-colors"
+            style={{ borderRadius: "var(--radius-action)" }}
           >
-            <span className="group-hover:text-gold-300 relative z-10 transition-colors duration-500">
-              Kirim laporan lain
-            </span>
-            <div className="bg-gold-500/5 absolute inset-0 translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0"></div>
+            Kirim laporan lain
           </button>
         </div>
       </div>
@@ -390,21 +392,27 @@ const Aduan: React.FC = () => {
 
   return (
     <div className="relative flex min-h-screen justify-center px-6 pt-40 pb-32">
-      <div className="pointer-events-none absolute top-0 left-1/2 h-screen w-full -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+      <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mb-8 flex items-center justify-center gap-4">
-          <div className="bg-gold-500/50 h-px w-8"></div>
-          <p className="text-gold-500 text-center text-xs font-medium tracking-[0.4em] uppercase">
+          <span
+            className="bg-gold-500/40 block h-px w-8 md:w-12"
+            aria-hidden="true"
+          />
+          <p className="text-gold-500 text-center text-sm font-medium">
             Layanan Advokasi
           </p>
-          <div className="bg-gold-500/50 h-px w-8"></div>
+          <span
+            className="bg-gold-500/40 block h-px w-8 md:w-12"
+            aria-hidden="true"
+          />
         </div>
         <h1 className="mb-6 text-center font-serif text-5xl tracking-tight text-white md:text-7xl">
-          Kotak{" "}
+          Layanan{" "}
           <span className="text-gold-500/80 font-light italic">Aduan</span>
         </h1>
-        <p className="mb-20 text-center text-sm font-light tracking-wide text-neutral-400">
-          Sampaikan aspirasi, kritik, atau saran dengan bijak.
+        <p className="mb-20 text-center text-base text-neutral-400">
+          Kami siap mendengarkan aspirasi dan masukan Anda.
         </p>
 
         <form
@@ -414,7 +422,7 @@ const Aduan: React.FC = () => {
           <div className="via-gold-500/20 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
           <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
             <div className="group relative">
-              <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
+              <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
                 Nama (Opsional)
               </label>
               <input
@@ -423,12 +431,13 @@ const Aduan: React.FC = () => {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ borderRadius: "var(--radius-action)" }}
                 placeholder="Anonim"
               />
             </div>
             <div className="group relative">
-              <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
+              <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
                 NIM (Opsional)
               </label>
               <input
@@ -437,17 +446,18 @@ const Aduan: React.FC = () => {
                 value={formData.nim}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="focus:border-gold-500/50 w-full border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ borderRadius: "var(--radius-action)" }}
                 placeholder="12345678"
               />
-              <p className="mt-1.5 text-[0.6rem] font-light tracking-wide text-neutral-500">
-                Kosongkan jika ingin 100% anonim. Sistem kami tidak melacak IP.
+              <p className="mt-2 text-sm text-neutral-500">
+                Identitas Anda dijamin rahasia.
               </p>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
+            <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
               Kategori
             </label>
             <div className="relative">
@@ -456,7 +466,8 @@ const Aduan: React.FC = () => {
                 value={formData.category}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className="focus:border-gold-500/50 w-full appearance-none rounded-none border-b border-white/10 bg-white/5 px-3 py-3 font-light text-neutral-200 transition-colors duration-500 focus:bg-white/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                className="focus:border-gold-500 focus:ring-gold-500 w-full appearance-none border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ borderRadius: "var(--radius-action)" }}
               >
                 <option className="bg-[#111] text-neutral-300" value="Akademik">
                   Akademik
@@ -477,14 +488,14 @@ const Aduan: React.FC = () => {
                   Lainnya
                 </option>
               </select>
-              <div className="text-gold-500/50 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-2 text-sm transition-colors duration-500">
+              <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 text-sm transition-colors duration-300">
                 ▼
               </div>
             </div>
           </div>
 
           <div className="group relative">
-            <label className="group-focus-within:text-gold-300 mb-3 block text-xs tracking-[0.3em] text-neutral-400 uppercase transition-colors duration-500">
+            <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
               Pesan
             </label>
             <textarea
@@ -493,13 +504,14 @@ const Aduan: React.FC = () => {
               onChange={handleChange}
               rows={6}
               disabled={isSubmitting}
-              className="focus:border-gold-500/30 w-full resize-none border border-white/5 bg-black/20 p-5 font-light text-neutral-200 placeholder-neutral-600 transition-colors duration-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="focus:border-gold-500 focus:ring-gold-500 w-full resize-none border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderRadius: "var(--radius-action)" }}
               placeholder="Tuliskan keluhan atau saran anda disini..."
               required
             ></textarea>
 
             <div className="mt-4 flex items-center justify-between">
-              <span className="text-xs tracking-[0.2em] text-neutral-600 uppercase">
+              <span className="text-sm text-neutral-500">
                 {formData.message.length} Karakter
               </span>
               <div className="flex items-center gap-6">
@@ -508,7 +520,7 @@ const Aduan: React.FC = () => {
                   onClick={handleEnhance}
                   disabled={isEnhancing || !formData.message || isSubmitting}
                   title="Rapikan tata bahasa dan format pesan menggunakan AI secara otomatis"
-                  className="text-gold-500/60 hover:text-gold-300 flex items-center gap-2 text-xs tracking-[0.2em] uppercase transition-colors duration-300 disabled:text-neutral-700"
+                  className="text-gold-500/70 hover:text-gold-300 flex items-center gap-2 text-sm font-medium transition-colors duration-300 disabled:text-neutral-700"
                 >
                   {isEnhancing
                     ? "Sedang Memproses..."
@@ -521,7 +533,8 @@ const Aduan: React.FC = () => {
                     type="button"
                     onClick={handleUndoEnhance}
                     disabled={isSubmitting}
-                    className="border-b border-transparent text-xs tracking-[0.2em] text-neutral-500 uppercase transition-colors duration-300 hover:border-neutral-500 hover:text-white disabled:border-transparent disabled:text-neutral-700"
+                    className="border border-white/10 px-3 py-1.5 text-sm text-neutral-400 transition-colors duration-300 hover:border-white/30 hover:text-white disabled:border-white/10 disabled:text-neutral-700"
+                    style={{ borderRadius: "var(--radius-action)" }}
                   >
                     Undo
                   </button>
@@ -529,12 +542,12 @@ const Aduan: React.FC = () => {
               </div>
             </div>
             {enhanceStatus === "rate-limited" && (
-              <p className="mt-2 text-xs tracking-[0.2em] text-amber-400/80 uppercase">
+              <p className="mt-2 text-sm text-amber-400/80">
                 Terlalu cepat — tunggu beberapa detik sebelum mencoba lagi.
               </p>
             )}
             {enhanceStatus === "error" && (
-              <p className="mt-2 text-xs tracking-[0.2em] text-red-400/80 uppercase">
+              <p className="mt-2 text-sm text-red-400/80">
                 Gagal memperbaiki teks. Silakan coba lagi.
               </p>
             )}
@@ -543,27 +556,25 @@ const Aduan: React.FC = () => {
           {(hasTouchedForm ||
             showRestoreNotice ||
             autoSaveStatus === "error") && (
-            <div className="flex flex-col gap-4 border-t border-white/5 pt-4 text-xs font-light text-neutral-500 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 border-t border-white/5 pt-4 text-sm text-neutral-500 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 {autoSaveStatus === "saving" && (
-                  <span className="tracking-[0.2em] text-neutral-500 uppercase">
-                    Menyimpan draf...
-                  </span>
+                  <span className="text-neutral-500">Menyimpan draf...</span>
                 )}
                 {autoSaveStatus === "saved" && lastSavedAt && (
-                  <span className="tracking-[0.2em] text-neutral-500 uppercase">
+                  <span className="text-neutral-500">
                     Draf tersimpan di perangkat ini &bull; {lastSavedAt}
                   </span>
                 )}
                 {autoSaveStatus === "error" && (
-                  <span className="tracking-[0.2em] text-red-400/80 uppercase">
+                  <span className="text-red-400/80">
                     Gagal menyimpan draf. Periksa penyimpanan browser.
                   </span>
                 )}
               </div>
               <div className="flex min-w-fit items-center justify-between gap-4 md:justify-end">
                 {showRestoreNotice && (
-                  <span className="text-gold-500/50 tracking-[0.2em] uppercase">
+                  <span className="text-gold-500/60">
                     Draf sebelumnya dipulihkan.
                   </span>
                 )}
@@ -572,7 +583,8 @@ const Aduan: React.FC = () => {
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
                     disabled={isSubmitting}
-                    className="min-w-fit border-b border-transparent tracking-[0.2em] whitespace-nowrap text-neutral-500 uppercase transition-colors duration-300 hover:border-red-400/30 hover:text-red-400 disabled:cursor-not-allowed disabled:border-transparent disabled:text-neutral-700"
+                    className="min-w-fit border border-white/10 px-3 py-1.5 whitespace-nowrap text-neutral-400 transition-colors duration-300 hover:border-red-400/40 hover:text-red-400 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-neutral-700"
+                    style={{ borderRadius: "var(--radius-action)" }}
                   >
                     Reset draf
                   </button>
@@ -591,14 +603,14 @@ const Aduan: React.FC = () => {
                     <p className="mb-1 font-medium tracking-wide">
                       Pengiriman Gagal
                     </p>
-                    <p className="text-xs leading-relaxed font-light opacity-80">
+                    <p className="text-sm leading-relaxed font-light opacity-80">
                       {submitError}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSubmitError(null)}
-                    className="text-xs text-red-400/60 transition-colors hover:text-red-400"
+                    className="text-sm text-red-400/60 transition-colors hover:text-red-400"
                   >
                     X
                   </button>
@@ -610,13 +622,10 @@ const Aduan: React.FC = () => {
               disabled={isSubmitting}
               className="btn-primary w-full md:w-auto"
             >
-              <span className="btn-primary-label">
-                {isSubmitting ? "Mengirim Laporan..." : "Kirim Laporan"}
-              </span>
-              {!isSubmitting && <div className="btn-primary-overlay"></div>}
+              {isSubmitting ? "Mengirim Laporan..." : "Kirim Laporan"}
             </button>
             {isSubmitting && (
-              <p className="text-gold-500/60 mt-6 text-xs font-light tracking-[0.2em] uppercase">
+              <p className="text-gold-500/60 mt-6 text-sm">
                 Sedang memproses pengiriman laporan Anda...
               </p>
             )}
@@ -635,11 +644,12 @@ const Aduan: React.FC = () => {
               Tindakan ini akan menghapus semua isi kotak aduan yang belum
               dikirim.
             </p>
-            <div className="flex justify-end gap-4 text-xs font-medium tracking-[0.2em] uppercase">
+            <div className="flex justify-end gap-4 text-sm font-medium">
               <button
                 type="button"
                 onClick={() => setShowResetConfirm(false)}
                 className="border border-white/10 px-6 py-3 text-neutral-400 transition-colors duration-300 hover:border-white/30 hover:text-white"
+                style={{ borderRadius: "var(--radius-action)" }}
               >
                 Batal
               </button>
@@ -647,6 +657,7 @@ const Aduan: React.FC = () => {
                 type="button"
                 onClick={handleResetDraft}
                 className="hover:bg-gold-300 bg-white px-6 py-3 text-black transition-colors duration-300 hover:text-white"
+                style={{ borderRadius: "var(--radius-action)" }}
               >
                 Ya, reset
               </button>

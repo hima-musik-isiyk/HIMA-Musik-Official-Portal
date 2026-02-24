@@ -72,12 +72,12 @@ const DivisionAccordionItem: React.FC<{
           <h3 className="mb-1 font-serif text-xl text-white md:text-2xl">
             {division.name}
           </h3>
-          <p className="text-gold-500/70 text-xs tracking-[0.25em] uppercase">
+          <p className="text-gold-500/80 text-sm font-medium">
             {division.focus}
           </p>
         </div>
         <span
-          className={`ml-4 shrink-0 text-xs text-neutral-500 transition-transform duration-300 ${
+          className={`ml-4 shrink-0 text-sm text-neutral-500 transition-transform duration-300 ${
             isOpen ? "rotate-180" : ""
           }`}
         >
@@ -97,7 +97,7 @@ const DivisionAccordionItem: React.FC<{
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             <div>
-              <h4 className="mb-3 text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase">
+              <h4 className="mb-3 text-sm font-medium text-neutral-300">
                 Tugas Utama
               </h4>
               <ul className="space-y-2 text-sm text-neutral-300">
@@ -111,7 +111,7 @@ const DivisionAccordionItem: React.FC<{
             </div>
 
             <div>
-              <h4 className="mb-3 text-xs font-medium tracking-[0.3em] text-neutral-400 uppercase">
+              <h4 className="mb-3 text-sm font-medium text-neutral-300">
                 Skill &amp; Komitmen
               </h4>
               <div className="space-y-3">
@@ -119,7 +119,8 @@ const DivisionAccordionItem: React.FC<{
                   {division.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="border-gold-500/30 bg-gold-500/5 text-gold-300 border px-3 py-1 text-xs"
+                      className="border-gold-500/30 bg-gold-500/5 text-gold-300 border px-3 py-1 text-sm"
+                      style={{ borderRadius: "var(--radius-action)" }}
                     >
                       {skill}
                     </span>
@@ -185,14 +186,17 @@ const PendaftaranLanding: React.FC = () => {
 
   return (
     <div className="relative min-h-screen px-6 pt-40 pb-32">
-      <div className="pointer-events-none absolute top-0 left-0 h-screen w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]" />
 
       <div className="relative z-10 mx-auto max-w-6xl">
         {/* ── Hero ───────────────────────────────────────────── */}
         <section className="mb-24">
           <div className="mb-8 flex items-center gap-4">
-            <div className="bg-gold-500/50 h-px w-8" />
-            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
+            <span
+              className="bg-gold-500/40 block h-px w-8 md:w-12"
+              aria-hidden="true"
+            />
+            <p className="text-gold-500 text-sm font-medium">
               Open Recruitment
             </p>
           </div>
@@ -202,13 +206,16 @@ const PendaftaranLanding: React.FC = () => {
             <span className="text-gold-500/80 font-light italic">Pengurus</span>
           </h1>
 
-          <p className="mb-6 max-w-xl text-sm leading-relaxed text-neutral-400">
-            Bergabung dalam kepengurusan HIMA Musik 2026. Lihat struktur
-            organisasi, kenali setiap divisi, dan daftarkan dirimu.
+          <p className="mb-6 max-w-xl text-base leading-relaxed text-neutral-400">
+            Mari wujudkan visi bersama. Jadilah bagian dari pengurus HIMA Musik
+            2026.
           </p>
 
-          <div className="inline-block border border-white/10 px-5 py-2">
-            <p className="text-xs tracking-[0.3em] text-neutral-400 uppercase">
+          <div
+            className="inline-block border border-white/10 px-5 py-2"
+            style={{ borderRadius: "var(--radius-action)" }}
+          >
+            <p className="text-sm text-neutral-400">
               Periode:{" "}
               <span className="text-gold-300">{RECRUITMENT_PERIOD}</span>
             </p>
@@ -218,8 +225,11 @@ const PendaftaranLanding: React.FC = () => {
         {/* ── Struktur BPH ───────────────────────────────────── */}
         <section className="mb-24">
           <div className="mb-12 flex items-center gap-4">
-            <div className="bg-gold-500/50 h-px w-8" />
-            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
+            <span
+              className="bg-gold-500/40 block h-px w-8 md:w-12"
+              aria-hidden="true"
+            />
+            <p className="text-gold-500 text-sm font-medium">
               Struktur Kabinet 2026
             </p>
           </div>
@@ -228,7 +238,7 @@ const PendaftaranLanding: React.FC = () => {
           <div className="flex flex-col items-center">
             {/* Ketua */}
             <div className="w-full max-w-xs border border-white/10 bg-white/2 px-8 py-5 text-center">
-              <p className="mb-1 text-[0.6rem] tracking-[0.35em] text-neutral-500 uppercase">
+              <p className="mb-1 text-sm text-neutral-500">
                 {bphMembers[0].role}
               </p>
               <p className="font-serif text-lg text-neutral-200">
@@ -240,7 +250,7 @@ const PendaftaranLanding: React.FC = () => {
 
             {/* Wakil */}
             <div className="w-full max-w-xs border border-white/10 bg-white/2 px-8 py-5 text-center">
-              <p className="mb-1 text-[0.6rem] tracking-[0.35em] text-neutral-500 uppercase">
+              <p className="mb-1 text-sm text-neutral-500">
                 {bphMembers[1].role}
               </p>
               <p className="font-serif text-lg text-neutral-200">
@@ -270,7 +280,7 @@ const PendaftaranLanding: React.FC = () => {
                 >
                   <div className="h-8 w-px bg-white/10" />
                   <div className="flex min-h-30 w-full max-w-60 flex-col justify-center border border-white/10 bg-white/2 px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="mb-1 text-[0.6rem] tracking-[0.35em] text-neutral-500 uppercase">
+                    <p className="mb-1 text-sm text-neutral-500">
                       {bphMembers[2].role}
                     </p>
                     <p className="font-serif text-base leading-snug text-neutral-200">
@@ -280,11 +290,11 @@ const PendaftaranLanding: React.FC = () => {
 
                   <div className="border-gold-500/40 h-6 w-0 border-l border-dashed" />
                   <div className="border-gold-500/30 bg-gold-500/4 flex min-h-30 w-full max-w-60 flex-col justify-center border px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="text-gold-500 mb-1 text-[0.6rem] tracking-[0.35em] uppercase">
+                    <p className="text-gold-500 mb-1 text-sm font-medium">
                       Co-Sekretaris
                     </p>
-                    <p className="text-gold-300/60 text-xs">1 posisi terbuka</p>
-                    <p className="mt-1 text-[0.55rem] text-neutral-500">
+                    <p className="text-gold-300/70 text-sm">1 posisi terbuka</p>
+                    <p className="mt-1 text-sm text-neutral-500">
                       Angkatan 2024–2025
                     </p>
                   </div>
@@ -297,7 +307,7 @@ const PendaftaranLanding: React.FC = () => {
                 >
                   <div className="h-8 w-px bg-white/10" />
                   <div className="flex min-h-30 w-full max-w-60 flex-col justify-center border border-white/10 bg-white/2 px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="mb-1 text-[0.6rem] tracking-[0.35em] text-neutral-500 uppercase">
+                    <p className="mb-1 text-sm text-neutral-500">
                       {bphMembers[3].role}
                     </p>
                     <p className="font-serif text-base leading-snug text-neutral-200">
@@ -307,11 +317,11 @@ const PendaftaranLanding: React.FC = () => {
 
                   <div className="border-gold-500/40 h-6 w-0 border-l border-dashed" />
                   <div className="border-gold-500/30 bg-gold-500/4 flex min-h-30 w-full max-w-60 flex-col justify-center border px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="text-gold-500 mb-1 text-[0.6rem] tracking-[0.35em] uppercase">
+                    <p className="text-gold-500 mb-1 text-sm font-medium">
                       Co-Bendahara
                     </p>
-                    <p className="text-gold-300/60 text-xs">1 posisi terbuka</p>
-                    <p className="mt-1 text-[0.55rem] text-neutral-500">
+                    <p className="text-gold-300/70 text-sm">1 posisi terbuka</p>
+                    <p className="mt-1 text-sm text-neutral-500">
                       Angkatan 2024–2025
                     </p>
                   </div>
@@ -323,8 +333,11 @@ const PendaftaranLanding: React.FC = () => {
           {/* Open Divisions */}
           <div className="mt-16">
             <div className="mb-8 flex items-center gap-4">
-              <div className="bg-gold-500/30 h-px w-6" />
-              <p className="text-gold-400/80 text-xs font-medium tracking-[0.3em] uppercase">
+              <span
+                className="bg-gold-500/40 block h-px w-8 md:w-12"
+                aria-hidden="true"
+              />
+              <p className="text-gold-400/90 text-sm font-medium">
                 Divisi Terbuka
               </p>
               <div className="bg-gold-500/10 h-px flex-1" />
@@ -339,10 +352,10 @@ const PendaftaranLanding: React.FC = () => {
                   <p className="text-gold-200 mb-2 font-serif text-lg">
                     {division.name}
                   </p>
-                  <p className="text-gold-300/60 text-xs">
+                  <p className="text-gold-300/70 text-sm">
                     {division.slots} posisi terbuka
                   </p>
-                  <p className="mt-1 text-[0.55rem] text-neutral-500">
+                  <p className="mt-1 text-sm text-neutral-500">
                     Angkatan {division.angkatan}
                   </p>
                 </div>
@@ -351,7 +364,7 @@ const PendaftaranLanding: React.FC = () => {
           </div>
 
           {/* Legend */}
-          <div className="mt-8 flex flex-wrap items-center gap-6 text-xs text-neutral-500">
+          <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-neutral-500">
             <span className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 border border-white/10 bg-white/2" />
               Posisi terisi
@@ -370,10 +383,11 @@ const PendaftaranLanding: React.FC = () => {
         {/* ── Panduan Divisi ─────────────────────────────────── */}
         <section className="mb-24">
           <div className="mb-12 flex items-center gap-4">
-            <div className="bg-gold-500/50 h-px w-8" />
-            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
-              Panduan Divisi
-            </p>
+            <span
+              className="bg-gold-500/40 block h-px w-8 md:w-12"
+              aria-hidden="true"
+            />
+            <p className="text-gold-500 text-sm font-medium">Panduan Divisi</p>
           </div>
 
           <div className="space-y-4">
@@ -391,8 +405,11 @@ const PendaftaranLanding: React.FC = () => {
         {/* ── Timeline Seleksi ───────────────────────────────── */}
         <section className="mb-24">
           <div className="mb-12 flex items-center gap-4">
-            <div className="bg-gold-500/50 h-px w-8" />
-            <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
+            <span
+              className="bg-gold-500/40 block h-px w-8 md:w-12"
+              aria-hidden="true"
+            />
+            <p className="text-gold-500 text-sm font-medium">
               Timeline Seleksi
             </p>
           </div>
@@ -403,11 +420,11 @@ const PendaftaranLanding: React.FC = () => {
                 key={item.title}
                 className="relative flex flex-col gap-3 border border-white/5 bg-[#0f0f0f] p-6"
               >
-                <span className="absolute top-4 right-4 text-[0.6rem] tracking-[0.3em] text-neutral-600 uppercase">
+                <span className="absolute top-4 right-4 text-sm text-neutral-600">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <h3 className="font-serif text-xl text-white">{item.title}</h3>
-                <span className="text-gold-300/80 text-xs tracking-[0.3em] uppercase">
+                <span className="text-gold-300/80 text-sm font-medium">
                   {item.date}
                 </span>
                 <p className="text-sm leading-relaxed font-light text-neutral-400">
@@ -420,12 +437,9 @@ const PendaftaranLanding: React.FC = () => {
 
         {/* ── CTA ────────────────────────────────────────────── */}
         <section className="border-t border-white/5 py-16 text-center">
-          <p className="mb-8 text-sm tracking-[0.2em] text-neutral-500 uppercase">
-            Siap bergabung?
-          </p>
+          <p className="mb-8 text-sm text-neutral-500">Siap bergabung?</p>
           <Link href="/pendaftaran/form" className="btn-primary inline-flex">
-            <span className="btn-primary-label">Isi Formulir Pendaftaran</span>
-            <div className="btn-primary-overlay" />
+            Isi Formulir Pendaftaran
           </Link>
         </section>
       </div>

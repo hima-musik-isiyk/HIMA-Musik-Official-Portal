@@ -2,23 +2,24 @@ import React from "react";
 const Events: React.FC = () => {
   return (
     <div className="relative min-h-screen px-6 pt-40 pb-32">
-      <div className="pointer-events-none absolute top-0 left-0 h-screen w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
+      <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="relative mb-20 flex flex-col items-start justify-between border-b border-white/5 pb-10 md:flex-row md:items-end">
           <div className="bg-gold-500/50 absolute bottom-0 left-0 h-px w-32"></div>
           <div>
             <div className="mb-6 flex items-center gap-4">
-              <div className="bg-gold-500/50 h-px w-8"></div>
-              <p className="text-gold-500 text-xs font-medium tracking-[0.4em] uppercase">
-                Agenda
-              </p>
+              <span
+                className="bg-gold-500/40 block h-px w-8 md:w-12"
+                aria-hidden="true"
+              />
+              <p className="text-gold-500 text-sm font-medium">Agenda</p>
             </div>
             <h1 className="font-serif text-5xl tracking-tight text-white md:text-7xl">
               Kalender{" "}
               <span className="text-gold-500/80 font-light italic">Acara</span>
             </h1>
           </div>
-          <p className="mt-8 text-sm font-light tracking-widest text-neutral-400 uppercase md:mt-0">
+          <p className="mt-8 text-sm text-neutral-400 md:mt-0">
             Semester Genap 2026
           </p>
         </div>
@@ -31,14 +32,15 @@ const Events: React.FC = () => {
                 Kalender acara Semester Genap 2026 sedang dalam penyusunan dan
                 akan dipublikasikan sebelum perkuliahan dimulai.
               </p>
-              <p className="text-xs tracking-wide text-neutral-500">
+              <p className="text-sm text-neutral-500">
                 Sementara itu, ikuti informasi terbaru melalui kanal resmi kami:
               </p>
               <a
                 href="https://instagram.com/himamusikisi"
                 target="_blank"
                 rel="noreferrer"
-                className="border-gold-500/30 text-gold-300 hover:bg-gold-500/10 inline-flex items-center gap-3 border px-6 py-3 text-xs tracking-[0.3em] uppercase transition-colors duration-300"
+                className="border-gold-500/30 text-gold-300 hover:bg-gold-500/10 inline-flex items-center gap-3 border px-6 py-3 text-sm font-medium transition-colors duration-300"
+                style={{ borderRadius: "var(--radius-action)" }}
               >
                 <svg
                   width="16"
