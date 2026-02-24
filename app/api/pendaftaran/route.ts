@@ -106,6 +106,7 @@ export async function POST(request: Request) {
       : [];
     const portfolio =
       typeof data.portfolio === "string" ? data.portfolio.trim() : "";
+    const isPddSelected = firstChoice === "pdd" || secondChoice === "pdd";
 
     if (!firstChoice) {
       return NextResponse.json(
@@ -273,7 +274,7 @@ export async function POST(request: Request) {
       ? divisionLabels[secondChoice] ?? secondChoice
       : "";
     const subfocusLabel =
-      firstChoice === "pdd" && pddSubfocus
+      isPddSelected && pddSubfocus
         ? pddSubfocusLabels[pddSubfocus] ?? pddSubfocus
         : "";
     const safeFullName = escapeHtml(fullName || "Calon Pengurus");
@@ -481,7 +482,7 @@ export async function POST(request: Request) {
           firstChoice,
           secondChoice: secondChoice || null,
           angkatan,
-          pddSubfocus: firstChoice === "pdd" && pddSubfocus ? pddSubfocus : null,
+          pddSubfocus: isPddSelected && pddSubfocus ? pddSubfocus : null,
           fullName: fullName || "",
           nim: nim || null,
           email,
