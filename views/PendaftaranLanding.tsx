@@ -136,6 +136,42 @@ const DivisionAccordionItem: React.FC<{
 
 const PendaftaranLanding: React.FC = () => {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const branchContainerRef = useRef<HTMLDivElement>(null);
+  const sekretarisBranchRef = useRef<HTMLDivElement>(null);
+  const bendaharaBranchRef = useRef<HTMLDivElement>(null);
+  const [branchConnector, setBranchConnector] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const updateBranchConnector = () => {
+      const container = branchContainerRef.current;
+      const sekretaris = sekretarisBranchRef.current;
+      const bendahara = bendaharaBranchRef.current;
+
+      if (!container || !sekretaris || !bendahara) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const sekretarisRect = sekretaris.getBoundingClientRect();
+      const bendaharaRect = bendahara.getBoundingClientRect();
+
+      const sekretarisCenter =
+        sekretarisRect.left - containerRect.left + sekretarisRect.width / 2;
+      const bendaharaCenter =
+        bendaharaRect.left - containerRect.left + bendaharaRect.width / 2;
+
+      const left = Math.min(sekretarisCenter, bendaharaCenter);
+      const width = Math.abs(bendaharaCenter - sekretarisCenter);
+
+      setBranchConnector({ left, width });
+    };
+
+    const frameId = window.requestAnimationFrame(updateBranchConnector);
+    window.addEventListener("resize", updateBranchConnector);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", updateBranchConnector);
+    };
+  }, []);
 
   const toggleDivision = (id: string) => {
     setOpenSections((prev) => ({
@@ -213,13 +249,22 @@ const PendaftaranLanding: React.FC = () => {
             <div className="w-px h-8 bg-white/10" />
 
             {/* T‑branch: Sekretaris & Bendahara */}
-            <div className="w-full max-w-2xl">
-              {/* Horizontal bar spanning column centres */}
-              <div className="mx-auto h-px bg-white/10 w-1/2" />
+            <div className="w-full max-w-2xl relative" ref={branchContainerRef}>
+              {/* Horizontal bar spanning exact column centres */}
+              <div
+                className="absolute top-0 h-px bg-white/10"
+                style={{
+                  left: `${branchConnector.left}px`,
+                  width: `${branchConnector.width}px`,
+                }}
+              />
 
-              <div className="flex gap-3 md:gap-6">
+              <div className="flex gap-3 md:gap-6 pt-px">
                 {/* ── Sekretaris → Co‑Sekretaris ── */}
-                <div className="flex-1 flex flex-col items-center">
+                <div
+                  className="flex-1 flex flex-col items-center"
+                  ref={sekretarisBranchRef}
+                >
                   <div className="w-px h-8 bg-white/10" />
 
                   <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
@@ -247,7 +292,10 @@ const PendaftaranLanding: React.FC = () => {
                 </div>
 
                 {/* ── Bendahara → Co‑Bendahara ── */}
-                <div className="flex-1 flex flex-col items-center">
+                <div
+                  className="flex-1 flex flex-col items-center"
+                  ref={bendaharaBranchRef}
+                >
                   <div className="w-px h-8 bg-white/10" />
 
                   <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
