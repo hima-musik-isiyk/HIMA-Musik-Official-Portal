@@ -537,9 +537,7 @@ const Home: React.FC = () => {
             </div>
             <h2 className="font-serif text-4xl tracking-tight text-white md:text-6xl">
               Jadi{" "}
-              <span className="text-gold-500/80 font-light italic">
-                Pengurus
-              </span>{" "}
+              <span className="text-gold-500 font-light italic">Pengurus</span>{" "}
               HIMA
             </h2>
             <p className="mt-5 max-w-xl text-sm leading-relaxed text-neutral-400">

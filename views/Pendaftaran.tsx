@@ -789,30 +789,36 @@ const Pendaftaran: React.FC = () => {
                   >
                     Pilihan 2 (Opsional)
                   </label>
-                  <select
-                    id="secondChoice"
-                    name="secondChoice"
-                    value={formData.secondChoice}
-                    onChange={(e) => handleSecondChoiceChange(e.target.value)}
-                    className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none"
-                    style={{ borderRadius: "var(--radius-action)" }}
-                  >
-                    <option value="">
-                      — Tidak ada / Hanya fokus pada Pilihan 1 —
-                    </option>
-                    {divisions.map((division) => (
-                      <option
-                        key={division.id}
-                        value={division.id}
-                        disabled={division.id === formData.firstChoice}
-                      >
-                        {division.name}
-                        {division.id === formData.firstChoice
-                          ? " (dipilih sebagai Pilihan 1)"
-                          : ""}
+                  <div className="relative">
+                    <select
+                      id="secondChoice"
+                      name="secondChoice"
+                      value={formData.secondChoice}
+                      onChange={(e) => handleSecondChoiceChange(e.target.value)}
+                      className="focus:border-gold-500 focus:ring-gold-500 w-full appearance-none border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none"
+                      style={{ borderRadius: "var(--radius-action)" }}
+                    >
+                      <option className="bg-[#111] text-neutral-300" value="">
+                        — Tidak ada / Hanya fokus pada Pilihan 1 —
                       </option>
-                    ))}
-                  </select>
+                      {divisions.map((division) => (
+                        <option
+                          key={division.id}
+                          value={division.id}
+                          disabled={division.id === formData.firstChoice}
+                          className="bg-[#111] text-neutral-300"
+                        >
+                          {division.name}
+                          {division.id === formData.firstChoice
+                            ? " (dipilih sebagai Pilihan 1)"
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 text-sm transition-colors duration-300">
+                      ▼
+                    </div>
+                  </div>
                   <p className="mt-2 text-sm text-neutral-500">
                     Pilihan 2 tidak dapat sama dengan Pilihan 1.
                   </p>
@@ -825,19 +831,41 @@ const Pendaftaran: React.FC = () => {
                   >
                     Angkatan <span className="text-gold-500">*</span>
                   </label>
-                  <select
-                    id="angkatan"
-                    name="angkatan"
-                    value={formData.angkatan}
-                    onChange={handleInputChange}
-                    className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none"
-                    style={{ borderRadius: "var(--radius-action)" }}
-                  >
-                    <option value="">— Pilih angkatan —</option>
-                    <option value="2023">2023</option>
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      id="angkatan"
+                      name="angkatan"
+                      value={formData.angkatan}
+                      onChange={handleInputChange}
+                      className="focus:border-gold-500 focus:ring-gold-500 w-full appearance-none border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none"
+                      style={{ borderRadius: "var(--radius-action)" }}
+                    >
+                      <option className="bg-[#111] text-neutral-300" value="">
+                        — Pilih angkatan —
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="2023"
+                      >
+                        2023
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="2024"
+                      >
+                        2024
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="2025"
+                      >
+                        2025
+                      </option>
+                    </select>
+                    <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 text-sm transition-colors duration-300">
+                      ▼
+                    </div>
+                  </div>
                   {showStepErrors && angkatanError && (
                     <p
                       data-error="true"
