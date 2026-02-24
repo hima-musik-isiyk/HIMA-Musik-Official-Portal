@@ -40,9 +40,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   }
 })();`}
         </Script>
-        <div className="fixed inset-0 bg-[#0a0a0a] z-[1]" aria-hidden="true" />
+        <div className="fixed inset-0 bg-[#0a0a0a] z-1" aria-hidden="true" />
         <Navigation />
-        <main className="grow pt-20 relative z-[3]">{children}</main>
+        <main className="grow pt-20 relative z-3">{children}</main>
         <Footer />
       </body>
     </html>

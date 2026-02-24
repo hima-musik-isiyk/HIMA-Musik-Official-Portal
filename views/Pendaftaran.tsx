@@ -175,17 +175,6 @@ const Pendaftaran: React.FC = () => {
     return false;
   })();
 
-  const canAccessStep = (targetStep: number) => {
-    if (targetStep < 0 || targetStep >= steps.length) return false;
-    if (targetStep === 0) return true;
-    for (let index = 0; index < targetStep; index += 1) {
-      if (!isStepComplete(index)) {
-        return false;
-      }
-    }
-    return true;
-  };
-
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -359,29 +348,6 @@ const Pendaftaran: React.FC = () => {
     } catch {}
   };
 
-  const saveDraftNow = () => {
-    if (!hasTouchedForm || submitted) return;
-    if (typeof window === "undefined") return;
-    try {
-      setAutoSaveStatus("saving");
-      const payload: StoredRecruitmentState = {
-        data: formData,
-        timestamp: Date.now(),
-        step,
-      };
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      setAutoSaveStatus("saved");
-      setLastSavedAt(
-        new Date(payload.timestamp).toLocaleTimeString("id-ID", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      );
-    } catch {
-      setAutoSaveStatus("error");
-    }
-  };
-
   const handleResetDraft = () => {
     setFormData({
       firstChoice: "",
@@ -490,12 +456,6 @@ const Pendaftaran: React.FC = () => {
     setShowStepErrors(false);
     shouldScrollOnStepChangeRef.current = true;
     setStep((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleStepClick = (targetStep: number) => {
-    if (!canAccessStep(targetStep)) return;
-    setShowStepErrors(false);
-    setStep(targetStep);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
