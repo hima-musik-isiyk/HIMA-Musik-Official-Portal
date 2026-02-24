@@ -237,64 +237,66 @@ const PendaftaranLanding: React.FC = () => {
           {/* Org‑chart tree */}
           <div className="flex flex-col items-center">
             {/* Ketua */}
-            <div className="w-full max-w-xs border border-white/10 bg-white/2 px-8 py-5 text-center">
-              <p className="mb-1 text-sm text-neutral-500">
+            <div className="w-full max-w-sm border border-white/[0.08] bg-white/[0.03] px-8 py-6 text-center">
+              <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                 {bphMembers[0].role}
               </p>
-              <p className="font-serif text-lg text-neutral-200">
+              <p className="font-serif text-lg text-white">
                 {bphMembers[0].name}
               </p>
             </div>
 
-            <div className="h-8 w-px bg-white/10" />
+            <div className="h-8 w-px bg-white/15" />
 
             {/* Wakil */}
-            <div className="w-full max-w-xs border border-white/10 bg-white/2 px-8 py-5 text-center">
-              <p className="mb-1 text-sm text-neutral-500">
+            <div className="w-full max-w-sm border border-white/[0.08] bg-white/[0.03] px-8 py-6 text-center">
+              <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                 {bphMembers[1].role}
               </p>
-              <p className="font-serif text-lg text-neutral-200">
+              <p className="font-serif text-lg text-white">
                 {bphMembers[1].name}
               </p>
             </div>
 
             {/* Connector down to branch */}
-            <div className="h-8 w-px bg-white/10" />
+            <div className="h-8 w-px bg-white/15" />
 
             {/* T‑branch: Sekretaris & Bendahara */}
             <div className="relative w-full max-w-2xl" ref={branchContainerRef}>
               {/* Horizontal bar spanning exact column centres */}
               <div
-                className="absolute top-0 h-px bg-white/10"
+                className="absolute top-0 h-px bg-white/15"
                 style={{
                   left: `${branchConnector.left}px`,
                   width: `${branchConnector.width}px`,
                 }}
               />
 
-              <div className="flex gap-3 pt-px md:gap-6">
+              <div className="flex gap-4 pt-px md:gap-8">
                 {/* ── Sekretaris → Co‑Sekretaris ── */}
                 <div
                   className="flex flex-1 flex-col items-center"
                   ref={sekretarisBranchRef}
                 >
-                  <div className="h-8 w-px bg-white/10" />
-                  <div className="flex min-h-30 w-full max-w-60 flex-col justify-center border border-white/10 bg-white/2 px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="mb-1 text-sm text-neutral-500">
+                  <div className="h-8 w-px bg-white/15" />
+                  <div className="flex w-full flex-col justify-center border border-white/[0.08] bg-white/[0.03] px-4 py-5 text-center md:px-6 md:py-6">
+                    <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                       {bphMembers[2].role}
                     </p>
-                    <p className="font-serif text-base leading-snug text-neutral-200">
+                    <p className="font-serif text-sm leading-snug text-white md:text-base">
                       {bphMembers[2].name}
                     </p>
                   </div>
 
-                  <div className="border-gold-500/40 h-6 w-0 border-l border-dashed" />
-                  <div className="border-gold-500/30 bg-gold-500/4 flex min-h-30 w-full max-w-60 flex-col justify-center border px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="text-gold-500 mb-1 text-sm font-medium">
+                  <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
+                  <div className="border-gold-500/20 bg-gold-500/[0.05] flex w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                    <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
                       Co-Sekretaris
                     </p>
-                    <p className="text-gold-300/70 text-sm">1 posisi terbuka</p>
-                    <p className="mt-1 text-sm text-neutral-500">
+                    <p className="text-gold-200 font-serif text-sm md:text-base">
+                      1 posisi terbuka
+                    </p>
+                    <p className="mt-1.5 text-xs text-neutral-500">
                       Angkatan 2024–2025
                     </p>
                   </div>
@@ -305,23 +307,25 @@ const PendaftaranLanding: React.FC = () => {
                   className="flex flex-1 flex-col items-center"
                   ref={bendaharaBranchRef}
                 >
-                  <div className="h-8 w-px bg-white/10" />
-                  <div className="flex min-h-30 w-full max-w-60 flex-col justify-center border border-white/10 bg-white/2 px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="mb-1 text-sm text-neutral-500">
+                  <div className="h-8 w-px bg-white/15" />
+                  <div className="flex w-full flex-col justify-center border border-white/[0.08] bg-white/[0.03] px-4 py-5 text-center md:px-6 md:py-6">
+                    <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                       {bphMembers[3].role}
                     </p>
-                    <p className="font-serif text-base leading-snug text-neutral-200">
+                    <p className="font-serif text-sm leading-snug text-white md:text-base">
                       {bphMembers[3].name}
                     </p>
                   </div>
 
-                  <div className="border-gold-500/40 h-6 w-0 border-l border-dashed" />
-                  <div className="border-gold-500/30 bg-gold-500/4 flex min-h-30 w-full max-w-60 flex-col justify-center border px-3 py-3 text-center md:min-h-32 md:px-6 md:py-4">
-                    <p className="text-gold-500 mb-1 text-sm font-medium">
+                  <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
+                  <div className="border-gold-500/20 bg-gold-500/[0.05] flex w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                    <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
                       Co-Bendahara
                     </p>
-                    <p className="text-gold-300/70 text-sm">1 posisi terbuka</p>
-                    <p className="mt-1 text-sm text-neutral-500">
+                    <p className="text-gold-200 font-serif text-sm md:text-base">
+                      1 posisi terbuka
+                    </p>
+                    <p className="mt-1.5 text-xs text-neutral-500">
                       Angkatan 2024–2025
                     </p>
                   </div>
@@ -337,7 +341,7 @@ const PendaftaranLanding: React.FC = () => {
                 className="bg-gold-500/40 block h-px w-8 md:w-12"
                 aria-hidden="true"
               />
-              <p className="text-gold-400/90 text-sm font-medium">
+              <p className="text-gold-500 text-sm font-medium">
                 Divisi Terbuka
               </p>
               <div className="bg-gold-500/10 h-px flex-1" />
@@ -347,15 +351,18 @@ const PendaftaranLanding: React.FC = () => {
               {openDivisions.map((division) => (
                 <div
                   key={division.name}
-                  className="border-gold-500/30 bg-gold-500/4 border p-6 text-center"
+                  className="border-gold-500/20 bg-gold-500/[0.05] border p-6 text-center"
                 >
-                  <p className="text-gold-200 mb-2 font-serif text-lg">
+                  <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
+                    Divisi
+                  </p>
+                  <p className="text-gold-200 mb-3 font-serif text-base">
                     {division.name}
                   </p>
-                  <p className="text-gold-300/70 text-sm">
+                  <p className="text-gold-200/60 text-sm">
                     {division.slots} posisi terbuka
                   </p>
-                  <p className="mt-1 text-sm text-neutral-500">
+                  <p className="mt-1.5 text-xs text-neutral-500">
                     Angkatan {division.angkatan}
                   </p>
                 </div>
@@ -364,17 +371,17 @@ const PendaftaranLanding: React.FC = () => {
           </div>
 
           {/* Legend */}
-          <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-neutral-500">
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 border border-white/10 bg-white/2" />
+          <div className="mt-10 flex flex-wrap items-center gap-6 text-xs text-neutral-500">
+            <span className="flex items-center gap-2.5">
+              <span className="inline-block h-3 w-3 border border-white/[0.08] bg-white/[0.03]" />
               Posisi terisi
             </span>
-            <span className="flex items-center gap-2">
-              <span className="border-gold-500/30 bg-gold-500/4 inline-block h-3 w-3 border" />
+            <span className="flex items-center gap-2.5">
+              <span className="border-gold-500/20 bg-gold-500/[0.05] inline-block h-3 w-3 border" />
               Posisi terbuka
             </span>
-            <span className="flex items-center gap-2">
-              <span className="border-gold-500/40 inline-block h-0 w-4 border-t border-dashed" />
+            <span className="flex items-center gap-2.5">
+              <span className="border-gold-500/35 inline-block h-0 w-4 border-t border-dashed" />
               Jalur rekrutmen
             </span>
           </div>
