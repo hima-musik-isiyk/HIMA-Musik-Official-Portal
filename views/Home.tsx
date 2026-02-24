@@ -200,6 +200,7 @@ const Home: React.FC = () => {
               ) : musikPressureActive ? (
                 <TextPressure
                   text="MUSIK"
+                  className="translate-y-[0.04em]"
                   fontFamily="var(--font-serif)"
                   fontUrl=""
                   autoFit={false}
