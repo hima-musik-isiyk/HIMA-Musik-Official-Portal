@@ -184,6 +184,8 @@ const Pendaftaran: React.FC = () => {
   const stepBarRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollOnStepChangeRef = useRef(false);
   const formContainerRef = useRef<HTMLFormElement | null>(null);
+  const isPddSelected =
+    formData.firstChoice === "pdd" || formData.secondChoice === "pdd";
 
   const currentDivision = divisions.find((division) => division.id === formData.firstChoice);
   const trimmedFullName = formData.fullName.trim();
@@ -510,7 +512,10 @@ const Pendaftaran: React.FC = () => {
       ...prev,
       firstChoice: divisionId,
       secondChoice: prev.secondChoice === divisionId ? "" : prev.secondChoice,
-      pddSubfocus: divisionId === "pdd" ? prev.pddSubfocus : "",
+      pddSubfocus:
+        divisionId === "pdd" || prev.secondChoice === "pdd"
+          ? prev.pddSubfocus
+          : "",
     }));
     setHasTouchedForm(true);
   };
@@ -519,6 +524,10 @@ const Pendaftaran: React.FC = () => {
     setFormData((prev) => ({
       ...prev,
       secondChoice: divisionId,
+      pddSubfocus:
+        prev.firstChoice === "pdd" || divisionId === "pdd"
+          ? prev.pddSubfocus
+          : "",
     }));
     setHasTouchedForm(true);
   };
@@ -610,7 +619,7 @@ const Pendaftaran: React.FC = () => {
         firstChoice: formData.firstChoice,
         secondChoice: formData.secondChoice,
         angkatan: formData.angkatan,
-        pddSubfocus: formData.firstChoice === "pdd" ? formData.pddSubfocus : "",
+        pddSubfocus: isPddSelected ? formData.pddSubfocus : "",
         fullName: trimmedFullName,
         nim: trimmedNim,
         email: trimmedEmail,
@@ -846,7 +855,7 @@ const Pendaftaran: React.FC = () => {
                         />
                         <label
                           htmlFor={`choice1-${division.id}`}
-                          className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.05]"
+                          className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/5"
                           style={{
                             borderColor:
                               formData.firstChoice === division.id
@@ -936,7 +945,7 @@ const Pendaftaran: React.FC = () => {
                   )}
                 </div>
 
-                {formData.firstChoice === "pdd" && (
+                {isPddSelected && (
                   <div className="space-y-4">
                     <label className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
                       Sub-fokus PDD (Opsional)
@@ -962,7 +971,7 @@ const Pendaftaran: React.FC = () => {
                           />
                           <label
                             htmlFor={`pdd-${option.value}`}
-                            className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.05]"
+                            className="ml-4 cursor-pointer flex-1 py-3 px-4 border border-white/5 rounded-sm transition-all duration-300 hover:border-white/20 hover:bg-white/5"
                             style={{
                               borderColor:
                                 formData.pddSubfocus === option.value
@@ -1207,7 +1216,7 @@ const Pendaftaran: React.FC = () => {
                           className={`border px-4 py-3 text-xs uppercase tracking-[0.3em] transition-all duration-300 rounded-sm font-medium ${
                             isActive
                               ? "border-gold-500/60 text-gold-300 bg-gold-500/10"
-                              : "border-white/10 text-neutral-400 hover:text-white hover:border-white/30 hover:bg-white/[0.05]"
+                              : "border-white/10 text-neutral-400 hover:text-white hover:border-white/30 hover:bg-white/5"
                           }`}
                         >
                           {day}
@@ -1296,7 +1305,7 @@ const Pendaftaran: React.FC = () => {
                     <p className="text-sm text-neutral-400 mt-1">
                       Angkatan: {formData.angkatan || "—"}
                     </p>
-                    {formData.firstChoice === "pdd" && formData.pddSubfocus && (
+                    {isPddSelected && formData.pddSubfocus && (
                       <p className="text-sm text-neutral-400 mt-1">
                         Sub-fokus PDD:{" "}
                         {formData.pddSubfocus === "desain"
@@ -1576,7 +1585,7 @@ const Pendaftaran: React.FC = () => {
                 {divisions.map((division) => (
                   <div
                     key={division.id}
-                    className="border border-white/10 bg-white/[0.02] p-8"
+                    className="border border-white/10 bg-white/2 p-8"
                   >
                     <div className="mb-6">
                       <h3 className="font-serif text-2xl text-white mb-2">
@@ -1598,7 +1607,7 @@ const Pendaftaran: React.FC = () => {
                         <ul className="text-sm text-neutral-300 space-y-2">
                           {division.tasks.map((task) => (
                             <li key={task} className="flex gap-3">
-                              <span className="text-gold-500 flex-shrink-0">•</span>
+                              <span className="text-gold-500 shrink-0">•</span>
                               <span>{task}</span>
                             </li>
                           ))}
