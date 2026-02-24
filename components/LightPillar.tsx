@@ -218,10 +218,16 @@ const LightPillar: React.FC<LightPillarProps> = ({
 
         float widthNorm = uPillarWidth / 3.0;
         col = tanh(col * uGlowAmount / widthNorm);
-        
-        col -= fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) / 15.0 * uNoiseIntensity;
-        
-        gl_FragColor = vec4(col * uIntensity, 1.0);
+
+        float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        col += grain * (0.02 * uNoiseIntensity);
+        col = max(col, vec3(0.0));
+
+        vec3 finalCol = col * uIntensity;
+        float luma = dot(finalCol, vec3(0.2126, 0.7152, 0.0722));
+        float alpha = smoothstep(0.01, 0.25, luma);
+
+        gl_FragColor = vec4(finalCol, alpha);
       }
     `;
 
