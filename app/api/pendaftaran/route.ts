@@ -1,5 +1,3 @@
-import { Prisma } from "@prisma/client";
-import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -59,58 +57,34 @@ const htmlEscapes: Record<string, string> = {
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => htmlEscapes[char] ?? char);
 
+const escapeTelegramMarkdownV2 = (value: string) =>
+  value.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
+
+const sendTelegramMessage = async (
+  token: string,
+  payload: Record<string, unknown>,
+  context: string,
+) => {
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const bodyText = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `${context} failed (${response.status}): ${bodyText || "No response body"}`,
+    );
+  }
+
+  return bodyText;
+};
+
 const pendaftaranCooldownMs = 5 * 60 * 1000;
 
 const pendaftaranLastSubmit = new Map<string, number>();
-
-type LegacyPendaftaranInsertData = {
-  firstChoice: string;
-  secondChoice: string;
-  fullName: string;
-  nim: string;
-  email: string;
-  phone: string;
-  instagram: string;
-  motivation: string;
-  experience: string;
-  availability: string[];
-  portfolio: string;
-  submittedAt: Date;
-};
-
-const isMissingColumnError = (error: unknown, column: string) => {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
-    return false;
-  }
-
-  if (error.code !== "P2022") {
-    return false;
-  }
-
-  const meta = error.meta as { column?: unknown } | undefined;
-  return typeof meta?.column === "string" && meta.column.includes(column);
-};
-
-const createLegacyPendaftaranRecord = async (
-  payload: LegacyPendaftaranInsertData,
-) => {
-  await prisma.$executeRawUnsafe(
-    `INSERT INTO "Pendaftaran" ("id", "firstChoice", "secondChoice", "fullName", "nim", "email", "phone", "instagram", "motivation", "experience", "availability", "portfolio", "submittedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-    randomUUID(),
-    payload.firstChoice,
-    payload.secondChoice || null,
-    payload.fullName,
-    payload.nim || null,
-    payload.email,
-    payload.phone || null,
-    payload.instagram || null,
-    payload.motivation || null,
-    payload.experience || null,
-    payload.availability,
-    payload.portfolio || null,
-    payload.submittedAt,
-  );
-};
 
 export async function POST(request: Request) {
   try {
@@ -550,32 +524,7 @@ export async function POST(request: Request) {
         },
       });
     } catch (dbError) {
-      const isLegacySchemaError =
-        isMissingColumnError(dbError, "angkatan") ||
-        isMissingColumnError(dbError, "pddSubfocus");
-
-      if (isLegacySchemaError) {
-        try {
-          await createLegacyPendaftaranRecord({
-            firstChoice,
-            secondChoice,
-            fullName,
-            nim,
-            email,
-            phone,
-            instagram,
-            motivation,
-            experience,
-            availability,
-            portfolio,
-            submittedAt,
-          });
-        } catch (legacyDbError) {
-          dbWriteError = legacyDbError;
-        }
-      } else {
-        dbWriteError = dbError;
-      }
+      dbWriteError = dbError;
     }
 
     if (dbWriteError) {
@@ -591,10 +540,10 @@ export async function POST(request: Request) {
         const errorText = [
           "\u26a0\ufe0f *DB WRITE FAILED \\- PENDAFTARAN*",
           "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
-          `\ud83d\udc64 *Nama:* ${escapeHtml(fullName).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
-          `\ud83c\udd94 *NIM:* ${escapeHtml(nim).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
-          `\ud83d\udce7 *Email:* ${escapeHtml(email).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
-          `\ud83c\udfaf *Divisi:* ${escapeHtml(divisionLabel).replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&")}`,
+          `\ud83d\udc64 *Nama:* ${escapeTelegramMarkdownV2(escapeHtml(fullName))}`,
+          `\ud83c\udd94 *NIM:* ${escapeTelegramMarkdownV2(escapeHtml(nim))}`,
+          `\ud83d\udce7 *Email:* ${escapeTelegramMarkdownV2(escapeHtml(email))}`,
+          `\ud83c\udfaf *Divisi:* ${escapeTelegramMarkdownV2(escapeHtml(divisionLabel))}`,
           "",
           "\u2757 Email berhasil terkirim tetapi data TIDAK tersimpan di database\\.",
           "Manual data entry required\\.",
@@ -616,16 +565,103 @@ export async function POST(request: Request) {
         }
 
         try {
-          await fetch(`https://api.telegram.org/bot${errorToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(errorPayload),
-          });
+          await sendTelegramMessage(
+            errorToken,
+            errorPayload,
+            "DB error notification to Telegram",
+          );
         } catch (telegramError) {
           console.error(
             "Failed to send DB error notification to Telegram:",
             telegramError,
           );
+        }
+      }
+    } else {
+      const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+      const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+      const telegramTopicIdRaw = process.env.TELEGRAM_PENDAFTARAN_TOPIC_ID;
+
+      if (telegramToken && telegramChatId) {
+        const successText = [
+          "\ud83c\udf89 PENDAFTARAN BARU MASUK",
+          "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          `\ud83d\udc64 Nama: ${fullName}`,
+          `\ud83c\udd94 NIM: ${nim || "-"}`,
+          `\ud83d\udce7 Email: ${email}`,
+          `\ud83d\udcf1 WhatsApp: ${phone || "-"}`,
+          `\ud83c\udfaf Divisi 1: ${divisionLabel}`,
+          secondaryDivisionLabel
+            ? `\ud83e\udd48 Divisi 2: ${secondaryDivisionLabel}`
+            : "",
+          `\ud83c\udf93 Angkatan: ${angkatan}`,
+          subfocusLabel ? `\ud83c\udfa8 Sub-fokus PDD: ${subfocusLabel}` : "",
+          availability.length > 0
+            ? `\ud83d\uddd3\ufe0f Ketersediaan: ${availability.join(", ")}`
+            : "",
+          "",
+          `\u23f0 Waktu: ${submittedAtFormatted}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const successPayload: Record<string, unknown> = {
+          chat_id: telegramChatId,
+          text: successText,
+        };
+
+        const topicId = telegramTopicIdRaw
+          ? Number(telegramTopicIdRaw)
+          : undefined;
+        if (
+          typeof topicId === "number" &&
+          Number.isInteger(topicId) &&
+          topicId !== 0
+        ) {
+          successPayload.message_thread_id = topicId;
+        }
+
+        try {
+          await sendTelegramMessage(
+            telegramToken,
+            successPayload,
+            "Success notification to Telegram",
+          );
+        } catch (telegramError) {
+          const canFallbackToBaseChat =
+            typeof successPayload.message_thread_id !== "undefined";
+
+          if (canFallbackToBaseChat) {
+            const fallbackPayload = { ...successPayload };
+            delete fallbackPayload.message_thread_id;
+
+            try {
+              await sendTelegramMessage(
+                telegramToken,
+                fallbackPayload,
+                "Fallback success notification to Telegram base chat",
+              );
+            } catch (fallbackError) {
+              console.error(
+                "Failed to send success notification to Telegram (topic + fallback):",
+                {
+                  topicError:
+                    telegramError instanceof Error
+                      ? telegramError.message
+                      : telegramError,
+                  fallbackError:
+                    fallbackError instanceof Error
+                      ? fallbackError.message
+                      : fallbackError,
+                },
+              );
+            }
+          } else {
+            console.error(
+              "Failed to send success notification to Telegram:",
+              telegramError,
+            );
+          }
         }
       }
     }
