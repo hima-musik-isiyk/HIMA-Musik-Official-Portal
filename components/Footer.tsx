@@ -43,7 +43,7 @@ const Footer: React.FC = () => {
                 href="/about"
                 className="hover:text-gold-300 transition-colors"
               >
-                Tentang Kami
+                Profil
               </Link>
             </li>
             <li>
@@ -64,10 +64,18 @@ const Footer: React.FC = () => {
             </li>
             <li>
               <Link
+                href="/docs"
+                className="hover:text-gold-300 transition-colors"
+              >
+                Pusat Administrasi
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/aduan"
                 className="hover:text-gold-300 transition-colors"
               >
-                Layanan Aduan
+                Ruang Advokasi
               </Link>
             </li>
             <li>
@@ -75,7 +83,7 @@ const Footer: React.FC = () => {
                 href="/pendaftaran"
                 className="hover:text-gold-300 transition-colors"
               >
-                Pendaftaran
+                Open Recruitment
               </Link>
             </li>
           </ul>

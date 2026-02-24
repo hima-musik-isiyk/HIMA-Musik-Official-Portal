@@ -3,9 +3,145 @@
 import gsap from "gsap";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import LogoHima from "./LogoHima";
+
+/* ------------------------------------------------------------------ */
+/*  Menu data                                                          */
+/* ------------------------------------------------------------------ */
+
+interface DropdownItem {
+  href: string;
+  label: string;
+  description: string;
+  icon?: string;
+}
+
+interface NavGroup {
+  label: string;
+  href?: string;
+  dropdown?: DropdownItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  { label: "Profil", href: "/about" },
+  {
+    label: "Publikasi",
+    dropdown: [
+      {
+        href: "/events",
+        label: "Acara",
+        description: "Kalender program & agenda kegiatan",
+        icon: "calendar",
+      },
+      {
+        href: "/gallery",
+        label: "Galeri",
+        description: "Arsip visual dokumentasi",
+        icon: "gallery",
+      },
+    ],
+  },
+  {
+    label: "Layanan",
+    dropdown: [
+      {
+        href: "/docs",
+        label: "Pusat Administrasi & Docs",
+        description: "Portal dokumen, SOP & arsip organisasi",
+        icon: "docs",
+      },
+      {
+        href: "/aduan",
+        label: "Ruang Advokasi",
+        description: "Layanan aduan & aspirasi mahasiswa",
+        icon: "advocacy",
+      },
+    ],
+  },
+];
+
+const MOBILE_NAV_ITEMS = [
+  { href: "/", label: "Beranda" },
+  { href: "/about", label: "Profil" },
+  { href: "/events", label: "Acara" },
+  { href: "/gallery", label: "Galeri" },
+  { href: "/docs", label: "Pusat Administrasi" },
+  { href: "/aduan", label: "Ruang Advokasi" },
+  { href: "/pendaftaran", label: "Open Recruitment" },
+];
+
+/* ------------------------------------------------------------------ */
+/*  Dropdown icon map (SVG)                                            */
+/* ------------------------------------------------------------------ */
+
+const DROPDOWN_ICON_MAP: Record<string, React.ReactElement> = {
+  calendar: (
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    </svg>
+  ),
+  gallery: (
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    </svg>
+  ),
+  docs: (
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    </svg>
+  ),
+  advocacy: (
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+      />
+    </svg>
+  ),
+};
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,8 +154,9 @@ const Navigation: React.FC = () => {
   const [mobileMenuLayer, setMobileMenuLayer] = useState(40);
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
   const [navLayer, setNavLayer] = useState(50);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
   const navBarRef = useRef<HTMLElement | null>(null);
-  const desktopLinkRefs = useRef<HTMLAnchorElement[]>([]);
   const mobileLinkRefs = useRef<HTMLAnchorElement[]>([]);
   const mobileRippleRefs = useRef<HTMLSpanElement[]>([]);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
@@ -32,29 +169,20 @@ const Navigation: React.FC = () => {
   const menuCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const dropdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
 
-  const navItems = [
-    { href: "/", label: "Beranda" },
-    { href: "/about", label: "Tentang" },
-    { href: "/events", label: "Acara" },
-    { href: "/gallery", label: "Galeri" },
-    { href: "/aduan", label: "Aduan" },
-    { href: "/pendaftaran", label: "Pendaftaran" },
-  ];
-
+  /* ------ GSAP init ----- */
   useEffect(() => {
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion) {
-      return;
-    }
+    if (reduceMotion) return;
 
     const context = gsap.context(() => {
       const timeline = gsap.timeline({ defaults: { ease: "power2.out" } });
-
       if (navBarRef.current) {
         timeline.from(navBarRef.current, {
           y: -14,
@@ -62,27 +190,19 @@ const Navigation: React.FC = () => {
           duration: 0.5,
         });
       }
-
       if (mobileMenuRef.current) {
-        gsap.set(mobileMenuRef.current, {
-          yPercent: -100,
-          autoAlpha: 0,
-        });
+        gsap.set(mobileMenuRef.current, { yPercent: -100, autoAlpha: 0 });
       }
     });
-
-    return () => {
-      context.revert();
-    };
+    return () => context.revert();
   }, []);
 
+  /* ------ Mobile menu open/close ----- */
   useEffect(() => {
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (!mobileMenuRef.current) {
-      return;
-    }
+    if (!mobileMenuRef.current) return;
 
     if (mobileMenuTimelineRef.current) {
       mobileMenuTimelineRef.current.kill();
@@ -90,7 +210,6 @@ const Navigation: React.FC = () => {
     }
 
     const animationId = ++mobileMenuAnimationIdRef.current;
-
     const activeMobileLinks = mobileLinkRefs.current.filter(Boolean);
     const clickedMobileLink =
       activeMobileIndex !== null
@@ -114,10 +233,8 @@ const Navigation: React.FC = () => {
 
     if (isMenuOpen) {
       gsap.set(mobileMenuRef.current, { autoAlpha: 1 });
-
       const openTimeline = gsap.timeline();
       mobileMenuTimelineRef.current = openTimeline;
-
       openTimeline
         .to(mobileMenuRef.current, {
           yPercent: 0,
@@ -136,21 +253,17 @@ const Navigation: React.FC = () => {
           },
           "<",
         );
-
       return;
     }
 
     const closeTimeline = gsap.timeline({
       onComplete: () => {
-        if (animationId !== mobileMenuAnimationIdRef.current) {
-          return;
-        }
+        if (animationId !== mobileMenuAnimationIdRef.current) return;
         isNavigatingRef.current = false;
         setIsNavigating(false);
         setActiveMobileIndex(null);
       },
     });
-
     mobileMenuTimelineRef.current = closeTimeline;
 
     if (isNavigatingRef.current) {
@@ -164,7 +277,6 @@ const Navigation: React.FC = () => {
         },
         0,
       );
-
       if (clickedMobileLink) {
         closeTimeline.to(
           clickedMobileLink,
@@ -176,7 +288,6 @@ const Navigation: React.FC = () => {
           0.06,
         );
       }
-
       closeTimeline
         .to(
           mobileMenuRef.current,
@@ -211,6 +322,7 @@ const Navigation: React.FC = () => {
     }
   }, [activeMobileIndex, isMenuOpen]);
 
+  /* ------ Helpers ----- */
   const clearMenuCloseTimeout = () => {
     if (menuCloseTimeoutRef.current) {
       clearTimeout(menuCloseTimeoutRef.current);
@@ -221,37 +333,23 @@ const Navigation: React.FC = () => {
   const bumpLayerStack = (mode: "menu-open" | "nav-transition") => {
     menuLayerCounterRef.current += 3;
     const nextMenuLayer = menuLayerCounterRef.current;
-
-    if (mode === "menu-open") {
-      setCircleLayers({
-        base: nextMenuLayer,
-        top: nextMenuLayer + 1,
-      });
-      setMobileMenuLayer(nextMenuLayer + 2);
-    } else {
-      setCircleLayers({
-        base: nextMenuLayer,
-        top: nextMenuLayer + 1,
-      });
+    if (mode === "menu-open" || mode === "nav-transition") {
+      setCircleLayers({ base: nextMenuLayer, top: nextMenuLayer + 1 });
       setMobileMenuLayer(nextMenuLayer + 2);
     }
-
     setNavLayer(nextMenuLayer + 10);
   };
 
   const handleMenuToggle = () => {
     clearMenuCloseTimeout();
-
-    setIsMenuOpen((previous) => {
-      const next = !previous;
-
+    setIsMenuOpen((prev) => {
+      const next = !prev;
       if (next) {
         bumpLayerStack("menu-open");
         isNavigatingRef.current = false;
         setIsNavigating(false);
         setActiveMobileIndex(null);
       }
-
       return next;
     });
   };
@@ -259,61 +357,29 @@ const Navigation: React.FC = () => {
   useEffect(() => {
     return () => {
       clearMenuCloseTimeout();
-      if (mobileMenuTimelineRef.current) {
-        mobileMenuTimelineRef.current.kill();
-      }
+      if (mobileMenuTimelineRef.current) mobileMenuTimelineRef.current.kill();
     };
   }, []);
 
-  const setDesktopLinkRef = (
-    element: HTMLAnchorElement | null,
-    index: number,
-  ) => {
-    if (!element) {
-      return;
-    }
-    desktopLinkRefs.current[index] = element;
+  const setMobileLinkRef = (el: HTMLAnchorElement | null, index: number) => {
+    if (!el) return;
+    mobileLinkRefs.current[index] = el;
   };
 
-  const setMobileLinkRef = (
-    element: HTMLAnchorElement | null,
-    index: number,
-  ) => {
-    if (!element) {
-      return;
-    }
-    mobileLinkRefs.current[index] = element;
-  };
-
-  const setMobileRippleRef = (
-    element: HTMLSpanElement | null,
-    index: number,
-  ) => {
-    if (!element) {
-      return;
-    }
-    mobileRippleRefs.current[index] = element;
+  const setMobileRippleRef = (el: HTMLSpanElement | null, index: number) => {
+    if (!el) return;
+    mobileRippleRefs.current[index] = el;
   };
 
   const animateMobileRipple = (index: number) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
+    if (typeof window === "undefined") return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion) {
-      return;
-    }
-
+    if (reduceMotion) return;
     const ripple = mobileRippleRefs.current[index];
-    if (!ripple) {
-      return;
-    }
-
+    if (!ripple) return;
     gsap.killTweensOf(ripple);
-
     gsap.fromTo(
       ripple,
       { scale: 0, autoAlpha: 0.6 },
@@ -330,38 +396,28 @@ const Navigation: React.FC = () => {
   const animateFullscreenCircle = (
     event: React.MouseEvent<HTMLAnchorElement>,
   ) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
+    if (typeof window === "undefined") return;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion) {
-      return;
-    }
+    if (reduceMotion) return;
 
     const circleBase = fullscreenCircleBaseRef.current;
     const circleTop = fullscreenCircleTopRef.current;
-    if (!circleBase || !circleTop) {
-      return;
-    }
+    if (!circleBase || !circleTop) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
-
     const maxDistance = Math.max(
       Math.hypot(x, y),
       Math.hypot(window.innerWidth - x, y),
       Math.hypot(x, window.innerHeight - y),
       Math.hypot(window.innerWidth - x, window.innerHeight - y),
     );
-
     const diameter = maxDistance * 2;
 
     gsap.killTweensOf([circleBase, circleTop]);
-
     gsap.set([circleBase, circleTop], {
       left: x,
       top: y,
@@ -372,44 +428,11 @@ const Navigation: React.FC = () => {
       yPercent: -50,
     });
 
-    const timeline = gsap.timeline({ defaults: { ease: "expo.out" } });
-    timeline
-      .to(
-        circleBase,
-        {
-          width: diameter,
-          height: diameter,
-          duration: 1.2,
-        },
-        0,
-      )
-      .to(
-        circleTop,
-        {
-          width: diameter,
-          height: diameter,
-          duration: 1.2,
-        },
-        0,
-      )
-      .to(
-        circleTop,
-        {
-          opacity: 0,
-          duration: 0.5,
-          ease: "power2.out",
-        },
-        0.18,
-      )
-      .to(
-        circleBase,
-        {
-          opacity: 0,
-          duration: 3.4,
-          ease: "expo.out",
-        },
-        0.4,
-      )
+    const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+    tl.to(circleBase, { width: diameter, height: diameter, duration: 1.2 }, 0)
+      .to(circleTop, { width: diameter, height: diameter, duration: 1.2 }, 0)
+      .to(circleTop, { opacity: 0, duration: 0.5, ease: "power2.out" }, 0.18)
+      .to(circleBase, { opacity: 0, duration: 3.4, ease: "expo.out" }, 0.4)
       .set([circleBase, circleTop], { width: 0, height: 0, opacity: 0 });
   };
 
@@ -434,33 +457,56 @@ const Navigation: React.FC = () => {
 
   const handleMobileMenuClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null;
-    if (!target) {
-      return;
-    }
+    if (!target) return;
     const anchor = target.closest("a");
-    if (!anchor) {
-      setIsMenuOpen(false);
-    }
+    if (!anchor) setIsMenuOpen(false);
   };
 
   useEffect(() => {
     const updateCompactMobileMenu = () => {
-      if (typeof window === "undefined") {
-        return;
-      }
-      const height = window.innerHeight;
-      setIsCompactMobileMenu(height < 640);
+      if (typeof window === "undefined") return;
+      setIsCompactMobileMenu(window.innerHeight < 640);
     };
-
     updateCompactMobileMenu();
     window.addEventListener("resize", updateCompactMobileMenu);
-    return () => {
-      window.removeEventListener("resize", updateCompactMobileMenu);
-    };
+    return () => window.removeEventListener("resize", updateCompactMobileMenu);
   }, []);
+
+  /* ------ Dropdown hover with delay ----- */
+  const handleDropdownEnter = useCallback((label: string) => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+      dropdownTimeoutRef.current = null;
+    }
+    setOpenDropdown(label);
+  }, []);
+
+  const handleDropdownLeave = useCallback(() => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+    }, 150);
+  }, []);
+
+  /* Close dropdown on route change */
+  useEffect(() => {
+    setOpenDropdown(null);
+  }, [currentPath]);
+
+  /* ------ Active detection ----- */
+  const isPathActive = (href: string) => {
+    if (href === "/") return currentPath === "/";
+    return currentPath.startsWith(href);
+  };
+
+  const isGroupActive = (group: NavGroup) => {
+    if (group.href) return isPathActive(group.href);
+    if (group.dropdown) return group.dropdown.some((d) => isPathActive(d.href));
+    return false;
+  };
 
   return (
     <>
+      {/* Fullscreen circle transition elements */}
       <div
         ref={fullscreenCircleBaseRef}
         className="bg-gold-500 pointer-events-none fixed z-2 rounded-full opacity-0"
@@ -472,6 +518,7 @@ const Navigation: React.FC = () => {
         style={{ zIndex: circleLayers.top }}
       />
 
+      {/* ====== NAVBAR ====== */}
       <nav
         ref={navBarRef}
         style={{ zIndex: navLayer }}
@@ -481,13 +528,17 @@ const Navigation: React.FC = () => {
             : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl"
         }`}
       >
-        <div className="relative z-50 mx-auto flex h-24 max-w-7xl items-center justify-between px-6">
+        <div className="relative z-50 mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+          {/* LEFT: Logo */}
           <Link
             href="/"
             className="cursor-pointer"
             onMouseEnter={() => setIsLogoHovered(true)}
             onMouseLeave={() => setIsLogoHovered(false)}
-            onClick={() => setIsMenuOpen(false)}
+            onClick={() => {
+              setIsMenuOpen(false);
+              setOpenDropdown(null);
+            }}
           >
             <LogoHima
               lineColor={isLogoHovered ? "white" : "white"}
@@ -497,87 +548,217 @@ const Navigation: React.FC = () => {
             />
           </Link>
 
-          <div className="hidden space-x-8 md:flex">
-            {navItems.map((item, index) => {
-              const isActive =
-                item.href === "/"
-                  ? currentPath === "/"
-                  : currentPath.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  ref={(element) => setDesktopLinkRef(element, index)}
-                  onClick={() => {
-                    if (item.href === "/" && typeof window !== "undefined") {
-                      window.sessionStorage.setItem("skipHomeGsapOnce", "true");
+          {/* CENTER: Desktop Mega-Menu */}
+          <div className="hidden items-center gap-1 md:flex">
+            {NAV_GROUPS.map((group) =>
+              group.dropdown ? (
+                <div
+                  key={group.label}
+                  className="relative"
+                  onMouseEnter={() => handleDropdownEnter(group.label)}
+                  onMouseLeave={handleDropdownLeave}
+                >
+                  <button
+                    className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] uppercase transition-all duration-300 ${
+                      isGroupActive(group)
+                        ? "text-gold-500"
+                        : "text-neutral-500 hover:text-white"
+                    }`}
+                    onClick={() =>
+                      setOpenDropdown((prev) =>
+                        prev === group.label ? null : group.label,
+                      )
                     }
-                  }}
-                  className={`group relative text-sm font-medium tracking-[0.25em] uppercase opacity-100 transition-all duration-500 ${
-                    isActive
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {group.label}
+                      <svg
+                        className={`h-3 w-3 transition-transform duration-200 ${
+                          openDropdown === group.label ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </span>
+                    <span
+                      className={`bg-gold-500 absolute -bottom-0.5 left-1/2 h-px -translate-x-1/2 transition-all duration-500 ${
+                        isGroupActive(group)
+                          ? "w-3/4 opacity-100"
+                          : "w-0 opacity-0"
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown pane */}
+                  <div
+                    className={`absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 transition-all duration-200 ${
+                      openDropdown === group.label
+                        ? "pointer-events-auto translate-y-0 opacity-100"
+                        : "pointer-events-none -translate-y-2 opacity-0"
+                    }`}
+                  >
+                    <div className="w-72 overflow-hidden rounded-xl border border-white/10 bg-stone-900/90 p-2 shadow-2xl backdrop-blur-xl">
+                      {group.dropdown.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`group/item flex items-start gap-3 rounded-lg px-3 py-3 transition-all duration-200 ${
+                            isPathActive(item.href)
+                              ? "bg-gold-500/10 text-white"
+                              : "text-neutral-400 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          {item.icon && DROPDOWN_ICON_MAP[item.icon] && (
+                            <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-stone-700 bg-stone-800 text-stone-400">
+                              {DROPDOWN_ICON_MAP[item.icon]}
+                            </span>
+                          )}
+                          <div>
+                            <div
+                              className={`text-sm font-semibold tracking-wider ${
+                                isPathActive(item.href)
+                                  ? "text-gold-300"
+                                  : "group-hover/item:text-white"
+                              }`}
+                            >
+                              {item.label}
+                            </div>
+                            <div className="mt-0.5 text-xs leading-relaxed text-stone-500">
+                              {item.description}
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  key={group.label}
+                  href={group.href!}
+                  className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] uppercase transition-all duration-500 ${
+                    isGroupActive(group)
                       ? "text-gold-500"
                       : "text-neutral-500 hover:text-white"
                   }`}
                 >
-                  {item.label}
+                  {group.label}
                   <span
-                    className={`bg-gold-500 absolute -bottom-2 left-1/2 h-px -translate-x-1/2 transition-all duration-500 ${
-                      isActive
+                    className={`bg-gold-500 absolute -bottom-0.5 left-1/2 h-px -translate-x-1/2 transition-all duration-500 ${
+                      isGroupActive(group)
                         ? "w-full opacity-100"
                         : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
                     }`}
                   />
                 </Link>
-              );
-            })}
+              ),
+            )}
           </div>
 
-          <button
-            className="group relative z-50 flex flex-col space-y-1.5 p-2 md:hidden"
-            onClick={handleMenuToggle}
-            aria-label="Toggle menu"
-          >
-            <span
-              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 translate-y-1.75 rotate-45" : "w-6"}`}
-            />
-            <span
-              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "opacity-0" : "w-4"}`}
-            />
-            <span
-              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -translate-y-1.75 -rotate-45" : "w-6"}`}
-            />
-          </button>
+          {/* RIGHT: CTA + Search + Hamburger */}
+          <div className="flex items-center gap-4">
+            {/* Desktop CTA */}
+            <Link
+              href="/pendaftaran"
+              className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 md:inline-flex"
+            >
+              Open Recruitment
+            </Link>
+
+            {/* Search trigger */}
+            <button
+              onClick={() => {
+                const event = new KeyboardEvent("keydown", {
+                  key: "k",
+                  metaKey: true,
+                  bubbles: true,
+                });
+                window.dispatchEvent(event);
+              }}
+              className="hidden items-center gap-2 rounded-lg border border-stone-800 bg-stone-900/50 px-3 py-1.5 text-xs text-stone-500 transition-colors hover:border-stone-700 hover:text-stone-400 md:flex"
+              aria-label="Pencarian"
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <kbd className="font-mono text-[10px]">⌘K</kbd>
+            </button>
+
+            {/* Mobile hamburger */}
+            <button
+              className="group relative z-50 flex flex-col space-y-1.5 p-2 md:hidden"
+              onClick={handleMenuToggle}
+              aria-label="Toggle menu"
+            >
+              <span
+                className={`h-px bg-neutral-300 transition-all duration-300 ${
+                  isMenuOpen ? "w-6 translate-y-1.75 rotate-45" : "w-6"
+                }`}
+              />
+              <span
+                className={`h-px bg-neutral-300 transition-all duration-300 ${
+                  isMenuOpen ? "opacity-0" : "w-4"
+                }`}
+              />
+              <span
+                className={`h-px bg-neutral-300 transition-all duration-300 ${
+                  isMenuOpen ? "w-6 -translate-y-1.75 -rotate-45" : "w-6"
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </nav>
 
+      {/* ====== MOBILE MENU ====== */}
       <div
         ref={mobileMenuRef}
         style={{ zIndex: mobileMenuLayer }}
         className={`fixed inset-0 flex flex-col pt-24 will-change-transform md:hidden ${
           isNavigating ? "bg-transparent" : "bg-[#0a0a0a]"
-        } ${isMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+        } ${
+          isMenuOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
         onClick={handleMobileMenuClick}
       >
         <div
           className={`relative z-10 flex flex-1 flex-col items-center px-8 ${
             isCompactMobileMenu
               ? "justify-start space-y-4 overflow-y-auto"
-              : "justify-center space-y-10"
+              : "justify-center space-y-8"
           }`}
         >
-          {navItems.map((item, idx) => {
-            const isActive =
-              item.href === "/"
-                ? currentPath === "/"
-                : currentPath.startsWith(item.href);
+          {MOBILE_NAV_ITEMS.map((item, idx) => {
+            const isActive = isPathActive(item.href);
             const isClicked = activeMobileIndex === idx && isNavigating;
+            const isRecruitment = item.href === "/pendaftaran";
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                ref={(element) => setMobileLinkRef(element, idx)}
+                ref={(el) => setMobileLinkRef(el, idx)}
                 onClick={(e) => {
                   animateMobileRipple(idx);
                   handleNavItemClick(item.href, idx, e);
@@ -585,16 +766,18 @@ const Navigation: React.FC = () => {
                 className={`relative font-serif italic transition-all duration-500 ${
                   isCompactMobileMenu ? "text-2xl" : "text-3xl"
                 } ${
-                  isClicked
-                    ? "z-20 text-white"
-                    : isActive
-                      ? "text-gold-500"
-                      : "text-neutral-500 hover:text-white"
+                  isRecruitment
+                    ? "text-gold-400"
+                    : isClicked
+                      ? "z-20 text-white"
+                      : isActive
+                        ? "text-gold-500"
+                        : "text-neutral-500 hover:text-white"
                 } ${activeMobileIndex === idx && !isClicked ? "bg-gold-500/20" : ""}`}
               >
                 <span className="relative z-10">{item.label}</span>
                 <span
-                  ref={(element) => setMobileRippleRef(element, idx)}
+                  ref={(el) => setMobileRippleRef(el, idx)}
                   className="bg-gold-500/20 pointer-events-none absolute inset-0 scale-0 rounded-full opacity-0"
                 />
               </Link>
