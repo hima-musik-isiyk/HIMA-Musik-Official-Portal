@@ -10,7 +10,9 @@ const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
-  const [activeMobileIndex, setActiveMobileIndex] = useState<number | null>(null);
+  const [activeMobileIndex, setActiveMobileIndex] = useState<number | null>(
+    null,
+  );
   const [isCompactMobileMenu, setIsCompactMobileMenu] = useState(false);
   const [mobileMenuLayer, setMobileMenuLayer] = useState(40);
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
@@ -26,7 +28,9 @@ const Navigation: React.FC = () => {
   const menuLayerCounterRef = useRef(40);
   const mobileMenuTimelineRef = useRef<gsap.core.Timeline | null>(null);
   const mobileMenuAnimationIdRef = useRef(0);
-  const menuCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
 
@@ -40,7 +44,9 @@ const Navigation: React.FC = () => {
   ];
 
   useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (reduceMotion) {
       return;
     }
@@ -70,7 +76,9 @@ const Navigation: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (!mobileMenuRef.current) {
       return;
     }
@@ -83,17 +91,20 @@ const Navigation: React.FC = () => {
     const animationId = ++mobileMenuAnimationIdRef.current;
 
     const activeMobileLinks = mobileLinkRefs.current.filter(Boolean);
-    const clickedMobileLink = activeMobileIndex !== null
-      ? mobileLinkRefs.current[activeMobileIndex]
-      : null;
+    const clickedMobileLink =
+      activeMobileIndex !== null
+        ? mobileLinkRefs.current[activeMobileIndex]
+        : null;
     const nonClickedMobileLinks = clickedMobileLink
       ? activeMobileLinks.filter((link) => link !== clickedMobileLink)
       : activeMobileLinks;
 
     if (reduceMotion) {
-      gsap.set(mobileMenuRef.current, isMenuOpen
-        ? { yPercent: 0, autoAlpha: 1 }
-        : { yPercent: -100, autoAlpha: 0 }
+      gsap.set(
+        mobileMenuRef.current,
+        isMenuOpen
+          ? { yPercent: 0, autoAlpha: 1 }
+          : { yPercent: -100, autoAlpha: 0 },
       );
       return;
     }
@@ -122,7 +133,7 @@ const Navigation: React.FC = () => {
             ease: "power2.out",
             clearProps: "transform",
           },
-          "<"
+          "<",
         );
 
       return;
@@ -142,29 +153,40 @@ const Navigation: React.FC = () => {
     mobileMenuTimelineRef.current = closeTimeline;
 
     if (isNavigatingRef.current) {
-      closeTimeline
-        .to(nonClickedMobileLinks, {
+      closeTimeline.to(
+        nonClickedMobileLinks,
+        {
           opacity: 0,
           duration: 0.16,
           stagger: 0.01,
           ease: "power1.out",
-        }, 0);
+        },
+        0,
+      );
 
       if (clickedMobileLink) {
-        closeTimeline.to(clickedMobileLink, {
-          opacity: 0,
-          duration: 0.7,
-          ease: "power1.out",
-        }, 0.06);
+        closeTimeline.to(
+          clickedMobileLink,
+          {
+            opacity: 0,
+            duration: 0.7,
+            ease: "power1.out",
+          },
+          0.06,
+        );
       }
 
       closeTimeline
-        .to(mobileMenuRef.current, {
-          autoAlpha: 0,
-          duration: 0.8,
-          ease: "power2.inOut",
-          delay: 0.28,
-        }, 0)
+        .to(
+          mobileMenuRef.current,
+          {
+            autoAlpha: 0,
+            duration: 0.8,
+            ease: "power2.inOut",
+            delay: 0.28,
+          },
+          0,
+        )
         .set(mobileMenuRef.current, { yPercent: -100 });
     } else {
       closeTimeline
@@ -175,12 +197,16 @@ const Navigation: React.FC = () => {
           stagger: 0.015,
           ease: "power1.in",
         })
-        .to(mobileMenuRef.current, {
-          yPercent: -100,
-          autoAlpha: 0,
-          duration: 0.32,
-          ease: "power2.inOut",
-        }, "<0.02");
+        .to(
+          mobileMenuRef.current,
+          {
+            yPercent: -100,
+            autoAlpha: 0,
+            duration: 0.32,
+            ease: "power2.inOut",
+          },
+          "<0.02",
+        );
     }
   }, [activeMobileIndex, isMenuOpen]);
 
@@ -238,21 +264,30 @@ const Navigation: React.FC = () => {
     };
   }, []);
 
-  const setDesktopLinkRef = (element: HTMLAnchorElement | null, index: number) => {
+  const setDesktopLinkRef = (
+    element: HTMLAnchorElement | null,
+    index: number,
+  ) => {
     if (!element) {
       return;
     }
     desktopLinkRefs.current[index] = element;
   };
 
-  const setMobileLinkRef = (element: HTMLAnchorElement | null, index: number) => {
+  const setMobileLinkRef = (
+    element: HTMLAnchorElement | null,
+    index: number,
+  ) => {
     if (!element) {
       return;
     }
     mobileLinkRefs.current[index] = element;
   };
 
-  const setMobileRippleRef = (element: HTMLSpanElement | null, index: number) => {
+  const setMobileRippleRef = (
+    element: HTMLSpanElement | null,
+    index: number,
+  ) => {
     if (!element) {
       return;
     }
@@ -264,7 +299,9 @@ const Navigation: React.FC = () => {
       return;
     }
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (reduceMotion) {
       return;
     }
@@ -289,12 +326,16 @@ const Navigation: React.FC = () => {
     );
   };
 
-  const animateFullscreenCircle = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const animateFullscreenCircle = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+  ) => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (reduceMotion) {
       return;
     }
@@ -313,7 +354,7 @@ const Navigation: React.FC = () => {
       Math.hypot(x, y),
       Math.hypot(window.innerWidth - x, y),
       Math.hypot(x, window.innerHeight - y),
-      Math.hypot(window.innerWidth - x, window.innerHeight - y)
+      Math.hypot(window.innerWidth - x, window.innerHeight - y),
     );
 
     const diameter = maxDistance * 2;
@@ -332,30 +373,50 @@ const Navigation: React.FC = () => {
 
     const timeline = gsap.timeline({ defaults: { ease: "expo.out" } });
     timeline
-      .to(circleBase, {
-        width: diameter,
-        height: diameter,
-        duration: 1.2,
-      }, 0)
-      .to(circleTop, {
-        width: diameter,
-        height: diameter,
-        duration: 1.2,
-      }, 0)
-      .to(circleTop, {
-        opacity: 0,
-        duration: 0.5,
-        ease: "power2.out",
-      }, 0.18)
-      .to(circleBase, {
-        opacity: 0,
-        duration: 3.4,
-        ease: "expo.out",
-      }, 0.4)
+      .to(
+        circleBase,
+        {
+          width: diameter,
+          height: diameter,
+          duration: 1.2,
+        },
+        0,
+      )
+      .to(
+        circleTop,
+        {
+          width: diameter,
+          height: diameter,
+          duration: 1.2,
+        },
+        0,
+      )
+      .to(
+        circleTop,
+        {
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.out",
+        },
+        0.18,
+      )
+      .to(
+        circleBase,
+        {
+          opacity: 0,
+          duration: 3.4,
+          ease: "expo.out",
+        },
+        0.4,
+      )
       .set([circleBase, circleTop], { width: 0, height: 0, opacity: 0 });
   };
 
-  const handleNavItemClick = (href: string, index: number, event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleNavItemClick = (
+    href: string,
+    index: number,
+    event: React.MouseEvent<HTMLAnchorElement>,
+  ) => {
     clearMenuCloseTimeout();
     bumpLayerStack("nav-transition");
     isNavigatingRef.current = true;
@@ -410,9 +471,15 @@ const Navigation: React.FC = () => {
         style={{ zIndex: circleLayers.top }}
       />
 
-      <nav ref={navBarRef} style={{ zIndex: navLayer }} className={`fixed top-0 left-0 w-full transition-all duration-500 ${
-        isMenuOpen ? "bg-transparent border-transparent" : "bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5"
-      }`}>
+      <nav
+        ref={navBarRef}
+        style={{ zIndex: navLayer }}
+        className={`fixed top-0 left-0 w-full transition-all duration-500 ${
+          isMenuOpen
+            ? "bg-transparent border-transparent"
+            : "bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5"
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between relative z-50">
           <Link
             href="/"
@@ -470,9 +537,15 @@ const Navigation: React.FC = () => {
             onClick={handleMenuToggle}
             aria-label="Toggle menu"
           >
-            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 rotate-45 translate-y-1.75" : "w-6"}`} />
-            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "opacity-0" : "w-4"}`} />
-            <span className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -rotate-45 -translate-y-1.75" : "w-6"}`} />
+            <span
+              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 rotate-45 translate-y-1.75" : "w-6"}`}
+            />
+            <span
+              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "opacity-0" : "w-4"}`}
+            />
+            <span
+              className={`h-px bg-neutral-300 transition-all duration-300 ${isMenuOpen ? "w-6 -rotate-45 -translate-y-1.75" : "w-6"}`}
+            />
           </button>
         </div>
       </nav>

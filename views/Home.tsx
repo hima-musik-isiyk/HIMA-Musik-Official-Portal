@@ -9,7 +9,8 @@ import TextPressure from "@/components/TextPressure";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const AccentLine: React.FC = () => (
   <span className="block w-8 md:w-12 h-px bg-gold-500/40" aria-hidden="true" />
@@ -56,8 +57,12 @@ const Home: React.FC = () => {
       return;
     }
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const isTouchOnly = window.matchMedia("(pointer: coarse)").matches && !window.matchMedia("(pointer: fine)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const isTouchOnly =
+      window.matchMedia("(pointer: coarse)").matches &&
+      !window.matchMedia("(pointer: fine)").matches;
     if (reduceMotion) {
       setDisableEntranceEffects(true);
       setDisablePressureEffect(true);
@@ -71,16 +76,19 @@ const Home: React.FC = () => {
     const context = gsap.context(() => {
       if (heroEyebrowRef.current && heroCtaRef.current) {
         const heroCtaChildren = Array.from(heroCtaRef.current.children);
-        const heroTimeline = gsap.timeline({ defaults: { ease: "power3.out" } });
+        const heroTimeline = gsap.timeline({
+          defaults: { ease: "power3.out" },
+        });
         heroTimeline
-          .fromTo(heroEyebrowRef.current,
+          .fromTo(
+            heroEyebrowRef.current,
             { y: 16, opacity: 0 },
             {
               y: 0,
               opacity: 1,
               duration: 0.6,
               immediateRender: true,
-            }
+            },
           )
           .fromTo(
             heroCtaChildren,
@@ -93,17 +101,20 @@ const Home: React.FC = () => {
               immediateRender: true,
               clearProps: "transform",
             },
-            "-=0.4"
+            "-=0.4",
           );
       }
 
       if (quickLinksRef.current) {
-        const quickLinkCards = quickLinksRef.current.querySelectorAll("a[data-quick-link='true']");
+        const quickLinkCards = quickLinksRef.current.querySelectorAll(
+          "a[data-quick-link='true']",
+        );
         if (quickLinkCards.length === 0) {
           return;
         }
 
-        gsap.fromTo(quickLinkCards,
+        gsap.fromTo(
+          quickLinkCards,
           { y: 28, opacity: 0 },
           {
             y: 0,
@@ -116,7 +127,7 @@ const Home: React.FC = () => {
               start: "top 80%",
               once: true,
             },
-          }
+          },
         );
       }
     }, rootRef);
@@ -130,17 +141,22 @@ const Home: React.FC = () => {
     <div ref={rootRef} className="w-full">
       {/* Hero Section */}
       <section className="relative min-h-[calc(100svh-5rem)] flex flex-col justify-between px-6 border-b border-white/5">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <div
+          className="absolute inset-0 overflow-hidden pointer-events-none"
+          aria-hidden="true"
+        >
           <div
             className="absolute top-1/4 -left-20 w-lg h-128 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(255, 160, 122, 0.15)_0%, transparent 70%)'
+              background:
+                "radial-gradient(circle, rgba(255, 160, 122, 0.15)_0%, transparent 70%)",
             }}
           />
           <div
             className="absolute bottom-1/3 -right-20 w-md h-112 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(28, 25, 23, 0.3)_0%, transparent 70%)'
+              background:
+                "radial-gradient(circle, rgba(28, 25, 23, 0.3)_0%, transparent 70%)",
             }}
           />
         </div>
@@ -150,24 +166,29 @@ const Home: React.FC = () => {
             <AccentLine />
             <p
               ref={heroEyebrowRef}
-              className={`text-xs md:text-sm uppercase tracking-[0.4em] text-stone-400/80 font-medium ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+              className={`text-xs md:text-sm uppercase tracking-[0.4em] text-stone-400/80 font-medium ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
-              Himpunan Mahasiswa Musik &mdash; Institut Seni Indonesia Yogyakarta
+              Himpunan Mahasiswa Musik &mdash; Institut Seni Indonesia
+              Yogyakarta
             </p>
           </div>
 
-          <h1
-            className="font-serif text-[5.5rem] md:text-[9rem] lg:text-[11rem] text-white leading-[0.88] tracking-tight flex flex-col"
-          >
+          <h1 className="font-serif text-[5.5rem] md:text-[9rem] lg:text-[11rem] text-white leading-[0.88] tracking-tight flex flex-col">
             {disableEntranceEffects ? (
               <span className="inline-flex whitespace-nowrap">HIMA</span>
             ) : (
-              <BlurText text="HIMA" className="inline-flex" animateBy="letters" />
+              <BlurText
+                text="HIMA"
+                className="inline-flex"
+                animateBy="letters"
+              />
             )}
             <div className="italic text-stone-700 font-light min-h-[1em] relative w-full overflow-visible isolate">
               {disablePressureEffect ? (
                 disableEntranceEffects ? (
-                  <span className="inline-block whitespace-nowrap text-stone-700">MUSIK</span>
+                  <span className="inline-block whitespace-nowrap text-stone-700">
+                    MUSIK
+                  </span>
                 ) : (
                   <BlurText
                     text="MUSIK"
@@ -202,21 +223,26 @@ const Home: React.FC = () => {
           </h1>
 
           <div className="mt-10 md:mt-14">
-            <div className="w-full h-px bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent mb-10 md:mb-12" aria-hidden="true" />
+            <div
+              className="w-full h-px bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent mb-10 md:mb-12"
+              aria-hidden="true"
+            />
             <div
               ref={heroCtaRef}
               className="flex flex-col md:flex-row gap-8 md:gap-12 items-start md:items-center"
             >
               <Link
                 href="/about"
-                className={`btn-primary shrink-0 ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+                className={`btn-primary shrink-0 ${!disableEntranceEffects ? "opacity-0" : ""}`}
               >
                 <span className="btn-primary-label">Tentang Kami</span>
                 <div className="btn-primary-overlay"></div>
               </Link>
-              <p className={`max-w-sm text-stone-500 text-[0.8125rem] leading-[1.7] md:border-l border-stone-800 md:pl-12 font-light ${!disableEntranceEffects ? 'opacity-0' : ''}`}>
-                Wadah kolektif mahasiswa musik. Membangun ekosistem
-                akademik yang inklusif dan progresif.
+              <p
+                className={`max-w-sm text-stone-500 text-[0.8125rem] leading-[1.7] md:border-l border-stone-800 md:pl-12 font-light ${!disableEntranceEffects ? "opacity-0" : ""}`}
+              >
+                Wadah kolektif mahasiswa musik. Membangun ekosistem akademik
+                yang inklusif dan progresif.
               </p>
             </div>
           </div>
@@ -225,7 +251,9 @@ const Home: React.FC = () => {
         {/* Scroll indicator */}
         <div className="relative z-10 flex justify-center pb-8 md:pb-10">
           <div className="flex flex-col items-center gap-3 text-stone-600">
-            <span className="text-[0.6rem] uppercase tracking-[0.35em]">Scroll</span>
+            <span className="text-[0.6rem] uppercase tracking-[0.35em]">
+              Scroll
+            </span>
             <span className="block w-px h-6 bg-stone-700 animate-pulse" />
           </div>
         </div>
@@ -236,7 +264,9 @@ const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-12 md:mb-16">
             <AccentLine />
-            <span className="text-[0.65rem] uppercase tracking-[0.4em] text-stone-600 font-medium">Jelajahi</span>
+            <span className="text-[0.65rem] uppercase tracking-[0.4em] text-stone-600 font-medium">
+              Jelajahi
+            </span>
           </div>
 
           <div
@@ -246,7 +276,7 @@ const Home: React.FC = () => {
             <Link
               href="/about"
               data-quick-link="true"
-              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               <div>
                 <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
@@ -261,14 +291,24 @@ const Home: React.FC = () => {
               </div>
               <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
                 Selengkapnya
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </span>
             </Link>
 
             <Link
               href="/events"
               data-quick-link="true"
-              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               <div>
                 <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
@@ -283,14 +323,24 @@ const Home: React.FC = () => {
               </div>
               <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
                 Selengkapnya
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </span>
             </Link>
 
             <Link
               href="/aduan"
               data-quick-link="true"
-              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? 'opacity-0' : ''}`}
+              className={`group relative flex flex-col justify-between p-10 md:p-12 hover:bg-stone-900/50 transition-colors duration-300 cursor-pointer ${!disableEntranceEffects ? "opacity-0" : ""}`}
             >
               <div>
                 <span className="text-[0.65rem] font-mono text-stone-700 tracking-wider mb-5 block">
@@ -305,7 +355,17 @@ const Home: React.FC = () => {
               </div>
               <span className="mt-8 inline-flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em] text-stone-700 group-hover:text-gold-500 transition-colors duration-300">
                 Selengkapnya
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
               </span>
             </Link>
           </div>
@@ -322,11 +382,16 @@ const Home: React.FC = () => {
               </span>
             </div>
             <h2 className="font-serif text-4xl md:text-6xl text-white tracking-tight">
-              Jadi <span className="italic text-gold-500/80 font-light">Pengurus</span> HIMA
+              Jadi{" "}
+              <span className="italic text-gold-500/80 font-light">
+                Pengurus
+              </span>{" "}
+              HIMA
             </h2>
             <p className="text-neutral-400 text-sm mt-5 leading-relaxed max-w-xl">
               Semua informasi rekrutmen ada di satu halaman: struktur kabinet,
-              panduan divisi, timeline seleksi, lalu lanjut isi formulir saat kamu siap.
+              panduan divisi, timeline seleksi, lalu lanjut isi formulir saat
+              kamu siap.
             </p>
             <div className="mt-8">
               <Link href="/pendaftaran" className="btn-primary">
@@ -340,17 +405,20 @@ const Home: React.FC = () => {
               {
                 step: "01",
                 title: "Struktur & Posisi Terbuka",
-                detail: "Lihat susunan BPH dan posisi yang sedang dibuka dengan visual yang jelas.",
+                detail:
+                  "Lihat susunan BPH dan posisi yang sedang dibuka dengan visual yang jelas.",
               },
               {
                 step: "02",
                 title: "Panduan Divisi",
-                detail: "Bandingkan fokus kerja, tugas utama, skill ideal, dan komitmen tiap divisi.",
+                detail:
+                  "Bandingkan fokus kerja, tugas utama, skill ideal, dan komitmen tiap divisi.",
               },
               {
                 step: "03",
                 title: "Timeline Seleksi",
-                detail: "Pantau tahapan dari pendaftaran hingga pengumuman agar kamu bisa siap dari awal.",
+                detail:
+                  "Pantau tahapan dari pendaftaran hingga pengumuman agar kamu bisa siap dari awal.",
               },
             ].map((item) => (
               <div
@@ -361,8 +429,12 @@ const Home: React.FC = () => {
                   {item.step}
                 </span>
                 <div>
-                  <h3 className="font-serif text-xl text-white mb-2">{item.title}</h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed">{item.detail}</p>
+                  <h3 className="font-serif text-xl text-white mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-neutral-400 leading-relaxed">
+                    {item.detail}
+                  </p>
                 </div>
               </div>
             ))}

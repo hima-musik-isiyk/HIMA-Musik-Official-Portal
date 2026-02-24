@@ -29,7 +29,9 @@ const Aduan: React.FC = () => {
     message: "",
   });
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhanceStatus, setEnhanceStatus] = useState<"idle" | "success" | "rate-limited" | "error">("idle");
+  const [enhanceStatus, setEnhanceStatus] = useState<
+    "idle" | "success" | "rate-limited" | "error"
+  >("idle");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -353,7 +355,10 @@ const Aduan: React.FC = () => {
             </p>
             <div className="h-px w-8 bg-gold-500/50"></div>
           </div>
-          <h2 className="font-serif text-4xl md:text-5xl text-white mb-6 tracking-tight">Terima <span className="italic text-gold-500/80 font-light">Kasih</span></h2>
+          <h2 className="font-serif text-4xl md:text-5xl text-white mb-6 tracking-tight">
+            Terima{" "}
+            <span className="italic text-gold-500/80 font-light">Kasih</span>
+          </h2>
           <p className="text-neutral-400 max-w-md mx-auto leading-relaxed font-light mb-12">
             Laporan Anda telah kami terima dan akan ditinjau oleh Divisi
             Advokasi. Privasi identitas Anda terjamin.
@@ -373,7 +378,9 @@ const Aduan: React.FC = () => {
             }}
             className="group relative px-8 py-4 bg-transparent border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] overflow-hidden transition-all hover:border-gold-300/50"
           >
-            <span className="relative z-10 group-hover:text-gold-300 transition-colors duration-500">Kirim laporan lain</span>
+            <span className="relative z-10 group-hover:text-gold-300 transition-colors duration-500">
+              Kirim laporan lain
+            </span>
             <div className="absolute inset-0 bg-gold-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
           </button>
         </div>
@@ -393,13 +400,17 @@ const Aduan: React.FC = () => {
           <div className="h-px w-8 bg-gold-500/50"></div>
         </div>
         <h1 className="font-serif text-5xl md:text-7xl text-white mb-6 text-center tracking-tight">
-          Kotak <span className="italic text-gold-500/80 font-light">Aduan</span>
+          Kotak{" "}
+          <span className="italic text-gold-500/80 font-light">Aduan</span>
         </h1>
         <p className="text-neutral-400 text-center mb-20 text-sm font-light tracking-wide">
           Sampaikan aspirasi, kritik, atau saran dengan bijak.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-10 bg-[#111]/50 p-8 md:p-12 border border-white/5 relative">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-10 bg-[#111]/50 p-8 md:p-12 border border-white/5 relative"
+        >
           <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/20 to-transparent"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="group relative">
@@ -450,10 +461,16 @@ const Aduan: React.FC = () => {
                 <option className="bg-[#111] text-neutral-300" value="Akademik">
                   Akademik
                 </option>
-                <option className="bg-[#111] text-neutral-300" value="Fasilitas">
+                <option
+                  className="bg-[#111] text-neutral-300"
+                  value="Fasilitas"
+                >
                   Fasilitas Kampus
                 </option>
-                <option className="bg-[#111] text-neutral-300" value="Organisasi">
+                <option
+                  className="bg-[#111] text-neutral-300"
+                  value="Organisasi"
+                >
                   Internal Organisasi
                 </option>
                 <option className="bg-[#111] text-neutral-300" value="Lainnya">
@@ -571,8 +588,12 @@ const Aduan: React.FC = () => {
                 <div className="flex items-start gap-4">
                   <span className="text-lg opacity-80">!</span>
                   <div className="flex-1 text-left">
-                    <p className="font-medium mb-1 tracking-wide">Pengiriman Gagal</p>
-                    <p className="text-xs leading-relaxed font-light opacity-80">{submitError}</p>
+                    <p className="font-medium mb-1 tracking-wide">
+                      Pengiriman Gagal
+                    </p>
+                    <p className="text-xs leading-relaxed font-light opacity-80">
+                      {submitError}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -607,7 +628,9 @@ const Aduan: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
           <div className="w-full max-w-md bg-[#111] border border-white/10 p-8 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
-            <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">Reset draf?</h2>
+            <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">
+              Reset draf?
+            </h2>
             <p className="text-sm text-neutral-400 mb-10 leading-relaxed font-light">
               Tindakan ini akan menghapus semua isi kotak aduan yang belum
               dikirim.

@@ -15,7 +15,8 @@ const Gallery: React.FC = () => {
               </p>
             </div>
             <h1 className="font-serif text-5xl md:text-7xl text-white tracking-tight">
-              Galeri <span className="italic text-gold-500/80 font-light">Visual</span>
+              Galeri{" "}
+              <span className="italic text-gold-500/80 font-light">Visual</span>
             </h1>
           </div>
           <p className="text-neutral-400 text-sm mt-8 md:mt-0 font-light tracking-widest uppercase">
@@ -28,7 +29,8 @@ const Gallery: React.FC = () => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
             <div className="relative z-10 flex flex-col items-center gap-6">
               <p className="text-neutral-400 text-sm tracking-wide">
-                Galeri dokumentasi kegiatan HIMA Musik sedang dikurasi dan akan segera tersedia.
+                Galeri dokumentasi kegiatan HIMA Musik sedang dikurasi dan akan
+                segera tersedia.
               </p>
               <p className="text-neutral-500 text-xs tracking-wide">
                 Lihat dokumentasi terbaru di media sosial kami:
@@ -39,7 +41,24 @@ const Gallery: React.FC = () => {
                 rel="noreferrer"
                 className="inline-flex items-center gap-3 px-6 py-3 border border-gold-500/30 text-gold-300 text-xs uppercase tracking-[0.3em] hover:bg-gold-500/10 transition-colors duration-300"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" />
+                  <circle cx="12" cy="12" r="5" />
+                  <circle
+                    cx="17.5"
+                    cy="6.5"
+                    r="1.5"
+                    fill="currentColor"
+                    stroke="none"
+                  />
+                </svg>
                 Lihat di @himamusikisi
               </a>
             </div>

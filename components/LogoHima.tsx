@@ -1,6 +1,6 @@
 import React from "react";
 
-interface LogoHimaProps extends Omit<React.SVGProps<SVGSVGElement>, 'color'> {
+interface LogoHimaProps extends Omit<React.SVGProps<SVGSVGElement>, "color"> {
   lineColor?: string;
   glyphColor?: string;
   textColor?: string;

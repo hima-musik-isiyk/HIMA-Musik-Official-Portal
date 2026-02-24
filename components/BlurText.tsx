@@ -1,12 +1,12 @@
-import { motion, Transition } from 'motion/react';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { motion, Transition } from "motion/react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 type BlurTextProps = {
   text?: string;
   delay?: number;
   className?: string;
-  animateBy?: 'words' | 'letters';
-  direction?: 'top' | 'bottom';
+  animateBy?: "words" | "letters";
+  direction?: "top" | "bottom";
   threshold?: number;
   rootMargin?: string;
   animationFrom?: Record<string, string | number>;
@@ -18,32 +18,35 @@ type BlurTextProps = {
 
 const buildKeyframes = (
   from: Record<string, string | number>,
-  steps: Array<Record<string, string | number>>
+  steps: Array<Record<string, string | number>>,
 ): Record<string, Array<string | number>> => {
-  const keys = new Set<string>([...Object.keys(from), ...steps.flatMap(s => Object.keys(s))]);
+  const keys = new Set<string>([
+    ...Object.keys(from),
+    ...steps.flatMap((s) => Object.keys(s)),
+  ]);
 
   const keyframes: Record<string, Array<string | number>> = {};
-  keys.forEach(k => {
-    keyframes[k] = [from[k], ...steps.map(s => s[k])];
+  keys.forEach((k) => {
+    keyframes[k] = [from[k], ...steps.map((s) => s[k])];
   });
   return keyframes;
 };
 
 const BlurText: React.FC<BlurTextProps> = ({
-  text = '',
+  text = "",
   delay = 200,
-  className = '',
-  animateBy = 'words',
-  direction = 'top',
+  className = "",
+  animateBy = "words",
+  direction = "top",
   threshold = 0.1,
-  rootMargin = '0px',
+  rootMargin = "0px",
   animationFrom,
   animationTo,
   easing = (t: number) => t,
   onAnimationComplete,
-  stepDuration = 0.35
+  stepDuration = 0.35,
 }) => {
-  const elements = animateBy === 'words' ? text.split(' ') : text.split('');
+  const elements = animateBy === "words" ? text.split(" ") : text.split("");
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -59,7 +62,7 @@ const BlurText: React.FC<BlurTextProps> = ({
           }
         }
       },
-      { threshold, rootMargin }
+      { threshold, rootMargin },
     );
     observer.observe(ref.current);
     return () => observer.disconnect();
@@ -68,29 +71,29 @@ const BlurText: React.FC<BlurTextProps> = ({
   const defaultFrom = useMemo(
     () => ({
       opacity: 0,
-      y: direction === 'top' ? -50 : 50,
-      textShadow: '0 0 30px currentColor, 0 0 30px transparent',
-      WebkitTextFillColor: 'transparent',
+      y: direction === "top" ? -50 : 50,
+      textShadow: "0 0 30px currentColor, 0 0 30px transparent",
+      WebkitTextFillColor: "transparent",
     }),
-    [direction]
+    [direction],
   );
 
   const defaultTo = useMemo(
     () => [
       {
         opacity: 0.6,
-        y: direction === 'top' ? 5 : -5,
-        textShadow: '0 0 12px currentColor, 0 0 30px transparent',
-        WebkitTextFillColor: 'transparent',
+        y: direction === "top" ? 5 : -5,
+        textShadow: "0 0 12px currentColor, 0 0 30px transparent",
+        WebkitTextFillColor: "transparent",
       },
       {
         opacity: 1,
         y: 0,
-        textShadow: '0 0 0px currentColor, 0 0 30px transparent',
-        WebkitTextFillColor: 'unset'
-      }
+        textShadow: "0 0 0px currentColor, 0 0 30px transparent",
+        WebkitTextFillColor: "unset",
+      },
     ],
-    [direction]
+    [direction],
   );
 
   const fromSnapshot = animationFrom ?? defaultFrom;
@@ -98,12 +101,18 @@ const BlurText: React.FC<BlurTextProps> = ({
 
   const stepCount = toSnapshots.length + 1;
   const totalDuration = stepDuration * (stepCount - 1);
-  const times = Array.from({ length: stepCount }, (_, i) => (stepCount === 1 ? 0 : i / (stepCount - 1)));
+  const times = Array.from({ length: stepCount }, (_, i) =>
+    stepCount === 1 ? 0 : i / (stepCount - 1),
+  );
 
-  const containerClassName = `${animateBy === 'words' ? 'flex-wrap' : 'flex-nowrap'} ${className || 'flex'}`;
+  const containerClassName = `${animateBy === "words" ? "flex-wrap" : "flex-nowrap"} ${className || "flex"}`;
 
   return (
-    <span ref={ref} className={containerClassName} style={{ overflow: 'visible' }}>
+    <span
+      ref={ref}
+      className={containerClassName}
+      style={{ overflow: "visible" }}
+    >
       {elements.map((segment, index) => {
         const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
 
@@ -111,7 +120,7 @@ const BlurText: React.FC<BlurTextProps> = ({
           duration: totalDuration,
           times,
           delay: (index * delay) / 1000,
-          ease: easing
+          ease: easing,
         };
 
         return (
@@ -120,16 +129,18 @@ const BlurText: React.FC<BlurTextProps> = ({
             initial={fromSnapshot}
             animate={inView ? animateKeyframes : fromSnapshot}
             transition={spanTransition}
-            onAnimationComplete={index === elements.length - 1 ? onAnimationComplete : undefined}
+            onAnimationComplete={
+              index === elements.length - 1 ? onAnimationComplete : undefined
+            }
             style={{
-              display: 'inline-block',
-              overflow: 'visible',
-              willChange: 'transform, opacity',
-              backfaceVisibility: 'hidden',
+              display: "inline-block",
+              overflow: "visible",
+              willChange: "transform, opacity",
+              backfaceVisibility: "hidden",
             }}
           >
-            {segment === ' ' ? '\u00A0' : segment}
-            {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
+            {segment === " " ? "\u00A0" : segment}
+            {animateBy === "words" && index < elements.length - 1 && "\u00A0"}
           </motion.span>
         );
       })}

@@ -22,7 +22,8 @@ const About: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-24 mb-32">
           <div className="md:col-span-7 flex flex-col gap-12">
             <h1 className="font-serif text-6xl md:text-8xl text-white tracking-tight">
-              Kabinet <span className="italic text-gold-500/80 font-light">2026</span>
+              Kabinet{" "}
+              <span className="italic text-gold-500/80 font-light">2026</span>
             </h1>
 
             <div className="text-neutral-400 text-lg leading-relaxed font-light">
@@ -44,7 +45,10 @@ const About: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="md:col-span-5 relative aspect-3/4 w-full bg-[#111] overflow-hidden group" aria-hidden="true">
+          <div
+            className="md:col-span-5 relative aspect-3/4 w-full bg-[#111] overflow-hidden group"
+            aria-hidden="true"
+          >
             <div className="absolute inset-0 bg-gold-500/10 mix-blend-overlay z-10 group-hover:opacity-0 transition-opacity duration-700"></div>
             <LightPillar
               topColor="#D4A64D"
@@ -60,12 +64,17 @@ const About: React.FC = () => {
           <div className="absolute top-0 left-0 w-24 h-px bg-gold-500/50"></div>
           <h2 className="font-serif text-4xl md:text-5xl text-white mb-16 tracking-tight">
             Struktur Kabinet <br />
-            <span className="italic text-gold-500 text-3xl font-light">2026</span>
+            <span className="italic text-gold-500 text-3xl font-light">
+              2026
+            </span>
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-16">
             {executives.map((exec, idx) => (
-              <div key={idx} className="group relative pl-6 border-l border-white/5 hover:border-gold-300 transition-colors duration-500">
+              <div
+                key={idx}
+                className="group relative pl-6 border-l border-white/5 hover:border-gold-300 transition-colors duration-500"
+              >
                 <p className="text-xs uppercase tracking-[0.3em] text-gold-500 mb-4 group-hover:text-gold-300 transition-colors duration-500">
                   {exec.role}
                 </p>

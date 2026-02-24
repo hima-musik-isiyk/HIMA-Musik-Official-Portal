@@ -142,7 +142,10 @@ export async function POST(request: Request) {
       typeof data.fullName === "string" ? data.fullName.trim() : "";
     const nim = typeof data.nim === "string" ? data.nim.trim() : "";
     const email = typeof data.email === "string" ? data.email.trim() : "";
-    const phone = typeof data.phone === "string" ? data.phone.trim().replace(/\D/g, "") : "";
+    const phone =
+      typeof data.phone === "string"
+        ? data.phone.trim().replace(/\D/g, "")
+        : "";
     const instagram =
       typeof data.instagram === "string" ? data.instagram.trim() : "";
     const motivation =
@@ -208,10 +211,7 @@ export async function POST(request: Request) {
     }
 
     if (!nim) {
-      return NextResponse.json(
-        { error: "NIM wajib diisi." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "NIM wajib diisi." }, { status: 400 });
     }
 
     if (!NIM_PATTERN.test(nim)) {
@@ -322,11 +322,11 @@ export async function POST(request: Request) {
 
     const divisionLabel = divisionLabels[firstChoice] ?? firstChoice;
     const secondaryDivisionLabel = secondChoice
-      ? divisionLabels[secondChoice] ?? secondChoice
+      ? (divisionLabels[secondChoice] ?? secondChoice)
       : "";
     const subfocusLabel =
       isPddSelected && pddSubfocus
-        ? pddSubfocusLabels[pddSubfocus] ?? pddSubfocus
+        ? (pddSubfocusLabels[pddSubfocus] ?? pddSubfocus)
         : "";
     const safeFullName = escapeHtml(fullName || "Calon Pengurus");
     const safeEmail = escapeHtml(email);
@@ -471,7 +471,7 @@ export async function POST(request: Request) {
       portfolio ? `Portofolio    : ${portfolio}` : "",
       "",
       "Simpan email ini sebagai bukti pendaftaran.",
-      "Jika email ini masuk ke folder Spam/Junk, tandai sebagai \"Bukan spam\"",
+      'Jika email ini masuk ke folder Spam/Junk, tandai sebagai "Bukan spam"',
       "agar informasi berikutnya tidak terlewat.",
       "",
       "Salam hangat,",
@@ -606,7 +606,11 @@ export async function POST(request: Request) {
         };
 
         const topicId = errorTopicIdRaw ? Number(errorTopicIdRaw) : undefined;
-        if (typeof topicId === "number" && Number.isInteger(topicId) && topicId !== 0) {
+        if (
+          typeof topicId === "number" &&
+          Number.isInteger(topicId) &&
+          topicId !== 0
+        ) {
           errorPayload.message_thread_id = topicId;
         }
 
@@ -617,7 +621,10 @@ export async function POST(request: Request) {
             body: JSON.stringify(errorPayload),
           });
         } catch (telegramError) {
-          console.error("Failed to send DB error notification to Telegram:", telegramError);
+          console.error(
+            "Failed to send DB error notification to Telegram:",
+            telegramError,
+          );
         }
       }
     }

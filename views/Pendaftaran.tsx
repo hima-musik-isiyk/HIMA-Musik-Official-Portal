@@ -87,7 +87,9 @@ const Pendaftaran: React.FC = () => {
   const isPddSelected =
     formData.firstChoice === "pdd" || formData.secondChoice === "pdd";
 
-  const currentDivision = divisions.find((division) => division.id === formData.firstChoice);
+  const currentDivision = divisions.find(
+    (division) => division.id === formData.firstChoice,
+  );
   const trimmedFullName = formData.fullName.trim();
   const trimmedNim = formData.nim.trim();
   const trimmedEmail = formData.email.trim();
@@ -126,7 +128,8 @@ const Pendaftaran: React.FC = () => {
         : "";
 
   const isAngkatanRestricted =
-    (formData.firstChoice === "co-sekretaris" || formData.firstChoice === "co-bendahara") &&
+    (formData.firstChoice === "co-sekretaris" ||
+      formData.firstChoice === "co-bendahara") &&
     formData.angkatan === "2023";
   const angkatanError = !formData.angkatan
     ? "Angkatan wajib dipilih."
@@ -136,14 +139,13 @@ const Pendaftaran: React.FC = () => {
 
   const isStepComplete = (stepId: number): boolean => {
     if (stepId === 0) {
-      return Boolean(formData.firstChoice && formData.angkatan && !isAngkatanRestricted);
+      return Boolean(
+        formData.firstChoice && formData.angkatan && !isAngkatanRestricted,
+      );
     }
     if (stepId === 1) {
       return Boolean(
-        trimmedFullName &&
-          isNimValid &&
-          isEmailValid &&
-          isPhoneValid,
+        trimmedFullName && isNimValid && isEmailValid && isPhoneValid,
       );
     }
     if (stepId === 2) {
@@ -164,13 +166,15 @@ const Pendaftaran: React.FC = () => {
     if (step === 1) {
       return Boolean(
         formData.fullName.trim() ||
-          formData.nim.trim() ||
-          formData.email.trim() ||
-          formData.phone.trim(),
+        formData.nim.trim() ||
+        formData.email.trim() ||
+        formData.phone.trim(),
       );
     }
     if (step === 2) {
-      return Boolean(formData.motivation.trim() || formData.availability.length > 0);
+      return Boolean(
+        formData.motivation.trim() || formData.availability.length > 0,
+      );
     }
     return false;
   })();
@@ -399,7 +403,9 @@ const Pendaftaran: React.FC = () => {
   };
 
   const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -503,14 +509,14 @@ const Pendaftaran: React.FC = () => {
       });
 
       if (!response.ok) {
-        let message = "Gagal mengirim bukti pendaftaran. Coba lagi sebentar lagi.";
+        let message =
+          "Gagal mengirim bukti pendaftaran. Coba lagi sebentar lagi.";
         try {
           const body = await response.json();
           if (body && typeof body.error === "string" && body.error.trim()) {
             message = body.error;
           }
-        } catch {
-        }
+        } catch {}
         setSubmitError(message);
         setIsSubmitting(false);
         return;
@@ -548,11 +554,12 @@ const Pendaftaran: React.FC = () => {
             <div className="h-px w-8 bg-gold-500/50"></div>
           </div>
           <h1 className="font-serif text-5xl md:text-6xl text-white mb-6 tracking-tight">
-            Terima <span className="italic text-gold-500/80 font-light">Kasih</span>
+            Terima{" "}
+            <span className="italic text-gold-500/80 font-light">Kasih</span>
           </h1>
           <p className="text-neutral-400 max-w-2xl mx-auto leading-relaxed font-light mb-4">
-            Data pendaftaran sudah kami terima. Bukti pendaftaran telah kami kirim
-            ke email{" "}
+            Data pendaftaran sudah kami terima. Bukti pendaftaran telah kami
+            kirim ke email{" "}
             <span className="text-gold-300">
               {formData.email || "yang kamu tulis di formulir"}
             </span>
@@ -563,10 +570,10 @@ const Pendaftaran: React.FC = () => {
             <p className="leading-relaxed">
               Jika email belum muncul di kotak masuk, cek juga folder{" "}
               <span className="text-neutral-300">Spam</span> atau{" "}
-              <span className="text-neutral-300">Junk</span> dan tandai email dari{" "}
-              <span className="text-gold-300">HIMA Musik</span> sebagai{" "}
-              <span className="text-neutral-300">“Bukan spam”</span> supaya informasi
-              berikutnya tidak terlewat.
+              <span className="text-neutral-300">Junk</span> dan tandai email
+              dari <span className="text-gold-300">HIMA Musik</span> sebagai{" "}
+              <span className="text-neutral-300">“Bukan spam”</span> supaya
+              informasi berikutnya tidak terlewat.
             </p>
           </div>
           <div className="border border-white/10 bg-white/5 p-6 max-w-lg mx-auto mb-10">
@@ -649,7 +656,10 @@ const Pendaftaran: React.FC = () => {
         </div>
         <div className="mb-12">
           <h1 className="font-serif text-4xl md:text-5xl text-white tracking-tight mb-4">
-            Isi Data <span className="italic text-gold-500/80 font-light">Pendaftaran</span>
+            Isi Data{" "}
+            <span className="italic text-gold-500/80 font-light">
+              Pendaftaran
+            </span>
           </h1>
           <p className="text-neutral-400 text-sm max-w-xl leading-relaxed">
             Pilih divisi, isi data diri, ceritakan motivasi, lalu kirim
@@ -671,7 +681,11 @@ const Pendaftaran: React.FC = () => {
           </div>
         </div>
 
-        <form ref={formContainerRef} onSubmit={handleSubmit} className="space-y-12">
+        <form
+          ref={formContainerRef}
+          onSubmit={handleSubmit}
+          className="space-y-12"
+        >
           {step === 0 && (
             <div className="space-y-10">
               <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -712,7 +726,9 @@ const Pendaftaran: React.FC = () => {
                           name="firstChoice"
                           value={division.id}
                           checked={formData.firstChoice === division.id}
-                          onChange={(e) => handleFirstChoiceChange(e.target.value)}
+                          onChange={(e) =>
+                            handleFirstChoiceChange(e.target.value)
+                          }
                           className="w-4 h-4 accent-gold-500 cursor-pointer"
                         />
                         <label
@@ -752,7 +768,10 @@ const Pendaftaran: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <label htmlFor="secondChoice" className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                  <label
+                    htmlFor="secondChoice"
+                    className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium"
+                  >
                     Pilihan 2 (Opsional)
                   </label>
                   <select
@@ -772,7 +791,9 @@ const Pendaftaran: React.FC = () => {
                         disabled={division.id === formData.firstChoice}
                       >
                         {division.name}
-                        {division.id === formData.firstChoice ? " (dipilih sebagai Pilihan 1)" : ""}
+                        {division.id === formData.firstChoice
+                          ? " (dipilih sebagai Pilihan 1)"
+                          : ""}
                       </option>
                     ))}
                   </select>
@@ -782,7 +803,10 @@ const Pendaftaran: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <label htmlFor="angkatan" className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium">
+                  <label
+                    htmlFor="angkatan"
+                    className="block text-xs uppercase tracking-[0.3em] text-neutral-400 font-medium"
+                  >
                     Angkatan <span className="text-gold-500">*</span>
                   </label>
                   <select
@@ -817,9 +841,21 @@ const Pendaftaran: React.FC = () => {
                     </p>
                     <div className="space-y-3">
                       {[
-                        { value: "desain", label: "Desain", desc: "Visual identity, poster, feed IG, template, brand guideline" },
-                        { value: "publikasi", label: "Publikasi & Media Sosial", desc: "Content calendar, distribusi info, kelola platform" },
-                        { value: "dokumentasi", label: "Dokumentasi", desc: "Fotografer/videografer, seleksi & arsip, aftermovie" },
+                        {
+                          value: "desain",
+                          label: "Desain",
+                          desc: "Visual identity, poster, feed IG, template, brand guideline",
+                        },
+                        {
+                          value: "publikasi",
+                          label: "Publikasi & Media Sosial",
+                          desc: "Content calendar, distribusi info, kelola platform",
+                        },
+                        {
+                          value: "dokumentasi",
+                          label: "Dokumentasi",
+                          desc: "Fotografer/videografer, seleksi & arsip, aftermovie",
+                        },
                       ].map((option) => (
                         <div key={option.value} className="flex items-center">
                           <input
@@ -870,7 +906,8 @@ const Pendaftaran: React.FC = () => {
                   Mari mulai dengan perkenalan
                 </h2>
                 <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
-                  Pastikan data kontak aktif agar panitia mudah menghubungi kamu.
+                  Pastikan data kontak aktif agar panitia mudah menghubungi
+                  kamu.
                 </p>
               </div>
 
@@ -890,11 +927,16 @@ const Pendaftaran: React.FC = () => {
                       required
                     />
                     {trimmedFullName && (
-                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                      <span className="absolute right-3 text-green-500 text-xs">
+                        OK
+                      </span>
                     )}
                   </div>
                   {showStepErrors && fullNameError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                    >
                       {fullNameError}
                     </p>
                   )}
@@ -916,12 +958,19 @@ const Pendaftaran: React.FC = () => {
                       required
                     />
                     {trimmedNim && isNimValid && (
-                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                      <span className="absolute right-3 text-green-500 text-xs">
+                        OK
+                      </span>
                     )}
                   </div>
-                  <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">10–12 digit angka sesuai KTM</p>
+                  <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">
+                    10–12 digit angka sesuai KTM
+                  </p>
                   {showStepErrors && nimError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                    >
                       {nimError}
                     </p>
                   )}
@@ -941,11 +990,16 @@ const Pendaftaran: React.FC = () => {
                       required
                     />
                     {trimmedEmail && isEmailValid && (
-                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                      <span className="absolute right-3 text-green-500 text-xs">
+                        OK
+                      </span>
                     )}
                   </div>
                   {showStepErrors && emailError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                    >
                       {emailError}
                     </p>
                   )}
@@ -966,12 +1020,19 @@ const Pendaftaran: React.FC = () => {
                       required
                     />
                     {trimmedPhone && isPhoneValid && (
-                      <span className="absolute right-3 text-green-500 text-xs">OK</span>
+                      <span className="absolute right-3 text-green-500 text-xs">
+                        OK
+                      </span>
                     )}
                   </div>
-                  <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">Format: 08xx atau +628xx (spasi/strip diabaikan)</p>
+                  <p className="text-[0.6rem] text-neutral-500 mt-1 tracking-wide">
+                    Format: 08xx atau +628xx (spasi/strip diabaikan)
+                  </p>
                   {showStepErrors && phoneError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2">
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-2"
+                    >
                       {phoneError}
                     </p>
                   )}
@@ -1000,7 +1061,8 @@ const Pendaftaran: React.FC = () => {
                   Ceritakan alasanmu & atur jadwalmu
                 </h2>
                 <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
-                  Berikan penjelasan lengkap tentang motivasimu dan pilih hari ketersediaan.
+                  Berikan penjelasan lengkap tentang motivasimu dan pilih hari
+                  ketersediaan.
                 </p>
               </div>
 
@@ -1054,7 +1116,10 @@ const Pendaftaran: React.FC = () => {
                     </div>
                   </div>
                   {showStepErrors && motivationError && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3">
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3"
+                    >
                       {motivationError}
                     </p>
                   )}
@@ -1065,7 +1130,8 @@ const Pendaftaran: React.FC = () => {
                     Ketersediaan Waktu <span className="text-gold-500">*</span>
                   </label>
                   <p className="text-xs text-neutral-500 mb-4">
-                    Pilih hari di mana kamu biasanya luang untuk rapat/koordinasi (Bisa pilih lebih dari satu).
+                    Pilih hari di mana kamu biasanya luang untuk
+                    rapat/koordinasi (Bisa pilih lebih dari satu).
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {availabilityOptions.map((day) => {
@@ -1087,7 +1153,10 @@ const Pendaftaran: React.FC = () => {
                     })}
                   </div>
                   {showStepErrors && formData.availability.length === 0 && (
-                    <p data-error="true" className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3">
+                    <p
+                      data-error="true"
+                      className="text-xs uppercase tracking-[0.2em] text-amber-500/80 mt-3"
+                    >
                       Pilih minimal satu hari untuk rapat rutin.
                     </p>
                   )}
@@ -1122,7 +1191,8 @@ const Pendaftaran: React.FC = () => {
                     placeholder="Behance, Drive, Instagram, YouTube, dsb."
                   ></textarea>
                   <p className="mt-2 text-xs uppercase tracking-[0.2em] text-neutral-600">
-                    Boleh lebih dari satu link, pisahkan dengan koma atau baris baru.
+                    Boleh lebih dari satu link, pisahkan dengan koma atau baris
+                    baru.
                   </p>
                 </div>
               </div>
@@ -1136,12 +1206,16 @@ const Pendaftaran: React.FC = () => {
                   Review Pendaftaran
                 </h2>
                 <p className="text-neutral-400 text-sm mt-3 max-w-2xl leading-relaxed">
-                  Satu langkah lagi! Pastikan data di atas sudah benar sebelum dikirim.
+                  Satu langkah lagi! Pastikan data di atas sudah benar sebelum
+                  dikirim.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="border border-white/5 bg-white/2 p-8 space-y-6 overflow-hidden" style={{ overflowWrap: "break-word" }}>
+                <div
+                  className="border border-white/5 bg-white/2 p-8 space-y-6 overflow-hidden"
+                  style={{ overflowWrap: "break-word" }}
+                >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
@@ -1149,20 +1223,26 @@ const Pendaftaran: React.FC = () => {
                       </p>
                       <button
                         type="button"
-                        onClick={() => { setShowStepErrors(false); shouldScrollOnStepChangeRef.current = true; setStep(0); }}
+                        onClick={() => {
+                          setShowStepErrors(false);
+                          shouldScrollOnStepChangeRef.current = true;
+                          setStep(0);
+                        }}
                         className="text-xs text-gold-500/60 hover:text-gold-300 transition-colors duration-300 uppercase tracking-[0.2em]"
                       >
                         Edit
                       </button>
                     </div>
                     <p className="text-white font-serif text-2xl">
-                      {divisions.find((division) => division.id === formData.firstChoice)?.name ||
-                        "-"}
+                      {divisions.find(
+                        (division) => division.id === formData.firstChoice,
+                      )?.name || "-"}
                     </p>
                     <p className="text-sm text-neutral-400 mt-2">
                       Pilihan 2:{" "}
-                      {divisions.find((division) => division.id === formData.secondChoice)?.name ||
-                        "—"}
+                      {divisions.find(
+                        (division) => division.id === formData.secondChoice,
+                      )?.name || "—"}
                     </p>
                     <p className="text-sm text-neutral-400 mt-1">
                       Angkatan: {formData.angkatan || "—"}
@@ -1187,22 +1267,59 @@ const Pendaftaran: React.FC = () => {
                       </p>
                       <button
                         type="button"
-                        onClick={() => { setShowStepErrors(false); shouldScrollOnStepChangeRef.current = true; setStep(1); }}
+                        onClick={() => {
+                          setShowStepErrors(false);
+                          shouldScrollOnStepChangeRef.current = true;
+                          setStep(1);
+                        }}
                         className="text-xs text-gold-500/60 hover:text-gold-300 transition-colors duration-300 uppercase tracking-[0.2em]"
                       >
                         Edit
                       </button>
                     </div>
-                    <div className="text-sm text-neutral-300 space-y-2 overflow-hidden" style={{ overflowWrap: "break-word" }}>
-                      <p className="overflow-hidden" style={{ overflowWrap: "break-word" }}>{formData.fullName}</p>
-                      <p className="overflow-hidden" style={{ overflowWrap: "break-word" }}>{formData.nim}</p>
-                      <p className="overflow-hidden text-xs" style={{ overflowWrap: "break-word" }}>{formData.email}</p>
-                      <p className="overflow-hidden" style={{ overflowWrap: "break-word" }}>{formData.phone}</p>
-                      {formData.instagram && <p className="overflow-hidden" style={{ overflowWrap: "break-word" }}>{formData.instagram}</p>}
+                    <div
+                      className="text-sm text-neutral-300 space-y-2 overflow-hidden"
+                      style={{ overflowWrap: "break-word" }}
+                    >
+                      <p
+                        className="overflow-hidden"
+                        style={{ overflowWrap: "break-word" }}
+                      >
+                        {formData.fullName}
+                      </p>
+                      <p
+                        className="overflow-hidden"
+                        style={{ overflowWrap: "break-word" }}
+                      >
+                        {formData.nim}
+                      </p>
+                      <p
+                        className="overflow-hidden text-xs"
+                        style={{ overflowWrap: "break-word" }}
+                      >
+                        {formData.email}
+                      </p>
+                      <p
+                        className="overflow-hidden"
+                        style={{ overflowWrap: "break-word" }}
+                      >
+                        {formData.phone}
+                      </p>
+                      {formData.instagram && (
+                        <p
+                          className="overflow-hidden"
+                          style={{ overflowWrap: "break-word" }}
+                        >
+                          {formData.instagram}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="border border-white/5 bg-white/2 p-8 space-y-6 overflow-hidden" style={{ overflowWrap: "break-word" }}>
+                <div
+                  className="border border-white/5 bg-white/2 p-8 space-y-6 overflow-hidden"
+                  style={{ overflowWrap: "break-word" }}
+                >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
@@ -1210,13 +1327,20 @@ const Pendaftaran: React.FC = () => {
                       </p>
                       <button
                         type="button"
-                        onClick={() => { setShowStepErrors(false); shouldScrollOnStepChangeRef.current = true; setStep(2); }}
+                        onClick={() => {
+                          setShowStepErrors(false);
+                          shouldScrollOnStepChangeRef.current = true;
+                          setStep(2);
+                        }}
                         className="text-xs text-gold-500/60 hover:text-gold-300 transition-colors duration-300 uppercase tracking-[0.2em]"
                       >
                         Edit
                       </button>
                     </div>
-                    <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap overflow-hidden" style={{ overflowWrap: "break-word" }}>
+                    <p
+                      className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap overflow-hidden"
+                      style={{ overflowWrap: "break-word" }}
+                    >
                       {formData.motivation || "-"}
                     </p>
                   </div>
@@ -1234,7 +1358,10 @@ const Pendaftaran: React.FC = () => {
                     <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-2">
                       Pengalaman
                     </p>
-                    <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap overflow-hidden" style={{ overflowWrap: "break-word" }}>
+                    <p
+                      className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap overflow-hidden"
+                      style={{ overflowWrap: "break-word" }}
+                    >
                       {formData.experience || "Belum diisi"}
                     </p>
                   </div>
@@ -1243,13 +1370,22 @@ const Pendaftaran: React.FC = () => {
                       <p className="text-xs uppercase tracking-[0.3em] text-neutral-400 mb-2">
                         Portofolio
                       </p>
-                      <div className="text-sm text-neutral-300 space-y-1 overflow-hidden" style={{ overflowWrap: "break-word" }}>
+                      <div
+                        className="text-sm text-neutral-300 space-y-1 overflow-hidden"
+                        style={{ overflowWrap: "break-word" }}
+                      >
                         {formData.portfolio
                           .split(/[\n,]+/)
                           .map((entry) => entry.trim())
                           .filter(Boolean)
                           .map((entry) => (
-                            <p key={entry} className="overflow-hidden text-xs" style={{ overflowWrap: "break-word" }}>{entry}</p>
+                            <p
+                              key={entry}
+                              className="overflow-hidden text-xs"
+                              style={{ overflowWrap: "break-word" }}
+                            >
+                              {entry}
+                            </p>
                           ))}
                       </div>
                     </div>
@@ -1269,9 +1405,7 @@ const Pendaftaran: React.FC = () => {
                       : "inline-flex items-center gap-2 text-red-400"
                   }
                 >
-                  <span className="text-xs">
-                    {isStepValid ? "OK" : "!"}
-                  </span>
+                  <span className="text-xs">{isStepValid ? "OK" : "!"}</span>
                   <span>
                     {isStepValid
                       ? step === steps.length - 1
@@ -1289,7 +1423,9 @@ const Pendaftaran: React.FC = () => {
                   </span>
                 </span>
               )}
-              {(hasTouchedForm || showRestoreNotice || autoSaveStatus === "error") && (
+              {(hasTouchedForm ||
+                showRestoreNotice ||
+                autoSaveStatus === "error") && (
                 <span>
                   {autoSaveStatus === "saving" && "Menyimpan draf..."}
                   {autoSaveStatus === "saved" &&
@@ -1303,9 +1439,7 @@ const Pendaftaran: React.FC = () => {
                 </span>
               )}
               {submitError && (
-                <span className="text-red-400">
-                  {submitError}
-                </span>
+                <span className="text-red-400">{submitError}</span>
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -1356,9 +1490,12 @@ const Pendaftaran: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm px-6">
           <div className="w-full max-w-md bg-[#111] border border-white/10 p-8 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gold-500/50 to-transparent"></div>
-            <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">Reset draf?</h2>
+            <h2 className="font-serif text-2xl text-white mb-4 tracking-wide">
+              Reset draf?
+            </h2>
             <p className="text-sm text-neutral-400 mb-10 leading-relaxed font-light">
-              Tindakan ini akan menghapus semua isian formulir pendaftaran yang belum dikirim.
+              Tindakan ini akan menghapus semua isian formulir pendaftaran yang
+              belum dikirim.
             </p>
             <div className="flex justify-end gap-4 text-xs uppercase tracking-[0.2em] font-medium">
               <button
@@ -1408,7 +1545,8 @@ const Pendaftaran: React.FC = () => {
                 Panduan Lengkap Divisi
               </h2>
               <p className="text-neutral-400 text-sm mb-12">
-                Pelajari detail setiap divisi untuk memilih yang paling cocok dengan minat dan keahlianmu.
+                Pelajari detail setiap divisi untuk memilih yang paling cocok
+                dengan minat dan keahlianmu.
               </p>
 
               <div className="space-y-8">
@@ -1450,7 +1588,9 @@ const Pendaftaran: React.FC = () => {
                         </h4>
                         <div className="space-y-3">
                           <div>
-                            <p className="text-xs text-neutral-500 mb-2">Skill:</p>
+                            <p className="text-xs text-neutral-500 mb-2">
+                              Skill:
+                            </p>
                             <div className="flex flex-wrap gap-2">
                               {division.skills.map((skill) => (
                                 <span
@@ -1463,7 +1603,9 @@ const Pendaftaran: React.FC = () => {
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-neutral-500 mb-2">Komitmen Waktu:</p>
+                            <p className="text-xs text-neutral-500 mb-2">
+                              Komitmen Waktu:
+                            </p>
                             <p className="text-sm text-neutral-300">
                               {division.commitment}
                             </p>

@@ -102,7 +102,10 @@ export async function POST(request: Request) {
         data: {
           name: typeof name === "string" && name.trim() ? name.trim() : null,
           nim: typeof nim === "string" && nim.trim() ? nim.trim() : null,
-          category: typeof category === "string" && category.trim() ? category.trim() : "Umum",
+          category:
+            typeof category === "string" && category.trim()
+              ? category.trim()
+              : "Umum",
           message: message.trim(),
         },
       });
@@ -131,7 +134,11 @@ export async function POST(request: Request) {
         };
 
         const topicId = errorTopicId ? Number(errorTopicId) : undefined;
-        if (typeof topicId === "number" && Number.isInteger(topicId) && topicId !== 0) {
+        if (
+          typeof topicId === "number" &&
+          Number.isInteger(topicId) &&
+          topicId !== 0
+        ) {
           errorPayload.message_thread_id = topicId;
         }
 
@@ -142,7 +149,10 @@ export async function POST(request: Request) {
             body: JSON.stringify(errorPayload),
           });
         } catch (telegramError) {
-          console.error("Failed to send DB error notification to Telegram:", telegramError);
+          console.error(
+            "Failed to send DB error notification to Telegram:",
+            telegramError,
+          );
         }
       }
     }

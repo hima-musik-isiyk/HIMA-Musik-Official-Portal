@@ -15,7 +15,9 @@ const decodeHtmlEntities = (value: string): string => {
 };
 
 const unwrapCodeFence = (value: string): string => {
-  const fullFenceMatch = value.match(/^```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)\s*```$/);
+  const fullFenceMatch = value.match(
+    /^```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)\s*```$/,
+  );
   if (fullFenceMatch?.[1]) {
     return fullFenceMatch[1].trim();
   }
@@ -34,7 +36,10 @@ const extractFromJson = (value: string): string | null => {
   }
 
   try {
-    const parsed = JSON.parse(value) as { enhanced?: unknown; result?: unknown };
+    const parsed = JSON.parse(value) as {
+      enhanced?: unknown;
+      result?: unknown;
+    };
     const candidate =
       typeof parsed.enhanced === "string"
         ? parsed.enhanced
@@ -54,14 +59,18 @@ export const extractEnhancedText = (
   if (!rawContent.trim()) return fallbackText;
 
   let content = unwrapCodeFence(rawContent.trim());
-  content = decodeHtmlEntities(content).replace(/^<\?xml[\s\S]*?\?>/i, "").trim();
+  content = decodeHtmlEntities(content)
+    .replace(/^<\?xml[\s\S]*?\?>/i, "")
+    .trim();
 
   const fromJson = extractFromJson(content);
   if (fromJson) {
     content = fromJson;
   }
 
-  const fullTagMatch = content.match(/<enhanced(?:\s[^>]*)?>([\s\S]*?)<\/enhanced>/i);
+  const fullTagMatch = content.match(
+    /<enhanced(?:\s[^>]*)?>([\s\S]*?)<\/enhanced>/i,
+  );
   if (fullTagMatch?.[1]) {
     const cleaned = fullTagMatch[1].trim();
     return cleaned || fallbackText;
