@@ -1,6 +1,6 @@
 import React from "react";
-import Pendaftaran from "../../views/Pendaftaran";
+import PendaftaranLanding from "../../views/PendaftaranLanding";
 
 export default function PendaftaranPage() {
-  return <Pendaftaran />;
+  return <PendaftaranLanding />;
 }
