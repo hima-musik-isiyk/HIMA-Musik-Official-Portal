@@ -496,8 +496,8 @@ const Aduan: React.FC = () => {
                   {isEnhancing
                     ? "Sedang Memproses..."
                     : enhanceStatus === "success"
-                      ? "✓ Teks Diperbarui"
-                      : "✨ Rapikan Tata Bahasa"}
+                      ? "Teks diperbarui"
+                      : "Rapikan Tata Bahasa"}
                 </button>
                 {messageHistory.length > 0 && (
                   <button
@@ -569,7 +569,7 @@ const Aduan: React.FC = () => {
               <div className="mb-8 p-5 bg-red-950/20 border border-red-900/50 text-red-400/90 text-sm relative overflow-hidden">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-900/50"></div>
                 <div className="flex items-start gap-4">
-                  <span className="text-lg opacity-80">⚠️</span>
+                  <span className="text-lg opacity-80">!</span>
                   <div className="flex-1 text-left">
                     <p className="font-medium mb-1 tracking-wide">Pengiriman Gagal</p>
                     <p className="text-xs leading-relaxed font-light opacity-80">{submitError}</p>
@@ -579,7 +579,7 @@ const Aduan: React.FC = () => {
                     onClick={() => setSubmitError(null)}
                     className="text-red-400/60 hover:text-red-400 text-xs transition-colors"
                   >
-                    ✕
+                    X
                   </button>
                 </div>
               </div>
