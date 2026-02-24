@@ -124,7 +124,9 @@ const DivisionAccordionItem: React.FC<{
                     </span>
                   ))}
                 </div>
-                <p className="text-sm text-neutral-300">{division.commitment}</p>
+                <p className="text-sm text-neutral-300">
+                  {division.commitment}
+                </p>
               </div>
             </div>
           </div>
@@ -266,8 +268,7 @@ const PendaftaranLanding: React.FC = () => {
                   ref={sekretarisBranchRef}
                 >
                   <div className="w-px h-8 bg-white/10" />
-
-                  <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
+                  <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-30 md:min-h-32 flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-neutral-500 mb-1">
                       {bphMembers[2].role}
                     </p>
@@ -277,14 +278,11 @@ const PendaftaranLanding: React.FC = () => {
                   </div>
 
                   <div className="h-6 w-0 border-l border-dashed border-gold-500/40" />
-
-                  <div className="border border-gold-500/30 bg-gold-500/4 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
+                  <div className="border border-gold-500/30 bg-gold-500/4 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-30 md:min-h-32 flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-gold-500 mb-1">
                       Co-Sekretaris
                     </p>
-                    <p className="text-xs text-gold-300/60">
-                      1 posisi terbuka
-                    </p>
+                    <p className="text-xs text-gold-300/60">1 posisi terbuka</p>
                     <p className="text-[0.55rem] text-neutral-500 mt-1">
                       Angkatan 2024–2025
                     </p>
@@ -297,8 +295,7 @@ const PendaftaranLanding: React.FC = () => {
                   ref={bendaharaBranchRef}
                 >
                   <div className="w-px h-8 bg-white/10" />
-
-                  <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
+                  <div className="border border-white/10 bg-white/2 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-30 md:min-h-32 flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-neutral-500 mb-1">
                       {bphMembers[3].role}
                     </p>
@@ -308,14 +305,11 @@ const PendaftaranLanding: React.FC = () => {
                   </div>
 
                   <div className="h-6 w-0 border-l border-dashed border-gold-500/40" />
-
-                  <div className="border border-gold-500/30 bg-gold-500/4 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-[7.5rem] md:min-h-[8rem] flex flex-col justify-center">
+                  <div className="border border-gold-500/30 bg-gold-500/4 py-3 px-3 md:py-4 md:px-6 text-center w-full max-w-60 min-h-30 md:min-h-32 flex flex-col justify-center">
                     <p className="text-[0.6rem] uppercase tracking-[0.35em] text-gold-500 mb-1">
                       Co-Bendahara
                     </p>
-                    <p className="text-xs text-gold-300/60">
-                      1 posisi terbuka
-                    </p>
+                    <p className="text-xs text-gold-300/60">1 posisi terbuka</p>
                     <p className="text-[0.55rem] text-neutral-500 mt-1">
                       Angkatan 2024–2025
                     </p>
@@ -411,9 +405,7 @@ const PendaftaranLanding: React.FC = () => {
                 <span className="text-[0.6rem] uppercase tracking-[0.3em] text-neutral-600 absolute top-4 right-4">
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <h3 className="font-serif text-xl text-white">
-                  {item.title}
-                </h3>
+                <h3 className="font-serif text-xl text-white">{item.title}</h3>
                 <span className="text-xs uppercase tracking-[0.3em] text-gold-300/80">
                   {item.date}
                 </span>
