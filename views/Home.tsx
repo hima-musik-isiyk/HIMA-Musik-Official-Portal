@@ -433,9 +433,6 @@ const Home: React.FC = () => {
               className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
               <div>
-                <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
-                  01
-                </span>
                 <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
                   Tentang Kami
                 </h3>
@@ -465,9 +462,6 @@ const Home: React.FC = () => {
               className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
               <div>
-                <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
-                  02
-                </span>
                 <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
                   Program Kerja
                 </h3>
@@ -497,9 +491,6 @@ const Home: React.FC = () => {
               className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
               <div>
-                <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
-                  03
-                </span>
                 <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
                   Layanan Aduan
                 </h3>
@@ -577,9 +568,6 @@ const Home: React.FC = () => {
                 key={item.step}
                 className="flex items-start gap-6 border border-white/5 bg-white/2 p-6 md:p-8"
               >
-                <span className="font-mono text-[0.75rem] tracking-wider text-stone-700">
-                  {item.step}
-                </span>
                 <div>
                   <h3 className="mb-2 font-serif text-xl text-white">
                     {item.title}

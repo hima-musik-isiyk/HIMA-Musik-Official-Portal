@@ -223,9 +223,6 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
                 className="category-card group relative flex flex-col border border-white/5 p-7 transition-colors hover:bg-stone-900/10"
               >
                 <div className="relative mb-6">
-                  <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
-                    {String(CATEGORIES.indexOf(cat) + 1).padStart(2, "0")}
-                  </span>
                   <p className="mb-2 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
                     {cat.key}
                   </p>
