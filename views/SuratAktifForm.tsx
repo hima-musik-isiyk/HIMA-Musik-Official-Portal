@@ -37,7 +37,7 @@ export default function SuratAktifForm() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/docs/forms", {
+      const res = await fetch("/api/sekretariat/forms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -30,8 +30,11 @@ export default function ArchivesView({ entries, allTags }: ArchivesViewProps) {
       {/* Header */}
       <div className="mb-10">
         <nav className="mb-4 flex items-center gap-2 text-xs text-stone-500">
-          <Link href="/docs" className="transition-colors hover:text-stone-300">
-            Docs
+          <Link
+            href="/sekretariat"
+            className="transition-colors hover:text-stone-300"
+          >
+            Sekretariat
           </Link>
           <span>/</span>
           <span className="text-gold-400">Arsip Transparansi</span>
@@ -91,7 +94,7 @@ export default function ArchivesView({ entries, allTags }: ArchivesViewProps) {
             return (
               <Link
                 key={entry.id}
-                href={`/docs/archives/${entry.id}`}
+                href={`/sekretariat/archives/${entry.id}`}
                 className="group hover:border-gold-500/20 block rounded-xl border border-stone-800 bg-stone-900/30 p-6 transition-all hover:bg-stone-900/50"
               >
                 <div className="flex items-start justify-between gap-4">

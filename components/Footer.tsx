@@ -64,7 +64,7 @@ const Footer: React.FC = () => {
             </li>
             <li>
               <Link
-                href="/docs"
+                href="/sekretariat"
                 className="hover:text-gold-300 transition-colors"
               >
                 Pusat Administrasi

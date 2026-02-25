@@ -62,8 +62,8 @@ const STATIC_PAGES: SearchResult[] = [
   },
   {
     id: "docs",
-    title: "Pusat Administrasi & Docs",
-    slug: "/docs",
+    title: "Pusat Administrasi & Sekretariat",
+    slug: "/sekretariat",
     category: "Layanan",
     highlight: "Portal dokumen & SOP organisasi",
   },
@@ -144,13 +144,13 @@ export default function CommandPalette() {
       setIsLoading(true);
       try {
         const res = await fetch(
-          `/api/docs/search?q=${encodeURIComponent(query)}`,
+          `/api/sekretariat/search?q=${encodeURIComponent(query)}`,
         );
         if (res.ok) {
           const data = (await res.json()) as { results: SearchResult[] };
           const notionResults = data.results.map((r) => ({
             ...r,
-            slug: `/docs/${r.slug}`,
+            slug: `/sekretariat/${r.slug}`,
           }));
           const merged = [...staticMatches];
           for (const nr of notionResults) {

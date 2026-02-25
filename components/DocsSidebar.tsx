@@ -43,7 +43,9 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
 
   /* Auto-expand category of current active page */
   useEffect(() => {
-    const currentSlug = pathname?.replace("/docs/", "").replace("/docs", "");
+    const currentSlug = pathname
+      ?.replace("/sekretariat/", "")
+      .replace("/sekretariat", "");
     for (const [cat, catDocs] of Object.entries(grouped)) {
       if (catDocs.some((d) => d.slug === currentSlug)) {
         setExpandedCategories((prev) => new Set([...prev, cat]));
@@ -114,11 +116,11 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
         {/* Header */}
         <div className="mb-6">
           <Link
-            href="/docs"
+            href="/sekretariat"
             className="group text-sm font-semibold tracking-[0.2em] uppercase"
           >
             <span className="group-hover:text-gold-300 text-white transition-colors">
-              Dokumen
+              Sekretariat
             </span>
           </Link>
         </div>
@@ -156,14 +158,14 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
                   <div className="ml-3 space-y-0.5 border-l border-stone-800 pl-3">
                     {catDocs.map((doc) => {
                       const currentSlug = pathname
-                        ?.replace("/docs/", "")
-                        .replace("/docs", "");
+                        ?.replace("/sekretariat/", "")
+                        .replace("/sekretariat", "");
                       const isActive = currentSlug === doc.slug;
 
                       return (
                         <Link
                           key={doc.id}
-                          href={`/docs/${doc.slug}`}
+                          href={`/sekretariat/${doc.slug}`}
                           className={`block rounded-md px-3 py-1.5 text-sm transition-all duration-200 ${
                             isActive
                               ? "bg-gold-500/10 text-gold-300 font-medium"

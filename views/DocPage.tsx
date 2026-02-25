@@ -29,8 +29,11 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
       <article className="max-w-3xl min-w-0 flex-1">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-xs text-stone-500">
-          <Link href="/docs" className="transition-colors hover:text-stone-300">
-            Docs
+          <Link
+            href="/sekretariat"
+            className="transition-colors hover:text-stone-300"
+          >
+            Sekretariat
           </Link>
           {meta.category && (
             <>
@@ -86,10 +89,10 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
         {/* Bottom nav */}
         <div className="mt-16 border-t border-stone-800 pt-8">
           <Link
-            href="/docs"
+            href="/sekretariat"
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
           >
-            ← Kembali ke Dokumen
+            ← Kembali ke Sekretariat
           </Link>
         </div>
       </article>
