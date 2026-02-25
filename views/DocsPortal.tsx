@@ -91,46 +91,35 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
     if (!containerRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Entry animations
-      gsap.fromTo(
-        ".portal-header",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          ease: "power3.out",
-          clearProps: "all",
-        },
-      );
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out", duration: 0.8, clearProps: "all" },
+      });
 
-      gsap.fromTo(
-        ".stat-card",
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power2.out",
-          delay: 0.2,
-          clearProps: "all",
-        },
-      );
-
-      gsap.fromTo(
-        ".category-card",
-        { y: 40, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.8,
-          stagger: 0.15,
-          ease: "power3.out",
-          delay: 0.4,
-          clearProps: "all",
-        },
-      );
+      tl.fromTo(".portal-header", { y: 30, opacity: 0 }, { y: 0, opacity: 1 })
+        .fromTo(
+          ".stat-card",
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.6, stagger: 0.1 },
+          "-=0.4",
+        )
+        .fromTo(
+          ".category-card",
+          { y: 40, opacity: 0 },
+          { y: 0, opacity: 1, stagger: 0.15 },
+          "-=0.3",
+        )
+        .fromTo(
+          ".portal-sidebar-section",
+          { x: 20, opacity: 0 },
+          { x: 0, opacity: 1, stagger: 0.1 },
+          "-=0.4",
+        )
+        .fromTo(
+          ".portal-footer-accent",
+          { y: 10, opacity: 0 },
+          { y: 0, opacity: 1, stagger: 0.1 },
+          "-=0.2",
+        );
     }, containerRef);
 
     return () => ctx.revert();
@@ -208,7 +197,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           { label: "Total Dokumen", value: stats.totalDocs },
           { label: "Konstitusi", value: stats.totalRegulasi },
           { label: "Arsip Publik", value: stats.totalArsip },
-          { label: "Kepengurusan", value: "2024-2026" },
+          { label: "Kepengurusan", value: "2026-2027" },
         ].map((item, idx) => (
           <div
             key={idx}
@@ -300,7 +289,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
         {/* Right Column: Sidebar (Recently Updated & Forms) */}
         <div className="space-y-6">
           {/* Recently Updated */}
-          <div className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
+          <div className="portal-sidebar-section border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
             <div className="mb-6 flex items-center gap-4">
               <span
                 className="bg-gold-500/40 block h-px w-6"
@@ -345,7 +334,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           </div>
 
           {/* Quick Forms Section */}
-          <div className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
+          <div className="portal-sidebar-section border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
             <h3 className="mb-3 font-serif text-xl text-white">
               Layanan Mandiri
             </h3>
@@ -391,7 +380,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
       </div>
 
       {/* Footer Accents */}
-      <div className="mt-24 text-center">
+      <div className="portal-footer-accent mt-24 text-center">
         <div className="mb-4 flex items-center justify-center gap-4">
           <div className="h-px w-12 bg-white/5" />
           <div className="bg-gold-500/50 h-1.5 w-1.5 rounded-full" />
