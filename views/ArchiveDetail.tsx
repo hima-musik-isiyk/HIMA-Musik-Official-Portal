@@ -32,12 +32,15 @@ export default function ArchiveDetailView({
       <article className="max-w-3xl min-w-0 flex-1">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-xs text-stone-500">
-          <Link href="/docs" className="transition-colors hover:text-stone-300">
-            Docs
+          <Link
+            href="/sekretariat"
+            className="transition-colors hover:text-stone-300"
+          >
+            Sekretariat
           </Link>
           <span>/</span>
           <Link
-            href="/docs/archives"
+            href="/sekretariat/archives"
             className="transition-colors hover:text-stone-300"
           >
             Arsip
@@ -83,10 +86,10 @@ export default function ArchiveDetailView({
         {/* Bottom nav */}
         <div className="mt-16 border-t border-stone-800 pt-8">
           <Link
-            href="/docs/archives"
+            href="/sekretariat/archives"
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
           >
-            ← Kembali ke Arsip
+            ← Kembali ke Sekretariat Arsip
           </Link>
         </div>
       </article>

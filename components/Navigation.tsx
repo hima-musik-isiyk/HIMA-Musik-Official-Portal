@@ -51,9 +51,9 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Layanan",
     dropdown: [
       {
-        href: "/docs",
-        label: "Pusat Administrasi & Docs",
-        description: "Portal dokumen, SOP & arsip organisasi",
+        href: "/sekretariat",
+        label: "Pusat Administrasi & Sekretariat",
+        description: "Portal dokumen, SOP, regulasi & arsip organisasi",
       },
       {
         href: "/aduan",
@@ -69,7 +69,7 @@ const MOBILE_NAV_ITEMS = [
   { href: "/about", label: "Profil" },
   { href: "/events", label: "Acara" },
   { href: "/gallery", label: "Galeri" },
-  { href: "/docs", label: "Pusat Administrasi" },
+  { href: "/sekretariat", label: "Pusat Administrasi" },
   { href: "/aduan", label: "Ruang Advokasi" },
   { href: "/pendaftaran", label: "Open Recruitment" },
 ];

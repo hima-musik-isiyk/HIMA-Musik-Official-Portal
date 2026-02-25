@@ -4,6 +4,8 @@ import type {
   PageObjectResponse,
   QueryDataSourceResponse,
 } from "@notionhq/client/build/src/api-endpoints";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Singleton client                                                   */
@@ -123,8 +125,7 @@ function getDate(page: NotionPage, name: string): string {
 /*  Docs database queries                                              */
 /* ------------------------------------------------------------------ */
 
-const DOCS_DB_ID = process.env.NOTION_DOCS_DATABASE_ID ?? "";
-const ARCHIVES_DB_ID = process.env.NOTION_ARCHIVES_DATABASE_ID ?? "";
+const DOCS_DB_ID = process.env.NOTION_DATABASE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string>();
 
@@ -164,160 +165,176 @@ async function resolveDataSourceId(id: string): Promise<string> {
   }
 }
 
-export async function fetchAllDocs(): Promise<DocMeta[]> {
-  if (!DOCS_DB_ID) return [];
+export const fetchAllDocs = unstable_cache(
+  async (): Promise<DocMeta[]> => {
+    if (!DOCS_DB_ID) return [];
 
-  const docsDataSourceId = await resolveDataSourceId(DOCS_DB_ID);
-  const results: NotionPage[] = [];
-  let cursor: string | undefined;
+    const docsDataSourceId = await resolveDataSourceId(DOCS_DB_ID);
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
 
-  do {
-    const response: QueryDataSourceResponse = await notion.dataSources.query({
-      data_source_id: docsDataSourceId,
-      start_cursor: cursor,
-    });
-    results.push(...(response.results as NotionPage[]));
-    cursor = response.has_more
-      ? (response.next_cursor ?? undefined)
-      : undefined;
-  } while (cursor);
-
-  return results
-    .map((page) => ({
-      id: page.id,
-      slug: getRichText(page, "Slug") || page.id,
-      title: getTitle(page),
-      category: getSelect(page, "Category"),
-      icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
-      order: getNumber(page, "Order"),
-      lastEdited: page.last_edited_time,
-      published: getCheckbox(page, "Publish", true),
-    }))
-    .filter((doc) => doc.published)
-    .sort((a, b) => {
-      const categoryCompare = a.category.localeCompare(b.category, "id", {
-        sensitivity: "base",
+    do {
+      const response: QueryDataSourceResponse = await notion.dataSources.query({
+        data_source_id: docsDataSourceId,
+        start_cursor: cursor,
       });
-      if (categoryCompare !== 0) return categoryCompare;
-      if (a.order !== b.order) return a.order - b.order;
-      return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
-    });
-}
+      results.push(...(response.results as NotionPage[]));
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
 
-export async function fetchDocBySlug(
-  slug: string,
-): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> {
-  if (!DOCS_DB_ID) return null;
+    return results
+      .map((page) => ({
+        id: page.id,
+        slug: getRichText(page, "Slug") || page.id,
+        title: getTitle(page),
+        category: getSelect(page, "Category"),
+        icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
+        order: getNumber(page, "Order"),
+        lastEdited: page.last_edited_time,
+        published: getCheckbox(page, "Publish", true),
+      }))
+      .filter((doc) => doc.published)
+      .sort((a, b) => {
+        const categoryCompare = a.category.localeCompare(b.category, "id", {
+          sensitivity: "base",
+        });
+        if (categoryCompare !== 0) return categoryCompare;
+        if (a.order !== b.order) return a.order - b.order;
+        return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
+      });
+  },
+  ["notion-all-docs"],
+  { revalidate: 60, tags: ["notion-docs"] },
+);
 
-  const docsDataSourceId = await resolveDataSourceId(DOCS_DB_ID);
-  const normalizedSlug = slug.trim().toLowerCase();
+export const fetchDocBySlug = cache(
+  async (
+    slug: string,
+  ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
+    if (!DOCS_DB_ID) return null;
 
-  let matchedPage: NotionPage | undefined;
-  let cursor: string | undefined;
+    const docsDataSourceId = await resolveDataSourceId(DOCS_DB_ID);
+    const normalizedSlug = slug.trim().toLowerCase();
 
-  do {
-    const response = await notion.dataSources.query({
-      data_source_id: docsDataSourceId,
-      start_cursor: cursor,
-    });
+    let matchedPage: NotionPage | undefined;
+    let cursor: string | undefined;
 
-    const page = (response.results as NotionPage[]).find((entry) => {
-      const entrySlug = (getRichText(entry, "Slug") || entry.id)
-        .trim()
-        .toLowerCase();
-      const published = getCheckbox(entry, "Publish", true);
-      return entrySlug === normalizedSlug && published;
-    });
+    do {
+      const response = await notion.dataSources.query({
+        data_source_id: docsDataSourceId,
+        start_cursor: cursor,
+      });
 
-    if (page) {
-      matchedPage = page;
-      break;
-    }
+      const page = (response.results as NotionPage[]).find((entry) => {
+        const entrySlug = (getRichText(entry, "Slug") || entry.id)
+          .trim()
+          .toLowerCase();
+        const published = getCheckbox(entry, "Publish", true);
+        return entrySlug === normalizedSlug && published;
+      });
 
-    cursor = response.has_more
-      ? (response.next_cursor ?? undefined)
-      : undefined;
-  } while (cursor);
+      if (page) {
+        matchedPage = page;
+        break;
+      }
 
-  const page = matchedPage;
-  if (!page) return null;
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
 
-  const blocks = await fetchAllBlocks(page.id);
+    const page = matchedPage;
+    if (!page) return null;
 
-  return {
-    meta: {
-      id: page.id,
-      slug: getRichText(page, "Slug") || page.id,
-      title: getTitle(page),
-      category: getSelect(page, "Category"),
-      icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
-      order: getNumber(page, "Order"),
-      lastEdited: page.last_edited_time,
-      published: getCheckbox(page, "Publish", true),
-    },
-    blocks,
-  };
-}
+    const blocks = await fetchAllBlocks(page.id);
+
+    return {
+      meta: {
+        id: page.id,
+        slug: getRichText(page, "Slug") || page.id,
+        title: getTitle(page),
+        category: getSelect(page, "Category"),
+        icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
+        order: getNumber(page, "Order"),
+        lastEdited: page.last_edited_time,
+        published: getCheckbox(page, "Publish", true),
+      },
+      blocks,
+    };
+  },
+);
 
 /* ------------------------------------------------------------------ */
 /*  Archives database queries                                          */
 /* ------------------------------------------------------------------ */
 
-export async function fetchArchives(tag?: string): Promise<ArchiveEntry[]> {
-  if (!ARCHIVES_DB_ID) return [];
+export const fetchArchives = unstable_cache(
+  async (tag?: string): Promise<ArchiveEntry[]> => {
+    if (!DOCS_DB_ID) return [];
 
-  const archivesDataSourceId = await resolveDataSourceId(ARCHIVES_DB_ID);
-  const normalizedTag = tag?.trim().toLowerCase();
+    const docsDataSourceId = await resolveDataSourceId(DOCS_DB_ID);
+    const normalizedTag = tag?.trim().toLowerCase();
 
-  const results: NotionPage[] = [];
-  let cursor: string | undefined;
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
 
-  do {
-    const response = await notion.dataSources.query({
-      data_source_id: archivesDataSourceId,
-      start_cursor: cursor,
-    });
-    results.push(...(response.results as NotionPage[]));
-    cursor = response.has_more
-      ? (response.next_cursor ?? undefined)
-      : undefined;
-  } while (cursor);
+    do {
+      const response = await notion.dataSources.query({
+        data_source_id: docsDataSourceId,
+        start_cursor: cursor,
+      });
+      results.push(...(response.results as NotionPage[]));
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
 
-  return results
-    .map((page) => ({
-      id: page.id,
-      title: getTitle(page),
-      summary: getRichText(page, "Summary"),
-      date: getDate(page, "Date"),
-      tags: getMultiSelect(page, "Tags"),
-      published: getCheckbox(page, "Publish", true),
-    }))
-    .filter((entry) => {
-      if (!entry.published) return false;
-      if (!normalizedTag) return true;
-      return entry.tags.some((entryTag) =>
-        entryTag.toLowerCase().includes(normalizedTag),
-      );
-    })
-    .sort((a, b) => {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return b.date.localeCompare(a.date);
-    });
-}
+    return results
+      .map((page) => ({
+        id: page.id,
+        title: getTitle(page),
+        summary:
+          getRichText(page, "Summary") || getRichText(page, "Slug") || "", // Fallback or summary
+        date: getDate(page, "Date") || page.created_time.split("T")[0],
+        tags: getMultiSelect(page, "Tags"),
+        category: getSelect(page, "Category"),
+        published: getCheckbox(page, "Publish", true),
+      }))
+      .filter((entry) => {
+        if (!entry.published) return false;
+        if (entry.category !== "Arsip") return false; // Only archives
+        if (!normalizedTag) return true;
+        return entry.tags.some((entryTag) =>
+          entryTag.toLowerCase().includes(normalizedTag),
+        );
+      })
+      .sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return b.date.localeCompare(a.date);
+      });
+  },
+  ["notion-archives"],
+  { revalidate: 60, tags: ["notion-archives"] },
+);
 
 export async function fetchArchiveById(
   id: string,
 ): Promise<{ entry: ArchiveEntry; blocks: NotionBlock[] } | null> {
-  if (!ARCHIVES_DB_ID) return null;
+  if (!DOCS_DB_ID) return null;
 
   try {
     const page = (await notion.pages.retrieve({
       page_id: id,
     })) as NotionPage;
 
-    if (!getCheckbox(page, "Publish", true)) return null;
+    const published = getCheckbox(page, "Publish", true);
+    const category = getSelect(page, "Category");
+
+    if (!published || category !== "Arsip") return null;
 
     const blocks = await fetchAllBlocks(page.id);
 
@@ -325,8 +342,9 @@ export async function fetchArchiveById(
       entry: {
         id: page.id,
         title: getTitle(page),
-        summary: getRichText(page, "Summary"),
-        date: getDate(page, "Date"),
+        summary:
+          getRichText(page, "Summary") || getRichText(page, "Slug") || "",
+        date: getDate(page, "Date") || page.created_time.split("T")[0],
         tags: getMultiSelect(page, "Tags"),
         published: true,
       },
@@ -341,32 +359,34 @@ export async function fetchArchiveById(
 /*  Block fetching (recursive for children)                            */
 /* ------------------------------------------------------------------ */
 
-export async function fetchAllBlocks(blockId: string): Promise<NotionBlock[]> {
-  const blocks: NotionBlock[] = [];
-  let cursor: string | undefined;
+export const fetchAllBlocks = cache(
+  async (blockId: string): Promise<NotionBlock[]> => {
+    const blocks: NotionBlock[] = [];
+    let cursor: string | undefined;
 
-  do {
-    const response = await notion.blocks.children.list({
-      block_id: blockId,
-      start_cursor: cursor,
-      page_size: 100,
-    });
+    do {
+      const response = await notion.blocks.children.list({
+        block_id: blockId,
+        start_cursor: cursor,
+        page_size: 100,
+      });
 
-    for (const rawBlock of response.results as BlockObjectResponse[]) {
-      const block: NotionBlock = { ...rawBlock };
-      if (block.has_children) {
-        block.children = await fetchAllBlocks(block.id);
+      for (const rawBlock of response.results as BlockObjectResponse[]) {
+        const block: NotionBlock = { ...rawBlock };
+        if (block.has_children) {
+          block.children = await fetchAllBlocks(block.id);
+        }
+        blocks.push(block);
       }
-      blocks.push(block);
-    }
 
-    cursor = response.has_more
-      ? (response.next_cursor ?? undefined)
-      : undefined;
-  } while (cursor);
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
 
-  return blocks;
-}
+    return blocks;
+  },
+);
 
 /* ------------------------------------------------------------------ */
 /*  Search across all docs                                             */

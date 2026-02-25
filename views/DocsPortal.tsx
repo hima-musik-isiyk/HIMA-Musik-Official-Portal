@@ -1,7 +1,8 @@
 "use client";
 
+import gsap from "gsap";
 import Link from "next/link";
-import React from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 
 import type { DocMeta } from "@/lib/notion";
 import {
@@ -18,15 +19,15 @@ import {
 const CATEGORIES = [
   {
     key: "Legalitas",
-    title: "Garis Besar & Peraturan",
+    title: "Regulasi & Konstitusi",
     description:
-      "AD/ART sebagai konstitusi organisasi — landasan peraturan dan struktur kepengurusan HIMA MUSIK.",
+      "AD/ART sebagai konstitusi organisasi, garis besar haluan, dan landasan peraturan HIMA MUSIK.",
   },
   {
     key: "Panduan & SOP",
     title: "Panduan & SOP",
     description:
-      "Prosedur operasional standar: peminjaman alat, pengajuan proposal, dan aturan penggunaan fasilitas.",
+      "Prosedur operasional standar: pengajuan proposal, aturan penggunaan fasilitas, dan birokrasi kampus.",
   },
   {
     key: "Arsip",
@@ -36,7 +37,7 @@ const CATEGORIES = [
   },
   {
     key: "Templat",
-    title: "Templat & Formulir",
+    title: "Layanan Persuratan",
     description:
       "Format surat resmi, formulir peminjaman, dan templat dokumen organisasi siap pakai.",
   },
@@ -52,31 +53,125 @@ interface DocsPortalViewProps {
 
 export default function DocsPortalView({ docs }: DocsPortalViewProps) {
   const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
-  const groupedDocs: Record<string, DocMeta[]> = {};
-  for (const doc of docs) {
-    const cat = doc.category || "Umum";
-    if (!groupedDocs[cat]) groupedDocs[cat] = [];
-    groupedDocs[cat].push(doc);
-  }
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+
+  // Grouping & Stats calculations
+  const { groupedDocs, stats, recentlyUpdated } = useMemo(() => {
+    const grouped: Record<string, DocMeta[]> = {};
+    let totalDocs = 0;
+    let totalRegulasi = 0;
+    let totalArsip = 0;
+
+    for (const doc of docs) {
+      const cat = doc.category || "Umum";
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(doc);
+
+      totalDocs++;
+      if (cat === "Legalitas") totalRegulasi++;
+      if (cat === "Arsip") totalArsip++;
+    }
+
+    const sortedUpdated = [...docs]
+      .sort(
+        (a, b) =>
+          new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime(),
+      )
+      .slice(0, 3);
+
+    return {
+      groupedDocs: grouped,
+      stats: { totalDocs, totalRegulasi, totalArsip },
+      recentlyUpdated: sortedUpdated,
+    };
+  }, [docs]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      // Entry animations
+      gsap.fromTo(
+        ".portal-header",
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          clearProps: "all",
+        },
+      );
+
+      gsap.fromTo(
+        ".stat-card",
+        { y: 20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "power2.out",
+          delay: 0.2,
+          clearProps: "all",
+        },
+      );
+
+      gsap.fromTo(
+        ".category-card",
+        { y: 40, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.15,
+          ease: "power3.out",
+          delay: 0.4,
+          clearProps: "all",
+        },
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="flex-1 px-6 py-10 md:px-10 lg:px-16">
-      {/* Hero */}
-      <div className="mb-16">
-        <h1 className="font-serif text-4xl font-bold text-white md:text-5xl">
-          HIMA MUSIK ISI Yogyakarta
+    <div
+      ref={containerRef}
+      className="relative flex-1 px-6 pt-16 pb-24 md:px-10 lg:px-16"
+    >
+      {/* Hero Header */}
+      <div className="portal-header mb-16 max-w-4xl">
+        <div className="mb-4 flex items-center gap-4">
+          <span
+            className="bg-gold-500/40 block h-px w-8 md:w-12"
+            aria-hidden="true"
+          />
+          <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
+            Official Portal
+          </span>
+        </div>
+        <h1 className="font-serif text-5xl leading-tight font-normal text-white md:text-7xl">
+          Sekretariat <br />
+          <span className="font-light text-stone-500 italic">HIMA MUSIK</span>
         </h1>
+        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-400">
+          Pusat administrasi terpadu untuk regulasi, konstitusi, dan arsip
+          transparansi organisasi. Kami mengedepankan akuntabilitas dalam setiap
+          dokumentasi.
+        </p>
 
         {/* Search hint */}
-        <div className="mt-6">
+        <div className="mt-10">
           <button
             onClick={() => {
               window.dispatchEvent(createCommandPaletteShortcutEvent());
             }}
-            className="inline-flex items-center gap-3 rounded-xl border border-stone-800 bg-stone-900/50 px-5 py-3 text-sm text-stone-500 transition-all hover:border-stone-700 hover:text-stone-400"
+            className="group flex w-full max-w-md items-center gap-4 rounded-xl border border-stone-800/80 bg-stone-900/30 px-6 py-4 text-sm text-stone-400 transition-colors hover:border-stone-700 hover:bg-stone-900/50"
           >
             <svg
-              className="h-4 w-4"
+              className="text-gold-500 h-5 w-5 transition-transform group-hover:scale-110"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -88,8 +183,10 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <span>Cari dokumen, SOP, atau arsip...</span>
-            <kbd className="rounded border border-stone-700 bg-stone-800 px-2 py-0.5 font-mono text-[10px]">
+            <span className="flex-1 text-left">
+              Cari AD/ART, SOP, atau Notulensi Rapat...
+            </span>
+            <kbd className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-stone-500">
               {tokenizeShortcutLabel(commandPaletteShortcutLabel).map(
                 (token, index) => (
                   <span
@@ -105,114 +202,204 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
         </div>
       </div>
 
-      {/* Category Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {CATEGORIES.map((cat) => {
-          const catDocs = groupedDocs[cat.key] ?? [];
-          return (
-            <div
-              key={cat.key}
-              className="group border-gold-500/30 border-l py-5 pr-4 pl-5 transition-all duration-300"
-            >
-              <p className="mb-1 text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
-                {cat.key}
-              </p>
-              <h2 className="font-serif text-xl font-bold text-white">
-                {cat.title}
-              </h2>
-              <p className="mt-2 mb-4 text-sm leading-relaxed text-stone-400">
-                {cat.description}
-              </p>
+      {/* Statistics Row */}
+      <div className="mb-16 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        {[
+          { label: "Total Dokumen", value: stats.totalDocs },
+          { label: "Konstitusi", value: stats.totalRegulasi },
+          { label: "Arsip Publik", value: stats.totalArsip },
+          { label: "Kepengurusan", value: "2024-2026" },
+        ].map((item, idx) => (
+          <div
+            key={idx}
+            className="stat-card flex flex-col justify-between border border-white/5 p-6 transition-colors hover:bg-stone-900/20"
+          >
+            <p className="mb-4 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
+              {item.label}
+            </p>
+            <h3 className="font-serif text-2xl text-white">{item.value}</h3>
+          </div>
+        ))}
+      </div>
 
-              {catDocs.length > 0 ? (
-                <div className="space-y-1">
-                  {catDocs.slice(0, 5).map((doc) => (
-                    <Link
-                      key={doc.id}
-                      href={`/docs/${doc.slug}`}
-                      className="group/link flex items-start gap-2 py-1 text-sm text-stone-400 transition-colors hover:text-white"
-                    >
-                      <span className="mt-0.5 shrink-0 text-stone-600 select-none">
-                        —
-                      </span>
-                      <span className="flex-1">{doc.title}</span>
-                    </Link>
-                  ))}
-                  {catDocs.length > 5 && (
-                    <p className="pl-4 text-xs text-stone-600">
-                      +{catDocs.length - 5} dokumen lainnya
-                    </p>
+      {/* Main Grid: Categories & Recent */}
+      <div className="grid gap-10 lg:grid-cols-3">
+        {/* Left 2 Columns: Category Cards */}
+        <div ref={cardsRef} className="grid gap-6 md:grid-cols-2 lg:col-span-2">
+          {CATEGORIES.map((cat) => {
+            const catDocs = groupedDocs[cat.key] ?? [];
+            return (
+              <div
+                key={cat.key}
+                className="category-card group relative flex flex-col border border-white/5 p-7 transition-colors hover:bg-stone-900/10"
+              >
+                <div className="relative mb-6">
+                  <span className="mb-5 block font-mono text-[0.65rem] tracking-wider text-stone-700">
+                    {String(CATEGORIES.indexOf(cat) + 1).padStart(2, "0")}
+                  </span>
+                  <p className="mb-2 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
+                    {cat.key}
+                  </p>
+                  <h2 className="group-hover:text-gold-400 font-serif text-2xl text-white transition-colors">
+                    {cat.title}
+                  </h2>
+                </div>
+
+                <p className="mb-8 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
+                  {cat.description}
+                </p>
+
+                <div className="mt-auto">
+                  {catDocs.length > 0 ? (
+                    <div className="space-y-2">
+                      {catDocs.slice(0, 4).map((doc) => (
+                        <Link
+                          key={doc.id}
+                          href={`/sekretariat/${doc.slug}`}
+                          className="group/link flex items-center gap-3 rounded-xl border border-transparent px-4 py-2.5 text-xs text-stone-400 transition-colors hover:border-stone-800 hover:bg-stone-900/40 hover:text-white"
+                        >
+                          <span className="group-hover/link:text-gold-400 text-stone-600 transition-colors">
+                            {doc.icon || (
+                              <svg
+                                className="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            )}
+                          </span>
+                          <span className="flex-1 truncate">{doc.title}</span>
+                        </Link>
+                      ))}
+                      {catDocs.length > 4 && (
+                        <p className="mt-3 text-center text-[0.65rem] font-medium tracking-wide text-stone-600">
+                          +{catDocs.length - 4} DOKUMEN LAINNYA
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="border-t border-dashed border-stone-800/50 py-8 text-center text-stone-600">
+                      <p className="text-[0.65rem] tracking-wider italic">
+                        Belum ada dokumen tersedia.
+                      </p>
+                    </div>
                   )}
                 </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right Column: Sidebar (Recently Updated & Forms) */}
+        <div className="space-y-6">
+          {/* Recently Updated */}
+          <div className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
+            <div className="mb-6 flex items-center gap-4">
+              <span
+                className="bg-gold-500/40 block h-px w-6"
+                aria-hidden="true"
+              />
+              <h3 className="font-serif text-xl text-white">Update Terbaru</h3>
+            </div>
+            <div className="space-y-6">
+              {recentlyUpdated.length > 0 ? (
+                recentlyUpdated.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href={`/sekretariat/${doc.slug}`}
+                    className="group block"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="group-hover:text-gold-400 truncate text-sm font-medium text-stone-300 transition-colors">
+                        {doc.title}
+                      </h4>
+                      <span className="shrink-0 text-[10px] text-stone-600 uppercase">
+                        {new Date(doc.lastEdited).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[10px] tracking-wider text-stone-500">
+                      {doc.category}
+                    </p>
+                  </Link>
+                ))
               ) : (
-                <p className="text-xs text-stone-600 italic">
-                  Belum ada dokumen dalam kategori ini.
-                </p>
+                <p className="text-xs text-stone-600">Belum ada aktivitas.</p>
               )}
             </div>
-          );
-        })}
+            <Link
+              href="/sekretariat/archives"
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-stone-800 bg-stone-900/30 py-3 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase transition-colors hover:border-stone-700 hover:text-white"
+            >
+              Lihat Histori Lengkap
+            </Link>
+          </div>
+
+          {/* Quick Forms Section */}
+          <div className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
+            <h3 className="mb-3 font-serif text-xl text-white">
+              Layanan Mandiri
+            </h3>
+            <p className="mb-6 text-xs leading-relaxed text-stone-400">
+              Butuh surat pengantar atau peminjaman alat? Ajukan langsung secara
+              online.
+            </p>
+            <div className="space-y-3">
+              {[
+                {
+                  label: "Surat Aktif Organisasi",
+                  href: "/sekretariat/forms/surat-aktif",
+                },
+                {
+                  label: "Peminjaman Alat Musik",
+                  href: "/sekretariat/forms/peminjaman-alat",
+                },
+              ].map((form) => (
+                <Link
+                  key={form.href}
+                  href={form.href}
+                  className="group/form flex items-center justify-between rounded-xl border border-stone-800/80 bg-stone-900/30 px-5 py-4 text-sm text-stone-300 transition-colors hover:border-stone-700 hover:bg-stone-900/50 hover:text-white"
+                >
+                  {form.label}
+                  <svg
+                    className="group-hover/form:text-gold-400 h-4 w-4 text-stone-600 transition-transform group-hover/form:translate-x-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Archives section */}
-      <div className="mt-16">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="font-serif text-2xl font-bold text-white">
-            Arsip Transparansi
-          </h2>
-          <Link
-            href="/docs/archives"
-            className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
-          >
-            Lihat Semua →
-          </Link>
+      {/* Footer Accents */}
+      <div className="mt-24 text-center">
+        <div className="mb-4 flex items-center justify-center gap-4">
+          <div className="h-px w-12 bg-white/5" />
+          <div className="bg-gold-500/50 h-1.5 w-1.5 rounded-full" />
+          <div className="h-px w-12 bg-white/5" />
         </div>
-        <div className="rounded-xl border border-dashed border-stone-800 bg-stone-900/20 p-8 text-center">
-          <p className="text-sm text-stone-500">
-            Arsip rapat, laporan keuangan, dan evaluasi proker akan ditampilkan
-            di sini setelah dipublish dari Notion.
-          </p>
-        </div>
-      </div>
-
-      {/* Quick forms section */}
-      <div className="mt-16">
-        <p className="mb-1 text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
-          Formulir Interaktif
+        <p className="text-[0.6rem] tracking-[0.3em] text-stone-600 uppercase">
+          Sekretariat Jenderal HIMA MUSIK © 2024-2026
         </p>
-        <h2 className="mb-6 font-serif text-2xl font-bold text-white">
-          Pengajuan Online
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Link
-            href="/docs/forms/surat-aktif"
-            className="group border-gold-500/30 hover:border-gold-500/60 border-l py-5 pr-4 pl-5 transition-all duration-300"
-          >
-            <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
-              Surat Keterangan
-            </p>
-            <h3 className="group-hover:text-gold-300 mt-1 font-serif text-lg font-bold text-white transition-colors">
-              Pengajuan Surat Aktif Organisasi
-            </h3>
-            <p className="mt-1 text-sm text-stone-500">
-              Ajukan surat keterangan aktif organisasi secara digital.
-            </p>
-          </Link>
-          <Link
-            href="/docs/forms/peminjaman-alat"
-            className="group border-gold-500/30 hover:border-gold-500/60 border-l py-5 pr-4 pl-5 transition-all duration-300"
-          >
-            <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
-              Fasilitas
-            </p>
-            <h3 className="group-hover:text-gold-300 mt-1 font-serif text-lg font-bold text-white transition-colors">
-              Peminjaman Alat Musik
-            </h3>
-            <p className="mt-1 text-sm text-stone-500">
-              Form pengajuan peminjaman alat musik HIMA.
-            </p>
-          </Link>
-        </div>
       </div>
     </div>
   );
