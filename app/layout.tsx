@@ -6,6 +6,7 @@ import React from "react";
 
 import CommandPalette from "../components/CommandPalette";
 import Footer from "../components/Footer";
+import LocatorInitializer from "../components/LocatorInitializer";
 import Navigation from "../components/Navigation";
 
 const fraunces = Fraunces({
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body
         className={`${fraunces.variable} selection:bg-gold-300/30 selection:text-gold-500 flex min-h-screen flex-col bg-transparent font-sans text-neutral-200`}
       >
+        <LocatorInitializer />
         <Script id="legacy-hash-route-redirect" strategy="beforeInteractive">
           {`(() => {
   const rawHash = window.location.hash.slice(1).trim();
