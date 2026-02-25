@@ -5,6 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  createCommandPaletteShortcutEvent,
+  SHORTCUT_SYMBOL_CLASS,
+  tokenizeShortcutLabel,
+  useCommandPaletteShortcutLabel,
+} from "@/lib/shortcut";
+
 import LogoHima from "./LogoHima";
 
 /* ------------------------------------------------------------------ */
@@ -155,6 +162,7 @@ const Navigation: React.FC = () => {
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
   const [navLayer, setNavLayer] = useState(50);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
 
   const navBarRef = useRef<HTMLElement | null>(null);
   const mobileLinkRefs = useRef<HTMLAnchorElement[]>([]);
@@ -686,12 +694,7 @@ const Navigation: React.FC = () => {
             {/* Search trigger */}
             <button
               onClick={() => {
-                const event = new KeyboardEvent("keydown", {
-                  key: "k",
-                  metaKey: true,
-                  bubbles: true,
-                });
-                window.dispatchEvent(event);
+                window.dispatchEvent(createCommandPaletteShortcutEvent());
               }}
               className="hidden items-center gap-2 rounded-lg border border-stone-800 bg-stone-900/50 px-3 py-1.5 text-xs text-stone-500 transition-colors hover:border-stone-700 hover:text-stone-400 md:flex"
               aria-label="Pencarian"
@@ -709,7 +712,18 @@ const Navigation: React.FC = () => {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <kbd className="font-mono text-[10px]">⌘K</kbd>
+              <kbd className="font-mono text-[10px]">
+                {tokenizeShortcutLabel(commandPaletteShortcutLabel).map(
+                  (token, index) => (
+                    <span
+                      key={`${token.char}-${index}`}
+                      className={token.isSymbol ? SHORTCUT_SYMBOL_CLASS : ""}
+                    >
+                      {token.char}
+                    </span>
+                  ),
+                )}
+              </kbd>
             </button>
 
             {/* Mobile hamburger */}

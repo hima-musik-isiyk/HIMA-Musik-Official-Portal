@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  SHORTCUT_SYMBOL_CLASS,
+  tokenizeShortcutLabel,
+  useCommandPaletteShortcutLabel,
+} from "@/lib/shortcut";
+
 interface SearchResult {
   id: string;
   title: string;
@@ -73,6 +79,7 @@ export default function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
+  const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
 
   const _open = useCallback(() => {
     setIsOpen(true);
@@ -91,7 +98,7 @@ export default function CommandPalette() {
   /* Global keyboard shortcut Cmd+K / Ctrl+K */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
@@ -332,20 +339,43 @@ export default function CommandPalette() {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5">
-                ↑↓
+                {tokenizeShortcutLabel("↑↓").map((token, index) => (
+                  <span
+                    key={`${token.char}-${index}`}
+                    className={token.isSymbol ? SHORTCUT_SYMBOL_CLASS : ""}
+                  >
+                    {token.char}
+                  </span>
+                ))}
               </kbd>
               navigasi
             </span>
             <span className="flex items-center gap-1">
               <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5">
-                ↵
+                {tokenizeShortcutLabel("↵").map((token, index) => (
+                  <span
+                    key={`${token.char}-${index}`}
+                    className={token.isSymbol ? SHORTCUT_SYMBOL_CLASS : ""}
+                  >
+                    {token.char}
+                  </span>
+                ))}
               </kbd>
               buka
             </span>
           </div>
           <span className="flex items-center gap-1">
             <kbd className="rounded border border-stone-700 bg-stone-800 px-1.5 py-0.5">
-              ⌘K
+              {tokenizeShortcutLabel(commandPaletteShortcutLabel).map(
+                (token, index) => (
+                  <span
+                    key={`${token.char}-${index}`}
+                    className={token.isSymbol ? SHORTCUT_SYMBOL_CLASS : ""}
+                  >
+                    {token.char}
+                  </span>
+                ),
+              )}
             </kbd>
             pencarian
           </span>
