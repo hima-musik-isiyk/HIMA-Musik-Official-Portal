@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== "production") {
 /* ------------------------------------------------------------------ */
 
 export type NotionPage = PageObjectResponse;
-export type NotionBlock = BlockObjectResponse;
+export type NotionBlock = BlockObjectResponse & { children?: NotionBlock[] };
 
 export interface DocMeta {
   id: string;
@@ -352,12 +352,12 @@ export async function fetchAllBlocks(blockId: string): Promise<NotionBlock[]> {
       page_size: 100,
     });
 
-    for (const block of response.results as NotionBlock[]) {
-      blocks.push(block);
+    for (const rawBlock of response.results as BlockObjectResponse[]) {
+      const block: NotionBlock = { ...rawBlock };
       if (block.has_children) {
-        const children = await fetchAllBlocks(block.id);
-        blocks.push(...children);
+        block.children = await fetchAllBlocks(block.id);
       }
+      blocks.push(block);
     }
 
     cursor = response.has_more
