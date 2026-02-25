@@ -4,6 +4,12 @@ import Link from "next/link";
 import React from "react";
 
 import type { DocMeta } from "@/lib/notion";
+import {
+  createCommandPaletteShortcutEvent,
+  SHORTCUT_SYMBOL_CLASS,
+  tokenizeShortcutLabel,
+  useCommandPaletteShortcutLabel,
+} from "@/lib/shortcut";
 
 /* ------------------------------------------------------------------ */
 /*  Category metadata                                                  */
@@ -112,6 +118,7 @@ interface DocsPortalViewProps {
 }
 
 export default function DocsPortalView({ docs }: DocsPortalViewProps) {
+  const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
   const groupedDocs: Record<string, DocMeta[]> = {};
   for (const doc of docs) {
     const cat = doc.category || "Umum";
@@ -153,12 +160,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
         <div className="mt-6">
           <button
             onClick={() => {
-              const event = new KeyboardEvent("keydown", {
-                key: "k",
-                metaKey: true,
-                bubbles: true,
-              });
-              window.dispatchEvent(event);
+              window.dispatchEvent(createCommandPaletteShortcutEvent());
             }}
             className="inline-flex items-center gap-3 rounded-xl border border-stone-800 bg-stone-900/50 px-5 py-3 text-sm text-stone-500 transition-all hover:border-stone-700 hover:text-stone-400"
           >
@@ -177,7 +179,16 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
             </svg>
             <span>Cari dokumen, SOP, atau arsip...</span>
             <kbd className="rounded border border-stone-700 bg-stone-800 px-2 py-0.5 font-mono text-[10px]">
-              ⌘K
+              {tokenizeShortcutLabel(commandPaletteShortcutLabel).map(
+                (token, index) => (
+                  <span
+                    key={`${token.char}-${index}`}
+                    className={token.isSymbol ? SHORTCUT_SYMBOL_CLASS : ""}
+                  >
+                    {token.char}
+                  </span>
+                ),
+              )}
             </kbd>
           </button>
         </div>
