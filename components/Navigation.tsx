@@ -522,12 +522,15 @@ const Navigation: React.FC = () => {
       <nav
         ref={navBarRef}
         style={{ zIndex: navLayer }}
-        className={`fixed top-0 left-0 w-full transition-all duration-500 ${
-          isMenuOpen
-            ? "border-transparent bg-transparent"
-            : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-md"
-        }`}
+        className="fixed top-0 left-0 w-full transition-all duration-500"
       >
+        <div
+          className={`pointer-events-none absolute inset-0 transition-all duration-500 ${
+            isMenuOpen
+              ? "border-transparent bg-transparent"
+              : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl"
+          }`}
+        />
         <div className="relative z-50 mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           {/* LEFT: Logo */}
           <Link
@@ -599,13 +602,19 @@ const Navigation: React.FC = () => {
 
                   {/* Dropdown pane */}
                   <div
-                    className={`absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 transition-all duration-200 ${
+                    className={`absolute top-full left-1/2 z-50 mt-2 -ml-36 ${
                       openDropdown === group.label
-                        ? "pointer-events-auto translate-y-0 opacity-100"
-                        : "pointer-events-none -translate-y-2 opacity-0"
+                        ? "pointer-events-auto"
+                        : "pointer-events-none"
                     }`}
                   >
-                    <div className="w-72 overflow-hidden rounded-xl border border-white/10 bg-stone-900/90 p-2 shadow-2xl backdrop-blur-md">
+                    <div
+                      className={`w-72 overflow-hidden rounded-xl border border-white/10 p-2 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
+                        openDropdown === group.label
+                          ? "translate-y-0 bg-stone-900/80 opacity-100"
+                          : "-translate-y-2 bg-stone-900/80 opacity-0"
+                      }`}
+                    >
                       {group.dropdown.map((item) => (
                         <Link
                           key={item.href}
