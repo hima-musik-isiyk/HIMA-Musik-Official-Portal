@@ -22,7 +22,6 @@ interface DropdownItem {
   href: string;
   label: string;
   description: string;
-  icon?: string;
 }
 
 interface NavGroup {
@@ -40,13 +39,11 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/events",
         label: "Acara",
         description: "Kalender program & agenda kegiatan",
-        icon: "calendar",
       },
       {
         href: "/gallery",
         label: "Galeri",
         description: "Arsip visual dokumentasi",
-        icon: "gallery",
       },
     ],
   },
@@ -57,13 +54,11 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/docs",
         label: "Pusat Administrasi & Docs",
         description: "Portal dokumen, SOP & arsip organisasi",
-        icon: "docs",
       },
       {
         href: "/aduan",
         label: "Ruang Advokasi",
         description: "Layanan aduan & aspirasi mahasiswa",
-        icon: "advocacy",
       },
     ],
   },
@@ -78,73 +73,6 @@ const MOBILE_NAV_ITEMS = [
   { href: "/aduan", label: "Ruang Advokasi" },
   { href: "/pendaftaran", label: "Open Recruitment" },
 ];
-
-/* ------------------------------------------------------------------ */
-/*  Dropdown icon map (SVG)                                            */
-/* ------------------------------------------------------------------ */
-
-const DROPDOWN_ICON_MAP: Record<string, React.ReactElement> = {
-  calendar: (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-      />
-    </svg>
-  ),
-  gallery: (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-      />
-    </svg>
-  ),
-  docs: (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-      />
-    </svg>
-  ),
-  advocacy: (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.5}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-      />
-    </svg>
-  ),
-};
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -526,20 +454,24 @@ const Navigation: React.FC = () => {
         style={{ zIndex: circleLayers.top }}
       />
 
+      {/* Nav background blur — sibling to <nav> so <nav> contains no backdrop-filter,
+          allowing the dropdown's own backdrop-blur-xl to sample page content. */}
+      <div
+        className={`pointer-events-none fixed top-0 left-0 h-20 w-full transition-all duration-500 ${
+          isMenuOpen
+            ? "border-transparent bg-transparent"
+            : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl"
+        }`}
+        style={{ zIndex: navLayer }}
+      />
+
       {/* ====== NAVBAR ====== */}
       <nav
         ref={navBarRef}
         style={{ zIndex: navLayer }}
-        className="fixed top-0 left-0 w-full transition-all duration-500"
+        className="fixed top-0 left-0 w-full"
       >
-        <div
-          className={`pointer-events-none absolute inset-0 transition-all duration-500 ${
-            isMenuOpen
-              ? "border-transparent bg-transparent"
-              : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl"
-          }`}
-        />
-        <div className="relative z-50 mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+        <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           {/* LEFT: Logo */}
           <Link
             href="/"
@@ -617,7 +549,7 @@ const Navigation: React.FC = () => {
                     }`}
                   >
                     <div
-                      className={`w-72 overflow-hidden rounded-xl border border-white/10 p-2 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
+                      className={`w-72 rounded-xl border border-white/10 p-2 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
                         openDropdown === group.label
                           ? "translate-y-0 bg-stone-900/80 opacity-100"
                           : "-translate-y-2 bg-stone-900/80 opacity-0"
@@ -628,30 +560,23 @@ const Navigation: React.FC = () => {
                           key={item.href}
                           href={item.href}
                           onClick={() => setOpenDropdown(null)}
-                          className={`group/item flex items-start gap-3 rounded-lg px-3 py-3 transition-all duration-200 ${
+                          className={`group/item block rounded-lg px-3 py-3 transition-all duration-200 ${
                             isPathActive(item.href)
-                              ? "bg-gold-500/10 text-white"
-                              : "text-neutral-400 hover:bg-white/5 hover:text-white"
+                              ? "text-white"
+                              : "text-neutral-400 hover:text-white"
                           }`}
                         >
-                          {item.icon && DROPDOWN_ICON_MAP[item.icon] && (
-                            <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-stone-700 bg-stone-800 text-stone-400">
-                              {DROPDOWN_ICON_MAP[item.icon]}
-                            </span>
-                          )}
-                          <div>
-                            <div
-                              className={`text-sm font-semibold tracking-wider ${
-                                isPathActive(item.href)
-                                  ? "text-gold-300"
-                                  : "group-hover/item:text-white"
-                              }`}
-                            >
-                              {item.label}
-                            </div>
-                            <div className="mt-0.5 text-xs leading-relaxed text-stone-500">
-                              {item.description}
-                            </div>
+                          <div
+                            className={`text-sm font-medium ${
+                              isPathActive(item.href)
+                                ? "text-gold-300"
+                                : "group-hover/item:text-white"
+                            }`}
+                          >
+                            {item.label}
+                          </div>
+                          <div className="mt-0.5 text-xs leading-relaxed text-stone-500">
+                            {item.description}
                           </div>
                         </Link>
                       ))}

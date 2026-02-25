@@ -118,29 +118,18 @@ export default function PeminjamanAlatForm() {
     <div className="flex-1 px-6 py-10 md:px-10 lg:px-16">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-stone-700 bg-stone-900 text-stone-400">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-              />
-            </svg>
-          </div>
-          <h1 className="mt-3 font-serif text-3xl font-bold text-white">
+        <div className="mb-10">
+          <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
+            Fasilitas
+          </p>
+          <h1 className="mt-2 font-serif text-3xl font-bold text-white">
             Peminjaman Alat Musik
           </h1>
-          <p className="mt-2 text-stone-400">
+          <p className="mt-3 text-stone-400">
             Ajukan peminjaman alat musik milik HIMA MUSIK. Permintaan akan masuk
             ke Kanban board Sekretaris untuk diproses.
           </p>
+          <hr className="mt-6 border-stone-800" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
