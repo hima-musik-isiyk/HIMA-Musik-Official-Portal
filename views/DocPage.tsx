@@ -54,6 +54,30 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
           )}
         </header>
 
+        {/* Mobile inline ToC — only visible below xl */}
+        {headings.length > 0 && (
+          <details className="mb-8 rounded-lg border border-stone-800 bg-stone-900/40 px-4 py-3 xl:hidden">
+            <summary className="cursor-pointer text-sm font-semibold tracking-widest text-stone-400 uppercase">
+              Daftar Isi
+            </summary>
+            <nav className="mt-3 space-y-1 border-l border-stone-800 pt-1">
+              {headings.map((h) => {
+                const indent =
+                  h.level === 1 ? "pl-3" : h.level === 2 ? "pl-6" : "pl-9";
+                return (
+                  <a
+                    key={h.id}
+                    href={`#${h.id}`}
+                    className={`block py-1 text-sm text-stone-400 transition-colors hover:text-stone-200 ${indent}`}
+                  >
+                    {h.text}
+                  </a>
+                );
+              })}
+            </nav>
+          </details>
+        )}
+
         {/* Content */}
         <div className="prose-docs">
           <NotionRenderer blocks={blocks} />
@@ -70,8 +94,8 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
         </div>
       </article>
 
-      {/* Right: Table of Contents */}
-      <div className="w-56 shrink-0">
+      {/* Right: Table of Contents — hidden below xl breakpoint */}
+      <div className="hidden w-56 shrink-0 xl:block">
         <TableOfContents headings={headings} />
       </div>
     </div>
