@@ -32,20 +32,18 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
           <Link href="/docs" className="transition-colors hover:text-stone-300">
             Docs
           </Link>
-          <span>/</span>
-          <span className="text-stone-400">{meta.category}</span>
+          {meta.category && (
+            <>
+              <span>/</span>
+              <span className="text-stone-400">{meta.category}</span>
+            </>
+          )}
           <span>/</span>
           <span className="text-gold-400">{meta.title}</span>
         </nav>
 
         {/* Header */}
         <header className="mb-10">
-          <div className="mb-3 flex items-center gap-3">
-            {meta.icon && <span className="text-2xl">{meta.icon}</span>}
-            <span className="rounded-md bg-stone-800/80 px-2.5 py-0.5 text-xs tracking-wider text-stone-400 uppercase">
-              {meta.category}
-            </span>
-          </div>
           <h1 className="font-serif text-3xl font-bold text-white md:text-4xl lg:text-5xl">
             {meta.title}
           </h1>
@@ -67,7 +65,7 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
             href="/docs"
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
           >
-            ← Kembali ke Pusat Docs
+            ← Kembali ke Dokumen
           </Link>
         </div>
       </article>
