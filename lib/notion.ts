@@ -197,11 +197,11 @@ export const fetchAllDocs = unstable_cache(
       }))
       .filter((doc) => doc.published)
       .sort((a, b) => {
+        if (a.order !== b.order) return a.order - b.order;
         const categoryCompare = a.category.localeCompare(b.category, "id", {
           sensitivity: "base",
         });
         if (categoryCompare !== 0) return categoryCompare;
-        if (a.order !== b.order) return a.order - b.order;
         return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
       });
   },
