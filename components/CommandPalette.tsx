@@ -259,57 +259,12 @@ export default function CommandPalette() {
             <button
               key={result.id}
               onClick={() => navigate(result.slug)}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+              className={`flex w-full items-center gap-3 border-l-2 px-3 py-3 text-left transition-all ${
                 idx === activeIndex
-                  ? "bg-gold-500/10 text-white"
-                  : "text-stone-400 hover:bg-stone-800 hover:text-white"
+                  ? "border-gold-500 text-white"
+                  : "border-transparent text-stone-400 hover:border-stone-700 hover:text-white"
               }`}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-stone-700 bg-stone-800 text-stone-400">
-                {result.category === "Navigasi" ? (
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                    />
-                  </svg>
-                ) : result.category === "Layanan" ? (
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                )}
-              </span>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">
                   {result.title}
@@ -318,7 +273,7 @@ export default function CommandPalette() {
                   {result.highlight}
                 </div>
               </div>
-              <span className="shrink-0 rounded bg-stone-800/80 px-2 py-0.5 text-[10px] tracking-wider text-stone-500 uppercase">
+              <span className="shrink-0 text-[10px] text-stone-500 italic">
                 {result.category}
               </span>
             </button>

@@ -89,14 +89,18 @@ export default function SuratAktifForm() {
     <div className="flex-1 px-6 py-10 md:px-10 lg:px-16">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="mt-3 font-serif text-3xl font-bold text-white">
+        <div className="mb-10">
+          <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
+            Surat Keterangan
+          </p>
+          <h1 className="mt-2 font-serif text-3xl font-bold text-white">
             Pengajuan Surat Aktif Organisasi
           </h1>
-          <p className="mt-2 text-stone-400">
+          <p className="mt-3 text-stone-400">
             Form ini akan otomatis membuat kartu tugas di board Sekretaris dan
             mengirim notifikasi via Telegram.
           </p>
+          <hr className="mt-6 border-stone-800" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
