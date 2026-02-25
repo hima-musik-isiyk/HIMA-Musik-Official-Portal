@@ -525,7 +525,7 @@ const Navigation: React.FC = () => {
         className={`fixed top-0 left-0 w-full transition-all duration-500 ${
           isMenuOpen
             ? "border-transparent bg-transparent"
-            : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl"
+            : "border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-md"
         }`}
       >
         <div className="relative z-50 mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
@@ -605,7 +605,7 @@ const Navigation: React.FC = () => {
                         : "pointer-events-none -translate-y-2 opacity-0"
                     }`}
                   >
-                    <div className="w-72 overflow-hidden rounded-xl border border-white/10 bg-stone-900/90 p-2 shadow-2xl backdrop-blur-xl">
+                    <div className="w-72 overflow-hidden rounded-xl border border-white/10 bg-stone-900/90 p-2 shadow-2xl backdrop-blur-md">
                       {group.dropdown.map((item) => (
                         <Link
                           key={item.href}

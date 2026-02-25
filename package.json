@@ -38,6 +38,8 @@
     "three": "^0.183.1"
   },
   "devDependencies": {
+    "@locator/runtime": "^0.5.1",
+    "@locator/webpack-loader": "^0.5.1",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22.14.0",
     "@types/react": "^18.2.0",
