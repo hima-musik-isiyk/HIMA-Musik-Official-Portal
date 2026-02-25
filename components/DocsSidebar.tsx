@@ -114,10 +114,10 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
         }`}
       >
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-8">
           <Link
             href="/sekretariat"
-            className="group text-sm font-semibold tracking-[0.2em] uppercase"
+            className="group flex items-center gap-3 rounded-xl border border-stone-800/80 bg-stone-900/30 px-4 py-3 text-sm font-semibold tracking-[0.2em] uppercase transition-all duration-300 hover:border-stone-700 hover:bg-stone-900/50"
           >
             <span className="group-hover:text-gold-300 text-white transition-colors">
               Sekretariat
@@ -134,7 +134,7 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
               <div key={category}>
                 <button
                   onClick={() => toggleCategory(category)}
-                  className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold tracking-wider text-stone-400 uppercase transition-colors hover:bg-white/5 hover:text-white"
+                  className="group flex w-full items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-left text-xs font-semibold tracking-wider text-stone-400 uppercase transition-all duration-300 hover:border-stone-800/50 hover:bg-stone-900/30 hover:text-white"
                 >
                   <span className="flex-1">{category}</span>
                   <svg
@@ -166,10 +166,10 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
                         <Link
                           key={doc.id}
                           href={`/sekretariat/${doc.slug}`}
-                          className={`block rounded-md px-3 py-1.5 text-sm transition-all duration-200 ${
+                          className={`block rounded-xl border px-3 py-2 text-sm transition-all duration-200 ${
                             isActive
-                              ? "bg-gold-500/10 text-gold-300 font-medium"
-                              : "text-stone-500 hover:bg-white/5 hover:text-white"
+                              ? "bg-gold-500/5 border-gold-500/20 text-gold-300 font-medium"
+                              : "border-transparent text-stone-500 hover:border-stone-800 hover:bg-stone-900/40 hover:text-white"
                           }`}
                         >
                           {doc.icon && (
