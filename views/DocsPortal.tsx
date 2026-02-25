@@ -20,7 +20,7 @@ const CATEGORIES = [
     key: "Legalitas",
     title: "Garis Besar & Peraturan",
     description:
-      "AD/ART, GBHK, dan Blueprint Organisasi — konstitusi yang menjadi landasan seluruh kegiatan HIMA MUSIK.",
+      "AD/ART sebagai konstitusi organisasi — landasan peraturan dan struktur kepengurusan HIMA MUSIK.",
   },
   {
     key: "Panduan & SOP",
@@ -63,19 +63,9 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
     <div className="flex-1 px-6 py-10 md:px-10 lg:px-16">
       {/* Hero */}
       <div className="mb-16">
-        <div className="mb-4">
-          <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
-            Portal Dokumen
-          </p>
-          <h1 className="mt-2 font-serif text-4xl font-bold text-white md:text-5xl">
-            Pusat Administrasi
-          </h1>
-        </div>
-        <p className="max-w-2xl text-lg leading-relaxed text-stone-400">
-          Portal dokumen resmi, prosedur operasional, dan arsip transparansi
-          HIMA MUSIK ISI Yogyakarta. Seluruh informasi dikelola langsung oleh
-          Sekretaris melalui sistem headless CMS.
-        </p>
+        <h1 className="font-serif text-4xl font-bold text-white md:text-5xl">
+          HIMA MUSIK ISI Yogyakarta
+        </h1>
 
         {/* Search hint */}
         <div className="mt-6">
