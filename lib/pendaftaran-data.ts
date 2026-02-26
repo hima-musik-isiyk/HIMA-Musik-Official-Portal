@@ -13,7 +13,7 @@ export const divisions: Division[] = [
     id: "humas",
     name: "Humas & Kemitraan",
     summary:
-      "Menjaga relasi internal kampus dan eksternal, kolaborasi event, dan komunikasi antar organisasi. Slot: 2 orang, terbuka untuk angkatan 2023–2025.",
+      "Menjaga relasi internal kampus dan eksternal, kolaborasi event, dan komunikasi antar organisasi. Slot: 1 orang, terbuka untuk angkatan 2023–2025.",
     focus: "Relasi internal & eksternal, komunikasi strategis",
     tasks: [
       "Mengelola komunikasi dengan mitra internal (prodi, dosen, HIMA lain, KKM) dan eksternal (sponsor, komunitas musik, media partner)",
@@ -81,27 +81,28 @@ export const divisions: Division[] = [
   },
 ];
 
-export const RECRUITMENT_PERIOD = "01–21 Maret 2026";
+export const RECRUITMENT_TITLE = "Batch 1";
+export const RECRUITMENT_PERIOD = "27 Februari – 03 Maret 2026";
 
 export const SELECTION_TIMELINE = [
   {
     title: "Pendaftaran",
-    date: RECRUITMENT_PERIOD,
-    description: "Isi formulir dan pastikan data kontak aktif.",
+    date: "27 Feb – 03 Maret 2026",
+    description: "Deadline: 15:00 WIB. Pastikan data diri sudah sesuai.",
   },
   {
-    title: "Seleksi Administrasi",
-    date: "22–25 Maret 2026",
-    description: "Panitia melakukan verifikasi data pendaftar.",
+    title: "Pengumuman Wawancara",
+    date: "03 Maret 2026",
+    description: "Pukul 18:00 WIB via kanal resmi HIMA Musik.",
   },
   {
     title: "Wawancara",
-    date: "26–28 Maret 2026",
-    description: "Wawancara singkat untuk divisi tertentu jika diperlukan.",
+    date: "04 Maret 2026",
+    description: "Waktu menyusul. Siapkan visi dan portofolio terbaikmu.",
   },
   {
-    title: "Pengumuman",
-    date: "30 Maret 2026",
-    description: "Hasil seleksi diumumkan via email dan kanal resmi.",
+    title: "Pengumuman Akhir",
+    date: "10 Maret 2026",
+    description: "Selamat bergabung di keluarga besar HIMA Musik!",
   },
 ];
