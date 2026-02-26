@@ -61,11 +61,17 @@ export default function TableOfContents({ headings }: TableOfContentsProps) {
               ? "pl-3"
               : heading.level === 2
                 ? "pl-6"
-                : "pl-9";
+                : heading.level === 3
+                  ? "pl-9"
+                  : heading.level === 4
+                    ? "pl-12"
+                    : heading.level === 5
+                      ? "pl-14"
+                      : "pl-16";
 
           return (
             <button
-              key={heading.id}
+              key={heading.blockId}
               onClick={() => handleClick(heading.id)}
               className={`block w-full text-left text-sm transition-all duration-200 ${indent} ${
                 isActive
