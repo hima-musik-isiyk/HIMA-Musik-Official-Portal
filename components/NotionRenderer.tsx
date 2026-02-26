@@ -70,9 +70,19 @@ const BLOCK_BG_COLOR_MAP: Record<string, string> = {
   gray_background: "bg-stone-900/60 border border-stone-700/30",
 };
 
-function renderRichText(richText: RichTextItem[], ignoreColor = false) {
+function renderRichText(
+  richText: RichTextItem[],
+  ignoreColor = false,
+  stripHeadingPrefix = false,
+) {
   return richText.map((item, i) => {
-    let node: React.ReactNode = item.plain_text;
+    let text = item.plain_text;
+
+    if (stripHeadingPrefix && i === 0) {
+      text = text.replace(/^#{4,6}\s+/, "");
+    }
+
+    let node: React.ReactNode = text;
 
     if (item.annotations.bold) node = <strong>{node}</strong>;
     if (item.annotations.italic) node = <em>{node}</em>;
@@ -216,17 +226,101 @@ interface NotionRendererProps {
   blocks: NotionBlock[];
 }
 
-export default function NotionRenderer({ blocks }: NotionRendererProps) {
+export default function NotionRenderer({
+  blocks,
+  level = 1,
+  blockIdToSlug: parentMap,
+}: NotionRendererProps & {
+  level?: number;
+  blockIdToSlug?: Map<string, string>;
+}) {
+  const headings = extractHeadings(blocks);
+  const blockIdToSlug = React.useMemo(() => {
+    if (parentMap) return parentMap;
+    const map = new Map<string, string>();
+    headings.forEach((h) => map.set(h.blockId, h.id));
+    return map;
+  }, [headings, parentMap]);
+
+  const groupedBlocks: (
+    | NotionBlock
+    | { type: "list_group"; children: NotionBlock[]; listType: string }
+  )[] = [];
+
+  blocks.forEach((block) => {
+    const lastGroup = groupedBlocks[groupedBlocks.length - 1];
+    if (
+      (block.type === "bulleted_list_item" ||
+        block.type === "numbered_list_item") &&
+      lastGroup?.type === "list_group" &&
+      lastGroup.listType === block.type
+    ) {
+      lastGroup.children.push(block);
+    } else if (
+      block.type === "bulleted_list_item" ||
+      block.type === "numbered_list_item"
+    ) {
+      groupedBlocks.push({
+        type: "list_group",
+        listType: block.type,
+        children: [block],
+      });
+    } else {
+      groupedBlocks.push(block);
+    }
+  });
+
   return (
-    <div className="notion-content space-y-4">
-      {blocks.map((block) => (
-        <BlockRenderer key={block.id} block={block} />
-      ))}
+    <div
+      className={`notion-content ${level === 1 ? "space-y-4" : "mt-1 space-y-1"}`}
+    >
+      {groupedBlocks.map((group, idx) => {
+        if ("type" in group && group.type === "list_group") {
+          const Tag = group.listType === "numbered_list_item" ? "ol" : "ul";
+          const listClass =
+            group.listType === "numbered_list_item"
+              ? level === 1
+                ? "list-decimal"
+                : level === 2
+                  ? "list-[lower-alpha]"
+                  : "list-[lower-roman]"
+              : "list-disc";
+
+          return (
+            <Tag key={idx} className={`${listClass} space-y-1 text-left`}>
+              {group.children.map((block) => (
+                <BlockRenderer
+                  key={block.id}
+                  block={block}
+                  level={level}
+                  blockIdToSlug={blockIdToSlug}
+                />
+              ))}
+            </Tag>
+          );
+        }
+        return (
+          <BlockRenderer
+            key={(group as NotionBlock).id}
+            block={group as NotionBlock}
+            level={level}
+            blockIdToSlug={blockIdToSlug}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function BlockRenderer({ block }: { block: NotionBlock }) {
+function BlockRenderer({
+  block,
+  level = 1,
+  blockIdToSlug,
+}: {
+  block: NotionBlock;
+  level?: number;
+  blockIdToSlug: Map<string, string>;
+}) {
   const b = block as Record<string, unknown>;
   const typed = b[block.type] as
     | {
@@ -272,6 +366,30 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
     /* ---- Text blocks ---- */
     case "paragraph": {
       if (!typed?.rich_text?.length) return <div className="h-4" />;
+
+      const fullText = typed.rich_text.map((t) => t.plain_text).join("");
+      const headingMatch = fullText.match(/^(#{4,6})\s+/);
+
+      if (headingMatch) {
+        const level = headingMatch[1].length; // 4, 5, or 6
+        const text = fullText.replace(/^#{4,6}\s+/, "");
+        const id = blockIdToSlug.get(block.id) || slugify(text);
+
+        const Tag = `h${level}` as "h4" | "h5" | "h6";
+        const baseCls = "scroll-mt-24 font-serif text-white";
+        const levelCls = {
+          4: "text-lg font-semibold",
+          5: "text-base font-semibold",
+          6: "text-sm font-semibold uppercase tracking-wider",
+        }[level as 4 | 5 | 6];
+
+        return (
+          <Tag id={id} className={`${baseCls} ${levelCls}`}>
+            {renderRichText(typed.rich_text, false, true)}
+          </Tag>
+        );
+      }
+
       const cls = [
         "text-base leading-relaxed",
         blockTextClass || "text-neutral-300",
@@ -284,7 +402,7 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
 
     case "heading_1": {
       const text = extractPlainText(block);
-      const id = slugify(text);
+      const id = blockIdToSlug.get(block.id) || slugify(text);
       return (
         <h1
           id={id}
@@ -297,7 +415,7 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
 
     case "heading_2": {
       const text = extractPlainText(block);
-      const id = slugify(text);
+      const id = blockIdToSlug.get(block.id) || slugify(text);
       return (
         <h2
           id={id}
@@ -309,8 +427,30 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
     }
 
     case "heading_3": {
-      const text = extractPlainText(block);
-      const id = slugify(text);
+      const fullText = extractPlainText(block);
+      const headingMatch = fullText.match(/^(#{4,6})\s+/);
+
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const text = fullText.replace(/^#{4,6}\s+/, "");
+        const id = slugify(text);
+
+        const Tag = `h${level}` as "h4" | "h5" | "h6";
+        const baseCls = "scroll-mt-24 font-serif text-white";
+        const levelCls = {
+          4: "text-lg font-semibold",
+          5: "text-base font-semibold",
+          6: "text-sm font-semibold uppercase tracking-wider",
+        }[level as 4 | 5 | 6];
+
+        return (
+          <Tag id={id} className={`${baseCls} ${levelCls}`}>
+            {renderRichText(typed?.rich_text || [], false, true)}
+          </Tag>
+        );
+      }
+
+      const id = blockIdToSlug.get(block.id) || slugify(fullText);
       return (
         <h3
           id={id}
@@ -323,33 +463,16 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
 
     /* ---- List blocks ---- */
     case "bulleted_list_item":
-      return (
-        <li
-          className={`ml-6 list-disc ${blockTextClass || "text-neutral-300"}`}
-        >
-          {typed?.rich_text && renderRichText(typed.rich_text)}
-          {block.children && block.children.length > 0 && (
-            <ul className="mt-1 space-y-1">
-              {block.children.map((child) => (
-                <BlockRenderer key={child.id} block={child} />
-              ))}
-            </ul>
-          )}
-        </li>
-      );
-
     case "numbered_list_item":
       return (
-        <li
-          className={`ml-6 list-decimal ${blockTextClass || "text-neutral-300"}`}
-        >
+        <li className={`ml-6 ${blockTextClass || "text-neutral-300"}`}>
           {typed?.rich_text && renderRichText(typed.rich_text)}
           {block.children && block.children.length > 0 && (
-            <ol className="mt-1 space-y-1">
-              {block.children.map((child) => (
-                <BlockRenderer key={child.id} block={child} />
-              ))}
-            </ol>
+            <NotionRenderer
+              blocks={block.children}
+              level={level + 1}
+              blockIdToSlug={blockIdToSlug}
+            />
           )}
         </li>
       );
@@ -393,7 +516,13 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
             {typed?.rich_text && renderRichText(typed.rich_text)}
           </summary>
           <div className="mt-3 border-t border-stone-800 pt-3 text-neutral-300">
-            {block.children && <NotionRenderer blocks={block.children} />}
+            {block.children && (
+              <NotionRenderer
+                blocks={block.children}
+                level={level}
+                blockIdToSlug={blockIdToSlug}
+              />
+            )}
           </div>
         </details>
       );
@@ -414,7 +543,12 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
           className={`grid gap-6 ${colClass[colCount] ?? "grid-cols-2"} max-sm:grid-cols-1`}
         >
           {columns.map((col) => (
-            <BlockRenderer key={col.id} block={col} />
+            <BlockRenderer
+              key={col.id}
+              block={col}
+              level={level}
+              blockIdToSlug={blockIdToSlug}
+            />
           ))}
         </div>
       );
@@ -424,7 +558,12 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
       return (
         <div className="min-w-0 space-y-4">
           {block.children?.map((child) => (
-            <BlockRenderer key={child.id} block={child} />
+            <BlockRenderer
+              key={child.id}
+              block={child}
+              level={level}
+              blockIdToSlug={blockIdToSlug}
+            />
           ))}
         </div>
       );
@@ -434,7 +573,12 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
       return (
         <>
           {block.children?.map((child) => (
-            <BlockRenderer key={child.id} block={child} />
+            <BlockRenderer
+              key={child.id}
+              block={child}
+              level={level}
+              blockIdToSlug={blockIdToSlug}
+            />
           ))}
         </>
       );
@@ -451,7 +595,11 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
           {typed?.rich_text && renderRichText(typed.rich_text)}
           {block.children && (
             <div className="mt-2">
-              <NotionRenderer blocks={block.children} />
+              <NotionRenderer
+                blocks={block.children}
+                level={level}
+                blockIdToSlug={blockIdToSlug}
+              />
             </div>
           )}
         </blockquote>
@@ -481,7 +629,11 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
             {typed?.rich_text && renderRichText(typed.rich_text)}
             {block.children && (
               <div className="mt-2">
-                <NotionRenderer blocks={block.children} />
+                <NotionRenderer
+                  blocks={block.children}
+                  level={level}
+                  blockIdToSlug={blockIdToSlug}
+                />
               </div>
             )}
           </div>
@@ -882,38 +1034,80 @@ function BlockRenderer({ block }: { block: NotionBlock }) {
 export interface TocItem {
   id: string;
   text: string;
-  level: 1 | 2 | 3;
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  blockId: string;
 }
 
 export function extractHeadings(blocks: NotionBlock[]): TocItem[] {
   const headings: TocItem[] = [];
+  const slugCounts: Record<string, number> = {};
 
-  for (const block of blocks) {
-    if (
-      block.type === "heading_1" ||
-      block.type === "heading_2" ||
-      block.type === "heading_3"
-    ) {
-      const text = extractPlainText(block);
-      if (text) {
-        headings.push({
-          id: slugify(text),
-          text,
-          level:
-            block.type === "heading_1" ? 1 : block.type === "heading_2" ? 2 : 3,
-        });
-      }
+  const getUniqueId = (text: string) => {
+    const slug = slugify(text);
+    if (!slugCounts[slug]) {
+      slugCounts[slug] = 1;
+      return slug;
     }
+    slugCounts[slug]++;
+    return `${slug}-${slugCounts[slug] - 1}`;
+  };
 
-    // Recurse into columns
-    if (block.type === "column_list" && block.children) {
-      for (const col of block.children) {
-        if (col.children) {
-          headings.push(...extractHeadings(col.children));
+  const traverse = (blocks: NotionBlock[]) => {
+    for (const block of blocks) {
+      if (
+        block.type === "heading_1" ||
+        block.type === "heading_2" ||
+        block.type === "heading_3"
+      ) {
+        const text = extractPlainText(block);
+        if (text) {
+          const match = text.match(/^(#{4,6})\s+/);
+          if (block.type === "heading_3" && match) {
+            const level = match[1].length;
+            const headingText = text.replace(/^#{4,6}\s+/, "");
+            headings.push({
+              id: getUniqueId(headingText),
+              text: headingText,
+              level: level as 4 | 5 | 6,
+              blockId: block.id,
+            });
+          } else {
+            headings.push({
+              id: getUniqueId(text),
+              text,
+              level:
+                block.type === "heading_1"
+                  ? 1
+                  : block.type === "heading_2"
+                    ? 2
+                    : 3,
+              blockId: block.id,
+            });
+          }
         }
       }
-    }
-  }
 
+      if (block.type === "paragraph") {
+        const text = extractPlainText(block);
+        const match = text.match(/^(#{4,6})\s+/);
+        if (match) {
+          const level = match[1].length;
+          const headingText = text.replace(/^#{4,6}\s+/, "");
+          headings.push({
+            id: getUniqueId(headingText),
+            text: headingText,
+            level: level as 4 | 5 | 6,
+            blockId: block.id,
+          });
+        }
+      }
+
+      if (block.children) {
+        traverse(block.children);
+      }
+    }
+  };
+
+  traverse(blocks);
   return headings;
 }

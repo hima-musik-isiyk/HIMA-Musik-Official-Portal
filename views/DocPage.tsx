@@ -23,12 +23,18 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
       })
     : null;
 
+  const isLegalitas = meta.category?.toLowerCase() === "legalitas";
+
   return (
     <div className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
       {/* Center: Reading Pane */}
-      <article className="max-w-3xl min-w-0 flex-1">
+      <article
+        className={`max-w-3xl min-w-0 flex-1 ${isLegalitas ? "mx-auto" : ""}`}
+      >
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-xs text-stone-500">
+        <nav
+          className={`mb-6 flex gap-2 text-xs text-stone-500 ${isLegalitas ? "justify-center" : "items-center"}`}
+        >
           <Link
             href="/sekretariat"
             className="transition-colors hover:text-stone-300"
@@ -46,7 +52,7 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
         </nav>
 
         {/* Header */}
-        <header className="mb-10">
+        <header className={`mb-10 ${isLegalitas ? "text-center" : ""}`}>
           <h1 className="font-serif text-3xl font-bold text-white md:text-4xl lg:text-5xl">
             {meta.title}
           </h1>
@@ -66,10 +72,20 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
             <nav className="mt-3 space-y-1 border-l border-stone-800 pt-1">
               {headings.map((h) => {
                 const indent =
-                  h.level === 1 ? "pl-3" : h.level === 2 ? "pl-6" : "pl-9";
+                  h.level === 1
+                    ? "pl-3"
+                    : h.level === 2
+                      ? "pl-6"
+                      : h.level === 3
+                        ? "pl-9"
+                        : h.level === 4
+                          ? "pl-12"
+                          : h.level === 5
+                            ? "pl-14"
+                            : "pl-16";
                 return (
                   <a
-                    key={h.id}
+                    key={h.blockId}
                     href={`#${h.id}`}
                     className={`block py-1 text-sm text-stone-400 transition-colors hover:text-stone-200 ${indent}`}
                   >
@@ -82,7 +98,7 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
         )}
 
         {/* Content */}
-        <div className="prose-docs">
+        <div className={`prose-docs ${isLegalitas ? "text-center" : ""}`}>
           <NotionRenderer blocks={blocks} />
         </div>
 
