@@ -3,6 +3,8 @@
 import Link from "next/link";
 import React from "react";
 
+import LogoHima from "./LogoHima";
+
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
@@ -11,15 +13,12 @@ const Footer: React.FC = () => {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 md:grid-cols-12 md:gap-8">
         <div className="md:col-span-6">
           <Link href="/" className="group mb-8 inline-flex flex-col">
-            <span className="font-serif text-3xl leading-none tracking-tighter text-white">
-              HIMA
-              <span className="group-hover:text-gold-300 text-stone-500 italic transition-colors">
-                MUSIK
-              </span>
-            </span>
-            <span className="mt-2 text-xs tracking-[0.6em] text-stone-600 uppercase">
-              Institut Seni Indonesia Yogyakarta
-            </span>
+            <LogoHima
+              lineColor="white"
+              glyphColor="var(--color-gold-500)"
+              textColor="white"
+              className="h-28 w-auto transition-all duration-300 group-hover:opacity-90"
+            />
           </Link>
           <p className="max-w-sm text-sm leading-loose tracking-[0.2em] text-stone-500 uppercase">
             Himpunan Mahasiswa Program Studi Musik, Fakultas Seni Pertunjukan. A
