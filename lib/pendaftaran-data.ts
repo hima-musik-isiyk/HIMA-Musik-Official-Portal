@@ -17,7 +17,7 @@ export const divisions: Division[] = [
     focus: "Relasi internal & eksternal, komunikasi strategis",
     tasks: [
       "Mengelola komunikasi dengan mitra internal (prodi, dosen, HIMA lain, KKM) dan eksternal (sponsor, komunitas musik, media partner)",
-      "Menyusun proposal kolaborasi",
+      "Menginisiasi peluang kerja sama dan melakukan negosiasi dengan calon mitra",
       "Menjadi penghubung antar divisi dan pihak luar",
     ],
     skills: ["Communication", "Negotiation", "Networking"],
