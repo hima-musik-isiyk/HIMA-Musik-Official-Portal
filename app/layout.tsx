@@ -14,6 +14,16 @@ const fraunces = Fraunces({
   variable: "--font-serif",
 });
 
+export const metadata = {
+  title: "HIMA Musik Official Portal",
+  description:
+    "Portal resmi Himpunan Mahasiswa Musik (HIMA MUSIK) Institut Seni Indonesia Yogyakarta. Informasi organisasi, acara, galeri, dan layanan mahasiswa.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
+
 type RootLayoutProps = {
   children: React.ReactNode;
 };
