@@ -91,6 +91,7 @@ const Navigation: React.FC = () => {
     null,
   );
   const [isCompactMobileMenu, setIsCompactMobileMenu] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileMenuLayer, setMobileMenuLayer] = useState(40);
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
   const [navLayer, setNavLayer] = useState(50);
@@ -421,13 +422,14 @@ const Navigation: React.FC = () => {
   };
 
   useEffect(() => {
-    const updateCompactMobileMenu = () => {
+    const updateViewportState = () => {
       if (typeof window === "undefined") return;
       setIsCompactMobileMenu(window.innerHeight < 640);
+      setIsMobileViewport(window.innerWidth < 1024);
     };
-    updateCompactMobileMenu();
-    window.addEventListener("resize", updateCompactMobileMenu);
-    return () => window.removeEventListener("resize", updateCompactMobileMenu);
+    updateViewportState();
+    window.addEventListener("resize", updateViewportState);
+    return () => window.removeEventListener("resize", updateViewportState);
   }, []);
 
   /* ------ Dropdown hover with delay ----- */
@@ -455,6 +457,9 @@ const Navigation: React.FC = () => {
     if (href === "/") return currentPath === "/";
     return currentPath.startsWith(href);
   };
+
+  const shouldHideLogoLines =
+    hasMounted && isPathActive("/sekretariat") && isMobileViewport;
 
   const isGroupActive = (group: NavGroup) => {
     if (group.href) return isPathActive(group.href);
@@ -496,17 +501,20 @@ const Navigation: React.FC = () => {
         <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           {/* LEFT: Sidebar toggle (Mobile only, shown in /sekretariat) */}
           <div
-            className={`flex items-center lg:hidden ${
+            className={`absolute top-1/2 left-6 z-50 -translate-y-1/2 lg:hidden ${
               hasMounted ? "transition-all duration-500 ease-in-out" : ""
             } ${
               isPathActive("/sekretariat")
-                ? "w-10 opacity-100"
-                : "pointer-events-none w-0 opacity-0"
-            } overflow-hidden`}
+                ? "pointer-events-auto opacity-100"
+                : "pointer-events-none opacity-0"
+            }`}
           >
             <button
-              className="group relative z-50 flex h-10 w-10 flex-col items-center justify-center space-y-1.5"
-              onClick={() => {
+              type="button"
+              className="group relative flex h-10 w-10 cursor-pointer touch-manipulation flex-col items-center justify-center space-y-1.5 select-none"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 window.dispatchEvent(new CustomEvent("toggleDocsSidebar"));
                 if (isMenuOpen) setIsMenuOpen(false);
               }}
@@ -533,7 +541,9 @@ const Navigation: React.FC = () => {
           {/* LEFT: Logo */}
           <Link
             href="/"
-            className="cursor-pointer"
+            className={`relative z-10 cursor-pointer transition-all duration-500 ${
+              isPathActive("/sekretariat") ? "ml-20 lg:ml-0" : "ml-0"
+            }`}
             onMouseEnter={() => setIsLogoHovered(true)}
             onMouseLeave={() => setIsLogoHovered(false)}
             onClick={() => {
@@ -545,6 +555,7 @@ const Navigation: React.FC = () => {
               lineColor={isLogoHovered ? "white" : "white"}
               glyphColor={isLogoHovered ? "white" : "var(--color-gold-500)"}
               textColor={isLogoHovered ? "white" : "white"}
+              showLines={!shouldHideLogoLines}
               className="h-32 w-auto transition-colors duration-300"
             />
           </Link>

@@ -389,8 +389,9 @@ const Home: React.FC = () => {
                 <div className="btn-primary-overlay"></div>
               </Link>
               <p className="max-w-sm border-stone-800 text-[0.8125rem] leading-[1.7] font-light text-stone-500 md:border-l md:pl-12">
-                Wadah kolektif mahasiswa musik. Membangun ekosistem mahasiswa
-                yang inklusif dan progresif.
+                Wadah kolektif mahasiswa Musik ISI Yogyakarta. Membangun
+                ekosistem kreatif yang inklusif, progresif, dan berorientasi
+                pada keunggulan artistik.
               </p>
             </div>
           </div>
