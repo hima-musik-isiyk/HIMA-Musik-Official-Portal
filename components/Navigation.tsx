@@ -60,6 +60,11 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Ruang Advokasi",
         description: "Layanan aduan & aspirasi mahasiswa",
       },
+      {
+        href: "/pendaftaran",
+        label: "Open Recruitment",
+        description: "Informasi & pendaftaran calon pengurus HIMA MUSIK",
+      },
     ],
   },
 ];
@@ -90,6 +95,8 @@ const Navigation: React.FC = () => {
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
   const [navLayer, setNavLayer] = useState(50);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
 
   const navBarRef = useRef<HTMLElement | null>(null);
@@ -110,27 +117,38 @@ const Navigation: React.FC = () => {
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
 
-  /* ------ GSAP init ----- */
   useEffect(() => {
+    setHasMounted(true);
+
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (reduceMotion) return;
 
+    const navAnimateFlag = sessionStorage.getItem("navEntranceAnimate");
+
     const context = gsap.context(() => {
       const timeline = gsap.timeline({ defaults: { ease: "power2.out" } });
-      if (navBarRef.current) {
+      if (navBarRef.current && !navAnimateFlag) {
         timeline.from(navBarRef.current, {
           y: -14,
           opacity: 0,
           duration: 0.5,
         });
+        sessionStorage.setItem("navEntranceAnimate", "true");
       }
       if (mobileMenuRef.current) {
         gsap.set(mobileMenuRef.current, { yPercent: -100, autoAlpha: 0 });
       }
     });
-    return () => context.revert();
+
+    const handleSidebarToggle = () => setIsSidebarOpen((prev) => !prev);
+    window.addEventListener("toggleDocsSidebar", handleSidebarToggle);
+
+    return () => {
+      context.revert();
+      window.removeEventListener("toggleDocsSidebar", handleSidebarToggle);
+    };
   }, []);
 
   /* ------ Mobile menu open/close ----- */
@@ -285,6 +303,10 @@ const Navigation: React.FC = () => {
         isNavigatingRef.current = false;
         setIsNavigating(false);
         setActiveMobileIndex(null);
+        // Close sidebar if opening main menu
+        if (isSidebarOpen) {
+          window.dispatchEvent(new CustomEvent("toggleDocsSidebar"));
+        }
       }
       return next;
     });
@@ -472,6 +494,42 @@ const Navigation: React.FC = () => {
         className="fixed top-0 left-0 w-full"
       >
         <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+          {/* LEFT: Sidebar toggle (Mobile only, shown in /sekretariat) */}
+          <div
+            className={`flex items-center lg:hidden ${
+              hasMounted ? "transition-all duration-500 ease-in-out" : ""
+            } ${
+              isPathActive("/sekretariat")
+                ? "w-10 opacity-100"
+                : "pointer-events-none w-0 opacity-0"
+            } overflow-hidden`}
+          >
+            <button
+              className="group relative z-50 flex h-10 w-10 flex-col items-center justify-center space-y-1.5"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("toggleDocsSidebar"));
+                if (isMenuOpen) setIsMenuOpen(false);
+              }}
+              aria-label="Toggle Sekretariat Sidebar"
+            >
+              <span
+                className={`h-px bg-neutral-300 transition-all duration-300 ${
+                  isSidebarOpen ? "w-6 translate-y-1.75 rotate-45" : "w-6"
+                }`}
+              />
+              <span
+                className={`h-px w-4 bg-neutral-300 transition-all duration-300 ${
+                  isSidebarOpen ? "-translate-x-2 opacity-0" : "-translate-x-1"
+                }`}
+              />
+              <span
+                className={`h-px bg-neutral-300 transition-all duration-300 ${
+                  isSidebarOpen ? "w-6 -translate-y-1.75 -rotate-45" : "w-6"
+                }`}
+              />
+            </button>
+          </div>
+
           {/* LEFT: Logo */}
           <Link
             href="/"
@@ -559,7 +617,15 @@ const Navigation: React.FC = () => {
                         <Link
                           key={item.href}
                           href={item.href}
-                          onClick={() => setOpenDropdown(null)}
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            if (item.href === "/sekretariat") {
+                              sessionStorage.setItem(
+                                "animateDocsPortal",
+                                "true",
+                              );
+                            }
+                          }}
                           className={`group/item block rounded-lg px-3 py-3 transition-all duration-200 ${
                             isPathActive(item.href)
                               ? "text-white"
@@ -611,7 +677,7 @@ const Navigation: React.FC = () => {
             {/* Desktop CTA */}
             <Link
               href="/pendaftaran"
-              className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 md:inline-flex"
+              className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 lg:inline-flex"
             >
               Open Recruitment
             </Link>
@@ -621,7 +687,7 @@ const Navigation: React.FC = () => {
               onClick={() => {
                 window.dispatchEvent(createCommandPaletteShortcutEvent());
               }}
-              className="hidden items-center gap-2 rounded-lg border border-stone-800 bg-stone-900/50 px-3 py-1.5 text-xs text-stone-500 transition-colors hover:border-stone-700 hover:text-stone-400 md:flex"
+              className="hidden items-center gap-2 rounded-lg border border-stone-800 bg-stone-900/50 px-3 py-1.5 text-xs text-stone-500 transition-colors hover:border-stone-700 hover:text-stone-400 lg:flex"
               aria-label="Pencarian"
             >
               <svg
@@ -653,7 +719,7 @@ const Navigation: React.FC = () => {
 
             {/* Mobile hamburger */}
             <button
-              className="group relative z-50 flex flex-col space-y-1.5 p-2 md:hidden"
+              className="group relative z-50 flex flex-col space-y-1.5 p-2 lg:hidden"
               onClick={handleMenuToggle}
               aria-label="Toggle menu"
             >
@@ -663,8 +729,8 @@ const Navigation: React.FC = () => {
                 }`}
               />
               <span
-                className={`h-px bg-neutral-300 transition-all duration-300 ${
-                  isMenuOpen ? "opacity-0" : "w-4"
+                className={`h-px w-4 bg-neutral-300 transition-all duration-300 ${
+                  isMenuOpen ? "translate-x-3 opacity-0" : "translate-x-2"
                 }`}
               />
               <span
@@ -681,7 +747,7 @@ const Navigation: React.FC = () => {
       <div
         ref={mobileMenuRef}
         style={{ zIndex: mobileMenuLayer }}
-        className={`fixed inset-0 flex flex-col pt-24 will-change-transform md:hidden ${
+        className={`fixed inset-0 flex flex-col pt-24 will-change-transform lg:hidden ${
           isNavigating ? "bg-transparent" : "bg-[#0a0a0a]"
         } ${
           isMenuOpen
@@ -710,6 +776,9 @@ const Navigation: React.FC = () => {
                 onClick={(e) => {
                   animateMobileRipple(idx);
                   handleNavItemClick(item.href, idx, e);
+                  if (item.href === "/sekretariat") {
+                    sessionStorage.setItem("animateDocsPortal", "true");
+                  }
                 }}
                 className={`relative font-serif italic transition-all duration-500 ${
                   isCompactMobileMenu ? "text-2xl" : "text-3xl"
