@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { gsap } from "@/lib/gsap";
 import { divisions } from "@/lib/pendaftaran-data";
+import { flagViewEntranceForNextRoute } from "@/lib/view-entrance";
 
 import LogoHima from "./LogoHima";
+
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /* ─── tiny reusable arrow icon ─── */
 const ArrowIcon = ({ className = "" }: { className?: string }) => (
@@ -77,19 +82,103 @@ const NAV_LINKS = [
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const footerRef = useRef<HTMLElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const brandStripRef = useRef<HTMLDivElement>(null);
+  const accentRuleRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setIsVisible(true);
-      },
-      { threshold: 0.1 },
-    );
+  useIsomorphicLayoutEffect(() => {
+    if (!footerRef.current) return;
 
-    if (footerRef.current) observer.observe(footerRef.current);
-    return () => observer.disconnect();
+    const ctx = gsap.context(() => {
+      const defaults = { ease: "power3.out", duration: 0.9 };
+
+      // Brand strip — logo + title + description
+      if (brandStripRef.current) {
+        gsap.fromTo(
+          brandStripRef.current,
+          { y: 24, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            ...defaults,
+            scrollTrigger: {
+              trigger: brandStripRef.current,
+              start: "top 90%",
+              once: true,
+            },
+          },
+        );
+      }
+
+      // Accent horizontal rule
+      if (accentRuleRef.current) {
+        gsap.fromTo(
+          accentRuleRef.current,
+          { scaleX: 0, opacity: 0 },
+          {
+            scaleX: 1,
+            opacity: 1,
+            duration: 1,
+            ease: "expo.inOut",
+            scrollTrigger: {
+              trigger: accentRuleRef.current,
+              start: "top 92%",
+              once: true,
+            },
+          },
+        );
+      }
+
+      // 3-column grid — staggered children
+      if (gridRef.current) {
+        const gridChildren = Array.from(
+          gridRef.current.children,
+        ) as HTMLElement[];
+        gsap.fromTo(
+          gridChildren,
+          { y: 20, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            ...defaults,
+            stagger: 0.12,
+            scrollTrigger: {
+              trigger: gridRef.current,
+              start: "top 88%",
+              once: true,
+            },
+          },
+        );
+      }
+
+      // Bottom bar
+      if (bottomBarRef.current) {
+        gsap.fromTo(
+          bottomBarRef.current,
+          { y: 12, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.8,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: bottomBarRef.current,
+              start: "top 95%",
+              once: true,
+            },
+          },
+        );
+      }
+    }, footerRef);
+
+    return () => ctx.revert();
   }, []);
+
+  const markIntentionalRouteAnimation = () => {
+    if (typeof window === "undefined") return;
+    flagViewEntranceForNextRoute();
+  };
 
   return (
     <footer
@@ -129,7 +218,8 @@ const Footer: React.FC = () => {
       <div className="relative px-8 pt-24 pb-0 md:pt-20">
         {/* ── hero brand strip ── */}
         <div
-          className={`mx-auto mb-20 flex max-w-7xl flex-col items-center gap-10 text-center transition-all duration-1000 md:mb-24 md:flex-row md:gap-16 md:text-left ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}
+          ref={brandStripRef}
+          className="mx-auto mb-20 flex max-w-7xl flex-col items-center gap-10 text-center md:mb-24 md:flex-row md:gap-16 md:text-left"
         >
           <Link href="/" className="group relative shrink-0">
             {/* pulsing aura behind logo */}
@@ -160,13 +250,15 @@ const Footer: React.FC = () => {
         {/* ── horizontal accent rule ── */}
         <div className="mx-auto max-w-7xl">
           <div
-            className={`via-gold-500/20 h-px bg-linear-to-r from-transparent to-transparent transition-all delay-200 duration-1000 ${isVisible ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"}`}
+            ref={accentRuleRef}
+            className="via-gold-500/20 h-px bg-linear-to-r from-transparent to-transparent"
           />
         </div>
 
         {/* ── 3-column grid ── */}
         <div
-          className={`mx-auto mt-16 grid max-w-7xl grid-cols-1 gap-16 transition-all delay-300 duration-1000 md:mt-20 md:grid-cols-12 md:gap-8 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+          ref={gridRef}
+          className="mx-auto mt-16 grid max-w-7xl grid-cols-1 gap-16 md:mt-20 md:grid-cols-12 md:gap-8"
         >
           {/* Col 1 — Navigation */}
           <div className="md:col-span-4">
@@ -179,11 +271,7 @@ const Footer: React.FC = () => {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    onClick={() => {
-                      if (link.href === "/sekretariat") {
-                        sessionStorage.setItem("animateDocsPortal", "true");
-                      }
-                    }}
+                    onClick={markIntentionalRouteAnimation}
                     className="group hover:border-gold-500/20 flex items-center justify-between border-b border-stone-900/30 py-3.5 transition-colors md:border-0 md:py-2.5"
                   >
                     <div className="flex items-center gap-3">
@@ -304,6 +392,7 @@ const Footer: React.FC = () => {
 
               <Link
                 href="/pendaftaran"
+                onClick={markIntentionalRouteAnimation}
                 className="text-gold-500 hover:text-gold-300 relative inline-flex items-center gap-2 text-xs font-semibold tracking-[0.25em] uppercase transition-all duration-300 hover:gap-3"
               >
                 Daftar Sekarang
@@ -348,7 +437,7 @@ const Footer: React.FC = () => {
       </div>
 
       {/* ═══════════════════  BOTTOM BAR  ═══════════════════ */}
-      <div className="relative mt-20 md:mt-24">
+      <div ref={bottomBarRef} className="relative mt-20 md:mt-24">
         {/* decorative top border */}
         <div className="mx-auto max-w-7xl px-8">
           <div className="h-px bg-linear-to-r from-transparent via-stone-800/60 to-transparent" />

@@ -1,16 +1,17 @@
 "use client";
 
-import gsap from "gsap";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import { gsap } from "@/lib/gsap";
 import {
   createCommandPaletteShortcutEvent,
   SHORTCUT_SYMBOL_CLASS,
   tokenizeShortcutLabel,
   useCommandPaletteShortcutLabel,
 } from "@/lib/shortcut";
+import { flagViewEntranceForNextRoute } from "@/lib/view-entrance";
 
 import LogoHima from "./LogoHima";
 
@@ -395,8 +396,13 @@ const Navigation: React.FC = () => {
       .set([circleBase, circleTop], { width: 0, height: 0, opacity: 0 });
   };
 
+  const markIntentionalRouteAnimation = () => {
+    if (typeof window === "undefined") return;
+    flagViewEntranceForNextRoute();
+  };
+
   const handleNavItemClick = (
-    href: string,
+    _href: string,
     index: number,
     event: React.MouseEvent<HTMLAnchorElement>,
   ) => {
@@ -406,9 +412,7 @@ const Navigation: React.FC = () => {
     setIsNavigating(true);
     setActiveMobileIndex(index);
     animateFullscreenCircle(event);
-    if (href === "/" && typeof window !== "undefined") {
-      window.sessionStorage.setItem("skipHomeGsapOnce", "true");
-    }
+    markIntentionalRouteAnimation();
     menuCloseTimeoutRef.current = setTimeout(() => {
       setIsMenuOpen(false);
     }, 100);
@@ -547,6 +551,7 @@ const Navigation: React.FC = () => {
             onMouseEnter={() => setIsLogoHovered(true)}
             onMouseLeave={() => setIsLogoHovered(false)}
             onClick={() => {
+              markIntentionalRouteAnimation();
               setIsMenuOpen(false);
               setOpenDropdown(null);
             }}
@@ -629,13 +634,8 @@ const Navigation: React.FC = () => {
                           key={item.href}
                           href={item.href}
                           onClick={() => {
+                            markIntentionalRouteAnimation();
                             setOpenDropdown(null);
-                            if (item.href === "/sekretariat") {
-                              sessionStorage.setItem(
-                                "animateDocsPortal",
-                                "true",
-                              );
-                            }
                           }}
                           className={`group/item block rounded-lg px-3 py-3 transition-all duration-200 ${
                             isPathActive(item.href)
@@ -664,6 +664,7 @@ const Navigation: React.FC = () => {
                 <Link
                   key={group.label}
                   href={group.href!}
+                  onClick={markIntentionalRouteAnimation}
                   className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] uppercase transition-all duration-500 ${
                     isGroupActive(group)
                       ? "text-gold-500"
@@ -688,6 +689,7 @@ const Navigation: React.FC = () => {
             {/* Desktop CTA */}
             <Link
               href="/pendaftaran"
+              onClick={markIntentionalRouteAnimation}
               className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 lg:inline-flex"
             >
               Open Recruitment
@@ -787,9 +789,6 @@ const Navigation: React.FC = () => {
                 onClick={(e) => {
                   animateMobileRipple(idx);
                   handleNavItemClick(item.href, idx, e);
-                  if (item.href === "/sekretariat") {
-                    sessionStorage.setItem("animateDocsPortal", "true");
-                  }
                 }}
                 className={`relative font-serif italic transition-all duration-500 ${
                   isCompactMobileMenu ? "text-2xl" : "text-3xl"

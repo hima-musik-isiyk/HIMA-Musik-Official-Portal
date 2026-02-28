@@ -1,7 +1,8 @@
 "use client";
 
-import gsap from "gsap";
 import React, { useEffect, useRef, useState } from "react";
+
+import { gsap } from "@/lib/gsap";
 
 const DAYS_OF_WEEK = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -128,7 +129,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                 return (
                   <div
                     key={index}
-                    className={`calendar-day relative min-h-[120px] bg-[#0a0a0a] py-2 transition-colors hover:bg-white/[0.02] md:py-3 ${
+                    className={`calendar-day relative min-h-[120px] bg-[#0a0a0a] py-2 transition-colors hover:bg-white/2 md:py-3 ${
                       !isCurrentMonth ? "opacity-30" : ""
                     } ${active ? "z-20 shadow-[0_0_20px_rgba(212,166,77,0.05)]" : ""}`}
                   >
@@ -148,7 +149,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                         </span>
                       </div>
                       {active && (
-                        <span className="text-gold-500/80 text-[8px] font-bold tracking-[0.1em] uppercase">
+                        <span className="text-gold-500/80 text-[8px] font-bold tracking-widest uppercase">
                           Today
                         </span>
                       )}
@@ -184,11 +185,11 @@ const SelectionTimelineCalendar: React.FC = () => {
                             } ${
                               !isContinuous
                                 ? "mx-2 rounded-sm border md:mx-3"
-                                : `${isStart ? "mr-[-1px] ml-2 rounded-l-sm border-l md:ml-3" : ""} ${
+                                : `${isStart ? "mr-px ml-2 rounded-l-sm border-l md:ml-3" : ""} ${
                                     isEnd
-                                      ? "mr-2 ml-[-1px] rounded-r-sm border-r md:mr-3"
+                                      ? "mr-2 ml-px rounded-r-sm border-r md:mr-3"
                                       : ""
-                                  } ${!isStart && !isEnd ? "mx-[-1px]" : ""} border-y`
+                                  } ${!isStart && !isEnd ? "-mx-px" : ""} border-y`
                             } ${
                               event.type === "registration"
                                 ? "border-gold-500/30"
@@ -279,7 +280,7 @@ const SelectionTimelineCalendar: React.FC = () => {
               return (
                 <div key={index} className="group flex items-stretch gap-6">
                   {/* Timeline Node Container with built-in track segments */}
-                  <div className="relative flex w-[15px] flex-shrink-0 flex-col items-center">
+                  <div className="relative flex w-[15px] shrink-0 flex-col items-center">
                     {/* Top Segment (connects to previous node) */}
                     <div
                       className={`z-0 -mb-2 w-[2px] flex-1 transition-colors duration-500 ${
@@ -292,7 +293,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                     />
 
                     {/* The Node itself */}
-                    <div className="relative flex-shrink-0 py-2">
+                    <div className="relative shrink-0 py-2">
                       <div
                         className={`relative z-10 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#0a0a0a] transition-all duration-500 ${
                           hasReachedEvent

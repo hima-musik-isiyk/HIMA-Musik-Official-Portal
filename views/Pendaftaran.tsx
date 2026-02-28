@@ -3,7 +3,9 @@
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
+import { gsap } from "@/lib/gsap";
 import { divisions } from "@/lib/pendaftaran-data";
+import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 type RecruitmentFormData = {
   firstChoice: string;
@@ -55,6 +57,7 @@ const NIM_PATTERN = /^\d{10,12}$/;
 const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
 
 const Pendaftaran: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [isDivisionModalOpen, setIsDivisionModalOpen] = useState(false);
@@ -345,6 +348,35 @@ const Pendaftaran: React.FC = () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [formData, hasTouchedForm, submitted, step]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !containerRef.current) return;
+    if (!shouldRunViewEntrance("/pendaftaran/form")) return;
+
+    const ctx = gsap.context(() => {
+      const defaults = { ease: "power3.out", duration: 0.8 };
+
+      gsap.fromTo(
+        ".pend-eyebrow",
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, ...defaults },
+      );
+
+      gsap.fromTo(
+        ".pend-title",
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
+      );
+
+      gsap.fromTo(
+        ".pend-desc",
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 },
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
 
   const clearStoredState = () => {
     if (typeof window === "undefined") return;
@@ -649,7 +681,10 @@ const Pendaftaran: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden px-6 pt-40 pb-32">
+    <div
+      ref={containerRef}
+      className="relative min-h-screen overflow-x-hidden px-6 pt-40 pb-32"
+    >
       <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 mx-auto max-w-6xl">
         <Link
@@ -659,7 +694,7 @@ const Pendaftaran: React.FC = () => {
           ← Kembali ke Info Pendaftaran
         </Link>
 
-        <div className="mb-8 flex items-center gap-4">
+        <div className="pend-eyebrow mb-8 flex items-center gap-4">
           <span
             className="bg-gold-500/40 block h-px w-8 md:w-12"
             aria-hidden="true"
@@ -669,13 +704,13 @@ const Pendaftaran: React.FC = () => {
           </p>
         </div>
         <div className="mb-12">
-          <h1 className="mb-4 font-serif text-4xl tracking-tight text-white md:text-5xl">
+          <h1 className="pend-title mb-4 font-serif text-4xl tracking-tight text-white md:text-5xl">
             Isi Data{" "}
             <span className="text-gold-500/80 font-light italic">
               Pendaftaran
             </span>
           </h1>
-          <p className="max-w-xl text-sm leading-relaxed text-neutral-400">
+          <p className="pend-desc max-w-xl text-sm leading-relaxed text-neutral-400">
             Pilih divisi, isi data diri, ceritakan motivasi, lalu kirim
             pendaftaran.
           </p>

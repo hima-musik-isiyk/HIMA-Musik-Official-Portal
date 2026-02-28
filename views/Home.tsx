@@ -1,15 +1,13 @@
 "use client";
 
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import BlurText from "@/components/BlurText";
 import LightPillar from "@/components/LightPillar";
 import TextPressure from "@/components/TextPressure";
-
-gsap.registerPlugin(ScrollTrigger);
+import { gsap } from "@/lib/gsap";
+import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -59,13 +57,11 @@ const Home: React.FC = () => {
       return;
     }
 
-    const shouldSkipAnimation =
-      typeof window !== "undefined" &&
-      window.sessionStorage.getItem("skipHomeGsapOnce") === "true";
+    const shouldAnimate =
+      typeof window !== "undefined" && shouldRunViewEntrance("/");
 
-    if (shouldSkipAnimation && typeof window !== "undefined") {
+    if (!shouldAnimate) {
       skipAnimationRef.current = true;
-      window.sessionStorage.removeItem("skipHomeGsapOnce");
       setDisableEntranceEffects(true);
       return;
     }

@@ -1,10 +1,9 @@
 "use client";
 
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef } from "react";
 
+import { gsap } from "@/lib/gsap";
 import type { DocMeta } from "@/lib/notion";
 import {
   createCommandPaletteShortcutEvent,
@@ -12,6 +11,7 @@ import {
   tokenizeShortcutLabel,
   useCommandPaletteShortcutLabel,
 } from "@/lib/shortcut";
+import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 /* ------------------------------------------------------------------ */
 /*  Category metadata                                                  */
@@ -91,16 +91,9 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
   useEffect(() => {
     if (typeof window === "undefined" || !containerRef.current) return;
 
-    // Only run animations if explicitly triggered (e.g., from Navbar/Footer)
-    const shouldAnimate = sessionStorage.getItem("animateDocsPortal");
-    if (shouldAnimate !== "true") return;
-
-    // Consume the flag
-    sessionStorage.removeItem("animateDocsPortal");
+    if (!shouldRunViewEntrance("/sekretariat")) return;
 
     const ctx = gsap.context(() => {
-      gsap.registerPlugin(ScrollTrigger);
-
       const defaults = { ease: "power3.out", duration: 0.8 };
 
       // Header animation
@@ -114,6 +107,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           scrollTrigger: {
             trigger: ".portal-header",
             start: "top 85%",
+            once: true,
           },
         },
       );
@@ -131,6 +125,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           scrollTrigger: {
             trigger: ".stat-card",
             start: "top 90%",
+            once: true,
           },
         },
       );
@@ -147,6 +142,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           scrollTrigger: {
             trigger: ".category-card",
             start: "top 85%",
+            once: true,
           },
         },
       );
@@ -163,6 +159,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           scrollTrigger: {
             trigger: ".portal-sidebar-section",
             start: "top 90%",
+            once: true,
           },
         },
       );
@@ -179,6 +176,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           scrollTrigger: {
             trigger: ".portal-footer-accent",
             start: "top 95%",
+            once: true,
           },
         },
       );
