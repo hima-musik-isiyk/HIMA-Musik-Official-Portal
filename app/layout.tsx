@@ -8,6 +8,7 @@ import CommandPalette from "../components/CommandPalette";
 import Footer from "../components/Footer";
 import LocatorInitializer from "../components/LocatorInitializer";
 import Navigation from "../components/Navigation";
+import RouteEntranceAnimator from "../components/RouteEntranceAnimator";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -60,7 +61,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <div className="fixed inset-0 z-1 bg-[#0a0a0a]" aria-hidden="true" />
         <Navigation />
         <CommandPalette />
-        <main className="relative z-3 grow pt-20">{children}</main>
+        <main className="relative z-3 grow pt-20">
+          <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
+        </main>
         <Footer />
       </body>
     </html>

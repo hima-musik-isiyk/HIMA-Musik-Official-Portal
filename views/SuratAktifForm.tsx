@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import { usePathname } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
+
+import { gsap } from "@/lib/gsap";
+import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 interface FormField {
   name: string;
@@ -10,6 +14,32 @@ interface FormField {
 }
 
 export default function SuratAktifForm() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !containerRef.current) return;
+    if (!shouldRunViewEntrance(pathname || "")) return;
+
+    const ctx = gsap.context(() => {
+      const defaults = { ease: "power3.out", duration: 0.8 };
+
+      gsap.fromTo(
+        ".sf-header",
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, ...defaults },
+      );
+
+      gsap.fromTo(
+        ".sf-form > *",
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, ...defaults, delay: 0.1, stagger: 0.05 },
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, [pathname]);
+
   const [form, setForm] = useState<FormField>({
     name: "",
     nim: "",
@@ -86,10 +116,10 @@ export default function SuratAktifForm() {
   }
 
   return (
-    <div className="flex-1 px-6 py-10 md:px-10 lg:px-16">
+    <div ref={containerRef} className="flex-1 px-6 py-10 md:px-10 lg:px-16">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
-        <div className="mb-10">
+        <div className="sf-header mb-10">
           <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
             Surat Keterangan
           </p>
@@ -103,7 +133,7 @@ export default function SuratAktifForm() {
           <hr className="mt-6 border-stone-800" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="sf-form space-y-6">
           {/* Name */}
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-300">
