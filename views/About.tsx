@@ -11,7 +11,7 @@ const About: React.FC = () => {
   ];
 
   return (
-    <div className="relative min-h-screen px-6 pt-40 pb-32">
+    <div className="relative min-h-screen overflow-x-hidden px-6 pt-40 pb-32">
       <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 mx-auto max-w-5xl">
         <div className="mb-12 flex items-center gap-4">
