@@ -2,6 +2,7 @@ export type Division = {
   id: string;
   name: string;
   summary: string;
+  slots: number;
   focus: string;
   tasks: string[];
   skills: string[];
@@ -14,6 +15,7 @@ export const divisions: Division[] = [
     name: "Humas & Kemitraan",
     summary:
       "Menjaga relasi internal kampus dan eksternal, kolaborasi event, dan komunikasi antar organisasi. Slot: 1 orang, terbuka untuk angkatan 2023–2025.",
+    slots: 1,
     focus: "Relasi internal & eksternal, komunikasi strategis",
     tasks: [
       "Mengelola komunikasi dengan mitra internal (prodi, dosen, HIMA lain, KKM) dan eksternal (sponsor, komunitas musik, media partner)",
@@ -28,6 +30,7 @@ export const divisions: Division[] = [
     name: "Divisi Program & Event",
     summary:
       "Merancang konsep kegiatan, menyusun rundown, manajemen kepanitiaan, dan eksekusi event HIMA. Slot: 2 orang, terbuka untuk angkatan 2023–2025.",
+    slots: 2,
     focus: "Perencanaan, konsep acara & eksekusi event",
     tasks: [
       "Menyusun konsep dan perencanaan acara",
@@ -42,6 +45,7 @@ export const divisions: Division[] = [
     name: "Publikasi, Desain & Dokumentasi",
     summary:
       "Menghasilkan konten visual, dokumentasi kegiatan, dan identitas kampanye. Slot: 3 orang, terbuka untuk angkatan 2023–2025. Terdapat 3 sub-fokus: Desain (visual identity, poster, brand guideline), Publikasi & Media Sosial (content calendar, distribusi info), Dokumentasi (foto/video, aftermovie).",
+    slots: 3,
     focus: "Branding, storytelling & dokumentasi",
     tasks: [
       "Desain: membuat visual identity, poster, feed IG, template, brand guideline",
@@ -56,6 +60,7 @@ export const divisions: Division[] = [
     name: "Co-Sekretaris",
     summary:
       "Membantu kinerja Sekretaris dalam administrasi internal harian, notulensi, dan database keanggotaan. Slot: 1 orang, khusus angkatan 2024–2025.",
+    slots: 1,
     focus: "Administrasi & dokumentasi internal",
     tasks: [
       "Membantu administrasi internal harian",
@@ -70,6 +75,7 @@ export const divisions: Division[] = [
     name: "Co-Bendahara",
     summary:
       "Membantu Bendahara dalam pencatatan transaksi, kwitansi, laporan keuangan per acara, dan penyusunan RAB. Slot: 1 orang, khusus angkatan 2024–2025.",
+    slots: 1,
     focus: "Keuangan & transparansi anggaran",
     tasks: [
       "Pencatatan transaksi dan kwitansi",

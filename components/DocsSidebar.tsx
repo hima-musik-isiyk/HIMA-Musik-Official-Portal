@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import type { DocMeta } from "@/lib/notion";
 
@@ -35,6 +35,7 @@ interface DocsSidebarProps {
 export default function DocsSidebar({ docs }: DocsSidebarProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const lastPathnameRef = useRef(pathname);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
   );
@@ -56,9 +57,11 @@ export default function DocsSidebar({ docs }: DocsSidebarProps) {
 
   /* Close mobile sidebar on nav */
   useEffect(() => {
-    if (isMobileOpen) {
+    const pathChanged = pathname !== lastPathnameRef.current;
+    if (pathChanged && isMobileOpen) {
       window.dispatchEvent(new CustomEvent("toggleDocsSidebar"));
     }
+    lastPathnameRef.current = pathname;
   }, [pathname, isMobileOpen]);
 
   const toggleCategory = (cat: string) => {
