@@ -345,7 +345,7 @@ const Aduan: React.FC = () => {
 
   if (submitted) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center px-6">
+      <div className="relative flex min-h-screen items-center justify-center overflow-x-hidden px-6">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)]"></div>
         <div className="relative z-10 text-center">
           <div className="mb-8 flex items-center justify-center gap-4">
@@ -391,7 +391,7 @@ const Aduan: React.FC = () => {
   }
 
   return (
-    <div className="relative flex min-h-screen justify-center px-6 pt-40 pb-32">
+    <div className="relative flex min-h-screen justify-center overflow-x-hidden px-6 pt-40 pb-32">
       <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mb-8 flex items-center justify-center gap-4">
