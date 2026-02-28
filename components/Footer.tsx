@@ -48,6 +48,11 @@ const Footer: React.FC = () => {
               <li key={link.href}>
                 <Link
                   href={link.href}
+                  onClick={() => {
+                    if (link.href === "/sekretariat") {
+                      sessionStorage.setItem("animateDocsPortal", "true");
+                    }
+                  }}
                   className="group hover:text-gold-300 relative flex items-center justify-between border-b border-stone-900/50 py-3 transition-colors md:block md:border-0 md:py-0"
                 >
                   <div className="flex items-center">

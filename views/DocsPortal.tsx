@@ -1,6 +1,7 @@
 "use client";
 
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef } from "react";
 
@@ -88,38 +89,99 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
   }, [docs]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (typeof window === "undefined" || !containerRef.current) return;
+
+    // Only run animations if explicitly triggered (e.g., from Navbar/Footer)
+    const shouldAnimate = sessionStorage.getItem("animateDocsPortal");
+    if (shouldAnimate !== "true") return;
+
+    // Consume the flag
+    sessionStorage.removeItem("animateDocsPortal");
 
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        defaults: { ease: "power3.out", duration: 0.8, clearProps: "all" },
-      });
+      gsap.registerPlugin(ScrollTrigger);
 
-      tl.fromTo(".portal-header", { y: 30, opacity: 0 }, { y: 0, opacity: 1 })
-        .fromTo(
-          ".stat-card",
-          { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, stagger: 0.1 },
-          "-=0.4",
-        )
-        .fromTo(
-          ".category-card",
-          { y: 40, opacity: 0 },
-          { y: 0, opacity: 1, stagger: 0.15 },
-          "-=0.3",
-        )
-        .fromTo(
-          ".portal-sidebar-section",
-          { x: 20, opacity: 0 },
-          { x: 0, opacity: 1, stagger: 0.1 },
-          "-=0.4",
-        )
-        .fromTo(
-          ".portal-footer-accent",
-          { y: 10, opacity: 0 },
-          { y: 0, opacity: 1, stagger: 0.1 },
-          "-=0.2",
-        );
+      const defaults = { ease: "power3.out", duration: 0.8 };
+
+      // Header animation
+      gsap.fromTo(
+        ".portal-header",
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          ...defaults,
+          scrollTrigger: {
+            trigger: ".portal-header",
+            start: "top 85%",
+          },
+        },
+      );
+
+      // Stat cards
+      gsap.fromTo(
+        ".stat-card",
+        { y: 20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: ".stat-card",
+            start: "top 90%",
+          },
+        },
+      );
+
+      // Category cards
+      gsap.fromTo(
+        ".category-card",
+        { y: 40, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          stagger: 0.15,
+          ...defaults,
+          scrollTrigger: {
+            trigger: ".category-card",
+            start: "top 85%",
+          },
+        },
+      );
+
+      // Sidebar sections
+      gsap.fromTo(
+        ".portal-sidebar-section",
+        { x: 20, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          stagger: 0.1,
+          ...defaults,
+          scrollTrigger: {
+            trigger: ".portal-sidebar-section",
+            start: "top 90%",
+          },
+        },
+      );
+
+      // Footer accent
+      gsap.fromTo(
+        ".portal-footer-accent",
+        { y: 10, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          stagger: 0.1,
+          ...defaults,
+          scrollTrigger: {
+            trigger: ".portal-footer-accent",
+            start: "top 95%",
+          },
+        },
+      );
     }, containerRef);
 
     return () => ctx.revert();
