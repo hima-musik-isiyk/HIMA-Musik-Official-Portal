@@ -1,8 +1,19 @@
 "use client";
 
-import React from "react";
+import Link from "next/link";
+import React, { useEffect, useMemo, useState } from "react";
 
-import type { NotionBlock } from "@/lib/notion";
+import type { NotionBlock } from "@/lib/notion-shared";
+import {
+  ANCHOR_TAG_RE,
+  extractAnchorId,
+  INLINE_BLOCK_LINK_RE,
+  INLINE_CITE_LINK_RE,
+  MARKDOWN_CUSTOM_LINK_RE,
+  parseBlockLink,
+  parseCiteLink,
+  stripCustomTags,
+} from "@/lib/notion-shared";
 
 /* ------------------------------------------------------------------ */
 /*  Rich-text rendering                                                */
@@ -70,10 +81,158 @@ const BLOCK_BG_COLOR_MAP: Record<string, string> = {
   gray_background: "bg-stone-900/60 border border-stone-700/30",
 };
 
+function InternalLink({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label?: string;
+  children?: React.ReactNode;
+}) {
+  const blockLink = parseBlockLink(href);
+  const citeLink = parseCiteLink(href);
+
+  const content = children || label || href;
+
+  if (blockLink) {
+    const targetHref = blockLink.slug
+      ? `/sekretariat/${blockLink.slug}#${blockLink.anchorId}`
+      : `#${blockLink.anchorId}`;
+    return (
+      <Link
+        href={targetHref}
+        className="text-gold-400 decoration-gold-400/30 hover:text-gold-300 hover:decoration-gold-300/50 inline-flex items-center gap-1 font-medium underline underline-offset-2 transition-colors"
+      >
+        <svg
+          className="inline h-3.5 w-3.5 shrink-0 opacity-60"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+          />
+        </svg>
+        {content}
+      </Link>
+    );
+  }
+
+  if (citeLink) {
+    return (
+      <Link
+        href={`/sekretariat/${citeLink.slug}#${citeLink.anchorId}`}
+        className="text-gold-400 decoration-gold-400/30 hover:text-gold-300 hover:decoration-gold-300/50 inline-flex items-center gap-1 font-medium underline underline-offset-2 transition-colors"
+        title={`Lihat: ${citeLink.slug} § ${citeLink.anchorId}`}
+      >
+        <svg
+          className="inline h-3.5 w-3.5 shrink-0 opacity-60"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+          />
+        </svg>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="text-gold-400 decoration-gold-400/30 hover:text-gold-300 hover:decoration-gold-300/50 font-medium underline underline-offset-2 transition-colors"
+    >
+      {content}
+    </a>
+  );
+}
+
+function processMixedText(text: string): React.ReactNode {
+  let parts: (string | React.ReactNode)[] = [text];
+
+  // 1. Process Markdown Links: [Label](url)
+  parts = parts.flatMap((part) => {
+    if (typeof part !== "string") return [part];
+    const result: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+    const matches = Array.from(part.matchAll(MARKDOWN_CUSTOM_LINK_RE));
+
+    for (const match of matches) {
+      if (match.index! > lastIndex)
+        result.push(part.slice(lastIndex, match.index));
+      result.push(
+        <InternalLink
+          key={`md-${match.index}`}
+          href={match[2]}
+          label={match[1]}
+        />,
+      );
+      lastIndex = match.index! + match[0].length;
+    }
+    if (lastIndex < part.length) result.push(part.slice(lastIndex));
+    return result;
+  });
+
+  // 2. Process Naked Links: block:// and cite://
+  parts = parts.flatMap((part) => {
+    if (typeof part !== "string") return [part];
+    const result: (string | React.ReactNode)[] = [];
+    let lastIndex = 0;
+
+    const blockMatches = Array.from(part.matchAll(INLINE_BLOCK_LINK_RE)).map(
+      (m) => ({ ...m, type: "block" }),
+    );
+    const citeMatches = Array.from(part.matchAll(INLINE_CITE_LINK_RE)).map(
+      (m) => ({ ...m, type: "cite" }),
+    );
+    const allMatches = [...blockMatches, ...citeMatches].sort(
+      (a, b) => a.index! - b.index!,
+    );
+
+    for (const match of allMatches) {
+      if (match.index! > lastIndex)
+        result.push(part.slice(lastIndex, match.index));
+      result.push(
+        <InternalLink key={`naked-${match.index}`} href={match[0]} />,
+      );
+      lastIndex = match.index! + match[0].length;
+    }
+    if (lastIndex < part.length) result.push(part.slice(lastIndex));
+    return result;
+  });
+
+  return (
+    <>
+      {parts.map((p, i) => (
+        <React.Fragment key={i}>{p}</React.Fragment>
+      ))}
+    </>
+  );
+}
+
 function renderRichText(
   richText: RichTextItem[],
   ignoreColor = false,
   stripHeadingPrefix = false,
+  stripAnchorTag = false,
 ) {
   return richText.map((item, i) => {
     let text = item.plain_text;
@@ -82,8 +241,18 @@ function renderRichText(
       text = text.replace(/^#{4,6}\s+/, "");
     }
 
+    // Strip [#anchor-id] tags from visible output
+    if (stripAnchorTag) {
+      text = text.replace(ANCHOR_TAG_RE, "");
+    }
+
+    text = stripCustomTags(text);
+
+    if (!text && !item.href) return null;
+
     let node: React.ReactNode = text;
 
+    // Apply formatting
     if (item.annotations.bold) node = <strong>{node}</strong>;
     if (item.annotations.italic) node = <em>{node}</em>;
     if (item.annotations.strikethrough) node = <s>{node}</s>;
@@ -105,17 +274,12 @@ function renderRichText(
       }
     }
 
+    // Handle Links
     if (item.href) {
-      node = (
-        <a
-          href={item.href}
-          target="_blank"
-          rel="noreferrer"
-          className="text-gold-400 decoration-gold-400/30 hover:text-gold-300 hover:decoration-gold-300/50 underline underline-offset-2 transition-colors"
-        >
-          {node}
-        </a>
-      );
+      node = <InternalLink href={item.href}>{node}</InternalLink>;
+    } else if (typeof node === "string") {
+      // If it's just a string, process it for inline/markdown links
+      node = processMixedText(node);
     }
 
     return <React.Fragment key={i}>{node}</React.Fragment>;
@@ -126,11 +290,12 @@ function renderRichText(
 /*  Extract text from any block for heading ID anchors                 */
 /* ------------------------------------------------------------------ */
 
-function extractPlainText(block: NotionBlock): string {
+function extractPlainText(block: NotionBlock, stripTags = false): string {
   const b = block as Record<string, unknown>;
   const typed = b[block.type] as { rich_text?: RichTextItem[] } | undefined;
   if (typed?.rich_text) {
-    return typed.rich_text.map((t) => t.plain_text).join("");
+    const raw = typed.rich_text.map((t) => t.plain_text).join("");
+    return stripTags ? stripCustomTags(raw) : raw;
   }
   return "";
 }
@@ -216,6 +381,188 @@ function getCellColorClasses(cell: RichTextItem[]): {
   }
 
   return { bg: "", text: "" };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Citation block (cite:// transclusion)                              */
+/* ------------------------------------------------------------------ */
+
+interface CitationBlockProps {
+  slug: string;
+  anchorId: string;
+}
+
+function CitationBlock({ slug, anchorId }: CitationBlockProps) {
+  const [cited, setCited] = useState<{
+    blocks: NotionBlock[];
+    sourceTitle: string;
+    sourceSlug: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await fetch(
+          `/api/citation?slug=${encodeURIComponent(slug)}&anchor=${encodeURIComponent(anchorId)}`,
+        );
+        if (!res.ok) throw new Error(`Citation not found`);
+        const data = await res.json();
+        if (!cancelled) setCited(data);
+      } catch (err) {
+        if (!cancelled)
+          setError(
+            err instanceof Error ? err.message : "Failed to load citation",
+          );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, anchorId]);
+
+  const displayAnchor = useMemo(() => {
+    // If we don't have cited data yet, just return the ID prettified
+    if (!cited || cited.blocks.length === 0) {
+      return anchorId
+        .split("-")
+        .map((s) => {
+          if (/^(i+v?|v?i*|x)$/i.test(s)) return s.toUpperCase();
+          return s.charAt(0).toUpperCase() + s.slice(1);
+        })
+        .join(" ");
+    }
+
+    const firstBlock = cited.blocks[0];
+
+    // If the cited block is a heading, try to use its text as the label
+    if (firstBlock.type.startsWith("heading_")) {
+      const text = extractPlainText(firstBlock, true);
+      if (text && text.length < 100) return text;
+    }
+
+    // Fallback to prettifying the anchor slug (pasal-2 -> Pasal 2)
+    return anchorId
+      .split("-")
+      .map((s) => {
+        if (/^(i+v?|v?i*|x)$/i.test(s)) return s.toUpperCase();
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      })
+      .join(" ");
+  }, [cited, anchorId]);
+
+  if (loading) {
+    return (
+      <div className="animate-pulse rounded-lg border border-stone-800 bg-stone-900/30 p-4">
+        <div className="h-4 w-3/4 rounded bg-stone-800" />
+        <div className="mt-2 h-3 w-1/2 rounded bg-stone-800" />
+      </div>
+    );
+  }
+
+  if (error || !cited) {
+    return (
+      <div className="rounded-lg border border-red-900/30 bg-red-950/20 px-4 py-3 text-sm text-red-400">
+        <span className="font-medium">Citation not found:</span>{" "}
+        <code className="rounded bg-stone-800 px-1 py-0.5 font-mono text-xs">
+          {slug}#{anchorId}
+        </code>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group/cite border-l-gold-500/40 hover:border-gold-500/30 hover:border-l-gold-500/60 relative rounded-lg border border-l-2 border-stone-700/50 bg-stone-900/40 transition-colors">
+      {/* Citation content */}
+      <div className="flex flex-col gap-3 px-4 py-3">
+        {cited.blocks.map((block, idx) => (
+          <SingleBlockRenderer key={idx} block={block} />
+        ))}
+      </div>
+      {/* Source attribution */}
+      <div className="flex items-center gap-2 border-t border-stone-800/50 px-4 py-2">
+        <svg
+          className="h-3.5 w-3.5 shrink-0 text-stone-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+        <Link
+          href={`/sekretariat/${cited.sourceSlug}#${anchorId}`}
+          className="hover:text-gold-400 text-xs text-stone-500 transition-colors"
+        >
+          {cited.sourceTitle} — {displayAnchor}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Renders a single block without anchor/citation logic
+ * (used inside CitationBlock to avoid infinite loops).
+ */
+function SingleBlockRenderer({ block }: { block: NotionBlock }) {
+  const b = block as Record<string, unknown>;
+  const typed = b[block.type] as
+    | { rich_text?: RichTextItem[]; checked?: boolean }
+    | undefined;
+
+  if (!typed?.rich_text) return null;
+
+  switch (block.type) {
+    case "paragraph":
+      return (
+        <p className="text-base leading-relaxed text-neutral-300">
+          {renderRichText(typed.rich_text, false, false, true)}
+        </p>
+      );
+    case "heading_1":
+      return (
+        <p className="font-serif text-xl font-bold text-white">
+          {renderRichText(typed.rich_text, false, false, true)}
+        </p>
+      );
+    case "heading_2":
+      return (
+        <p className="font-serif text-lg font-bold text-white">
+          {renderRichText(typed.rich_text, false, false, true)}
+        </p>
+      );
+    case "heading_3":
+      return (
+        <p className="font-serif text-base font-semibold text-white">
+          {renderRichText(typed.rich_text, false, false, true)}
+        </p>
+      );
+    case "bulleted_list_item":
+    case "numbered_list_item":
+      return (
+        <p className="text-neutral-300">
+          • {renderRichText(typed.rich_text, false, false, true)}
+        </p>
+      );
+    default:
+      return (
+        <p className="text-neutral-300">
+          {renderRichText(typed.rich_text, false, false, true)}
+        </p>
+      );
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -362,10 +709,59 @@ function BlockRenderer({
       ? TEXT_COLOR_MAP[blockColor]
       : "";
 
+  // Detect [#anchor-id] tag on this block
+  const anchorData = typed?.rich_text ? extractAnchorId(typed.rich_text) : null;
+  const anchorId = anchorData?.id;
+
+  // Wrap output with anchor id if present
+  const wrapWithAnchor = (content: React.ReactNode) => {
+    if (!anchorId) return content;
+    return (
+      <div id={anchorId} className="group/anchor relative scroll-mt-24">
+        {content}
+        {/* Hover anchor indicator */}
+        <a
+          href={`#${anchorId}`}
+          className="hover:text-gold-400 absolute top-1/2 -left-6 -translate-y-1/2 text-stone-500 opacity-0 transition-opacity group-hover/anchor:opacity-40 hover:opacity-100!"
+          aria-label={`Link to ${anchorId}`}
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+            />
+          </svg>
+        </a>
+      </div>
+    );
+  };
+
   switch (block.type) {
     /* ---- Text blocks ---- */
     case "paragraph": {
       if (!typed?.rich_text?.length) return <div className="h-4" />;
+
+      // Check if this is a full-block cite:// link
+      const firstText = typed.rich_text[0];
+      const trigger = (firstText.href || firstText.plain_text).trim();
+
+      if (typed.rich_text.length === 1 && parseCiteLink(trigger)) {
+        const cite = parseCiteLink(trigger)!;
+        return <CitationBlock slug={cite.slug} anchorId={cite.anchorId} />;
+      }
 
       const fullText = typed.rich_text.map((t) => t.plain_text).join("");
       const headingMatch = fullText.match(/^(#{4,6})\s+/);
@@ -383,10 +779,10 @@ function BlockRenderer({
           6: "text-sm font-semibold uppercase tracking-wider",
         }[level as 4 | 5 | 6];
 
-        return (
+        return wrapWithAnchor(
           <Tag id={id} className={`${baseCls} ${levelCls}`}>
-            {renderRichText(typed.rich_text, false, true)}
-          </Tag>
+            {renderRichText(typed.rich_text, false, true, true)}
+          </Tag>,
         );
       }
 
@@ -397,32 +793,38 @@ function BlockRenderer({
       ]
         .filter(Boolean)
         .join(" ");
-      return <p className={cls}>{renderRichText(typed.rich_text)}</p>;
+      return wrapWithAnchor(
+        <p className={cls}>
+          {renderRichText(typed.rich_text, false, false, true)}
+        </p>,
+      );
     }
 
     case "heading_1": {
       const text = extractPlainText(block);
       const id = blockIdToSlug.get(block.id) || slugify(text);
-      return (
+      return wrapWithAnchor(
         <h1
           id={id}
           className="scroll-mt-24 border-b border-stone-800 pb-4 font-serif text-3xl font-bold text-white md:text-4xl"
         >
-          {typed?.rich_text && renderRichText(typed.rich_text)}
-        </h1>
+          {typed?.rich_text &&
+            renderRichText(typed.rich_text, false, false, true)}
+        </h1>,
       );
     }
 
     case "heading_2": {
       const text = extractPlainText(block);
       const id = blockIdToSlug.get(block.id) || slugify(text);
-      return (
+      return wrapWithAnchor(
         <h2
           id={id}
           className="scroll-mt-24 font-serif text-2xl font-bold text-white md:text-3xl"
         >
-          {typed?.rich_text && renderRichText(typed.rich_text)}
-        </h2>
+          {typed?.rich_text &&
+            renderRichText(typed.rich_text, false, false, true)}
+        </h2>,
       );
     }
 
@@ -443,30 +845,32 @@ function BlockRenderer({
           6: "text-sm font-semibold uppercase tracking-wider",
         }[level as 4 | 5 | 6];
 
-        return (
+        return wrapWithAnchor(
           <Tag id={id} className={`${baseCls} ${levelCls}`}>
-            {renderRichText(typed?.rich_text || [], false, true)}
-          </Tag>
+            {renderRichText(typed?.rich_text || [], false, true, true)}
+          </Tag>,
         );
       }
 
       const id = blockIdToSlug.get(block.id) || slugify(fullText);
-      return (
+      return wrapWithAnchor(
         <h3
           id={id}
           className="scroll-mt-24 font-serif text-xl font-semibold text-white"
         >
-          {typed?.rich_text && renderRichText(typed.rich_text)}
-        </h3>
+          {typed?.rich_text &&
+            renderRichText(typed.rich_text, false, false, true)}
+        </h3>,
       );
     }
 
     /* ---- List blocks ---- */
     case "bulleted_list_item":
     case "numbered_list_item":
-      return (
+      return wrapWithAnchor(
         <li className={`ml-6 ${blockTextClass || "text-neutral-300"}`}>
-          {typed?.rich_text && renderRichText(typed.rich_text)}
+          {typed?.rich_text &&
+            renderRichText(typed.rich_text, false, false, true)}
           {block.children && block.children.length > 0 && (
             <NotionRenderer
               blocks={block.children}
@@ -474,7 +878,7 @@ function BlockRenderer({
               blockIdToSlug={blockIdToSlug}
             />
           )}
-        </li>
+        </li>,
       );
 
     case "to_do":
@@ -503,7 +907,8 @@ function BlockRenderer({
                 : "text-neutral-300"
             }
           >
-            {typed?.rich_text && renderRichText(typed.rich_text)}
+            {typed?.rich_text &&
+              renderRichText(typed.rich_text, false, false, true)}
           </span>
         </div>
       );
@@ -513,7 +918,8 @@ function BlockRenderer({
       return (
         <details className="group rounded-lg border border-stone-800 bg-stone-900/30 px-4 py-3">
           <summary className="cursor-pointer font-medium text-white">
-            {typed?.rich_text && renderRichText(typed.rich_text)}
+            {typed?.rich_text &&
+              renderRichText(typed.rich_text, false, false, true)}
           </summary>
           <div className="mt-3 border-t border-stone-800 pt-3 text-neutral-300">
             {block.children && (
@@ -592,7 +998,8 @@ function BlockRenderer({
             blockBgClass ? `${blockBgClass} rounded-r-lg` : "bg-gold-500/5"
           } ${blockTextClass || "text-neutral-300"}`}
         >
-          {typed?.rich_text && renderRichText(typed.rich_text)}
+          {typed?.rich_text &&
+            renderRichText(typed.rich_text, false, false, true)}
           {block.children && (
             <div className="mt-2">
               <NotionRenderer
@@ -626,7 +1033,8 @@ function BlockRenderer({
         <div className={`flex gap-3 ${bgCls}`}>
           {iconNode}
           <div className={`min-w-0 ${blockTextClass || "text-neutral-300"}`}>
-            {typed?.rich_text && renderRichText(typed.rich_text)}
+            {typed?.rich_text &&
+              renderRichText(typed.rich_text, false, false, true)}
             {block.children && (
               <div className="mt-2">
                 <NotionRenderer
@@ -1057,24 +1465,43 @@ export function extractHeadings(blocks: NotionBlock[]): TocItem[] {
       if (
         block.type === "heading_1" ||
         block.type === "heading_2" ||
-        block.type === "heading_3"
+        block.type === "heading_3" ||
+        block.type === "paragraph"
       ) {
-        const text = extractPlainText(block);
-        if (text) {
-          const match = text.match(/^(#{4,6})\s+/);
-          if (block.type === "heading_3" && match) {
-            const level = match[1].length;
-            const headingText = text.replace(/^#{4,6}\s+/, "");
+        // We use the raw text for anchor extraction, but stripped text for display/slugify
+        const b = block as Record<string, unknown>;
+        const typed = b[block.type] as
+          | { rich_text?: RichTextItem[] }
+          | undefined;
+        const richText = typed?.rich_text || [];
+        const fullText = richText.map((t) => t.plain_text).join("");
+        if (!fullText) continue;
+
+        const anchorData = extractAnchorId(richText);
+        const anchorId = anchorData?.id;
+        const cleanText = stripCustomTags(fullText);
+
+        // Check for Markdown-style headings #### etc
+        const mdMatch = cleanText.match(/^(#{4,6})\s+/);
+
+        if (
+          block.type === "heading_1" ||
+          block.type === "heading_2" ||
+          block.type === "heading_3"
+        ) {
+          if (block.type === "heading_3" && mdMatch) {
+            const level = mdMatch[1].length;
+            const headingText = cleanText.replace(/^#{4,6}\s+/, "");
             headings.push({
-              id: getUniqueId(headingText),
+              id: anchorId || getUniqueId(headingText),
               text: headingText,
               level: level as 4 | 5 | 6,
               blockId: block.id,
             });
           } else {
             headings.push({
-              id: getUniqueId(text),
-              text,
+              id: anchorId || getUniqueId(cleanText),
+              text: cleanText,
               level:
                 block.type === "heading_1"
                   ? 1
@@ -1084,17 +1511,11 @@ export function extractHeadings(blocks: NotionBlock[]): TocItem[] {
               blockId: block.id,
             });
           }
-        }
-      }
-
-      if (block.type === "paragraph") {
-        const text = extractPlainText(block);
-        const match = text.match(/^(#{4,6})\s+/);
-        if (match) {
-          const level = match[1].length;
-          const headingText = text.replace(/^#{4,6}\s+/, "");
+        } else if (block.type === "paragraph" && mdMatch) {
+          const level = mdMatch[1].length;
+          const headingText = cleanText.replace(/^#{4,6}\s+/, "");
           headings.push({
-            id: getUniqueId(headingText),
+            id: anchorId || getUniqueId(headingText),
             text: headingText,
             level: level as 4 | 5 | 6,
             blockId: block.id,

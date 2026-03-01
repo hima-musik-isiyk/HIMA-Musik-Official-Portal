@@ -6,7 +6,7 @@ import React from "react";
 
 import NotionRenderer, { extractHeadings } from "@/components/NotionRenderer";
 import TableOfContents from "@/components/TableOfContents";
-import type { DocMeta, NotionBlock } from "@/lib/notion";
+import type { DocMeta, NotionBlock } from "@/lib/notion-shared";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 interface DocPageViewProps {

@@ -1,11 +1,21 @@
 import { Client } from "@notionhq/client";
 import type {
   BlockObjectResponse,
-  PageObjectResponse,
   QueryDataSourceResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+
+import {
+  ArchiveEntry,
+  buildAnchorMap,
+  DocMeta,
+  NotionBlock,
+  NotionPage,
+  stripCustomTags,
+} from "./notion-shared";
+
+export * from "./notion-shared";
 
 /* ------------------------------------------------------------------ */
 /*  Singleton client                                                   */
@@ -30,40 +40,38 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
+/*  Custom linking – anchor extraction & resolution                    */
 /* ------------------------------------------------------------------ */
 
-export type NotionPage = PageObjectResponse;
-export type NotionBlock = BlockObjectResponse & { children?: NotionBlock[] };
+/**
+ * Resolve a `cite://doc-slug#anchor-id` reference.
+ * Returns the target block so the renderer can inline its content.
+ */
+export async function resolveCitation(
+  slug: string,
+  anchorId: string,
+): Promise<{
+  blocks: NotionBlock[];
+  sourceSlug: string;
+  sourceTitle: string;
+} | null> {
+  const doc = await fetchDocBySlug(slug);
+  if (!doc) return null;
 
-export interface DocMeta {
-  id: string;
-  slug: string;
-  title: string;
-  category: string;
-  icon: string | null;
-  order: number;
-  lastEdited: string;
-  published: boolean;
+  const anchorMap = buildAnchorMap(doc.blocks);
+  const blocks = anchorMap.get(anchorId);
+  if (!blocks || blocks.length === 0) return null;
+
+  return { blocks, sourceSlug: doc.meta.slug, sourceTitle: doc.meta.title };
 }
 
-export interface ArchiveEntry {
-  id: string;
-  title: string;
-  summary: string;
-  date: string;
-  tags: string[];
-  published: boolean;
-}
-
 /* ------------------------------------------------------------------ */
-/*  Helpers – property extractors                                      */
+/*  Notion property helpers                                            */
 /* ------------------------------------------------------------------ */
-
 function getTitle(page: NotionPage): string {
   for (const prop of Object.values(page.properties)) {
     if (prop.type === "title" && prop.title.length > 0) {
-      return prop.title.map((t) => t.plain_text).join("");
+      return stripCustomTags(prop.title.map((t) => t.plain_text).join(""));
     }
   }
   return "Untitled";
@@ -72,7 +80,7 @@ function getTitle(page: NotionPage): string {
 function getRichText(page: NotionPage, name: string): string {
   const prop = page.properties[name];
   if (prop?.type === "rich_text") {
-    return prop.rich_text.map((t) => t.plain_text).join("");
+    return stripCustomTags(prop.rich_text.map((t) => t.plain_text).join(""));
   }
   return "";
 }
