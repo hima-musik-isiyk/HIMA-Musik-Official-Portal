@@ -1,10 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 
-import { gsap } from "@/lib/gsap";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 interface FormField {
   name: string;
@@ -16,31 +15,8 @@ interface FormField {
 }
 
 export default function PeminjamanAlatForm() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    if (!shouldRunViewEntrance(pathname || "")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      gsap.fromTo(
-        ".pf-header",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".pf-form > *",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1, stagger: 0.05 },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, [pathname]);
+  const scopeRef = useViewEntrance(pathname || "");
 
   const [form, setForm] = useState<FormField>({
     name: "",
@@ -145,10 +121,10 @@ export default function PeminjamanAlatForm() {
   }
 
   return (
-    <div ref={containerRef} className="flex-1 px-6 py-10 md:px-10 lg:px-16">
+    <div ref={scopeRef} className="flex-1 px-6 py-10 md:px-10 lg:px-16">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
-        <div className="pf-header mb-10">
+        <div data-animate="up" className="mb-10">
           <p className="text-[0.65rem] tracking-[0.3em] text-stone-500 uppercase">
             Fasilitas
           </p>
@@ -162,7 +138,12 @@ export default function PeminjamanAlatForm() {
           <hr className="mt-6 border-stone-800" />
         </div>
 
-        <form onSubmit={handleSubmit} className="pf-form space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          data-animate="up"
+          data-animate-delay="0.1"
+          className="space-y-6"
+        >
           {/* Name */}
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-300">

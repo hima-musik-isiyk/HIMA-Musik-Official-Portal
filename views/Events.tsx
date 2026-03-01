@@ -1,50 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 
-import { gsap } from "@/lib/gsap";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 const Events: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useViewEntrance("/events");
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    if (!shouldRunViewEntrance("/events")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      gsap.fromTo(
-        ".events-eyebrow",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".events-title",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
-      );
-
-      gsap.fromTo(
-        ".events-subtitle",
-        { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 },
-      );
-
-      gsap.fromTo(
-        ".events-card",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.3 },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
   return (
     <div
-      ref={containerRef}
+      ref={scopeRef}
       className="relative min-h-screen overflow-x-hidden px-6 pt-40 pb-32"
     >
       <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
@@ -52,25 +17,37 @@ const Events: React.FC = () => {
         <div className="relative mb-20 flex flex-col items-start justify-between border-b border-white/5 pb-10 md:flex-row md:items-end">
           <div className="bg-gold-500/50 absolute bottom-0 left-0 h-px w-32"></div>
           <div>
-            <div className="events-eyebrow mb-6 flex items-center gap-4">
+            <div data-animate="up" className="mb-6 flex items-center gap-4">
               <span
                 className="bg-gold-500/40 block h-px w-8 md:w-12"
                 aria-hidden="true"
               />
               <p className="text-gold-500 text-sm font-medium">Agenda</p>
             </div>
-            <h1 className="events-title font-serif text-5xl tracking-tight text-white md:text-7xl">
+            <h1
+              data-animate="up"
+              data-animate-delay="0.1"
+              className="font-serif text-5xl tracking-tight text-white md:text-7xl"
+            >
               Kalender{" "}
               <span className="text-gold-500/80 font-light italic">Acara</span>
             </h1>
           </div>
-          <p className="events-subtitle mt-8 text-sm text-neutral-400 md:mt-0">
+          <p
+            data-animate="up"
+            data-animate-delay="0.2"
+            className="mt-8 text-sm text-neutral-400 md:mt-0"
+          >
             Semester Genap 2026
           </p>
         </div>
 
         <div className="space-y-0">
-          <div className="events-card group hover:border-gold-500/30 relative overflow-hidden rounded-none border border-white/5 bg-white/1 px-8 py-24 text-center transition-colors duration-500">
+          <div
+            data-animate="up"
+            data-animate-delay="0.3"
+            className="group hover:border-gold-500/30 relative overflow-hidden rounded-none border border-white/5 bg-white/1 px-8 py-24 text-center transition-colors duration-500"
+          >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 transition-opacity duration-700 group-hover:opacity-100"></div>
             <div className="relative z-10 flex flex-col items-center gap-6">
               <p className="text-sm tracking-wide text-neutral-400">

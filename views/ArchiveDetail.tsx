@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef } from "react";
+import React from "react";
 
 import NotionRenderer, { extractHeadings } from "@/components/NotionRenderer";
 import TableOfContents from "@/components/TableOfContents";
-import { gsap } from "@/lib/gsap";
 import type { ArchiveEntry, NotionBlock } from "@/lib/notion";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 interface ArchiveDetailViewProps {
   entry: ArchiveEntry;
@@ -19,8 +18,8 @@ export default function ArchiveDetailView({
   entry,
   blocks,
 }: ArchiveDetailViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const scopeRef = useViewEntrance(pathname || "");
   const headings = extractHeadings(blocks);
 
   const formattedDate = entry.date
@@ -31,48 +30,15 @@ export default function ArchiveDetailView({
       })
     : null;
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    // Use the specific path to track entrance
-    if (!shouldRunViewEntrance(pathname || "")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      gsap.fromTo(
-        ".ad-breadcrumb",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".ad-header",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
-      );
-
-      gsap.fromTo(
-        ".ad-content",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.2 },
-      );
-
-      gsap.fromTo(
-        ".ad-toc",
-        { x: 20, opacity: 0 },
-        { x: 0, opacity: 1, ...defaults, delay: 0.3 },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, [pathname]);
-
   return (
-    <div ref={containerRef} className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
+    <div ref={scopeRef} className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
       {/* Reading Pane */}
       <article className="max-w-3xl min-w-0 flex-1">
         {/* Breadcrumb */}
-        <nav className="ad-breadcrumb mb-6 flex items-center gap-2 text-xs text-stone-500">
+        <nav
+          data-animate="up"
+          className="mb-6 flex items-center gap-2 text-xs text-stone-500"
+        >
           <Link
             href="/sekretariat"
             className="transition-colors hover:text-stone-300"
@@ -91,7 +57,7 @@ export default function ArchiveDetailView({
         </nav>
 
         {/* Header */}
-        <header className="ad-header mb-10">
+        <header data-animate="up" data-animate-delay="0.1" className="mb-10">
           <h1 className="font-serif text-3xl font-bold text-white md:text-4xl">
             {entry.title}
           </h1>
@@ -120,12 +86,16 @@ export default function ArchiveDetailView({
         </header>
 
         {/* Content */}
-        <div className="ad-content prose-docs">
+        <div data-animate="up" data-animate-delay="0.2" className="prose-docs">
           <NotionRenderer blocks={blocks} />
         </div>
 
         {/* Bottom nav */}
-        <div className="ad-content mt-16 border-t border-stone-800 pt-8">
+        <div
+          data-animate="up"
+          data-animate-delay="0.3"
+          className="mt-16 border-t border-stone-800 pt-8"
+        >
           <Link
             href="/sekretariat/archives"
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
@@ -136,7 +106,11 @@ export default function ArchiveDetailView({
       </article>
 
       {/* ToC */}
-      <div className="ad-toc w-56 shrink-0">
+      <div
+        data-animate="left"
+        data-animate-delay="0.3"
+        className="w-56 shrink-0"
+      >
         <TableOfContents headings={headings} />
       </div>
     </div>
