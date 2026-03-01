@@ -1,7 +1,4 @@
 "use client";
-
-import React from "react";
-
 import { KKM_GROUPS, type KKMGroup } from "@/lib/kkm-data";
 import useViewEntrance from "@/lib/useViewEntrance";
 
@@ -22,12 +19,7 @@ function KKMCard({ group }: { group: KKMGroup }) {
         </span>
       )}
 
-      {/* Icon + Abbreviation */}
       <div className="mb-6">
-        <span className="mb-3 block text-3xl">{group.icon}</span>
-        <p className="mb-1 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
-          {group.abbreviation}
-        </p>
         <h2 className="group-hover:text-gold-400 font-serif text-xl text-white transition-colors md:text-2xl">
           {group.name}
         </h2>
@@ -44,8 +36,8 @@ function KKMCard({ group }: { group: KKMGroup }) {
       </p>
 
       {/* Footer: Social + Established */}
-      <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-5">
-        {group.instagram ? (
+      <div className="mt-auto flex items-center border-t border-white/5 pt-5">
+        {group.instagram && (
           <a
             href={`https://instagram.com/${group.instagram}`}
             target="_blank"
@@ -63,11 +55,9 @@ function KKMCard({ group }: { group: KKMGroup }) {
               @{group.instagram}
             </span>
           </a>
-        ) : (
-          <span />
         )}
         {group.established && (
-          <span className="text-[0.6rem] tracking-wider text-stone-600">
+          <span className="ml-auto text-[0.6rem] tracking-wider text-stone-600">
             Est. {group.established}
           </span>
         )}
@@ -96,7 +86,7 @@ export default function KKMPortalView() {
             aria-hidden="true"
           />
           <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
-            Kelompok Kegiatan Mahasiswa
+            Official Portal
           </span>
         </div>
         <h1 className="font-serif text-5xl leading-tight font-normal text-white md:text-7xl">
