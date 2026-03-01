@@ -70,21 +70,14 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
   const scopeRef = useViewEntrance("/sekretariat");
   const cardsRef = useRef<HTMLDivElement>(null);
 
-  // Grouping & Stats calculations
-  const { groupedDocs, stats, recentlyUpdated } = useMemo(() => {
+  // Grouping & Recently Updated calculations
+  const { groupedDocs, recentlyUpdated } = useMemo(() => {
     const grouped: Record<string, DocMeta[]> = {};
-    let totalDocs = 0;
-    let totalRegulasi = 0;
-    let totalArsip = 0;
 
     for (const doc of docs) {
       const cat = doc.category || "Umum";
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(doc);
-
-      totalDocs++;
-      if (cat === "Legalitas") totalRegulasi++;
-      if (cat === "Arsip") totalArsip++;
     }
 
     const sortedUpdated = [...docs]
@@ -96,7 +89,6 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
 
     return {
       groupedDocs: grouped,
-      stats: { totalDocs, totalRegulasi, totalArsip },
       recentlyUpdated: sortedUpdated,
     };
   }, [docs]);
@@ -165,30 +157,6 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
             </kbd>
           </button>
         </div>
-      </div>
-
-      {/* Statistics Row */}
-      <div
-        data-animate-stagger="0.1"
-        className="mb-16 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
-      >
-        {[
-          { label: "Total Dokumen", value: stats.totalDocs },
-          { label: "Konstitusi", value: stats.totalRegulasi },
-          { label: "Arsip Publik", value: stats.totalArsip },
-          { label: "Kepengurusan", value: "2026-2027" },
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className="flex flex-col justify-between border border-white/5 p-6 transition-colors hover:bg-stone-900/20"
-            data-animate="up"
-          >
-            <p className="mb-4 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
-              {item.label}
-            </p>
-            <h3 className="font-serif text-2xl text-white">{item.value}</h3>
-          </div>
-        ))}
       </div>
 
       {/* Main Grid: Categories & Recent */}
