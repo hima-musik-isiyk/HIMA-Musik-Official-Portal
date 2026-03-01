@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useMemo, useRef } from "react";
 
+import { FEATURES } from "@/lib/feature-flags";
 import type { DocMeta } from "@/lib/notion";
 import {
   createCommandPaletteShortcutEvent,
@@ -11,6 +12,7 @@ import {
   useCommandPaletteShortcutLabel,
 } from "@/lib/shortcut";
 import useViewEntrance from "@/lib/useViewEntrance";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Category metadata                                                  */
@@ -179,8 +181,14 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
 
       {/* Main Grid: Categories & Recent */}
       <div className="grid gap-10 lg:grid-cols-3">
-        {/* Left 2 Columns: Category Cards */}
-        <div ref={cardsRef} className="grid gap-6 md:grid-cols-2 lg:col-span-2">
+        {/* Left Columns: Category Cards */}
+        <div
+          ref={cardsRef}
+          className={cn(
+            "grid gap-6 md:grid-cols-2",
+            FEATURES.SHOW_DOCS_SIDEBAR ? "lg:col-span-2" : "lg:col-span-3",
+          )}
+        >
           {CATEGORIES.map((cat) => {
             const catDocs = groupedDocs[cat.key] ?? [];
             return (
@@ -251,102 +259,109 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
         </div>
 
         {/* Right Column: Sidebar (Recently Updated & Forms) */}
-        <div className="space-y-6">
-          {/* Recently Updated */}
-          <div
-            data-animate="left"
-            className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
-          >
-            <div className="mb-6 flex items-center gap-4">
-              <span
-                className="bg-gold-500/40 block h-px w-6"
-                aria-hidden="true"
-              />
-              <h3 className="font-serif text-xl text-white">Update Terbaru</h3>
-            </div>
-            <div className="space-y-6">
-              {recentlyUpdated.length > 0 ? (
-                recentlyUpdated.map((doc) => (
-                  <Link
-                    key={doc.id}
-                    href={`/sekretariat/${doc.slug}`}
-                    className="group block"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <h4 className="group-hover:text-gold-400 truncate text-sm font-medium text-stone-300 transition-colors">
-                        {doc.title}
-                      </h4>
-                      <span className="shrink-0 text-[10px] text-stone-600 uppercase">
-                        {new Date(doc.lastEdited).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[10px] tracking-wider text-stone-500">
-                      {doc.category}
-                    </p>
-                  </Link>
-                ))
-              ) : (
-                <p className="text-xs text-stone-600">Belum ada aktivitas.</p>
-              )}
-            </div>
-            <Link
-              href="/sekretariat/archives"
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-stone-800 bg-stone-900/30 py-3 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase transition-colors hover:border-stone-700 hover:text-white"
+        {FEATURES.SHOW_DOCS_SIDEBAR && (
+          <div className="space-y-6">
+            {/* Recently Updated */}
+            <div
+              data-animate="left"
+              className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
             >
-              Lihat Histori Lengkap
-            </Link>
-          </div>
+              <div className="mb-6 flex items-center gap-4">
+                <span
+                  className="bg-gold-500/40 block h-px w-6"
+                  aria-hidden="true"
+                />
+                <h3 className="font-serif text-xl text-white">
+                  Update Terbaru
+                </h3>
+              </div>
+              <div className="space-y-6">
+                {recentlyUpdated.length > 0 ? (
+                  recentlyUpdated.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      href={`/sekretariat/${doc.slug}`}
+                      className="group block"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h4 className="group-hover:text-gold-400 truncate text-sm font-medium text-stone-300 transition-colors">
+                          {doc.title}
+                        </h4>
+                        <span className="shrink-0 text-[10px] text-stone-600 uppercase">
+                          {new Date(doc.lastEdited).toLocaleDateString(
+                            "id-ID",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            },
+                          )}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] tracking-wider text-stone-500">
+                        {doc.category}
+                      </p>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-xs text-stone-600">Belum ada aktivitas.</p>
+                )}
+              </div>
+              <Link
+                href="/sekretariat/archives"
+                className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-stone-800 bg-stone-900/30 py-3 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase transition-colors hover:border-stone-700 hover:text-white"
+              >
+                Lihat Histori Lengkap
+              </Link>
+            </div>
 
-          {/* Quick Forms Section */}
-          <div
-            data-animate="left"
-            className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
-          >
-            <h3 className="mb-3 font-serif text-xl text-white">
-              Layanan Mandiri
-            </h3>
-            <p className="mb-6 text-xs leading-relaxed text-stone-400">
-              Butuh surat pengantar atau peminjaman alat? Ajukan langsung secara
-              online.
-            </p>
-            <div className="space-y-3">
-              {[
-                {
-                  label: "Surat Aktif Organisasi",
-                  href: "/sekretariat/forms/surat-aktif",
-                },
-                {
-                  label: "Peminjaman Alat Musik",
-                  href: "/sekretariat/forms/peminjaman-alat",
-                },
-              ].map((form) => (
-                <Link
-                  key={form.href}
-                  href={form.href}
-                  className="group/form flex items-center justify-between rounded-xl border border-stone-800/80 bg-stone-900/30 px-5 py-4 text-sm text-stone-300 transition-colors hover:border-stone-700 hover:bg-stone-900/50 hover:text-white"
-                >
-                  {form.label}
-                  <svg
-                    className="group-hover/form:text-gold-400 h-4 w-4 text-stone-600 transition-transform group-hover/form:translate-x-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
+            {/* Quick Forms Section */}
+            <div
+              data-animate="left"
+              className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
+            >
+              <h3 className="mb-3 font-serif text-xl text-white">
+                Layanan Mandiri
+              </h3>
+              <p className="mb-6 text-xs leading-relaxed text-stone-400">
+                Butuh surat pengantar atau peminjaman alat? Ajukan langsung
+                secara online.
+              </p>
+              <div className="space-y-3">
+                {[
+                  {
+                    label: "Surat Aktif Organisasi",
+                    href: "/sekretariat/forms/surat-aktif",
+                  },
+                  {
+                    label: "Peminjaman Alat Musik",
+                    href: "/sekretariat/forms/peminjaman-alat",
+                  },
+                ].map((form) => (
+                  <Link
+                    key={form.href}
+                    href={form.href}
+                    className="group/form flex items-center justify-between rounded-xl border border-stone-800/80 bg-stone-900/30 px-5 py-4 text-sm text-stone-300 transition-colors hover:border-stone-700 hover:bg-stone-900/50 hover:text-white"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13 7l5 5m0 0l-5 5m5-5H6"
-                    />
-                  </svg>
-                </Link>
-              ))}
+                    {form.label}
+                    <svg
+                      className="group-hover/form:text-gold-400 h-4 w-4 text-stone-600 transition-transform group-hover/form:translate-x-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                      />
+                    </svg>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Footer Accents */}
