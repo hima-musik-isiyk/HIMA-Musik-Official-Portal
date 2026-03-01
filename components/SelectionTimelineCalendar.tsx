@@ -1,5 +1,7 @@
 "use client";
 
+import { Calendar, Clock, Info } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useRef, useState } from "react";
 
 import { gsap } from "@/lib/gsap";
@@ -9,6 +11,8 @@ const DAYS_OF_WEEK = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 interface Event {
   title: string;
   dateStr: string;
+  startTime?: string;
+  endTime?: string;
   description: string;
   type:
     | "registration"
@@ -21,7 +25,25 @@ interface Event {
 
 const SelectionTimelineCalendar: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentDate] = useState(new Date("2026-02-27")); // Fixed today for demo/current context
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [timeProgress, setTimeProgress] = useState(0);
+  const [hoveredEventTitle, setHoveredEventTitle] = useState<string | null>(
+    null,
+  );
+  const [tooltipData, setTooltipData] = useState<{
+    event: Event;
+    x: number;
+    y: number;
+    offset: number;
+  } | null>(null);
+
+  // Dev Simulation State
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simRange, setSimRange] = useState({
+    start: "2026-02-23T00:00",
+    end: "2026-03-15T23:59",
+  });
+  const [simValue, setSimValue] = useState(0);
 
   // Parse timeline data into actual Date objects
   // Note: This is a bit manual since the data in lib/pendaftaran-data.ts is strings
@@ -29,7 +51,8 @@ const SelectionTimelineCalendar: React.FC = () => {
     {
       title: "Pendaftaran",
       dateStr: "27 Feb – 03 Mar",
-      description: "Deadline: 15:00 WIB",
+      endTime: "15:00 WIB",
+      description: "Pastikan data diri sudah sesuai.",
       type: "registration",
       start: new Date("2026-02-27"),
       end: new Date("2026-03-03T15:00:00"),
@@ -37,7 +60,8 @@ const SelectionTimelineCalendar: React.FC = () => {
     {
       title: "Pengumuman Wawancara",
       dateStr: "03 Mar",
-      description: "18:00 WIB",
+      startTime: "18:00 WIB",
+      description: "Diumumkan via Instagram HIMA Musik.",
       type: "interview-announcement",
       start: new Date("2026-03-03T18:00:00"),
       end: new Date("2026-03-03T18:00:00"),
@@ -45,7 +69,7 @@ const SelectionTimelineCalendar: React.FC = () => {
     {
       title: "Wawancara",
       dateStr: "04 Mar",
-      description: "Waktu menyusul",
+      description: "Siapkan visi dan portofolio terbaikmu.",
       type: "interview",
       start: new Date("2026-03-04"),
       end: new Date("2026-03-04"),
@@ -53,7 +77,7 @@ const SelectionTimelineCalendar: React.FC = () => {
     {
       title: "Pengumuman Akhir",
       dateStr: "10 Mar",
-      description: "Selamat bergabung!",
+      description: "Selamat bergabung di kepengurusan HIMA Musik!",
       type: "final-announcement",
       start: new Date("2026-03-10"),
       end: new Date("2026-03-10"),
@@ -86,6 +110,41 @@ const SelectionTimelineCalendar: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (isSimulating) return;
+
+    const updateProgress = () => {
+      const now = new Date();
+      setCurrentDate(now);
+    };
+
+    updateProgress();
+    const interval = setInterval(updateProgress, 60000);
+    return () => clearInterval(interval);
+  }, [isSimulating]);
+
+  useEffect(() => {
+    const startOfDay = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+    );
+    const secondsPassed = (currentDate.getTime() - startOfDay.getTime()) / 1000;
+    const progress = Math.max(0, Math.min(100, (secondsPassed / 86400) * 100));
+    setTimeProgress(progress);
+  }, [currentDate]);
+
+  // Handle Simulation Slider Change
+  useEffect(() => {
+    if (!isSimulating) return;
+
+    const start = new Date(simRange.start).getTime();
+    const end = new Date(simRange.end).getTime();
+    const total = end - start;
+    const targetTime = start + (total * simValue) / 10000;
+    setCurrentDate(new Date(targetTime));
+  }, [simValue, simRange, isSimulating]);
+
   const isToday = (date: Date) => {
     return date.toDateString() === currentDate.toDateString();
   };
@@ -103,7 +162,7 @@ const SelectionTimelineCalendar: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="relative w-full">
       {/* Desktop Calendar Grid */}
       <div className="hidden md:block">
         <div className="scrollbar-hide overflow-x-auto pb-4">
@@ -123,6 +182,9 @@ const SelectionTimelineCalendar: React.FC = () => {
               {calendarDays.map((date, index) => {
                 const dayEvents = getEventsForDay(date);
                 const active = isToday(date);
+                const hasContinuous = dayEvents.some(
+                  (e) => e.start.getTime() !== e.end.getTime(),
+                );
                 const isCurrentMonth =
                   date.getMonth() === 1 || date.getMonth() === 2; // Feb or Mar
 
@@ -131,8 +193,20 @@ const SelectionTimelineCalendar: React.FC = () => {
                     key={index}
                     className={`calendar-day relative min-h-[120px] bg-[#0a0a0a] py-2 transition-colors hover:bg-white/2 md:py-3 ${
                       !isCurrentMonth ? "opacity-30" : ""
-                    } ${active ? "z-20 shadow-[0_0_20px_rgba(212,166,77,0.05)]" : ""}`}
+                    } ${active ? "z-20 shadow-[0_0_20px_rgba(212,166,77,0.05)]" : hasContinuous ? "z-30" : "z-10"}`}
                   >
+                    {active && (
+                      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                        <div
+                          className="bg-gold-500/5 h-full transition-all duration-1000"
+                          style={{ width: `${timeProgress}%` }}
+                        />
+                        <div
+                          className="bg-gold-500/20 absolute top-0 bottom-0 w-px transition-all duration-1000"
+                          style={{ left: `${timeProgress}%` }}
+                        />
+                      </div>
+                    )}
                     <div className="mb-2 flex items-center justify-between px-2 md:px-3">
                       <div className="flex items-center gap-2">
                         {active && (
@@ -170,57 +244,159 @@ const SelectionTimelineCalendar: React.FC = () => {
 
                         // For multi-day: show title only on start day or if it's Monday
                         const showTitle = isStart || date.getDay() === 1;
-                        // Show description (deadline) only on the end day
-                        const showDescription =
-                          isEnd &&
-                          event.description.toLowerCase().includes("deadline");
+                        // Determine which badge to show
+                        const showDeadline = isEnd && event.endTime;
+                        const showInfo =
+                          !isContinuous && !showDeadline && event.startTime;
+
+                        const isHovered = event.title === hoveredEventTitle;
+
+                        // Event is active if current time is within range OR it's the day the event starts
+                        const isEventActive =
+                          (currentDate >= event.start &&
+                            currentDate <= event.end) ||
+                          isToday(new Date(event.start));
 
                         return (
                           <div
                             key={i}
-                            className={`group relative flex h-[40px] flex-col justify-center overflow-hidden px-2 py-1 text-[10px] leading-tight transition-all md:h-[48px] md:text-xs ${
-                              event.type === "registration"
-                                ? "text-gold-200 bg-[#1a150e]" // Solid dark gold-ish background
-                                : "bg-[#141414] text-neutral-300" // Solid dark neutral background
+                            onMouseEnter={(e) => {
+                              setHoveredEventTitle(event.title);
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              const containerRect =
+                                containerRef.current?.getBoundingClientRect();
+                              if (containerRect) {
+                                const x =
+                                  rect.left -
+                                  containerRect.left +
+                                  rect.width / 2;
+                                const y = rect.top - containerRect.top;
+                                const containerWidth = containerRect.width;
+                                const tooltipWidth = 256; // w-64
+                                const halfWidth = tooltipWidth / 2;
+
+                                let offset = 0;
+                                if (x - halfWidth < 16) {
+                                  offset = 16 - (x - halfWidth);
+                                } else if (
+                                  x + halfWidth >
+                                  containerWidth - 16
+                                ) {
+                                  offset =
+                                    containerWidth - 16 - (x + halfWidth);
+                                }
+
+                                setTooltipData({
+                                  event,
+                                  x,
+                                  y,
+                                  offset,
+                                });
+                              }
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredEventTitle(null);
+                              setTooltipData(null);
+                            }}
+                            className={`group relative flex h-[40px] flex-col justify-center overflow-hidden px-2 py-1 text-[10px] leading-tight opacity-100 transition-all md:h-[48px] md:text-xs ${
+                              isEventActive
+                                ? "text-gold-200 bg-[#1a150e]" // Active event background
+                                : "bg-[#141414] text-neutral-300" // Inactive event background
                             } ${
                               !isContinuous
                                 ? "mx-2 rounded-sm border md:mx-3"
-                                : `${isStart ? "mr-px ml-2 rounded-l-sm border-l md:ml-3" : ""} ${
+                                : `${isStart ? "-mr-px ml-2 rounded-l-sm border-l md:ml-3" : ""} ${
                                     isEnd
-                                      ? "mr-2 ml-px rounded-r-sm border-r md:mr-3"
+                                      ? "mr-2 -ml-px rounded-r-sm border-r md:mr-3"
                                       : ""
                                   } ${!isStart && !isEnd ? "-mx-px" : ""} border-y`
                             } ${
-                              event.type === "registration"
-                                ? "border-gold-500/30"
-                                : "border-white/10"
-                            }`}
+                              isEventActive
+                                ? isHovered
+                                  ? "border-gold-500/60"
+                                  : "border-gold-500/30"
+                                : isHovered
+                                  ? "border-white/30"
+                                  : "border-white/10"
+                            } ${isHovered ? "brightness-110" : ""}`}
                             style={{
-                              zIndex: isContinuous ? 10 : 1,
+                              zIndex: isHovered ? 50 : isContinuous ? 10 : 1,
                             }}
                           >
-                            <div className="flex w-full items-center justify-between gap-2 overflow-hidden">
+                            <div
+                              className={`flex w-full gap-2 ${
+                                isContinuous
+                                  ? "items-start justify-between text-left"
+                                  : "items-center justify-center text-center"
+                              }`}
+                            >
                               <div
-                                className={`truncate font-medium ${showDescription ? "max-w-[50%]" : "w-full"}`}
+                                className={`line-clamp-2 font-medium wrap-break-word whitespace-normal ${
+                                  isContinuous ? "flex-1" : ""
+                                }`}
                               >
                                 {showTitle ? event.title : "\u00A0"}
                               </div>
-                              {showDescription && (
-                                <div className="bg-gold-500 flex max-w-[50%] shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 shadow-[0_2px_10px_rgba(212,166,77,0.3)]">
-                                  <span className="shrink-0 text-[7px] leading-none font-bold text-black/40 uppercase">
+                              {showDeadline && (
+                                <div
+                                  className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 pb-[2px] transition-all duration-300 ${
+                                    isEventActive
+                                      ? "bg-gold-500 shadow-[0_2px_10px_rgba(212,166,77,0.3)]"
+                                      : "bg-white/5"
+                                  }`}
+                                >
+                                  <span
+                                    className={`shrink-0 text-[7px] leading-none font-black uppercase ${
+                                      isEventActive
+                                        ? "text-black/40"
+                                        : "text-neutral-600"
+                                    }`}
+                                  >
                                     DL
                                   </span>
-                                  <div className="truncate text-[8px] leading-none font-bold text-black">
-                                    {event.description.replace(
-                                      /deadline:?\s*/i,
-                                      "",
-                                    )}
+                                  <div
+                                    className={`truncate text-[8px] leading-none font-bold ${
+                                      isEventActive
+                                        ? "text-black"
+                                        : "text-neutral-400"
+                                    }`}
+                                  >
+                                    {event.endTime}
+                                  </div>
+                                </div>
+                              )}
+                              {showInfo && (
+                                <div
+                                  className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 pb-[2px] transition-all duration-300 ${
+                                    isEventActive
+                                      ? "bg-white/90 shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
+                                      : "bg-white/5"
+                                  }`}
+                                >
+                                  <Info
+                                    className={`h-2.5 w-2.5 shrink-0 ${
+                                      isEventActive
+                                        ? "text-black/40"
+                                        : "text-neutral-600"
+                                    }`}
+                                  />
+                                  <div
+                                    className={`truncate text-[8px] leading-none font-bold ${
+                                      isEventActive
+                                        ? "text-black"
+                                        : "text-neutral-400"
+                                    }`}
+                                  >
+                                    {event.startTime}
                                   </div>
                                 </div>
                               )}
                             </div>
 
-                            <div className="bg-gold-500/5 pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <div
+                              className={`bg-gold-500/5 pointer-events-none absolute inset-0 opacity-0 transition-opacity ${isHovered ? "opacity-100" : "group-hover:opacity-100"}`}
+                            />
                           </div>
                         );
                       })}
@@ -234,16 +410,16 @@ const SelectionTimelineCalendar: React.FC = () => {
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-[10px] tracking-wide text-neutral-500 uppercase">
           <div className="flex items-center gap-2">
-            <span className="border-gold-500/30 h-2 w-2 border bg-[#1a150e]" />
-            <span>Masa Pendaftaran</span>
+            <div className="border-gold-500/40 h-2 w-2 border bg-[#1a150e]" />
+            <span>Tahap Aktif</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 border border-white/10 bg-[#141414]" />
-            <span>Event & Pengumuman</span>
+            <div className="h-2 w-2 border border-white/10 bg-[#141414]" />
+            <span>Jadwal & Agenda</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="bg-gold-500 h-3 w-[2px] rounded-full" />
-            <span>Hari Ini</span>
+            <span>Penanda Hari</span>
           </div>
         </div>
       </div>
@@ -255,9 +431,6 @@ const SelectionTimelineCalendar: React.FC = () => {
             {events.map((event, index) => {
               const isContinuous =
                 event.start.getTime() !== event.end.getTime();
-              const badgeShowsDeadline = event.description
-                .toLowerCase()
-                .includes("deadline");
 
               const startStr = event.start.toLocaleDateString("id-ID", {
                 day: "numeric",
@@ -269,7 +442,8 @@ const SelectionTimelineCalendar: React.FC = () => {
               });
 
               const isEventActive =
-                currentDate >= event.start && currentDate <= event.end;
+                (currentDate >= event.start && currentDate <= event.end) ||
+                isToday(new Date(event.start));
               const isEventPast = currentDate > event.end;
               const hasReachedEvent = currentDate >= event.start;
 
@@ -296,12 +470,12 @@ const SelectionTimelineCalendar: React.FC = () => {
                     <div className="relative shrink-0 py-2">
                       <div
                         className={`relative z-10 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#0a0a0a] transition-all duration-500 ${
-                          hasReachedEvent
-                            ? event.type === "registration"
-                              ? "bg-gold-500"
-                              : "bg-[#d4a64d]"
-                            : "bg-neutral-800"
-                        } ${isEventActive ? "scale-125 shadow-[0_0_15px_rgba(212,166,77,0.6)]" : ""}`}
+                          isEventActive
+                            ? "bg-gold-500 shadow-[0_0_15px_rgba(212,166,77,0.4)]"
+                            : hasReachedEvent
+                              ? "bg-[#d4a64d]"
+                              : "bg-neutral-800"
+                        } ${isEventActive ? "scale-125" : ""}`}
                       />
                     </div>
 
@@ -344,25 +518,66 @@ const SelectionTimelineCalendar: React.FC = () => {
                           </div>
                         </div>
 
-                        {badgeShowsDeadline && (
+                        {event.endTime && (
                           <div
-                            className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 transition-opacity ${isEventActive ? "opacity-100" : "opacity-30"} bg-gold-500`}
+                            className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 transition-all duration-500 ${
+                              isEventActive
+                                ? "bg-gold-500 opacity-100 shadow-[0_2px_10px_rgba(212,166,77,0.2)]"
+                                : "bg-white/5 opacity-50"
+                            }`}
                           >
-                            <span className="shrink-0 text-[7px] font-bold text-black/50 uppercase">
+                            <span
+                              className={`shrink-0 text-[7px] font-black uppercase ${
+                                isEventActive
+                                  ? "text-black/50"
+                                  : "text-neutral-600"
+                              }`}
+                            >
                               DL
                             </span>
-                            <div className="text-[8px] font-bold text-black">
-                              {event.description.replace(/deadline:?\s*/i, "")}
+                            <div
+                              className={`text-[8px] font-bold ${
+                                isEventActive
+                                  ? "text-black"
+                                  : "text-neutral-400"
+                              }`}
+                            >
+                              {event.endTime}
+                            </div>
+                          </div>
+                        )}
+
+                        {event.startTime && (
+                          <div
+                            className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 transition-all duration-500 ${
+                              isEventActive
+                                ? "bg-white/90 opacity-100 shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
+                                : "bg-white/5 opacity-50"
+                            }`}
+                          >
+                            <Info
+                              className={`h-2.5 w-2.5 shrink-0 ${
+                                isEventActive
+                                  ? "text-black/40"
+                                  : "text-neutral-600"
+                              }`}
+                            />
+                            <div
+                              className={`text-[8px] font-bold ${
+                                isEventActive
+                                  ? "text-black"
+                                  : "text-neutral-400"
+                              }`}
+                            >
+                              {event.startTime}
                             </div>
                           </div>
                         )}
                       </div>
 
-                      {!badgeShowsDeadline && event.description && (
-                        <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-neutral-500">
-                          {event.description}
-                        </p>
-                      )}
+                      <p className="mt-2 text-[11px] leading-relaxed text-neutral-500 italic">
+                        {event.description}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -371,6 +586,161 @@ const SelectionTimelineCalendar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Floating Tooltip */}
+      <AnimatePresence>
+        {tooltipData && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="pointer-events-none absolute z-100 w-64 -translate-x-1/2 -translate-y-[calc(100%+12px)]"
+            style={{
+              left: tooltipData.x + tooltipData.offset,
+              top: tooltipData.y,
+            }}
+          >
+            <div className="border-gold-500/20 relative overflow-hidden rounded-lg border bg-black/95 p-4 shadow-2xl backdrop-blur-md">
+              {/* Accent Line */}
+              <div className="bg-gold-500 absolute top-0 left-0 h-1 w-full opacity-50" />
+
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <h3 className="text-gold-100 flex-1 font-serif text-sm leading-tight font-bold">
+                  {tooltipData.event.title}
+                </h3>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2 text-neutral-400">
+                  <Calendar className="h-3 w-3" />
+                  <span className="text-[10px] font-medium tracking-wide">
+                    {tooltipData.event.dateStr}
+                    {tooltipData.event.startTime &&
+                      ` • ${tooltipData.event.startTime}`}
+                    {tooltipData.event.endTime &&
+                      ` • Deadline: ${tooltipData.event.endTime}`}
+                    {!tooltipData.event.startTime &&
+                      !tooltipData.event.endTime &&
+                      " • Waktu Menyusul"}
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-2 text-neutral-300">
+                  <Clock className="h-3 w-3 shrink-0 translate-y-0.5" />
+                  <p className="text-[10px] leading-relaxed italic">
+                    {tooltipData.event.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tooltip Arrow */}
+            <div
+              className="border-gold-500/20 absolute bottom-[-6px] h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b bg-black"
+              style={{
+                left: `calc(50% - ${tooltipData.offset}px)`,
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Development Simulation Controls */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed right-6 bottom-6 z-50 flex w-80 flex-col gap-4 rounded-xl border border-white/10 bg-black/80 p-4 shadow-2xl backdrop-blur-xl transition-all hover:bg-black/90">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="bg-gold-500 h-2 w-2 animate-pulse rounded-full" />
+              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
+                Dev Simulator
+              </span>
+            </div>
+            <button
+              onClick={() => setIsSimulating(!isSimulating)}
+              className={`rounded px-2 py-0.5 text-[10px] font-bold transition-all ${
+                isSimulating
+                  ? "bg-gold-500 text-black shadow-[0_0_10px_rgba(212,166,77,0.4)]"
+                  : "bg-white/10 text-white hover:bg-white/20"
+              }`}
+            >
+              {isSimulating ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          {isSimulating && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-2.5 w-2.5 text-neutral-500" />
+                    <label className="text-[8px] font-bold text-neutral-500 uppercase">
+                      Start Range
+                    </label>
+                  </div>
+                  <input
+                    type="datetime-local"
+                    value={simRange.start}
+                    onChange={(e) =>
+                      setSimRange({ ...simRange, start: e.target.value })
+                    }
+                    className="focus:border-gold-500/50 w-full rounded border border-white/10 bg-white/5 p-1 text-[10px] text-white transition-colors outline-none focus:bg-white/10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-2.5 w-2.5 text-neutral-500" />
+                    <label className="text-[8px] font-bold text-neutral-500 uppercase">
+                      End Range
+                    </label>
+                  </div>
+                  <input
+                    type="datetime-local"
+                    value={simRange.end}
+                    onChange={(e) =>
+                      setSimRange({ ...simRange, end: e.target.value })
+                    }
+                    className="focus:border-gold-500/50 w-full rounded border border-white/10 bg-white/5 p-1 text-[10px] text-white transition-colors outline-none focus:bg-white/10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2.5 rounded-lg bg-white/5 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-neutral-400">
+                    <Clock className="h-3 w-3" />
+                    <span className="text-[10px] font-medium">Simulation</span>
+                  </div>
+                  <div className="bg-gold-500/10 rounded px-1.5 py-0.5">
+                    <span className="text-gold-400 font-mono text-[10px] font-bold">
+                      {currentDate.toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "short",
+                      })}{" "}
+                      {currentDate.toLocaleTimeString("id-ID", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="10000"
+                  value={simValue}
+                  onChange={(e) => setSimValue(parseInt(e.target.value))}
+                  className="accent-gold-500 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-neutral-700"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 border-t border-white/5 pt-2 text-[9px] text-neutral-500 italic">
+                <Info className="h-2.5 w-2.5 shrink-0" />
+                <span>Simulated time overrides system for calendar logic.</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
