@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
-import { gsap } from "@/lib/gsap";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 type AduanFormData = {
   name: string;
@@ -25,7 +24,7 @@ const MAX_HISTORY_LENGTH = 10;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const Aduan: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useViewEntrance("/aduan");
   const [formData, setFormData] = useState<AduanFormData>({
     name: "",
     nim: "",
@@ -171,41 +170,6 @@ const Aduan: React.FC = () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [formData, messageHistory, hasTouchedForm, submitted]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    if (!shouldRunViewEntrance("/aduan")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      gsap.fromTo(
-        ".aduan-eyebrow",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".aduan-title",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
-      );
-
-      gsap.fromTo(
-        ".aduan-subtitle",
-        { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 },
-      );
-
-      gsap.fromTo(
-        ".aduan-form",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.35 },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
 
   const clearStoredState = () => {
     if (typeof window === "undefined") return;
@@ -431,12 +395,15 @@ const Aduan: React.FC = () => {
 
   return (
     <div
-      ref={containerRef}
+      ref={scopeRef}
       className="relative flex min-h-screen justify-center overflow-x-hidden px-6 pt-40 pb-32"
     >
       <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(ellipse_at_top,rgba(212,166,77,0.03)_0%,transparent_70%)]"></div>
       <div className="relative z-10 w-full max-w-3xl">
-        <div className="aduan-eyebrow mb-8 flex items-center justify-center gap-4">
+        <div
+          data-animate="up"
+          className="mb-8 flex items-center justify-center gap-4"
+        >
           <span
             className="bg-gold-500/40 block h-px w-8 md:w-12"
             aria-hidden="true"
@@ -449,17 +416,27 @@ const Aduan: React.FC = () => {
             aria-hidden="true"
           />
         </div>
-        <h1 className="aduan-title mb-6 text-center font-serif text-5xl tracking-tight text-white md:text-7xl">
+        <h1
+          data-animate="up"
+          data-animate-delay="0.1"
+          className="mb-6 text-center font-serif text-5xl tracking-tight text-white md:text-7xl"
+        >
           Layanan{" "}
           <span className="text-gold-500/80 font-light italic">Aduan</span>
         </h1>
-        <p className="aduan-subtitle mb-20 text-center text-base text-neutral-400">
+        <p
+          data-animate="up"
+          data-animate-delay="0.2"
+          className="mb-20 text-center text-base text-neutral-400"
+        >
           Kami siap mendengarkan aspirasi dan masukan Anda.
         </p>
 
         <form
           onSubmit={handleSubmit}
           className="aduan-form relative space-y-10 border border-white/5 bg-[#111]/50 p-8 md:p-12"
+          data-animate="up"
+          data-animate-delay="0.35"
         >
           <div className="via-gold-500/20 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
           <div className="grid grid-cols-1 gap-10 md:grid-cols-2">

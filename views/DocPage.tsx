@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef } from "react";
+import React from "react";
 
 import NotionRenderer, { extractHeadings } from "@/components/NotionRenderer";
 import TableOfContents from "@/components/TableOfContents";
-import { gsap } from "@/lib/gsap";
 import type { DocMeta, NotionBlock } from "@/lib/notion";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 interface DocPageViewProps {
   meta: DocMeta;
@@ -16,8 +15,8 @@ interface DocPageViewProps {
 }
 
 export default function DocPageView({ meta, blocks }: DocPageViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const scopeRef = useViewEntrance(pathname || "");
   const headings = extractHeadings(blocks);
 
   const formattedDate = meta.lastEdited
@@ -30,43 +29,8 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
 
   const isLegalitas = meta.category?.toLowerCase() === "legalitas";
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    if (!shouldRunViewEntrance(pathname || "")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      gsap.fromTo(
-        ".dp-breadcrumb",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".dp-header",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
-      );
-
-      gsap.fromTo(
-        ".dp-content",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.2 },
-      );
-
-      gsap.fromTo(
-        ".dp-toc",
-        { x: 20, opacity: 0 },
-        { x: 0, opacity: 1, ...defaults, delay: 0.3 },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, [pathname]);
-
   return (
-    <div ref={containerRef} className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
+    <div ref={scopeRef} className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
       {/* Center: Reading Pane */}
       <article
         className={`max-w-3xl min-w-0 flex-1 ${isLegalitas ? "mx-auto" : ""}`}
@@ -74,6 +38,7 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
         {/* Breadcrumb */}
         <nav
           className={`dp-breadcrumb mb-6 flex gap-2 text-xs text-stone-500 ${isLegalitas ? "justify-center" : "items-center"}`}
+          data-animate="up"
         >
           <Link
             href="/sekretariat"
@@ -94,6 +59,8 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
         {/* Header */}
         <header
           className={`dp-header mb-10 ${isLegalitas ? "text-center" : ""}`}
+          data-animate="up"
+          data-animate-delay="0.1"
         >
           <h1 className="font-serif text-3xl font-bold text-white md:text-4xl lg:text-5xl">
             {meta.title}
@@ -107,7 +74,11 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
 
         {/* Mobile inline ToC — only visible below xl */}
         {headings.length > 0 && (
-          <details className="dp-content mb-8 rounded-lg border border-stone-800 bg-stone-900/40 px-4 py-3 xl:hidden">
+          <details
+            data-animate="up"
+            data-animate-delay="0.2"
+            className="mb-8 rounded-lg border border-stone-800 bg-stone-900/40 px-4 py-3 xl:hidden"
+          >
             <summary className="cursor-pointer text-sm font-semibold tracking-widest text-stone-400 uppercase">
               Daftar Isi
             </summary>
@@ -141,13 +112,19 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
 
         {/* Content */}
         <div
-          className={`dp-content prose-docs ${isLegalitas ? "text-center" : ""}`}
+          data-animate="up"
+          data-animate-delay="0.2"
+          className={`prose-docs ${isLegalitas ? "text-center" : ""}`}
         >
           <NotionRenderer blocks={blocks} />
         </div>
 
         {/* Bottom nav */}
-        <div className="dp-content mt-16 border-t border-stone-800 pt-8">
+        <div
+          data-animate="up"
+          data-animate-delay="0.3"
+          className="mt-16 border-t border-stone-800 pt-8"
+        >
           <Link
             href="/sekretariat"
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
@@ -158,7 +135,11 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
       </article>
 
       {/* Right: Table of Contents — hidden below xl breakpoint */}
-      <div className="dp-toc hidden w-56 shrink-0 xl:block">
+      <div
+        data-animate="left"
+        data-animate-delay="0.3"
+        className="hidden w-56 shrink-0 xl:block"
+      >
         <TableOfContents headings={headings} />
       </div>
     </div>

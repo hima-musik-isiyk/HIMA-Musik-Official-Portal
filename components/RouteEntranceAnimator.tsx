@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 
 import { gsap } from "@/lib/gsap";
+import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
 import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 type RouteEntranceAnimatorProps = {
@@ -41,7 +42,7 @@ export default function RouteEntranceAnimator({
   const pathname = usePathname() ?? "/";
   const scopeRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!scopeRef.current) return;
     if (shouldSkipAutoRouteAnimation(pathname)) return;
     if (!shouldRunViewEntrance(pathname)) return;

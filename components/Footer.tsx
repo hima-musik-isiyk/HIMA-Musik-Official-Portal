@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 
-import { gsap } from "@/lib/gsap";
 import { divisions } from "@/lib/pendaftaran-data";
+import useViewEntrance from "@/lib/useViewEntrance";
 import { flagViewEntranceForNextRoute } from "@/lib/view-entrance";
 
 import LogoHima from "./LogoHima";
-
-const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /* ─── tiny reusable arrow icon ─── */
 const ArrowIcon = ({ className = "" }: { className?: string }) => (
@@ -81,99 +79,18 @@ const NAV_LINKS = [
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  const footerRef = useRef<HTMLElement>(null);
-  const brandStripRef = useRef<HTMLDivElement>(null);
-  const accentRuleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const bottomBarRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const scopeRef = useViewEntrance(pathname);
 
-  useIsomorphicLayoutEffect(() => {
-    if (!footerRef.current) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.9 };
-
-      // Brand strip — logo + title + description
-      if (brandStripRef.current) {
-        gsap.fromTo(
-          brandStripRef.current,
-          { y: 24, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            ...defaults,
-            scrollTrigger: {
-              trigger: brandStripRef.current,
-              start: "top 90%",
-              once: true,
-            },
-          },
-        );
-      }
-
-      // Accent horizontal rule
-      if (accentRuleRef.current) {
-        gsap.fromTo(
-          accentRuleRef.current,
-          { scaleX: 0, opacity: 0 },
-          {
-            scaleX: 1,
-            opacity: 1,
-            duration: 1,
-            ease: "expo.inOut",
-            scrollTrigger: {
-              trigger: accentRuleRef.current,
-              start: "top 92%",
-              once: true,
-            },
-          },
-        );
-      }
-
-      // 3-column grid — staggered children
-      if (gridRef.current) {
-        const gridChildren = Array.from(
-          gridRef.current.children,
-        ) as HTMLElement[];
-        gsap.fromTo(
-          gridChildren,
-          { y: 20, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            ...defaults,
-            stagger: 0.12,
-            scrollTrigger: {
-              trigger: gridRef.current,
-              start: "top 88%",
-              once: true,
-            },
-          },
-        );
-      }
-
-      // Bottom bar
-      if (bottomBarRef.current) {
-        gsap.fromTo(
-          bottomBarRef.current,
-          { y: 12, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: bottomBarRef.current,
-              start: "top 95%",
-              once: true,
-            },
-          },
-        );
-      }
-    }, footerRef);
-
-    return () => ctx.revert();
-  }, []);
+  // Helper to only return animation attributes on Home page
+  const animAttrs = (variant: string, delay = 0, scroll = true) => {
+    if (pathname !== "/") return {};
+    return {
+      "data-animate": variant,
+      ...(delay > 0 ? { "data-animate-delay": delay } : {}),
+      ...(scroll ? { "data-animate-scroll": "true" } : {}),
+    };
+  };
 
   const markIntentionalRouteAnimation = () => {
     if (typeof window === "undefined") return;
@@ -182,7 +99,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer
-      ref={footerRef}
+      ref={scopeRef}
       className="relative z-2 overflow-hidden border-t border-stone-800/40 bg-stone-950"
     >
       {/* ── ambient background effects ── */}
@@ -218,7 +135,7 @@ const Footer: React.FC = () => {
       <div className="relative px-8 pt-24 pb-0 md:pt-20">
         {/* ── hero brand strip ── */}
         <div
-          ref={brandStripRef}
+          {...animAttrs("up")}
           className="mx-auto mb-20 flex max-w-7xl flex-col items-center gap-10 text-center md:mb-24 md:flex-row md:gap-16 md:text-left"
         >
           <Link href="/" className="group relative shrink-0">
@@ -250,18 +167,20 @@ const Footer: React.FC = () => {
         {/* ── horizontal accent rule ── */}
         <div className="mx-auto max-w-7xl">
           <div
-            ref={accentRuleRef}
+            {...animAttrs("scale-x", 0)}
+            style={{ transformOrigin: "center" }}
             className="via-gold-500/20 h-px bg-linear-to-r from-transparent to-transparent"
           />
         </div>
 
         {/* ── 3-column grid ── */}
         <div
-          ref={gridRef}
+          data-animate-stagger="0.12"
+          {...(pathname === "/" ? { "data-animate-scroll": "true" } : {})}
           className="mx-auto mt-16 grid max-w-7xl grid-cols-1 gap-16 md:mt-20 md:grid-cols-12 md:gap-8"
         >
           {/* Col 1 — Navigation */}
-          <div className="md:col-span-4">
+          <div {...animAttrs("up", 0, false)} className="md:col-span-4">
             <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
               <span className="bg-gold-500/40 inline-block h-px w-6" />
               Navigasi
@@ -288,7 +207,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Col 2 — Kontak */}
-          <div className="md:col-span-4">
+          <div {...animAttrs("up", 0, false)} className="md:col-span-4">
             <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
               <span className="bg-gold-500/40 inline-block h-px w-6" />
               Kontak
@@ -375,7 +294,7 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Col 3 — Identitas / Quick CTA */}
-          <div className="md:col-span-4">
+          <div {...animAttrs("up", 0, false)} className="md:col-span-4">
             <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
               <span className="bg-gold-500/40 inline-block h-px w-6" />
               Bergabung
@@ -437,7 +356,7 @@ const Footer: React.FC = () => {
       </div>
 
       {/* ═══════════════════  BOTTOM BAR  ═══════════════════ */}
-      <div ref={bottomBarRef} className="relative mt-20 md:mt-24">
+      <div {...animAttrs("up", 0.2)} className="relative mt-20 md:mt-24">
         {/* decorative top border */}
         <div className="mx-auto max-w-7xl px-8">
           <div className="h-px bg-linear-to-r from-transparent via-stone-800/60 to-transparent" />

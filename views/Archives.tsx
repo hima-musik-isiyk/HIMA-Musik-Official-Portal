@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 
-import { gsap } from "@/lib/gsap";
 import type { ArchiveEntry } from "@/lib/notion";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 interface ArchivesViewProps {
   entries: ArchiveEntry[];
@@ -13,37 +12,8 @@ interface ArchivesViewProps {
 }
 
 export default function ArchivesView({ entries, allTags }: ArchivesViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useViewEntrance("/sekretariat/archives");
   const [activeTag, setActiveTag] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    if (!shouldRunViewEntrance("/sekretariat/archives")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      gsap.fromTo(
-        ".arch-header",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".arch-filters",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
-      );
-
-      gsap.fromTo(
-        ".arch-entry",
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, stagger: 0.05, delay: 0.2 },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
 
   const filtered = useMemo(() => {
     if (!activeTag) return entries;
@@ -58,9 +28,9 @@ export default function ArchivesView({ entries, allTags }: ArchivesViewProps) {
   };
 
   return (
-    <div ref={containerRef} className="flex-1 px-6 py-10 md:px-10 lg:px-16">
+    <div ref={scopeRef} className="flex-1 px-6 py-10 md:px-10 lg:px-16">
       {/* Header */}
-      <div className="arch-header mb-10">
+      <div data-animate="up" className="mb-10">
         <nav className="mb-4 flex items-center gap-2 text-xs text-stone-500">
           <Link
             href="/sekretariat"
@@ -83,7 +53,11 @@ export default function ArchivesView({ entries, allTags }: ArchivesViewProps) {
 
       {/* Tag filters */}
       {allTags.length > 0 && (
-        <div className="arch-filters mb-8 flex flex-wrap gap-2">
+        <div
+          data-animate="up"
+          data-animate-delay="0.1"
+          className="mb-8 flex flex-wrap gap-2"
+        >
           <button
             onClick={() => setActiveTag(null)}
             className={`rounded-full border px-3 py-1 text-xs tracking-wider transition-colors ${
@@ -127,7 +101,8 @@ export default function ArchivesView({ entries, allTags }: ArchivesViewProps) {
               <Link
                 key={entry.id}
                 href={`/sekretariat/archives/${entry.id}`}
-                className="arch-entry group hover:border-gold-500/20 block rounded-xl border border-stone-800 bg-stone-900/30 p-6 transition-all hover:bg-stone-900/50"
+                className="group hover:border-gold-500/20 block rounded-xl border border-stone-800 bg-stone-900/30 p-6 transition-all hover:bg-stone-900/50"
+                data-animate="up"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">

@@ -1,109 +1,84 @@
-const VISITED_ROUTES_KEY = "viewEntranceVisited";
-const ENTRANCE_NEXT_ROUTE_KEY = "viewEntranceNextRoute";
+const ENTRANCE_NEXT_ROUTE_KEY = "hima_view_entrance_next_route";
+const SESSION_STARTED_KEY = "hima_view_entrance_session_active";
 
 /**
- * Module-level flags — persist across SPA navigations within one browser tab
- * but reset on a full page reload or HMR re-evaluation.
- *
- * `handledInitialLoad`: ensures we only inspect the Navigation Timing API once
- * per page load (it always reflects the *initial* load, not SPA transitions).
- *
- * `reloadSkipPathname`: when the initial load was a reload / back_forward we
- * must suppress animation for that specific route. We track it so that React 18
- * Strict Mode's second effect invocation also returns `false` for the *same*
- * route, but clears itself as soon as the user navigates elsewhere.
+ * Eagerly computed reload flag for the entire session lifecycle.
  */
-let handledInitialLoad = false;
-let reloadSkipPathname: string | null = null;
+const _isReload: boolean = (() => {
+  if (typeof window === "undefined") return false;
 
-const getNavigationType = (): PerformanceNavigationTiming["type"] | null => {
-  if (typeof window === "undefined") return null;
+  const sessionActive = window.sessionStorage.getItem(SESSION_STARTED_KEY);
+
+  // If this is the start of a session, it cannot be a reload of this app's state
+  if (!sessionActive) {
+    window.sessionStorage.setItem(SESSION_STARTED_KEY, "true");
+    return false;
+  }
+
+  // If session is active, verify navigation type
   const [entry] = performance.getEntriesByType(
     "navigation",
   ) as PerformanceNavigationTiming[];
-  return entry?.type ?? null;
-};
+  const navType = entry?.type;
 
-const getVisitedRoutes = (): Set<string> => {
-  try {
-    const raw = window.sessionStorage.getItem(VISITED_ROUTES_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as string[];
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
-  }
-};
+  return navType === "reload" || navType === "back_forward";
+})();
 
-const markRouteVisited = (pathname: string) => {
-  try {
-    const visited = getVisitedRoutes();
-    visited.add(pathname);
-    window.sessionStorage.setItem(
-      VISITED_ROUTES_KEY,
-      JSON.stringify([...visited]),
-    );
-  } catch {}
-};
+// The pathname that was active when the reload happened.
+// We normalize to ensure trailing slashes don't break comparison.
+const normalizePath = (p: string) => (p === "/" ? p : p.replace(/\/$/, ""));
+
+const _reloadPathname: string | null =
+  _isReload && typeof window !== "undefined"
+    ? normalizePath(window.location.pathname)
+    : null;
+
+let reloadSkipCleared = false;
 
 /**
- * Defer `markRouteVisited` by a micro-tick so that React 18 Strict Mode's
- * synchronous mount → cleanup → remount cycle sees the route as "not visited"
- * on BOTH invocations. The mark lands in sessionStorage only after both
- * effects have finished.
+ * Returns `true` when the current page session started from a hard reload
+ * or back/forward navigation.
  */
-const deferMarkRouteVisited = (pathname: string) => {
-  setTimeout(() => markRouteVisited(pathname), 0);
-};
+export const isPageReload = (): boolean => _isReload;
 
+/**
+ * Marks that the next route navigation is intentional and should NOT be
+ * suppressed even if it normally would be (e.g. following a reload).
+ */
 export const flagViewEntranceForNextRoute = () => {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(ENTRANCE_NEXT_ROUTE_KEY, "true");
 };
 
-export const shouldRunViewEntrance = (pathname: string) => {
+/**
+ * Determines if view entrance animations should run for a given pathname.
+ * Handles page reloads, SPA transitions, and reduced motion.
+ */
+export const shouldRunViewEntrance = (pathname: string): boolean => {
   if (typeof window === "undefined") return false;
 
-  // Respect reduced motion preference — always skip, never mark
-  const reduceMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
-  if (reduceMotion) return false;
+  // 1. Respect user preferences
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return false;
+  }
 
-  // ── Hard page load (reload / back_forward) ─────────────────────────────
-  if (!handledInitialLoad) {
-    handledInitialLoad = true;
-    const navigationType = getNavigationType();
-    if (navigationType === "reload" || navigationType === "back_forward") {
-      reloadSkipPathname = pathname;
-      window.sessionStorage.removeItem(ENTRANCE_NEXT_ROUTE_KEY);
+  // 2. Check for explicit animation flags (forced transitions)
+  const isForced = window.sessionStorage.getItem(ENTRANCE_NEXT_ROUTE_KEY);
+  if (isForced) {
+    window.sessionStorage.removeItem(ENTRANCE_NEXT_ROUTE_KEY);
+    reloadSkipCleared = true; // Clear reload suppression if we forced a navigation
+    return true;
+  }
+
+  // 3. Handle Hard Reload suppression
+  if (_reloadPathname !== null && !reloadSkipCleared) {
+    const normalizedTarget = normalizePath(pathname);
+    if (normalizedTarget === _reloadPathname) {
       return false;
     }
+    // Once we move to any other path, the reload suppression is over.
+    reloadSkipCleared = true;
   }
 
-  // Strict Mode guard: still on the same reload/back_forward route
-  if (reloadSkipPathname !== null) {
-    if (reloadSkipPathname === pathname) return false;
-    // Navigated away from the reload route — clear the guard
-    reloadSkipPathname = null;
-  }
-
-  // ── Intentional re-animation flag (set by footer/nav link clicks) ───────
-  const shouldAnimateNextRoute =
-    window.sessionStorage.getItem(ENTRANCE_NEXT_ROUTE_KEY) === "true";
-
-  if (shouldAnimateNextRoute) {
-    window.sessionStorage.removeItem(ENTRANCE_NEXT_ROUTE_KEY);
-    deferMarkRouteVisited(pathname);
-    return true;
-  }
-
-  // ── Per-route check: only animate if this route hasn't been visited yet ─
-  const visited = getVisitedRoutes();
-  if (!visited.has(pathname)) {
-    deferMarkRouteVisited(pathname);
-    return true;
-  }
-
-  return false;
+  return true;
 };

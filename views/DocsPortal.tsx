@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 
-import { gsap } from "@/lib/gsap";
 import type { DocMeta } from "@/lib/notion";
 import {
   createCommandPaletteShortcutEvent,
@@ -11,7 +10,7 @@ import {
   tokenizeShortcutLabel,
   useCommandPaletteShortcutLabel,
 } from "@/lib/shortcut";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 /* ------------------------------------------------------------------ */
 /*  Category metadata                                                  */
@@ -54,7 +53,7 @@ interface DocsPortalViewProps {
 
 export default function DocsPortalView({ docs }: DocsPortalViewProps) {
   const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useViewEntrance("/sekretariat");
   const cardsRef = useRef<HTMLDivElement>(null);
 
   // Grouping & Stats calculations
@@ -88,110 +87,13 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
     };
   }, [docs]);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-
-    if (!shouldRunViewEntrance("/sekretariat")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      // Header animation
-      gsap.fromTo(
-        ".portal-header",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          ...defaults,
-          scrollTrigger: {
-            trigger: ".portal-header",
-            start: "top 85%",
-            once: true,
-          },
-        },
-      );
-
-      // Stat cards
-      gsap.fromTo(
-        ".stat-card",
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".stat-card",
-            start: "top 90%",
-            once: true,
-          },
-        },
-      );
-
-      // Category cards
-      gsap.fromTo(
-        ".category-card",
-        { y: 40, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          stagger: 0.15,
-          ...defaults,
-          scrollTrigger: {
-            trigger: ".category-card",
-            start: "top 85%",
-            once: true,
-          },
-        },
-      );
-
-      // Sidebar sections
-      gsap.fromTo(
-        ".portal-sidebar-section",
-        { x: 20, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          stagger: 0.1,
-          ...defaults,
-          scrollTrigger: {
-            trigger: ".portal-sidebar-section",
-            start: "top 90%",
-            once: true,
-          },
-        },
-      );
-
-      // Footer accent
-      gsap.fromTo(
-        ".portal-footer-accent",
-        { y: 10, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          stagger: 0.1,
-          ...defaults,
-          scrollTrigger: {
-            trigger: ".portal-footer-accent",
-            start: "top 95%",
-            once: true,
-          },
-        },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <div
-      ref={containerRef}
+      ref={scopeRef}
       className="relative flex-1 px-6 pt-16 pb-24 md:px-10 lg:px-16"
     >
       {/* Hero Header */}
-      <div className="portal-header mb-16 max-w-4xl">
+      <div data-animate="up" className="mb-16 max-w-4xl">
         <div className="mb-4 flex items-center gap-4">
           <span
             className="bg-gold-500/40 block h-px w-8 md:w-12"
@@ -252,7 +154,10 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
       </div>
 
       {/* Statistics Row */}
-      <div className="mb-16 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+      <div
+        data-animate-stagger="0.1"
+        className="mb-16 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
+      >
         {[
           { label: "Total Dokumen", value: stats.totalDocs },
           { label: "Konstitusi", value: stats.totalRegulasi },
@@ -261,7 +166,8 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
         ].map((item, idx) => (
           <div
             key={idx}
-            className="stat-card flex flex-col justify-between border border-white/5 p-6 transition-colors hover:bg-stone-900/20"
+            className="flex flex-col justify-between border border-white/5 p-6 transition-colors hover:bg-stone-900/20"
+            data-animate="up"
           >
             <p className="mb-4 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
               {item.label}
@@ -280,7 +186,8 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
             return (
               <div
                 key={cat.key}
-                className="category-card group relative flex flex-col border border-white/5 p-7 transition-colors hover:bg-stone-900/10"
+                className="group relative flex flex-col border border-white/5 p-7 transition-colors hover:bg-stone-900/10"
+                data-animate="up"
               >
                 <div className="relative mb-6">
                   <p className="mb-2 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
@@ -346,7 +253,10 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
         {/* Right Column: Sidebar (Recently Updated & Forms) */}
         <div className="space-y-6">
           {/* Recently Updated */}
-          <div className="portal-sidebar-section border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
+          <div
+            data-animate="left"
+            className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
+          >
             <div className="mb-6 flex items-center gap-4">
               <span
                 className="bg-gold-500/40 block h-px w-6"
@@ -391,7 +301,10 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           </div>
 
           {/* Quick Forms Section */}
-          <div className="portal-sidebar-section border border-white/5 p-8 transition-colors hover:bg-stone-900/10">
+          <div
+            data-animate="left"
+            className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
+          >
             <h3 className="mb-3 font-serif text-xl text-white">
               Layanan Mandiri
             </h3>
@@ -437,7 +350,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
       </div>
 
       {/* Footer Accents */}
-      <div className="portal-footer-accent mt-24 text-center">
+      <div data-animate="up" className="mt-24 text-center">
         <div className="mb-4 flex items-center justify-center gap-4">
           <div className="h-px w-12 bg-white/5" />
           <div className="bg-gold-500/50 h-1.5 w-1.5 rounded-full" />

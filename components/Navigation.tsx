@@ -11,7 +11,10 @@ import {
   tokenizeShortcutLabel,
   useCommandPaletteShortcutLabel,
 } from "@/lib/shortcut";
-import { flagViewEntranceForNextRoute } from "@/lib/view-entrance";
+import {
+  flagViewEntranceForNextRoute,
+  isPageReload,
+} from "@/lib/view-entrance";
 
 import LogoHima from "./LogoHima";
 
@@ -128,10 +131,11 @@ const Navigation: React.FC = () => {
     if (reduceMotion) return;
 
     const navAnimateFlag = sessionStorage.getItem("navEntranceAnimate");
+    const skipNavEntrance = isPageReload();
 
     const context = gsap.context(() => {
       const timeline = gsap.timeline({ defaults: { ease: "power2.out" } });
-      if (navBarRef.current && !navAnimateFlag) {
+      if (navBarRef.current && !navAnimateFlag && !skipNavEntrance) {
         timeline.from(navBarRef.current, {
           y: -14,
           opacity: 0,

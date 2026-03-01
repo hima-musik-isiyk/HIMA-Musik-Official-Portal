@@ -11,7 +11,7 @@ import {
   RECRUITMENT_PERIOD,
   RECRUITMENT_TITLE,
 } from "@/lib/pendaftaran-data";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 const bphMembers = [
   { role: "Ketua Himpunan", name: "Vincent Nuridzati Adittama" },
@@ -141,7 +141,7 @@ const DivisionAccordionItem: React.FC<{
 };
 
 const PendaftaranLanding: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scopeRef = useViewEntrance("/pendaftaran");
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const branchContainerRef = useRef<HTMLDivElement>(null);
   const sekretarisBranchRef = useRef<HTMLDivElement>(null);
@@ -187,98 +187,9 @@ const PendaftaranLanding: React.FC = () => {
     }));
   };
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !containerRef.current) return;
-    if (!shouldRunViewEntrance("/pendaftaran")) return;
-
-    const ctx = gsap.context(() => {
-      const defaults = { ease: "power3.out", duration: 0.8 };
-
-      // Hero entrance
-      gsap.fromTo(
-        ".pdl-eyebrow",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults },
-      );
-
-      gsap.fromTo(
-        ".pdl-title",
-        { y: 24, opacity: 0 },
-        { y: 0, opacity: 1, ...defaults, delay: 0.1 },
-      );
-
-      gsap.fromTo(
-        ".pdl-desc",
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 },
-      );
-
-      gsap.fromTo(
-        ".pdl-badge",
-        { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.3 },
-      );
-
-      // Section headers on scroll
-      gsap.fromTo(
-        ".pdl-section-header",
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          stagger: 0.15,
-          ...defaults,
-          scrollTrigger: {
-            trigger: ".pdl-section-header",
-            start: "top 85%",
-            once: true,
-          },
-        },
-      );
-
-      // Org chart boxes
-      gsap.fromTo(
-        ".pdl-org-box",
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".pdl-org-box",
-            start: "top 85%",
-            once: true,
-          },
-        },
-      );
-
-      // Open division cards
-      gsap.fromTo(
-        ".pdl-open-div",
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".pdl-open-div",
-            start: "top 85%",
-            once: true,
-          },
-        },
-      );
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <div
-      ref={containerRef}
+      ref={scopeRef}
       className="relative min-h-screen overflow-x-hidden px-6 pt-40 pb-32"
     >
       <div className="pointer-events-none absolute inset-0 w-full bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]" />
@@ -286,7 +197,7 @@ const PendaftaranLanding: React.FC = () => {
       <div className="relative z-10 mx-auto max-w-6xl">
         {/* ── Hero ───────────────────────────────────────────── */}
         <section className="mb-24">
-          <div className="pdl-eyebrow mb-8 flex items-center gap-4">
+          <div data-animate="up" className="mb-8 flex items-center gap-4">
             <span
               className="bg-gold-500/40 block h-px w-8 md:w-12"
               aria-hidden="true"
@@ -296,7 +207,11 @@ const PendaftaranLanding: React.FC = () => {
             </p>
           </div>
 
-          <h1 className="pdl-title mb-4 font-serif text-5xl tracking-tight text-white md:text-7xl">
+          <h1
+            data-animate="up"
+            data-animate-delay="0.1"
+            className="mb-4 font-serif text-5xl tracking-tight text-white md:text-7xl"
+          >
             Pendaftaran{" "}
             <span className="text-gold-500/80 font-light italic">Pengurus</span>{" "}
             <span className="text-3xl font-light text-neutral-600 md:text-4xl">
@@ -304,13 +219,19 @@ const PendaftaranLanding: React.FC = () => {
             </span>
           </h1>
 
-          <p className="pdl-desc mb-6 max-w-xl text-base leading-relaxed text-neutral-400">
+          <p
+            data-animate="up"
+            data-animate-delay="0.2"
+            className="mb-6 max-w-xl text-base leading-relaxed text-neutral-400"
+          >
             Mari wujudkan visi bersama. Jadilah bagian dari pengurus HIMA Musik
             2026.
           </p>
 
           <div
-            className="pdl-badge inline-block border border-white/10 px-5 py-2"
+            data-animate="up"
+            data-animate-delay="0.3"
+            className="inline-block border border-white/10 px-5 py-2"
             style={{ borderRadius: "var(--radius-action)" }}
           >
             <p className="text-sm text-neutral-400">
@@ -322,7 +243,7 @@ const PendaftaranLanding: React.FC = () => {
 
         {/* ── Struktur BPH ───────────────────────────────────── */}
         <section className="mb-24">
-          <div className="pdl-section-header mb-12 flex items-center gap-4">
+          <div data-animate="up" className="mb-12 flex items-center gap-4">
             <span
               className="bg-gold-500/40 block h-px w-8 md:w-12"
               aria-hidden="true"
@@ -335,7 +256,10 @@ const PendaftaranLanding: React.FC = () => {
           {/* Org‑chart tree */}
           <div className="flex flex-col items-center">
             {/* Ketua */}
-            <div className="pdl-org-box w-full max-w-sm border border-white/8 bg-white/3 px-8 py-6 text-center">
+            <div
+              data-animate="up"
+              className="w-full max-w-sm border border-white/8 bg-white/3 px-8 py-6 text-center"
+            >
               <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                 {bphMembers[0].role}
               </p>
@@ -347,7 +271,10 @@ const PendaftaranLanding: React.FC = () => {
             <div className="h-8 w-px bg-white/15" />
 
             {/* Wakil */}
-            <div className="pdl-org-box w-full max-w-sm border border-white/8 bg-white/3 px-8 py-6 text-center">
+            <div
+              data-animate="up"
+              className="w-full max-w-sm border border-white/8 bg-white/3 px-8 py-6 text-center"
+            >
               <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                 {bphMembers[1].role}
               </p>
@@ -377,7 +304,7 @@ const PendaftaranLanding: React.FC = () => {
                   ref={sekretarisBranchRef}
                 >
                   <div className="h-8 w-px bg-white/15" />
-                  <div className="flex w-full flex-1 flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-[100px] md:px-6 md:py-6">
+                  <div className="flex w-full flex-1 flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-25 md:px-6 md:py-6">
                     <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                       {bphMembers[2].role}
                     </p>
@@ -387,7 +314,7 @@ const PendaftaranLanding: React.FC = () => {
                   </div>
 
                   <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
-                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-[110px] w-full flex-1 flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-1 flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
                     <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
                       Co-Sekretaris
                     </p>
@@ -406,7 +333,7 @@ const PendaftaranLanding: React.FC = () => {
                   ref={bendaharaBranchRef}
                 >
                   <div className="h-8 w-px bg-white/15" />
-                  <div className="flex w-full flex-1 flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-[100px] md:px-6 md:py-6">
+                  <div className="flex w-full flex-1 flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-25 md:px-6 md:py-6">
                     <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                       {bphMembers[3].role}
                     </p>
@@ -416,7 +343,7 @@ const PendaftaranLanding: React.FC = () => {
                   </div>
 
                   <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
-                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-[110px] w-full flex-1 flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-1 flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
                     <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
                       Co-Bendahara
                     </p>
@@ -445,11 +372,15 @@ const PendaftaranLanding: React.FC = () => {
               <div className="bg-gold-500/10 h-px flex-1" />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div
+              data-animate-stagger="0.1"
+              className="grid grid-cols-1 gap-4 md:grid-cols-3"
+            >
               {openDivisions.map((division) => (
                 <div
                   key={division.name}
-                  className="pdl-open-div border-gold-500/20 bg-gold-500/5 border p-6 text-center"
+                  data-animate="up"
+                  className="border-gold-500/20 bg-gold-500/5 border p-6 text-center"
                 >
                   <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
                     Divisi
