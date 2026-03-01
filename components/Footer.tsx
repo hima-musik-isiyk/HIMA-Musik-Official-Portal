@@ -82,6 +82,9 @@ const Footer: React.FC = () => {
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname);
 
+  // Don't render footer on sekretariat pages
+  if (pathname?.startsWith("/sekretariat")) return null;
+
   // Helper to only return animation attributes on Home page
   const animAttrs = (variant: string, delay = 0, scroll = true) => {
     if (pathname !== "/") return {};
