@@ -527,7 +527,7 @@ function SingleBlockRenderer({ block }: { block: NotionBlock }) {
   switch (block.type) {
     case "paragraph":
       return (
-        <p className="text-base leading-relaxed text-neutral-300">
+        <p className="text-base leading-relaxed whitespace-pre-wrap text-neutral-300">
           {renderRichText(typed.rich_text, false, false, true)}
         </p>
       );
@@ -787,7 +787,7 @@ function BlockRenderer({
       }
 
       const cls = [
-        "text-base leading-relaxed",
+        "text-base leading-relaxed whitespace-pre-wrap",
         blockTextClass || "text-neutral-300",
         blockBgClass ? `${blockBgClass} px-3 py-2 rounded-lg` : "",
       ]
