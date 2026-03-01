@@ -83,8 +83,6 @@ function KKMCard({ group }: { group: KKMGroup }) {
 export default function KKMPortalView() {
   const scopeRef = useViewEntrance("/kkm");
 
-  const openCount = KKM_GROUPS.filter((g) => g.recruitmentOpen).length;
-
   return (
     <div
       ref={scopeRef}
@@ -110,30 +108,6 @@ export default function KKMPortalView() {
           Temukan keluarga bermusikmu, kembangkan potensi, dan ciptakan karya
           bersama.
         </p>
-      </div>
-
-      {/* Statistics Row */}
-      <div
-        data-animate-stagger="0.1"
-        className="mb-16 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"
-      >
-        {[
-          { label: "Total KKM", value: KKM_GROUPS.length },
-          { label: "Anggota Aktif", value: "200+" },
-          { label: "Rekrutmen Terbuka", value: openCount },
-          { label: "Kepengurusan", value: "2026-2027" },
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className="flex flex-col justify-between border border-white/5 p-6 transition-colors hover:bg-stone-900/20"
-            data-animate="up"
-          >
-            <p className="mb-4 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
-              {item.label}
-            </p>
-            <h3 className="font-serif text-2xl text-white">{item.value}</h3>
-          </div>
-        ))}
       </div>
 
       {/* KKM Grid */}
