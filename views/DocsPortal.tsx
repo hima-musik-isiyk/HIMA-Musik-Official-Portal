@@ -43,6 +43,18 @@ const CATEGORIES = [
     description:
       "Format surat resmi, formulir peminjaman, dan templat dokumen organisasi siap pakai.",
   },
+  {
+    key: "Identitas",
+    title: "Identitas Visual",
+    description:
+      "Panduan penggunaan logo, warna resmi, tipografi, dan aset visual identitas HIMA MUSIK.",
+  },
+  {
+    key: "KKM",
+    title: "Regulasi KKM",
+    description:
+      "AD/ART Pasal 26-27: aturan pendirian, hak & kewajiban, serta tata kelola 8 KKM di bawah naungan HIMA MUSIK.",
+  },
 ];
 
 /* ------------------------------------------------------------------ */

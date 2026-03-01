@@ -36,6 +36,7 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   { label: "Profil", href: "/about" },
+  { label: "KKM", href: "/kkm" },
   {
     label: "Publikasi",
     dropdown: [
@@ -76,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
 const MOBILE_NAV_ITEMS = [
   { href: "/", label: "Beranda" },
   { href: "/about", label: "Profil" },
+  { href: "/kkm", label: "KKM" },
   { href: "/events", label: "Acara" },
   { href: "/gallery", label: "Galeri" },
   { href: "/sekretariat", label: "Pusat Administrasi" },
