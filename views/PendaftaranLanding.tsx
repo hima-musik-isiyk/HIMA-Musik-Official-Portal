@@ -62,7 +62,7 @@ const DivisionAccordionItem: React.FC<{
   }, [isOpen]);
 
   return (
-    <div className="border border-white/5 bg-white/2">
+    <div data-animate="up" className="border border-white/5 bg-white/2">
       <button
         type="button"
         onClick={onToggle}
@@ -268,7 +268,7 @@ const PendaftaranLanding: React.FC = () => {
               </p>
             </div>
 
-            <div className="h-8 w-px bg-white/15" />
+            <div data-animate="up" className="h-8 w-px bg-white/15" />
 
             {/* Wakil */}
             <div
@@ -284,10 +284,16 @@ const PendaftaranLanding: React.FC = () => {
             </div>
 
             {/* Connector down to branch */}
-            <div className="h-8 w-px bg-white/15" />
+            <div data-animate="up" className="h-8 w-px bg-white/15" />
 
             {/* T‑branch: Sekretaris & Bendahara */}
-            <div className="relative w-full max-w-2xl" ref={branchContainerRef}>
+            <div
+              data-animate="fade"
+              data-animate-delay="0.1"
+              data-animate-start="top 100%"
+              className="relative w-full max-w-2xl"
+              ref={branchContainerRef}
+            >
               {/* Horizontal bar spanning exact column centres */}
               <div
                 className="absolute top-0 h-px bg-white/15"
@@ -361,7 +367,7 @@ const PendaftaranLanding: React.FC = () => {
 
           {/* Open Divisions */}
           <div className="mt-16">
-            <div className="mb-8 flex items-center gap-4">
+            <div data-animate="up" className="mb-8 flex items-center gap-4">
               <span
                 className="bg-gold-500/40 block h-px w-8 md:w-12"
                 aria-hidden="true"
@@ -400,7 +406,10 @@ const PendaftaranLanding: React.FC = () => {
           </div>
 
           {/* Legend */}
-          <div className="mt-10 flex flex-wrap items-center gap-6 text-xs text-neutral-500">
+          <div
+            data-animate="up"
+            className="mt-10 flex flex-wrap items-center gap-6 text-xs text-neutral-500"
+          >
             <span className="flex items-center gap-2.5">
               <span className="inline-block h-3 w-3 border border-white/8 bg-white/3" />
               Posisi terisi
@@ -418,7 +427,7 @@ const PendaftaranLanding: React.FC = () => {
 
         {/* ── Panduan Divisi ─────────────────────────────────── */}
         <section className="mb-24">
-          <div className="mb-12 flex items-center gap-4">
+          <div data-animate="up" className="mb-12 flex items-center gap-4">
             <span
               className="bg-gold-500/40 block h-px w-8 md:w-12"
               aria-hidden="true"
@@ -426,7 +435,7 @@ const PendaftaranLanding: React.FC = () => {
             <p className="text-gold-500 text-sm font-medium">Panduan Divisi</p>
           </div>
 
-          <div className="space-y-4">
+          <div data-animate-stagger="0.1" className="space-y-4">
             {divisions.map((division) => (
               <DivisionAccordionItem
                 key={division.id}
@@ -442,7 +451,7 @@ const PendaftaranLanding: React.FC = () => {
         <section className="mb-24">
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
             <div>
-              <div className="mb-8 flex items-center gap-4">
+              <div data-animate="up" className="mb-8 flex items-center gap-4">
                 <span
                   className="bg-gold-500/40 block h-px w-8 md:w-12"
                   aria-hidden="true"
@@ -451,15 +460,21 @@ const PendaftaranLanding: React.FC = () => {
                   What to Prepare
                 </p>
               </div>
-              <h2 className="mb-6 font-serif text-3xl text-white md:text-4xl">
+              <h2
+                data-animate="up"
+                className="mb-6 font-serif text-3xl text-white md:text-4xl"
+              >
                 Mindset & <span className="italic">Persiapan</span>
               </h2>
-              <p className="mb-8 leading-relaxed text-neutral-400">
+              <p
+                data-animate="up"
+                className="mb-8 leading-relaxed text-neutral-400"
+              >
                 Kami mencari individu yang tidak hanya memiliki skill teknis,
                 tetapi juga integritas, semangat kolaborasi, dan kecintaan pada
                 ekosistem musik kampus.
               </p>
-              <div className="space-y-6">
+              <div data-animate-stagger="0.1" className="space-y-6">
                 {[
                   {
                     label: "Professionalism",
@@ -474,7 +489,11 @@ const PendaftaranLanding: React.FC = () => {
                     text: "Terbuka terhadap feedback dan pembelajaran baru.",
                   },
                 ].map((item) => (
-                  <div key={item.label} className="flex gap-4">
+                  <div
+                    key={item.label}
+                    data-animate="up"
+                    className="flex gap-4"
+                  >
                     <div className="bg-gold-500/10 border-gold-500/20 text-gold-500 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px]">
                       ✓
                     </div>
@@ -489,7 +508,10 @@ const PendaftaranLanding: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-gold-500/10 bg-gold-500/2 mt-8 border p-8 md:p-10 lg:mt-0">
+            <div
+              data-animate="up"
+              className="border-gold-500/10 bg-gold-500/2 mt-8 border p-8 md:p-10 lg:mt-0"
+            >
               <div className="mb-6 flex h-10 w-10 items-center justify-center bg-white/5">
                 <span className="text-gold-500 text-lg">✦</span>
               </div>
@@ -513,7 +535,7 @@ const PendaftaranLanding: React.FC = () => {
 
         {/* ── Timeline Seleksi ───────────────────────────────── */}
         <section className="mb-24">
-          <div className="mb-12 flex items-center gap-4">
+          <div data-animate="up" className="mb-12 flex items-center gap-4">
             <span
               className="bg-gold-500/40 block h-px w-8 md:w-12"
               aria-hidden="true"
@@ -523,13 +545,16 @@ const PendaftaranLanding: React.FC = () => {
             </p>
           </div>
 
-          <div className="mt-8">
+          <div data-animate="up" className="mt-8">
             <SelectionTimelineCalendar />
           </div>
         </section>
 
         {/* ── CTA ────────────────────────────────────────────── */}
-        <section className="border-t border-white/5 py-16 text-center">
+        <section
+          data-animate="up"
+          className="border-t border-white/5 py-16 text-center"
+        >
           <p className="mb-8 text-sm text-neutral-500">Siap bergabung?</p>
           <Link href="/pendaftaran/form" className="btn-primary inline-flex">
             Isi Formulir Pendaftaran

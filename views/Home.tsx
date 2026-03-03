@@ -227,6 +227,7 @@ const Home: React.FC = () => {
           data-animate="fade"
           data-animate-delay="1.5"
           data-animate-duration="0.9"
+          data-animate-start="top 100%"
           className="relative z-10 flex justify-center pb-8 md:pb-10"
         >
           <div className="flex flex-col items-center gap-3 text-stone-600">
