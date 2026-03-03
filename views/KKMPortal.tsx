@@ -9,7 +9,7 @@ import useViewEntrance from "@/lib/useViewEntrance";
 function KKMCard({ group }: { group: KKMGroup }) {
   return (
     <div
-      className="group relative flex flex-col border border-white/5 p-7 transition-all duration-500 hover:bg-stone-900/10"
+      className="group relative flex flex-col border border-white/5 p-7 transition-colors duration-500 hover:bg-stone-900/10"
       data-animate="up"
     >
       {/* Recruitment badge */}
@@ -101,7 +101,10 @@ export default function KKMPortalView() {
       </div>
 
       {/* KKM Grid */}
-      <div className="mb-24 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div
+        data-animate-stagger="0.08"
+        className="mb-24 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+      >
         {KKM_GROUPS.map((group) => (
           <KKMCard key={group.slug} group={group} />
         ))}

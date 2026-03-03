@@ -80,7 +80,10 @@ const isInInitialViewport = (el: HTMLElement, threshold: number): boolean => {
   return rect.top < viewportHeight * threshold;
 };
 
-export default function useViewEntrance(pathname: string) {
+export default function useViewEntrance(
+  pathname: string,
+  deps: ReadonlyArray<unknown> = [],
+) {
   const scopeRef = useRef<HTMLDivElement | null>(null);
 
   useIsomorphicLayoutEffect(() => {
@@ -128,10 +131,12 @@ export default function useViewEntrance(pathname: string) {
 
     if (standalone.length === 0 && groups.length === 0) return;
 
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     const ctx = gsap.context(() => {
       if (!shouldAnimate) {
         // If animations are suppressed (e.g. reload), ensure elements are visible
-        gsap.set([...Array.from(all)], { clearProps: "all" });
+        gsap.set(Array.from(all), { clearProps: "all" });
         return;
       }
 
@@ -140,17 +145,17 @@ export default function useViewEntrance(pathname: string) {
       standalone.forEach((el) => {
         const variant = el.getAttribute("data-animate") || "up";
         const from = VARIANTS[variant] || VARIANTS.up;
-        gsap.set(el, { ...from, autoAlpha: 0 });
+        gsap.set(el, from);
       });
 
       groups.forEach(({ children }) => {
         const variant = children[0].getAttribute("data-animate") || "up";
         const from = VARIANTS[variant] || VARIANTS.up;
-        gsap.set(children, { ...from, autoAlpha: 0 });
+        gsap.set(children, from);
       });
 
       // Use a tiny timeout to ensure layout is stable before checking viewport
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         let immediateBaseDelay = 0;
 
         standalone.forEach((el) => {
@@ -171,14 +176,13 @@ export default function useViewEntrance(pathname: string) {
 
           gsap.to(el, {
             ...toVals(from),
-            autoAlpha: 1,
             duration,
             delay: isImmediate ? immediateBaseDelay + delay : delay,
             ease: variant === "scale-x" ? "expo.inOut" : EASE,
             clearProps: "all",
-            scrollTrigger: isImmediate
-              ? null
-              : { trigger: el, start, once: true },
+            ...(isImmediate
+              ? {}
+              : { scrollTrigger: { trigger: el, start, once: true } }),
           });
 
           if (isImmediate && delay === 0) {
@@ -203,15 +207,16 @@ export default function useViewEntrance(pathname: string) {
 
           gsap.to(children, {
             ...toVals(from),
-            autoAlpha: 1,
             duration,
             delay: isImmediate ? immediateBaseDelay : 0,
             stagger,
             ease: EASE,
             clearProps: "all",
-            scrollTrigger: isImmediate
-              ? null
-              : { trigger: container, start, once: true },
+            ...(isImmediate
+              ? {}
+              : {
+                  scrollTrigger: { trigger: container, start, once: true },
+                }),
           });
 
           if (isImmediate) {
@@ -219,12 +224,13 @@ export default function useViewEntrance(pathname: string) {
           }
         });
       }, 50);
-
-      return () => clearTimeout(timer);
     }, root);
 
-    return () => ctx.revert();
-  }, [pathname]);
+    return () => {
+      if (timer) clearTimeout(timer);
+      ctx.revert();
+    };
+  }, [pathname, ...deps]);
 
   return scopeRef;
 }
