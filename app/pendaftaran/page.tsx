@@ -1,7 +1,6 @@
-import React from "react";
-
-import PendaftaranLanding from "../../views/PendaftaranLanding";
+import { redirect } from "next/navigation";
 
 export default function PendaftaranPage() {
-  return <PendaftaranLanding />;
+  // Hidden: redirect visitors to the homepage
+  redirect("/");
 }

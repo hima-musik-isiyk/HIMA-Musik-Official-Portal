@@ -156,7 +156,7 @@ const SelectionTimelineCalendar: React.FC = () => {
       {/* Desktop Calendar Grid */}
       <div className="hidden md:block">
         <div className="scrollbar-hide overflow-x-auto pb-4">
-          <div className="min-w-[600px] lg:min-w-full">
+          <div className="min-w-150 lg:min-w-full">
             <div className="mb-4 grid grid-cols-7 gap-2 md:gap-4">
               {DAYS_OF_WEEK.map((day) => (
                 <div
@@ -181,7 +181,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                 return (
                   <div
                     key={index}
-                    className={`calendar-day relative min-h-[120px] bg-[#0a0a0a] py-2 transition-colors hover:bg-white/2 md:py-3 ${
+                    className={`calendar-day relative min-h-30 bg-[#0a0a0a] py-2 transition-colors hover:bg-white/2 md:py-3 ${
                       !isCurrentMonth ? "opacity-30" : ""
                     } ${active ? "z-20 shadow-[0_0_20px_rgba(212,166,77,0.05)]" : hasContinuous ? "z-30" : "z-10"}`}
                   >
@@ -200,7 +200,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                     <div className="mb-2 flex items-center justify-between px-2 md:px-3">
                       <div className="flex items-center gap-2">
                         {active && (
-                          <span className="bg-gold-500 h-4 w-[2px] rounded-full" />
+                          <span className="bg-gold-500 h-4 w-0.5 rounded-full" />
                         )}
                         <span
                           className={`font-serif text-sm transition-colors ${
@@ -289,7 +289,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                               setHoveredEventTitle(null);
                               setTooltipData(null);
                             }}
-                            className={`group relative flex h-[40px] flex-col justify-center overflow-hidden px-2 py-1 text-[10px] leading-tight opacity-100 transition-all md:h-[48px] md:text-xs ${
+                            className={`group relative flex h-10 flex-col justify-center overflow-hidden px-2 py-1 text-[10px] leading-tight opacity-100 transition-all md:h-12 md:text-xs ${
                               isEventActive
                                 ? "text-gold-200 bg-[#1a150e]" // Active event background
                                 : "bg-[#141414] text-neutral-300" // Inactive event background
@@ -330,7 +330,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                               </div>
                               {showDeadline && (
                                 <div
-                                  className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 pb-[2px] transition-all duration-300 ${
+                                  className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 pb-0.5 transition-all duration-300 ${
                                     isEventActive
                                       ? "bg-gold-500 shadow-[0_2px_10px_rgba(212,166,77,0.3)]"
                                       : "bg-white/5"
@@ -358,7 +358,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                               )}
                               {showInfo && (
                                 <div
-                                  className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 pb-[2px] transition-all duration-300 ${
+                                  className={`flex shrink-0 items-center gap-1 rounded-[2px] px-1.5 py-0.5 pb-0.5 transition-all duration-300 ${
                                     isEventActive
                                       ? "bg-white/90 shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
                                       : "bg-white/5"
@@ -408,7 +408,7 @@ const SelectionTimelineCalendar: React.FC = () => {
             <span>Jadwal & Agenda</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="bg-gold-500 h-3 w-[2px] rounded-full" />
+            <span className="bg-gold-500 h-3 w-0.5 rounded-full" />
             <span>Penanda Hari</span>
           </div>
         </div>
@@ -444,10 +444,10 @@ const SelectionTimelineCalendar: React.FC = () => {
               return (
                 <div key={index} className="group flex items-stretch gap-6">
                   {/* Timeline Node Container with built-in track segments */}
-                  <div className="relative flex w-[15px] shrink-0 flex-col items-center">
+                  <div className="relative flex w-3.75 shrink-0 flex-col items-center">
                     {/* Top Segment (connects to previous node) */}
                     <div
-                      className={`z-0 -mb-2 w-[2px] flex-1 transition-colors duration-500 ${
+                      className={`z-0 -mb-2 w-0.5 flex-1 transition-colors duration-500 ${
                         isFirst
                           ? "bg-transparent"
                           : hasReachedEvent
@@ -471,7 +471,7 @@ const SelectionTimelineCalendar: React.FC = () => {
 
                     {/* Bottom Segment (connects to next node) */}
                     <div
-                      className={`z-0 -mt-2 w-[2px] flex-1 transition-colors duration-500 ${
+                      className={`z-0 -mt-2 w-0.5 flex-1 transition-colors duration-500 ${
                         isLast
                           ? "bg-transparent"
                           : isEventPast
@@ -484,7 +484,7 @@ const SelectionTimelineCalendar: React.FC = () => {
                   {/* Card content */}
                   <div className="flex-1 py-4">
                     <div
-                      className={`rounded-[4px] border p-4 transition-all duration-500 ${
+                      className={`rounded-lg border p-4 transition-all duration-500 ${
                         isEventActive
                           ? "border-gold-500/40 bg-[#1a150e] shadow-[0_4px_20px_rgba(212,166,77,0.05)]"
                           : "border-white/5 bg-[#0f0f0f]"
@@ -627,7 +627,7 @@ const SelectionTimelineCalendar: React.FC = () => {
 
             {/* Tooltip Arrow */}
             <div
-              className="border-gold-500/20 absolute bottom-[-6px] h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b bg-black"
+              className="border-gold-500/20 absolute -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b bg-black"
               style={{
                 left: `calc(50% - ${tooltipData.offset}px)`,
               }}

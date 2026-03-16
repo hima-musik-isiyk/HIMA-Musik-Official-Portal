@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 
-import { divisions } from "@/lib/pendaftaran-data";
+// divisions data removed from footer since recruitment CTA is hidden
 import useViewEntrance from "@/lib/useViewEntrance";
 import { flagViewEntranceForNextRoute } from "@/lib/view-entrance";
 
@@ -27,44 +27,7 @@ const ArrowIcon = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 
-/* ─── animated counter for the year ─── */
-const AnimatedYear = ({ year }: { year: number }) => {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
-
-  useEffect(() => {
-    if (hasAnimated.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting || hasAnimated.current) return;
-        hasAnimated.current = true;
-
-        const start = 0;
-        const duration = 1200;
-        const startTime = performance.now();
-
-        const step = (now: number) => {
-          const elapsed = now - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          // ease-out cubic
-          const eased = 1 - Math.pow(1 - progress, 3);
-          setDisplay(Math.round(start + (year - start) * eased));
-          if (progress < 1) requestAnimationFrame(step);
-        };
-
-        requestAnimationFrame(step);
-      },
-      { threshold: 0.5 },
-    );
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [year]);
-
-  return <span ref={ref}>{display}</span>;
-};
+/* Animated year counter removed (unused) */
 
 /* ─── data ─── */
 const NAV_LINKS = [
@@ -74,7 +37,7 @@ const NAV_LINKS = [
   { name: "Galeri Visual", href: "/gallery" },
   { name: "Pusat Administrasi", href: "/sekretariat" },
   { name: "Ruang Advokasi", href: "/aduan" },
-  { name: "Open Recruitment", href: "/pendaftaran" },
+  // Open Recruitment intentionally hidden
 ];
 
 const Footer: React.FC = () => {
@@ -296,65 +259,13 @@ const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Col 3 — Identitas / Quick CTA */}
-          <div {...animAttrs("up", 0, false)} className="md:col-span-4">
-            <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
-              <span className="bg-gold-500/40 inline-block h-px w-6" />
-              Bergabung
-            </h4>
-
-            <div className="group hover:border-gold-500/20 relative overflow-hidden rounded-lg border border-stone-800/50 bg-linear-to-br from-stone-900/60 to-stone-950 p-8 transition-all duration-500">
-              {/* card inner glow */}
-              <div className="bg-gold-500/5 pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
-
-              <p className="relative mb-6 text-sm leading-[1.8] text-stone-400">
-                Periode kepengurusan 2026 sedang membuka lowongan. Jadilah
-                bagian dari kabinet baru dan bangun bersama kami.
-              </p>
-
-              <Link
-                href="/pendaftaran"
-                onClick={markIntentionalRouteAnimation}
-                className="text-gold-500 hover:text-gold-300 relative inline-flex items-center gap-2 text-xs font-semibold tracking-[0.25em] uppercase transition-all duration-300 hover:gap-3"
-              >
-                Daftar Sekarang
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-
-            {/* stat nuggets */}
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-stone-800/30 bg-stone-900/30 p-4 text-center transition-colors duration-300 hover:border-stone-700/50">
-                <span className="block font-serif text-2xl text-white">
-                  <AnimatedYear year={currentYear - 1961} />
-                </span>
-                <span className="mt-1 block text-[0.6rem] tracking-[0.3em] text-stone-600 uppercase">
-                  EST. 1961
-                </span>
-              </div>
-              <div className="rounded-lg border border-stone-800/30 bg-stone-900/30 p-4 text-center transition-colors duration-300 hover:border-stone-700/50">
-                <span className="text-gold-500 block font-serif text-2xl">
-                  {divisions.reduce((acc, div) => acc + (div.slots || 0), 0) ||
-                    "-"}
-                </span>
-                <span className="mt-1 block text-[0.6rem] tracking-[0.3em] text-stone-600 uppercase">
-                  Slot Terbuka
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* Col 3 — Identitas / Quick CTA (hidden) */}
+          <div
+            {...animAttrs("up", 0, false)}
+            className="md:col-span-4"
+            aria-hidden="true"
+            style={{ display: "none" }}
+          />
         </div>
       </div>
 
