@@ -65,11 +65,6 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Ruang Advokasi",
         description: "Layanan aduan & aspirasi mahasiswa",
       },
-      {
-        href: "/pendaftaran",
-        label: "Open Recruitment",
-        description: "Informasi & pendaftaran calon pengurus HIMA MUSIK",
-      },
     ],
   },
 ];
@@ -82,7 +77,7 @@ const MOBILE_NAV_ITEMS = [
   { href: "/gallery", label: "Galeri" },
   { href: "/sekretariat", label: "Pusat Administrasi" },
   { href: "/aduan", label: "Ruang Advokasi" },
-  { href: "/pendaftaran", label: "Open Recruitment" },
+  // pendaftaran intentionally hidden from mobile nav
 ];
 
 /* ------------------------------------------------------------------ */
@@ -582,7 +577,7 @@ const Navigation: React.FC = () => {
                   onMouseLeave={handleDropdownLeave}
                 >
                   <button
-                    className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] uppercase transition-all duration-300 ${
+                    className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] transition-all duration-300 ${
                       isGroupActive(group)
                         ? "text-gold-500"
                         : "text-neutral-500 hover:text-white"
@@ -671,7 +666,7 @@ const Navigation: React.FC = () => {
                   key={group.label}
                   href={group.href!}
                   onClick={markIntentionalRouteAnimation}
-                  className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] uppercase transition-all duration-500 ${
+                  className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] transition-all duration-500 ${
                     isGroupActive(group)
                       ? "text-gold-500"
                       : "text-neutral-500 hover:text-white"
@@ -692,14 +687,7 @@ const Navigation: React.FC = () => {
 
           {/* RIGHT: CTA + Search + Hamburger */}
           <div className="flex items-center gap-4">
-            {/* Desktop CTA */}
-            <Link
-              href="/pendaftaran"
-              onClick={markIntentionalRouteAnimation}
-              className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 lg:inline-flex"
-            >
-              Open Recruitment
-            </Link>
+            {/* Desktop CTA (Open Recruitment) removed to hide pendaftaran page */}
 
             {/* Search trigger */}
             <button

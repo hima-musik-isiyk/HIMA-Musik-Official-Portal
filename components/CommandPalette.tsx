@@ -54,13 +54,6 @@ const STATIC_PAGES: SearchResult[] = [
     highlight: "Layanan aduan mahasiswa",
   },
   {
-    id: "pendaftaran",
-    title: "Open Recruitment",
-    slug: "/pendaftaran",
-    category: "Layanan",
-    highlight: "Pendaftaran anggota baru",
-  },
-  {
     id: "docs",
     title: "Pusat Administrasi & Sekretariat",
     slug: "/sekretariat",
