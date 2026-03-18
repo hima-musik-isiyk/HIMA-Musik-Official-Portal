@@ -133,7 +133,7 @@ function getDate(page: NotionPage, name: string): string {
 /*  Docs database queries                                              */
 /* ------------------------------------------------------------------ */
 
-const DOCS_DB_ID = process.env.NOTION_DATABASE_ID ?? "";
+const DOCS_DB_ID = process.env.NOTION_PROJECT_DATABASE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string>();
 

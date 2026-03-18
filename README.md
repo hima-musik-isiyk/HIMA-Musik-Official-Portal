@@ -51,7 +51,7 @@ The portal focuses on:
    ```bash
    GROQ_API_KEY=your_groq_api_key
    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-   TELEGRAM_CHAT_ID=your_telegram_chat_id
+   TELEGRAM_GROUP_CHAT_ID=your_TELEGRAM_GROUP_CHAT_ID
    ```
 
    Alternatively, the Groq client also accepts `API_KEY` if you prefer that variable name.
@@ -87,4 +87,4 @@ Ensure the production environment has the same environment variables configured:
 
 - `GROQ_API_KEY` or `API_KEY`
 - `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_GROUP_CHAT_ID`
