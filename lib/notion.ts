@@ -26,9 +26,9 @@ const globalForNotion = globalThis as unknown as {
 };
 
 function createNotionClient() {
-  const token = process.env.NOTION_TOKEN;
+  const token = process.env.NOTION_INTEGRATION_TOKEN;
   if (!token) {
-    throw new Error("Missing NOTION_TOKEN environment variable");
+    throw new Error("Missing NOTION_INTEGRATION_TOKEN environment variable");
   }
   return new Client({ auth: token });
 }
