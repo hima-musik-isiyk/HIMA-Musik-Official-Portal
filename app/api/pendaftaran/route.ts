@@ -272,7 +272,7 @@ export async function POST(request: Request) {
     }
 
     const apiKey = process.env.BREVO_API_KEY;
-    const fromEmail = process.env.FROM_EMAIL || "musikisiyk@gmail.com";
+    const fromEmail = process.env.BREVO_SENDER_EMAIL || "musikisiyk@gmail.com";
     const adminEmail = process.env.ADMIN_EMAIL;
 
     if (!apiKey || !fromEmail) {
@@ -531,7 +531,7 @@ export async function POST(request: Request) {
       console.error("DB write failed (pendaftaran):", dbWriteError);
 
       const errorToken = process.env.TELEGRAM_BOT_TOKEN;
-      const errorChatId = process.env.TELEGRAM_CHAT_ID;
+      const errorChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
       const errorTopicIdRaw =
         process.env.TELEGRAM_PENDAFTARAN_TOPIC_ID ??
         process.env.TELEGRAM_ERROR_TOPIC_ID;
@@ -579,7 +579,7 @@ export async function POST(request: Request) {
       }
     } else {
       const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
-      const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+      const telegramChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
       const telegramTopicIdRaw = process.env.TELEGRAM_PENDAFTARAN_TOPIC_ID;
 
       if (telegramToken && telegramChatId) {

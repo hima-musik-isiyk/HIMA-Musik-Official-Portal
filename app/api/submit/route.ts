@@ -30,9 +30,9 @@ export async function POST(request: Request) {
     }
 
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+    const chatId = process.env.TELEGRAM_GROUP_CHAT_ID;
     const topicIdRaw =
-      process.env.TELEGRAM_ADUAN_TOPIC_ID ?? process.env.TELEGRAM_TOPIC_ID;
+      process.env.TELEGRAM_TOPIC_ID_COMPLAINTS ?? process.env.TELEGRAM_TOPIC_ID;
 
     if (!token || !chatId) {
       console.error("Missing environment variables:", {
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       console.error("DB write failed (aduan):", dbError);
 
       const errorToken = process.env.TELEGRAM_BOT_TOKEN;
-      const errorChatId = process.env.TELEGRAM_CHAT_ID;
+      const errorChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
       const errorTopicId = process.env.TELEGRAM_ERROR_TOPIC_ID;
 
       if (errorToken && errorChatId) {
