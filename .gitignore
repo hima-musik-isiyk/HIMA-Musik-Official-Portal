@@ -28,3 +28,4 @@ dist-ssr
 
 # Trae
 .trae
+.env*.local
