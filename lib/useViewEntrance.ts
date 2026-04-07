@@ -39,28 +39,32 @@ import { shouldRunViewEntrance } from "@/lib/view-entrance";
 type FromVals = Record<string, number>;
 
 const VARIANTS: Record<string, FromVals> = {
-  up: { y: 20, autoAlpha: 0 },
-  down: { y: -20, autoAlpha: 0 },
-  left: { x: 20, autoAlpha: 0 },
-  right: { x: -20, autoAlpha: 0 },
-  fade: { autoAlpha: 0 },
-  scale: { scale: 0.97, autoAlpha: 0 },
-  "scale-x": { scaleX: 0, autoAlpha: 0 },
+  up: { y: 20, opacity: 0 },
+  down: { y: -20, opacity: 0 },
+  left: { x: 20, opacity: 0 },
+  right: { x: -20, opacity: 0 },
+  fade: { opacity: 0 },
+  scale: { scale: 0.97, opacity: 0 },
+  "scale-x": { scaleX: 0, opacity: 0 },
 };
 
 const toVals = (from: FromVals): FromVals =>
   Object.fromEntries(
     Object.keys(from).map((k) => [
       k,
-      k === "autoAlpha" || k === "opacity" || k === "scale" || k === "scaleX"
-        ? 1
-        : 0,
+      k === "opacity" || k === "scale" || k === "scaleX" ? 1 : 0,
     ]),
   );
 
 const EASE = "power3.out";
 const DURATION = 0.8;
 const START = "top 88%";
+
+const needsTransformLayer = (from: FromVals): boolean =>
+  Object.prototype.hasOwnProperty.call(from, "x") ||
+  Object.prototype.hasOwnProperty.call(from, "y") ||
+  Object.prototype.hasOwnProperty.call(from, "scale") ||
+  Object.prototype.hasOwnProperty.call(from, "scaleX");
 
 /**
  * Parse ScrollTrigger start string like "top 88%" to get viewport threshold.
@@ -131,7 +135,8 @@ export default function useViewEntrance(
 
     if (standalone.length === 0 && groups.length === 0) return;
 
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let rafA: number | null = null;
+    let rafB: number | null = null;
 
     const ctx = gsap.context(() => {
       if (!shouldAnimate) {
@@ -154,80 +159,94 @@ export default function useViewEntrance(
         gsap.set(children, from);
       });
 
-      // Use a tiny timeout to ensure layout is stable before checking viewport
-      timer = setTimeout(() => {
-        let immediateBaseDelay = 0;
+      // Wait two frames so layout settles without introducing a visible delay.
+      rafA = window.requestAnimationFrame(() => {
+        rafB = window.requestAnimationFrame(() => {
+          let immediateBaseDelay = 0;
 
-        standalone.forEach((el) => {
-          const variant = el.getAttribute("data-animate") || "up";
-          const from = VARIANTS[variant] || VARIANTS.up;
-          const delay = parseFloat(
-            el.getAttribute("data-animate-delay") || "0",
-          );
-          const duration = parseFloat(
-            el.getAttribute("data-animate-duration") || String(DURATION),
-          );
-          const start = el.getAttribute("data-animate-start") || START;
-          const forceScroll = el.getAttribute("data-animate-scroll") === "true";
-          const threshold = parseStartThreshold(start);
+          standalone.forEach((el) => {
+            const variant = el.getAttribute("data-animate") || "up";
+            const from = VARIANTS[variant] || VARIANTS.up;
+            const delay = parseFloat(
+              el.getAttribute("data-animate-delay") || "0",
+            );
+            const duration = parseFloat(
+              el.getAttribute("data-animate-duration") || String(DURATION),
+            );
+            const start = el.getAttribute("data-animate-start") || START;
+            const forceScroll =
+              el.getAttribute("data-animate-scroll") === "true";
+            const threshold = parseStartThreshold(start);
 
-          const inView = isInInitialViewport(el, threshold);
-          const isImmediate = inView && !forceScroll;
+            const inView = isInInitialViewport(el, threshold);
+            const isImmediate = inView && !forceScroll;
 
-          gsap.to(el, {
-            ...toVals(from),
-            duration,
-            delay: isImmediate ? immediateBaseDelay + delay : delay,
-            ease: variant === "scale-x" ? "expo.inOut" : EASE,
-            clearProps: "all",
-            ...(isImmediate
-              ? {}
-              : { scrollTrigger: { trigger: el, start, once: true } }),
+            gsap.to(el, {
+              ...toVals(from),
+              duration,
+              delay: isImmediate ? immediateBaseDelay + delay : delay,
+              ease: variant === "scale-x" ? "expo.inOut" : EASE,
+              overwrite: "auto",
+              force3D: needsTransformLayer(from),
+              clearProps: "opacity,transform,visibility,will-change",
+              onStart: () => {
+                gsap.set(el, { willChange: "transform,opacity" });
+              },
+              ...(isImmediate
+                ? {}
+                : { scrollTrigger: { trigger: el, start, once: true } }),
+            });
+
+            if (isImmediate && delay === 0) {
+              immediateBaseDelay += 0.08;
+            }
           });
 
-          if (isImmediate && delay === 0) {
-            immediateBaseDelay += 0.08;
-          }
-        });
+          groups.forEach(({ container, children, stagger }) => {
+            const variant = children[0].getAttribute("data-animate") || "up";
+            const from = VARIANTS[variant] || VARIANTS.up;
+            const duration = parseFloat(
+              children[0].getAttribute("data-animate-duration") ||
+                String(DURATION),
+            );
+            const start = container.getAttribute("data-animate-start") || START;
+            const forceScroll =
+              container.getAttribute("data-animate-scroll") === "true";
+            const threshold = parseStartThreshold(start);
 
-        groups.forEach(({ container, children, stagger }) => {
-          const variant = children[0].getAttribute("data-animate") || "up";
-          const from = VARIANTS[variant] || VARIANTS.up;
-          const duration = parseFloat(
-            children[0].getAttribute("data-animate-duration") ||
-              String(DURATION),
-          );
-          const start = container.getAttribute("data-animate-start") || START;
-          const forceScroll =
-            container.getAttribute("data-animate-scroll") === "true";
-          const threshold = parseStartThreshold(start);
+            const inView = isInInitialViewport(container, threshold);
+            const isImmediate = inView && !forceScroll;
 
-          const inView = isInInitialViewport(container, threshold);
-          const isImmediate = inView && !forceScroll;
+            gsap.to(children, {
+              ...toVals(from),
+              duration,
+              delay: isImmediate ? immediateBaseDelay : 0,
+              stagger: { each: stagger, ease: "none" },
+              ease: EASE,
+              overwrite: "auto",
+              force3D: needsTransformLayer(from),
+              clearProps: "opacity,transform,visibility,will-change",
+              onStart: () => {
+                gsap.set(children, { willChange: "transform,opacity" });
+              },
+              ...(isImmediate
+                ? {}
+                : {
+                    scrollTrigger: { trigger: container, start, once: true },
+                  }),
+            });
 
-          gsap.to(children, {
-            ...toVals(from),
-            duration,
-            delay: isImmediate ? immediateBaseDelay : 0,
-            stagger,
-            ease: EASE,
-            clearProps: "all",
-            ...(isImmediate
-              ? {}
-              : {
-                  scrollTrigger: { trigger: container, start, once: true },
-                }),
+            if (isImmediate) {
+              immediateBaseDelay += stagger * children.length;
+            }
           });
-
-          if (isImmediate) {
-            immediateBaseDelay += stagger * children.length;
-          }
         });
-      }, 50);
+      });
     }, root);
 
     return () => {
-      if (timer) clearTimeout(timer);
+      if (rafA !== null) window.cancelAnimationFrame(rafA);
+      if (rafB !== null) window.cancelAnimationFrame(rafB);
       ctx.revert();
     };
   }, [pathname, ...deps]);

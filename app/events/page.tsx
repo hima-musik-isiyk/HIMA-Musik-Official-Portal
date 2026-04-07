@@ -1,7 +1,10 @@
-import React from "react";
+import { fetchEventsCollection } from "@/lib/notion";
+import EventsView from "@/views/Events";
 
-import Events from "../../views/Events";
+export const revalidate = 60;
 
-export default function EventsPage() {
-  return <Events />;
+export default async function EventsPage() {
+  const collection = await fetchEventsCollection();
+
+  return <EventsView collection={collection} />;
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
+import type { NotionContentScope } from "@/lib/notion";
 import type { NotionBlock } from "@/lib/notion-shared";
 import {
   ANCHOR_TAG_RE,
@@ -85,10 +86,12 @@ function InternalLink({
   href,
   label,
   children,
+  basePath = "/sekretariat",
 }: {
   href: string;
   label?: string;
   children?: React.ReactNode;
+  basePath?: string;
 }) {
   const blockLink = parseBlockLink(href);
   const citeLink = parseCiteLink(href);
@@ -97,7 +100,7 @@ function InternalLink({
 
   if (blockLink) {
     const targetHref = blockLink.slug
-      ? `/sekretariat/${blockLink.slug}#${blockLink.anchorId}`
+      ? `${basePath}/${blockLink.slug}#${blockLink.anchorId}`
       : `#${blockLink.anchorId}`;
     return (
       <Link
@@ -131,7 +134,7 @@ function InternalLink({
   if (citeLink) {
     return (
       <Link
-        href={`/sekretariat/${citeLink.slug}#${citeLink.anchorId}`}
+        href={`${basePath}/${citeLink.slug}#${citeLink.anchorId}`}
         className="text-gold-400 decoration-gold-400/30 hover:text-gold-300 hover:decoration-gold-300/50 inline-flex items-center gap-1 font-medium underline underline-offset-2 transition-colors"
         title={`Lihat: ${citeLink.slug} § ${citeLink.anchorId}`}
       >
@@ -165,7 +168,14 @@ function InternalLink({
   );
 }
 
-function processMixedText(text: string): React.ReactNode {
+function processMixedText(
+  text: string,
+  {
+    basePath = "/sekretariat",
+  }: {
+    basePath?: string;
+  } = {},
+): React.ReactNode {
   let parts: (string | React.ReactNode)[] = [text];
 
   // 1. Process Markdown Links: [Label](url)
@@ -183,6 +193,7 @@ function processMixedText(text: string): React.ReactNode {
           key={`md-${match.index}`}
           href={match[2]}
           label={match[1]}
+          basePath={basePath}
         />,
       );
       lastIndex = match.index! + match[0].length;
@@ -211,7 +222,11 @@ function processMixedText(text: string): React.ReactNode {
       if (match.index! > lastIndex)
         result.push(part.slice(lastIndex, match.index));
       result.push(
-        <InternalLink key={`naked-${match.index}`} href={match[0]} />,
+        <InternalLink
+          key={`naked-${match.index}`}
+          href={match[0]}
+          basePath={basePath}
+        />,
       );
       lastIndex = match.index! + match[0].length;
     }
@@ -233,6 +248,11 @@ function renderRichText(
   ignoreColor = false,
   stripHeadingPrefix = false,
   stripAnchorTag = false,
+  {
+    basePath = "/sekretariat",
+  }: {
+    basePath?: string;
+  } = {},
 ) {
   return richText.map((item, i) => {
     let text = item.plain_text;
@@ -276,10 +296,14 @@ function renderRichText(
 
     // Handle Links
     if (item.href) {
-      node = <InternalLink href={item.href}>{node}</InternalLink>;
+      node = (
+        <InternalLink href={item.href} basePath={basePath}>
+          {node}
+        </InternalLink>
+      );
     } else if (typeof node === "string") {
       // If it's just a string, process it for inline/markdown links
-      node = processMixedText(node);
+      node = processMixedText(node, { basePath });
     }
 
     return <React.Fragment key={i}>{node}</React.Fragment>;
@@ -390,9 +414,16 @@ function getCellColorClasses(cell: RichTextItem[]): {
 interface CitationBlockProps {
   slug: string;
   anchorId: string;
+  basePath?: string;
+  citationScope?: NotionContentScope;
 }
 
-function CitationBlock({ slug, anchorId }: CitationBlockProps) {
+function CitationBlock({
+  slug,
+  anchorId,
+  basePath = "/sekretariat",
+  citationScope = "sekretariat",
+}: CitationBlockProps) {
   const [cited, setCited] = useState<{
     blocks: NotionBlock[];
     sourceTitle: string;
@@ -407,7 +438,7 @@ function CitationBlock({ slug, anchorId }: CitationBlockProps) {
     async function load() {
       try {
         const res = await fetch(
-          `/api/citation?slug=${encodeURIComponent(slug)}&anchor=${encodeURIComponent(anchorId)}`,
+          `/api/citation?slug=${encodeURIComponent(slug)}&anchor=${encodeURIComponent(anchorId)}&scope=${encodeURIComponent(citationScope)}`,
         );
         if (!res.ok) throw new Error(`Citation not found`);
         const data = await res.json();
@@ -426,7 +457,7 @@ function CitationBlock({ slug, anchorId }: CitationBlockProps) {
     return () => {
       cancelled = true;
     };
-  }, [slug, anchorId]);
+  }, [slug, anchorId, citationScope]);
 
   const displayAnchor = useMemo(() => {
     // If we don't have cited data yet, just return the ID prettified
@@ -483,7 +514,7 @@ function CitationBlock({ slug, anchorId }: CitationBlockProps) {
       {/* Citation content */}
       <div className="flex flex-col gap-3 px-4 py-3">
         {cited.blocks.map((block, idx) => (
-          <SingleBlockRenderer key={idx} block={block} />
+          <SingleBlockRenderer key={idx} block={block} basePath={basePath} />
         ))}
       </div>
       {/* Source attribution */}
@@ -502,7 +533,7 @@ function CitationBlock({ slug, anchorId }: CitationBlockProps) {
           />
         </svg>
         <Link
-          href={`/sekretariat/${cited.sourceSlug}#${anchorId}`}
+          href={`${basePath}/${cited.sourceSlug}#${anchorId}`}
           className="hover:text-gold-400 text-xs text-stone-500 transition-colors"
         >
           {cited.sourceTitle} — {displayAnchor}
@@ -516,7 +547,13 @@ function CitationBlock({ slug, anchorId }: CitationBlockProps) {
  * Renders a single block without anchor/citation logic
  * (used inside CitationBlock to avoid infinite loops).
  */
-function SingleBlockRenderer({ block }: { block: NotionBlock }) {
+function SingleBlockRenderer({
+  block,
+  basePath = "/sekretariat",
+}: {
+  block: NotionBlock;
+  basePath?: string;
+}) {
   const b = block as Record<string, unknown>;
   const typed = b[block.type] as
     | { rich_text?: RichTextItem[]; checked?: boolean }
@@ -528,38 +565,38 @@ function SingleBlockRenderer({ block }: { block: NotionBlock }) {
     case "paragraph":
       return (
         <p className="text-base leading-relaxed whitespace-pre-wrap text-neutral-300">
-          {renderRichText(typed.rich_text, false, false, true)}
+          {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>
       );
     case "heading_1":
       return (
         <p className="font-serif text-xl font-bold text-white">
-          {renderRichText(typed.rich_text, false, false, true)}
+          {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>
       );
     case "heading_2":
       return (
         <p className="font-serif text-lg font-bold text-white">
-          {renderRichText(typed.rich_text, false, false, true)}
+          {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>
       );
     case "heading_3":
       return (
         <p className="font-serif text-base font-semibold text-white">
-          {renderRichText(typed.rich_text, false, false, true)}
+          {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>
       );
     case "bulleted_list_item":
     case "numbered_list_item":
       return (
         <p className="text-neutral-300">
-          • {renderRichText(typed.rich_text, false, false, true)}
+          • {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>
       );
     default:
       return (
         <p className="text-neutral-300">
-          {renderRichText(typed.rich_text, false, false, true)}
+          {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>
       );
   }
@@ -571,12 +608,16 @@ function SingleBlockRenderer({ block }: { block: NotionBlock }) {
 
 interface NotionRendererProps {
   blocks: NotionBlock[];
+  basePath?: string;
+  citationScope?: NotionContentScope;
 }
 
 export default function NotionRenderer({
   blocks,
   level = 1,
   blockIdToSlug: parentMap,
+  basePath = "/sekretariat",
+  citationScope = "sekretariat",
 }: NotionRendererProps & {
   level?: number;
   blockIdToSlug?: Map<string, string>;
@@ -641,6 +682,8 @@ export default function NotionRenderer({
                   block={block}
                   level={level}
                   blockIdToSlug={blockIdToSlug}
+                  basePath={basePath}
+                  citationScope={citationScope}
                 />
               ))}
             </Tag>
@@ -652,6 +695,8 @@ export default function NotionRenderer({
             block={group as NotionBlock}
             level={level}
             blockIdToSlug={blockIdToSlug}
+            basePath={basePath}
+            citationScope={citationScope}
           />
         );
       })}
@@ -663,10 +708,14 @@ function BlockRenderer({
   block,
   level = 1,
   blockIdToSlug,
+  basePath = "/sekretariat",
+  citationScope = "sekretariat",
 }: {
   block: NotionBlock;
   level?: number;
   blockIdToSlug: Map<string, string>;
+  basePath?: string;
+  citationScope?: NotionContentScope;
 }) {
   const b = block as Record<string, unknown>;
   const typed = b[block.type] as
@@ -760,7 +809,14 @@ function BlockRenderer({
 
       if (typed.rich_text.length === 1 && parseCiteLink(trigger)) {
         const cite = parseCiteLink(trigger)!;
-        return <CitationBlock slug={cite.slug} anchorId={cite.anchorId} />;
+        return (
+          <CitationBlock
+            slug={cite.slug}
+            anchorId={cite.anchorId}
+            basePath={basePath}
+            citationScope={citationScope}
+          />
+        );
       }
 
       const fullText = typed.rich_text.map((t) => t.plain_text).join("");
@@ -781,7 +837,7 @@ function BlockRenderer({
 
         return wrapWithAnchor(
           <Tag id={id} className={`${baseCls} ${levelCls}`}>
-            {renderRichText(typed.rich_text, false, true, true)}
+            {renderRichText(typed.rich_text, false, true, true, { basePath })}
           </Tag>,
         );
       }
@@ -795,7 +851,7 @@ function BlockRenderer({
         .join(" ");
       return wrapWithAnchor(
         <p className={cls}>
-          {renderRichText(typed.rich_text, false, false, true)}
+          {renderRichText(typed.rich_text, false, false, true, { basePath })}
         </p>,
       );
     }
@@ -809,7 +865,7 @@ function BlockRenderer({
           className="scroll-mt-24 border-b border-stone-800 pb-4 font-serif text-3xl font-bold text-white md:text-4xl"
         >
           {typed?.rich_text &&
-            renderRichText(typed.rich_text, false, false, true)}
+            renderRichText(typed.rich_text, false, false, true, { basePath })}
         </h1>,
       );
     }
@@ -823,7 +879,7 @@ function BlockRenderer({
           className="scroll-mt-24 font-serif text-2xl font-bold text-white md:text-3xl"
         >
           {typed?.rich_text &&
-            renderRichText(typed.rich_text, false, false, true)}
+            renderRichText(typed.rich_text, false, false, true, { basePath })}
         </h2>,
       );
     }
@@ -847,7 +903,9 @@ function BlockRenderer({
 
         return wrapWithAnchor(
           <Tag id={id} className={`${baseCls} ${levelCls}`}>
-            {renderRichText(typed?.rich_text || [], false, true, true)}
+            {renderRichText(typed?.rich_text || [], false, true, true, {
+              basePath,
+            })}
           </Tag>,
         );
       }
@@ -859,7 +917,7 @@ function BlockRenderer({
           className="scroll-mt-24 font-serif text-xl font-semibold text-white"
         >
           {typed?.rich_text &&
-            renderRichText(typed.rich_text, false, false, true)}
+            renderRichText(typed.rich_text, false, false, true, { basePath })}
         </h3>,
       );
     }
@@ -870,12 +928,14 @@ function BlockRenderer({
       return wrapWithAnchor(
         <li className={`ml-6 ${blockTextClass || "text-neutral-300"}`}>
           {typed?.rich_text &&
-            renderRichText(typed.rich_text, false, false, true)}
+            renderRichText(typed.rich_text, false, false, true, { basePath })}
           {block.children && block.children.length > 0 && (
             <NotionRenderer
               blocks={block.children}
               level={level + 1}
               blockIdToSlug={blockIdToSlug}
+              basePath={basePath}
+              citationScope={citationScope}
             />
           )}
         </li>,
@@ -908,7 +968,7 @@ function BlockRenderer({
             }
           >
             {typed?.rich_text &&
-              renderRichText(typed.rich_text, false, false, true)}
+              renderRichText(typed.rich_text, false, false, true, { basePath })}
           </span>
         </div>
       );
@@ -919,7 +979,7 @@ function BlockRenderer({
         <details className="group rounded-lg border border-stone-800 bg-stone-900/30 px-4 py-3">
           <summary className="cursor-pointer font-medium text-white">
             {typed?.rich_text &&
-              renderRichText(typed.rich_text, false, false, true)}
+              renderRichText(typed.rich_text, false, false, true, { basePath })}
           </summary>
           <div className="mt-3 border-t border-stone-800 pt-3 text-neutral-300">
             {block.children && (
@@ -927,6 +987,8 @@ function BlockRenderer({
                 blocks={block.children}
                 level={level}
                 blockIdToSlug={blockIdToSlug}
+                basePath={basePath}
+                citationScope={citationScope}
               />
             )}
           </div>
@@ -954,6 +1016,8 @@ function BlockRenderer({
               block={col}
               level={level}
               blockIdToSlug={blockIdToSlug}
+              basePath={basePath}
+              citationScope={citationScope}
             />
           ))}
         </div>
@@ -969,6 +1033,8 @@ function BlockRenderer({
               block={child}
               level={level}
               blockIdToSlug={blockIdToSlug}
+              basePath={basePath}
+              citationScope={citationScope}
             />
           ))}
         </div>
@@ -984,6 +1050,8 @@ function BlockRenderer({
               block={child}
               level={level}
               blockIdToSlug={blockIdToSlug}
+              basePath={basePath}
+              citationScope={citationScope}
             />
           ))}
         </>
@@ -999,13 +1067,15 @@ function BlockRenderer({
           } ${blockTextClass || "text-neutral-300"}`}
         >
           {typed?.rich_text &&
-            renderRichText(typed.rich_text, false, false, true)}
+            renderRichText(typed.rich_text, false, false, true, { basePath })}
           {block.children && (
             <div className="mt-2">
               <NotionRenderer
                 blocks={block.children}
                 level={level}
                 blockIdToSlug={blockIdToSlug}
+                basePath={basePath}
+                citationScope={citationScope}
               />
             </div>
           )}
@@ -1034,13 +1104,15 @@ function BlockRenderer({
           {iconNode}
           <div className={`min-w-0 ${blockTextClass || "text-neutral-300"}`}>
             {typed?.rich_text &&
-              renderRichText(typed.rich_text, false, false, true)}
+              renderRichText(typed.rich_text, false, false, true, { basePath })}
             {block.children && (
               <div className="mt-2">
                 <NotionRenderer
                   blocks={block.children}
                   level={level}
                   blockIdToSlug={blockIdToSlug}
+                  basePath={basePath}
+                  citationScope={citationScope}
                 />
               </div>
             )}
@@ -1069,7 +1141,7 @@ function BlockRenderer({
           </pre>
           {caption && caption.length > 0 && (
             <div className="border-t border-stone-800 bg-stone-900/30 px-4 py-2 text-xs text-stone-500">
-              {renderRichText(caption)}
+              {renderRichText(caption, false, false, false, { basePath })}
             </div>
           )}
         </div>
@@ -1094,7 +1166,7 @@ function BlockRenderer({
           )}
           {caption && caption.length > 0 && (
             <figcaption className="mt-2 text-center text-sm text-stone-500">
-              {renderRichText(caption)}
+              {renderRichText(caption, false, false, false, { basePath })}
             </figcaption>
           )}
         </figure>
@@ -1131,7 +1203,7 @@ function BlockRenderer({
           )}
           {caption && caption.length > 0 && (
             <figcaption className="mt-2 text-center text-sm text-stone-500">
-              {renderRichText(caption)}
+              {renderRichText(caption, false, false, false, { basePath })}
             </figcaption>
           )}
         </figure>
@@ -1148,7 +1220,7 @@ function BlockRenderer({
           <audio src={url} controls className="w-full rounded-lg" />
           {caption && caption.length > 0 && (
             <figcaption className="mt-2 text-center text-sm text-stone-500">
-              {renderRichText(caption)}
+              {renderRichText(caption, false, false, false, { basePath })}
             </figcaption>
           )}
         </figure>
@@ -1199,13 +1271,13 @@ function BlockRenderer({
           <div className="overflow-hidden rounded-lg border border-stone-800">
             <iframe
               src={url}
-              className="h-[600px] w-full bg-stone-900"
+              className="h-150 w-full bg-stone-900"
               title={caption?.map((c) => c.plain_text).join("") || "PDF"}
             />
           </div>
           {caption && caption.length > 0 && (
             <figcaption className="mt-2 text-center text-sm text-stone-500">
-              {renderRichText(caption)}
+              {renderRichText(caption, false, false, false, { basePath })}
             </figcaption>
           )}
         </figure>
@@ -1261,7 +1333,7 @@ function BlockRenderer({
                           .filter(Boolean)
                           .join(" ")}
                       >
-                        {renderRichText(cell, true)}
+                        {renderRichText(cell, true, false, false, { basePath })}
                       </th>
                     );
                   })}
@@ -1293,7 +1365,9 @@ function BlockRenderer({
                               .filter(Boolean)
                               .join(" ")}
                           >
-                            {renderRichText(cell, true)}
+                            {renderRichText(cell, true, false, false, {
+                              basePath,
+                            })}
                           </th>
                         );
                       }
@@ -1308,7 +1382,9 @@ function BlockRenderer({
                             .filter(Boolean)
                             .join(" ")}
                         >
-                          {renderRichText(cell, true)}
+                          {renderRichText(cell, true, false, false, {
+                            basePath,
+                          })}
                         </td>
                       );
                     })}

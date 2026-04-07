@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { buildAnchorMap, fetchDocBySlug } from "@/lib/notion";
+import {
+  buildAnchorMap,
+  fetchDocBySlug,
+  fetchEventBySlug,
+  fetchKKMEntryBySlug,
+  type NotionContentScope,
+} from "@/lib/notion";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const slug = searchParams.get("slug");
   const anchor = searchParams.get("anchor");
+  const scope = (searchParams.get("scope") ??
+    "sekretariat") as NotionContentScope;
 
   if (!slug || !anchor) {
     return NextResponse.json(
@@ -15,7 +23,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const doc = await fetchDocBySlug(slug);
+    const doc =
+      scope === "kkm"
+        ? await fetchKKMEntryBySlug(slug)
+        : scope === "events"
+          ? await fetchEventBySlug(slug)
+          : await fetchDocBySlug(slug);
     if (!doc) {
       return NextResponse.json(
         { error: `Document "${slug}" not found` },
