@@ -12,9 +12,24 @@ import useViewEntrance from "@/lib/useViewEntrance";
 interface DocPageViewProps {
   meta: DocMeta;
   blocks: NotionBlock[];
+  sectionHref?: string;
+  sectionLabel?: string;
+  sectionCategoryLabel?: string;
+  showCategory?: boolean;
+  contentBasePath?: string;
+  citationScope?: "sekretariat" | "kkm";
 }
 
-export default function DocPageView({ meta, blocks }: DocPageViewProps) {
+export default function DocPageView({
+  meta,
+  blocks,
+  sectionHref = "/sekretariat",
+  sectionLabel = "Sekretariat",
+  sectionCategoryLabel,
+  showCategory = true,
+  contentBasePath = "/sekretariat",
+  citationScope = "sekretariat",
+}: DocPageViewProps) {
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname || "");
   const headings = extractHeadings(blocks);
@@ -41,15 +56,17 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
           data-animate="up"
         >
           <Link
-            href="/sekretariat"
+            href={sectionHref}
             className="transition-colors hover:text-stone-300"
           >
-            Sekretariat
+            {sectionLabel}
           </Link>
-          {meta.category && (
+          {showCategory && (sectionCategoryLabel || meta.category) && (
             <>
               <span>/</span>
-              <span className="text-stone-400">{meta.category}</span>
+              <span className="text-stone-400">
+                {sectionCategoryLabel || meta.category}
+              </span>
             </>
           )}
           <span>/</span>
@@ -116,7 +133,11 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
           data-animate-delay="0.2"
           className={`prose-docs ${isLegalitas ? "text-center" : ""}`}
         >
-          <NotionRenderer blocks={blocks} />
+          <NotionRenderer
+            blocks={blocks}
+            basePath={contentBasePath}
+            citationScope={citationScope}
+          />
         </div>
 
         {/* Bottom nav */}
@@ -126,10 +147,10 @@ export default function DocPageView({ meta, blocks }: DocPageViewProps) {
           className="mt-16 border-t border-stone-800 pt-8"
         >
           <Link
-            href="/sekretariat"
+            href={sectionHref}
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
           >
-            ← Kembali ke Sekretariat
+            {`← Kembali ke ${sectionLabel}`}
           </Link>
         </div>
       </article>
