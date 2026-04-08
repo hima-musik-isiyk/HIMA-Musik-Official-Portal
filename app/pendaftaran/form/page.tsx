@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 
+import { FEATURES } from "@/lib/feature-flags";
+import Pendaftaran from "@/views/Pendaftaran";
+
 export default function PendaftaranFormPage() {
-  // Hidden: redirect form route to homepage
-  redirect("/");
+  if (!FEATURES.ALLOW_PENDAFTARAN) {
+    redirect("/");
+  }
+
+  return <Pendaftaran />;
 }

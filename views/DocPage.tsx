@@ -45,7 +45,10 @@ export default function DocPageView({
   const isLegalitas = meta.category?.toLowerCase() === "legalitas";
 
   return (
-    <div ref={scopeRef} className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
+    <div
+      ref={scopeRef}
+      className="flex items-start gap-8 px-6 py-10 md:px-10 lg:px-16"
+    >
       {/* Center: Reading Pane */}
       <article
         className={`max-w-3xl min-w-0 flex-1 ${isLegalitas ? "mx-auto" : ""}`}
@@ -159,7 +162,7 @@ export default function DocPageView({
       <div
         data-animate="left"
         data-animate-delay="0.3"
-        className="hidden w-56 shrink-0 xl:block"
+        className="hidden w-56 shrink-0 self-stretch xl:block"
       >
         <TableOfContents headings={headings} />
       </div>

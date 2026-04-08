@@ -726,9 +726,11 @@ const Navigation: React.FC = () => {
 
             {/* Mobile hamburger */}
             <button
+              type="button"
               className="group relative z-50 flex flex-col space-y-1.5 p-2 lg:hidden"
               onClick={handleMenuToggle}
               aria-label="Toggle menu"
+              style={{ touchAction: "manipulation" }}
             >
               <span
                 className={`h-px bg-neutral-300 transition-all duration-300 ${

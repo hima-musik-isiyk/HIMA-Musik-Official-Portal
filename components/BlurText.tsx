@@ -52,6 +52,20 @@ const BlurText: React.FC<BlurTextProps> = ({
 
   useEffect(() => {
     if (!ref.current) return;
+    if (
+      typeof window === "undefined" ||
+      typeof IntersectionObserver === "undefined" ||
+      (window.matchMedia("(pointer: coarse)").matches &&
+        !window.matchMedia("(pointer: fine)").matches)
+    ) {
+      setInView(true);
+      return;
+    }
+
+    const fallbackTimeout = window.setTimeout(() => {
+      setInView(true);
+    }, 1200);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -65,7 +79,10 @@ const BlurText: React.FC<BlurTextProps> = ({
       { threshold, rootMargin },
     );
     observer.observe(ref.current);
-    return () => observer.disconnect();
+    return () => {
+      window.clearTimeout(fallbackTimeout);
+      observer.disconnect();
+    };
   }, [threshold, rootMargin]);
 
   const defaultFrom = useMemo(
@@ -90,7 +107,7 @@ const BlurText: React.FC<BlurTextProps> = ({
         opacity: 1,
         y: 0,
         textShadow: "0 0 0px currentColor, 0 0 30px transparent",
-        WebkitTextFillColor: "unset",
+        WebkitTextFillColor: "currentColor",
       },
     ],
     [direction],

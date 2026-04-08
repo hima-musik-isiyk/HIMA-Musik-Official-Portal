@@ -8,6 +8,20 @@ export default function LocatorInitializer() {
       return;
     }
 
+    if (process.env.NEXT_PUBLIC_ENABLE_LOCATOR !== "true") {
+      return;
+    }
+
+    const hostname = window.location.hostname;
+    const isLocalHost =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1";
+
+    if (!isLocalHost) {
+      return;
+    }
+
     import("@locator/runtime")
       .then(({ default: setupLocatorUI }) => {
         setupLocatorUI();
