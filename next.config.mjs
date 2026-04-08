@@ -3,17 +3,23 @@ const locatorLoader = {
   options: { env: "development" },
 };
 
+const enableLocator =
+  process.env.ENABLE_LOCATOR === "true" ||
+  process.env.NEXT_PUBLIC_ENABLE_LOCATOR === "true";
+
 const nextConfig = {
   reactStrictMode: true,
-  turbopack: {
-    rules: {
-      "**/*.{tsx,jsx}": {
-        loaders: [locatorLoader],
-      },
-    },
-  },
+  turbopack: enableLocator
+    ? {
+        rules: {
+          "**/*.{tsx,jsx}": {
+            loaders: [locatorLoader],
+          },
+        },
+      }
+    : {},
   webpack: (config, { dev, isServer }) => {
-    if (dev && !isServer) {
+    if (enableLocator && dev && !isServer) {
       config.module.rules.push({
         test: /\.(tsx|ts|jsx|js)$/,
         exclude: /node_modules/,

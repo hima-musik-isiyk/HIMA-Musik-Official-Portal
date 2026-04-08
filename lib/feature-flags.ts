@@ -12,4 +12,9 @@ export const FEATURES = {
    * Hidden in production until the backend integration is fully ready.
    */
   SHOW_DOCS_SIDEBAR: process.env.NODE_ENV === "development",
+  /**
+   * Toggle for recruitment pages.
+   * Exposed in development for local testing, hidden in production.
+   */
+  ALLOW_PENDAFTARAN: process.env.NODE_ENV === "development",
 };

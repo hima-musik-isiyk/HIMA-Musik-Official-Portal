@@ -85,6 +85,69 @@ function getEventTone(entry: EventEntryMeta): string {
   }
 }
 
+type EventSectionKey = "all" | "upcoming" | "ongoing" | "announcement" | "past";
+
+type SortOption = "newest" | "oldest" | "nearest";
+
+type SectionConfig = {
+  key: Exclude<EventSectionKey, "all">;
+  title: string;
+  count: number;
+  entries: EventEntryMeta[];
+};
+
+type SectionedEntry = {
+  entry: EventEntryMeta;
+  sectionKey: Exclude<EventSectionKey, "all">;
+};
+
+function getEntryTimestamp(value: string): number {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getEventStartTimestamp(entry: EventEntryMeta): number {
+  const parsed = parseEventDateValue(entry.eventDate);
+  return parsed ? parsed.getTime() : Number.POSITIVE_INFINITY;
+}
+
+function sortSectionedEntries(
+  entries: SectionedEntry[],
+  sortOption: SortOption,
+): SectionedEntry[] {
+  return [...entries].sort((left, right) => {
+    const leftEventTime = getEventStartTimestamp(left.entry);
+    const rightEventTime = getEventStartTimestamp(right.entry);
+    const leftEditedTime = getEntryTimestamp(left.entry.lastEdited);
+    const rightEditedTime = getEntryTimestamp(right.entry.lastEdited);
+
+    if (sortOption === "nearest") {
+      const leftHasDate = Number.isFinite(leftEventTime);
+      const rightHasDate = Number.isFinite(rightEventTime);
+
+      if (leftHasDate && rightHasDate && leftEventTime !== rightEventTime) {
+        return leftEventTime - rightEventTime;
+      }
+      if (leftHasDate !== rightHasDate) {
+        return leftHasDate ? -1 : 1;
+      }
+      return rightEditedTime - leftEditedTime;
+    }
+
+    if (sortOption === "oldest") {
+      if (leftEditedTime !== rightEditedTime) {
+        return leftEditedTime - rightEditedTime;
+      }
+      return leftEventTime - rightEventTime;
+    }
+
+    if (leftEditedTime !== rightEditedTime) {
+      return rightEditedTime - leftEditedTime;
+    }
+    return rightEventTime - leftEventTime;
+  });
+}
+
 function EventCalendar({ collection }: { collection: EventsCollection }) {
   const datedEntries = useMemo(() => {
     return [...collection.upcoming, ...collection.ongoing, ...collection.past]
@@ -223,7 +286,11 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
   if (datedEntries.length === 0) return null;
 
   return (
-    <section data-animate="up" data-animate-duration="0.85" className="mb-20">
+    <section
+      data-animate="up"
+      data-animate-duration="0.85"
+      className="mb-20 hidden md:block"
+    >
       <div className="relative overflow-hidden border border-white/8 bg-[linear-gradient(180deg,rgba(255,101,1,0.08)_0%,rgba(255,255,255,0.02)_38%,rgba(255,255,255,0.01)_100%)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,127,69,0.18)_0%,transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06)_0%,transparent_30%)]" />
         <div
@@ -671,88 +738,72 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
   );
 }
 
-function EventSection({
-  id,
-  title,
-  description,
-  entries,
-}: {
-  id: string;
-  title: string;
-  description: string;
-  entries: EventEntryMeta[];
-}) {
-  if (entries.length === 0) return null;
-
-  return (
-    <section id={id} className="mb-16 scroll-mt-28">
-      <div className="mb-6 flex flex-col gap-4 border-b border-white/6 pb-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-gold-400 text-[0.65rem] tracking-[0.28em] uppercase">
-            Rubrik Acara
-          </p>
-          <h2 className="mt-2 font-serif text-3xl text-white md:text-4xl">
-            {title}
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-stone-500">
-            {description}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-[0.65rem] tracking-[0.24em] uppercase">
-          <span className="border border-white/8 px-3 py-2 text-stone-400">
-            {entries.length} entri
-          </span>
-          <a
-            href="#events-sections-nav"
-            className="text-stone-600 transition hover:text-stone-300"
-          >
-            Lihat navigasi
-          </a>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {entries.map((entry, index) => (
-          <EventCard key={entry.id} entry={entry} index={index} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export default function EventsView({
   collection,
 }: {
   collection: EventsCollection;
 }) {
   const scopeRef = useViewEntrance("/events");
-  const sectionLinks = [
-    {
-      id: "upcoming-events",
-      title: "Pra-Acara",
-      count: collection.upcoming.length,
-    },
-    {
-      id: "live-events",
-      title: "Sedang Berlangsung",
-      count: collection.ongoing.length,
-    },
-    {
-      id: "announcement-events",
-      title: "Info & Pengumuman",
-      count: collection.announcements.length,
-    },
-    {
-      id: "past-events",
-      title: "Pasca-Acara",
-      count: collection.past.length,
-    },
-  ].filter((section) => section.count > 0);
+  const sectionConfigs = useMemo<SectionConfig[]>(() => {
+    const configs: SectionConfig[] = [
+      {
+        key: "upcoming",
+        title: "Pra-Acara",
+        count: collection.upcoming.length,
+        entries: collection.upcoming,
+      },
+      {
+        key: "ongoing",
+        title: "Sedang Berlangsung",
+        count: collection.ongoing.length,
+        entries: collection.ongoing,
+      },
+      {
+        key: "announcement",
+        title: "Info & Pengumuman",
+        count: collection.announcements.length,
+        entries: collection.announcements,
+      },
+      {
+        key: "past",
+        title: "Pasca-Acara",
+        count: collection.past.length,
+        entries: collection.past,
+      },
+    ];
+
+    return configs.filter((section) => section.count > 0);
+  }, [collection]);
+  const [activeFilter, setActiveFilter] = useState<EventSectionKey>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
   const hasEntries =
     collection.upcoming.length > 0 ||
     collection.ongoing.length > 0 ||
     collection.past.length > 0 ||
     collection.announcements.length > 0;
+
+  const filteredEntries = useMemo(() => {
+    const sourceSections =
+      activeFilter === "all"
+        ? sectionConfigs
+        : sectionConfigs.filter((section) => section.key === activeFilter);
+
+    const flattenedEntries = sourceSections.flatMap((section) =>
+      section.entries.map((entry) => ({
+        entry,
+        sectionKey: section.key,
+      })),
+    );
+
+    return sortSectionedEntries(flattenedEntries, sortOption);
+  }, [activeFilter, sectionConfigs, sortOption]);
+
+  const totalEntries = filteredEntries.length;
+  const visibleEntries = filteredEntries.map((item) => item.entry);
+  const totalPublishedEntries = sectionConfigs.reduce(
+    (count, section) => count + section.count,
+    0,
+  );
 
   return (
     <div
@@ -823,67 +874,94 @@ export default function EventsView({
 
         <EventCalendar collection={collection} />
 
-        {sectionLinks.length > 0 && (
-          <nav
-            id="events-sections-nav"
-            aria-label="Navigasi rubrik acara"
+        {sectionConfigs.length > 0 && (
+          <section
+            id="events-archive-controls"
+            aria-label="Kontrol arsip acara"
             className="mb-10 overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.015)_100%)]"
           >
-            <div className="flex flex-col gap-5 px-5 py-5 md:px-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-gold-400 text-xs tracking-[0.24em] uppercase">
-                  Navigasi Cepat
-                </p>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-400">
-                  Lompat ke rubrik yang ingin dibaca tanpa perlu menelusuri
-                  seluruh daftar acara satu per satu.
-                </p>
+            <div className="flex flex-col gap-5 px-5 py-5 md:px-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-gold-400 text-xs tracking-[0.24em] uppercase">
+                    Jelajahi Publikasi
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-stone-400">
+                    {totalEntries > 0
+                      ? `Menampilkan ${totalEntries} publikasi`
+                      : "Tidak ada publikasi yang cocok dengan tampilan saat ini"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs tracking-[0.18em] uppercase">
+                  <label className="flex items-center gap-2 text-stone-500">
+                    <span>Urutkan</span>
+                    <select
+                      value={sortOption}
+                      onChange={(event) => {
+                        setSortOption(event.target.value as SortOption);
+                      }}
+                      className="border border-white/10 bg-[#0d0d0d] px-3 py-2 text-[0.72rem] text-stone-300 transition outline-none hover:border-white/20"
+                    >
+                      <option value="newest">Terbaru</option>
+                      <option value="nearest">Terdekat</option>
+                      <option value="oldest">Terlama</option>
+                    </select>
+                  </label>
+                </div>
               </div>
+
               <div className="flex flex-wrap gap-3">
-                {sectionLinks.map((section) => (
-                  <a
-                    key={section.id}
-                    href={`#${section.id}`}
-                    className="group hover:border-gold-500/30 hover:bg-gold-500/8 inline-flex items-center gap-3 border border-white/8 px-4 py-3 text-sm text-stone-300 transition hover:text-white"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveFilter("all");
+                  }}
+                  className={`inline-flex items-center gap-3 border px-4 py-3 text-sm transition ${
+                    activeFilter === "all"
+                      ? "border-gold-500/30 bg-gold-500/8 text-white"
+                      : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-300 hover:text-white"
+                  }`}
+                >
+                  <span>Semua Rubrik</span>
+                  <span className="border border-white/8 px-2 py-1 text-[0.62rem] tracking-[0.2em] text-stone-500 uppercase">
+                    {totalPublishedEntries}
+                  </span>
+                </button>
+                {sectionConfigs.map((section) => (
+                  <button
+                    key={section.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveFilter(section.key);
+                    }}
+                    className={`inline-flex items-center gap-3 border px-4 py-3 text-sm transition ${
+                      activeFilter === section.key
+                        ? "border-gold-500/30 bg-gold-500/8 text-white"
+                        : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-300 hover:text-white"
+                    }`}
                   >
                     <span>{section.title}</span>
-                    <span className="group-hover:border-gold-500/20 group-hover:text-gold-200 border border-white/8 px-2 py-1 text-[0.62rem] tracking-[0.2em] text-stone-500 uppercase transition">
+                    <span className="border border-white/8 px-2 py-1 text-[0.62rem] tracking-[0.2em] text-stone-500 uppercase">
                       {section.count}
                     </span>
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
-          </nav>
+          </section>
         )}
 
-        <EventSection
-          id="upcoming-events"
-          title="Pra-Acara"
-          description="Pengumuman, pengantar rangkaian, dan publikasi yang terhubung dengan agenda yang masih akan datang."
-          entries={collection.upcoming}
-        />
-
-        <EventSection
-          id="live-events"
-          title="Sedang Berlangsung"
-          description="Acara yang saat ini masih berada dalam rentang pelaksanaan."
-          entries={collection.ongoing}
-        />
-
-        <EventSection
-          id="announcement-events"
-          title="Info & Pengumuman"
-          description="Informasi resmi yang tidak terikat langsung pada tanggal acara tertentu."
-          entries={collection.announcements}
-        />
-
-        <EventSection
-          id="past-events"
-          title="Pasca-Acara"
-          description="Publikasi dokumentasi, rekap, dan jejak kegiatan setelah acara selesai berlangsung."
-          entries={collection.past}
-        />
+        {visibleEntries.length > 0 ? (
+          <section className="space-y-4">
+            {visibleEntries.map((entry, index) => (
+              <EventCard key={entry.id} entry={entry} index={index} />
+            ))}
+          </section>
+        ) : (
+          <div className="border border-dashed border-white/10 px-5 py-8 text-sm leading-relaxed text-stone-500">
+            Tidak ada publikasi yang cocok dengan filter saat ini.
+          </div>
+        )}
       </div>
     </div>
   );

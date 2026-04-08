@@ -38,7 +38,10 @@ export default function EventDetailView({
   const headings = extractHeadings(blocks);
 
   return (
-    <div ref={scopeRef} className="flex gap-8 px-6 py-10 md:px-10 lg:px-16">
+    <div
+      ref={scopeRef}
+      className="flex items-start gap-8 px-6 py-10 md:px-10 lg:px-16"
+    >
       <article className="max-w-4xl min-w-0 flex-1">
         <nav
           className="mb-6 flex items-center gap-2 text-xs text-stone-500"
@@ -146,7 +149,7 @@ export default function EventDetailView({
       <div
         data-animate="left"
         data-animate-delay="0.3"
-        className="hidden w-56 shrink-0 xl:block"
+        className="hidden w-56 shrink-0 self-stretch xl:block"
       >
         <TableOfContents headings={headings} />
       </div>
