@@ -3,26 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { IconMapPin } from "@/components/Icons";
 import NotionRenderer, { extractHeadings } from "@/components/NotionRenderer";
 import TableOfContents from "@/components/TableOfContents";
 import { formatEventDateLabel } from "@/lib/event-dates";
 import type { EventEntryMeta, NotionBlock } from "@/lib/notion";
 import useViewEntrance from "@/lib/useViewEntrance";
 
+const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
+
 function getLifecycleLabel(meta: EventEntryMeta): string {
   switch (meta.lifecycle) {
     case "upcoming":
-      return "Pra-Acara";
+      return "Upcoming";
     case "ongoing":
-      return "Sedang Berlangsung";
+      return "Ongoing";
     case "past":
-      return "Pasca-Acara";
+      return "Archive";
     case "announcement":
-      return "Info & Pengumuman";
+      return "Bulletin";
     case "timeless":
-      return "Catatan Kegiatan";
+      return "Note";
     default:
-      return "Publikasi";
+      return "Published";
   }
 }
 
@@ -81,34 +84,28 @@ export default function EventDetailView({
             </p>
           )}
 
-          <dl className="mt-8 grid gap-4 border-y border-stone-800 py-5 text-sm md:grid-cols-2">
+          <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-stone-800 py-5 text-sm text-stone-400">
             {meta.eventDate && (
-              <div>
-                <dt className="mb-1 text-[0.62rem] tracking-[0.18em] text-stone-500 uppercase">
-                  Tanggal Acara
-                </dt>
-                <dd className="text-stone-300">
-                  {formatEventDateLabel(meta.eventDate, meta.eventDateEnd)}
-                </dd>
-              </div>
+              <span className="text-stone-300">
+                {formatEventDateLabel(meta.eventDate, meta.eventDateEnd)}
+              </span>
             )}
             {meta.ownerUnit && (
-              <div>
-                <dt className="mb-1 text-[0.62rem] tracking-[0.18em] text-stone-500 uppercase">
-                  Penerbit
-                </dt>
-                <dd className="text-stone-300">{meta.ownerUnit}</dd>
-              </div>
+              <>
+                <span className="text-white/15">·</span>
+                <span>{meta.ownerUnit}</span>
+              </>
             )}
             {meta.location && (
-              <div>
-                <dt className="mb-1 text-[0.62rem] tracking-[0.18em] text-stone-500 uppercase">
-                  Lokasi
-                </dt>
-                <dd className="text-stone-300">{meta.location}</dd>
-              </div>
+              <>
+                <span className="text-white/15">·</span>
+                <span className="inline-flex items-center gap-1">
+                  <IconMapPin width={13} height={13} />
+                  {meta.location}
+                </span>
+              </>
             )}
-          </dl>
+          </div>
 
           {meta.registrationLink && (
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -117,6 +114,7 @@ export default function EventDetailView({
                 target="_blank"
                 rel="noreferrer"
                 className="border-gold-500/30 text-gold-300 hover:bg-gold-500/10 inline-flex items-center gap-2 border px-4 py-2 text-sm transition-colors"
+                style={ACTION_RADIUS}
               >
                 Buka Pendaftaran
               </a>

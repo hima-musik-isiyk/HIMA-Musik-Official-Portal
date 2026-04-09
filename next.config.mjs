@@ -3,9 +3,10 @@ const locatorLoader = {
   options: { env: "development" },
 };
 
+const locatorOverride =
+  process.env.ENABLE_LOCATOR ?? process.env.NEXT_PUBLIC_ENABLE_LOCATOR;
 const enableLocator =
-  process.env.ENABLE_LOCATOR === "true" ||
-  process.env.NEXT_PUBLIC_ENABLE_LOCATOR === "true";
+  process.env.NODE_ENV === "development" && locatorOverride !== "false";
 
 const nextConfig = {
   reactStrictMode: true,

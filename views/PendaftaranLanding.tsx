@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
+import { IconCheck, IconChevronDown, IconDiamond } from "@/components/Icons";
 import SelectionTimelineCalendar from "@/components/SelectionTimelineCalendar";
 import { gsap } from "@/lib/gsap";
 import {
@@ -78,13 +79,11 @@ const DivisionAccordionItem: React.FC<{
             {division.focus}
           </p>
         </div>
-        <span
-          className={`ml-4 shrink-0 text-sm text-neutral-500 transition-transform duration-300 ${
+        <IconChevronDown
+          className={`ml-4 shrink-0 text-neutral-500 transition-transform duration-300 ${
             isOpen ? "rotate-180" : ""
           }`}
-        >
-          ▼
-        </span>
+        />
       </button>
 
       <div
@@ -494,8 +493,8 @@ const PendaftaranLanding: React.FC = () => {
                     data-animate="up"
                     className="flex gap-4"
                   >
-                    <div className="bg-gold-500/10 border-gold-500/20 text-gold-500 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px]">
-                      ✓
+                    <div className="bg-gold-500/10 border-gold-500/20 text-gold-500 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border">
+                      <IconCheck />
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-white">
@@ -513,7 +512,7 @@ const PendaftaranLanding: React.FC = () => {
               className="border-gold-500/10 bg-gold-500/2 mt-8 border p-8 md:p-10 lg:mt-0"
             >
               <div className="mb-6 flex h-10 w-10 items-center justify-center bg-white/5">
-                <span className="text-gold-500 text-lg">✦</span>
+                <IconDiamond className="text-gold-500" />
               </div>
               <p className="text-gold-200/90 mb-4 text-sm font-semibold tracking-wide uppercase">
                 HR Professional Tip

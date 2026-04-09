@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
+import { IconChevronDown } from "@/components/Icons";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 type AduanFormData = {
@@ -507,8 +508,8 @@ const Aduan: React.FC = () => {
                   Lainnya
                 </option>
               </select>
-              <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 text-sm transition-colors duration-300">
-                ▼
+              <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
+                <IconChevronDown />
               </div>
             </div>
           </div>

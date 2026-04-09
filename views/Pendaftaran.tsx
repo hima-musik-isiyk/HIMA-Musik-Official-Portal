@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
+import { IconChevronDown } from "@/components/Icons";
 import { divisions } from "@/lib/pendaftaran-data";
 import useViewEntrance from "@/lib/useViewEntrance";
 
@@ -878,8 +879,8 @@ const Pendaftaran: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 text-sm transition-colors duration-300">
-                      ▼
+                    <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
+                      <IconChevronDown />
                     </div>
                   </div>
                   <p className="mt-2 text-sm text-neutral-500">
@@ -925,8 +926,8 @@ const Pendaftaran: React.FC = () => {
                         2025
                       </option>
                     </select>
-                    <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 text-sm transition-colors duration-300">
-                      ▼
+                    <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
+                      <IconChevronDown />
                     </div>
                   </div>
                   {showStepErrors && angkatanError && (
