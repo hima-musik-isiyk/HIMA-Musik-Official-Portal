@@ -8,7 +8,7 @@ export default function LocatorInitializer() {
       return;
     }
 
-    if (process.env.NEXT_PUBLIC_ENABLE_LOCATOR !== "true") {
+    if (process.env.NEXT_PUBLIC_ENABLE_LOCATOR === "false") {
       return;
     }
 

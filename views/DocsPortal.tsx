@@ -11,6 +11,7 @@ import {
   tokenizeShortcutLabel,
   useCommandPaletteShortcutLabel,
 } from "@/lib/shortcut";
+import { SEKRETARIAT_FOOTER_COPY } from "@/lib/site-copy";
 import useViewEntrance from "@/lib/useViewEntrance";
 import { cn } from "@/lib/utils";
 
@@ -352,7 +353,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           <div className="h-px w-12 bg-white/5" />
         </div>
         <p className="text-[0.6rem] tracking-[0.3em] text-stone-600 uppercase">
-          Sekretariat Jenderal HIMA MUSIK © 2024-2026
+          {SEKRETARIAT_FOOTER_COPY}
         </p>
       </div>
     </div>

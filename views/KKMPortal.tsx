@@ -2,6 +2,7 @@
 import Link from "next/link";
 
 import type { KKMGroup } from "@/lib/kkm-data";
+import { SEKRETARIAT_FOOTER_COPY } from "@/lib/site-copy";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 /* ------------------------------------------------------------------ */
@@ -234,7 +235,7 @@ export default function KKMPortalView({ groups }: { groups: KKMGroup[] }) {
           <div className="h-px w-12 bg-white/5" />
         </div>
         <p className="text-[0.6rem] tracking-[0.3em] text-stone-600 uppercase">
-          HIMA MUSIK ISI Yogyakarta © 2024-2026
+          {SEKRETARIAT_FOOTER_COPY}
         </p>
       </div>
     </div>

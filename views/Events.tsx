@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import {
+  IconCalendar,
+  IconChevronDown,
+  IconExternalLink,
+  IconMapPin,
+} from "@/components/Icons";
+import {
   formatEventDateLabel,
   getDateOnly,
   getEventDateKeysInRange,
@@ -14,6 +20,8 @@ import type { EventEntryMeta, EventsCollection } from "@/lib/notion";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 const DAYS_OF_WEEK = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+const ITEMS_PER_PAGE = 5;
+const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 
 function formatDate(date: string): string {
   const parsed = parseEventDateValue(date);
@@ -53,20 +61,20 @@ function isSameDay(left: Date, right: Date): boolean {
   );
 }
 
-function getEventLabel(entry: EventEntryMeta): string {
+function getLifecycleLabel(entry: EventEntryMeta): string {
   switch (entry.lifecycle) {
     case "upcoming":
-      return "Pra-Acara";
+      return "Upcoming";
     case "ongoing":
-      return "Sedang Berlangsung";
+      return "Ongoing";
     case "past":
-      return "Pasca-Acara";
+      return "Archive";
     case "announcement":
-      return "Info & Pengumuman";
+      return "Bulletin";
     case "timeless":
-      return "Catatan Kegiatan";
+      return "Note";
     default:
-      return "Publikasi";
+      return "Published";
   }
 }
 
@@ -85,21 +93,7 @@ function getEventTone(entry: EventEntryMeta): string {
   }
 }
 
-type EventSectionKey = "all" | "upcoming" | "ongoing" | "announcement" | "past";
-
 type SortOption = "newest" | "oldest" | "nearest";
-
-type SectionConfig = {
-  key: Exclude<EventSectionKey, "all">;
-  title: string;
-  count: number;
-  entries: EventEntryMeta[];
-};
-
-type SectionedEntry = {
-  entry: EventEntryMeta;
-  sectionKey: Exclude<EventSectionKey, "all">;
-};
 
 function getEntryTimestamp(value: string): number {
   const parsed = Date.parse(value);
@@ -111,15 +105,15 @@ function getEventStartTimestamp(entry: EventEntryMeta): number {
   return parsed ? parsed.getTime() : Number.POSITIVE_INFINITY;
 }
 
-function sortSectionedEntries(
-  entries: SectionedEntry[],
+function sortEntries(
+  entries: EventEntryMeta[],
   sortOption: SortOption,
-): SectionedEntry[] {
+): EventEntryMeta[] {
   return [...entries].sort((left, right) => {
-    const leftEventTime = getEventStartTimestamp(left.entry);
-    const rightEventTime = getEventStartTimestamp(right.entry);
-    const leftEditedTime = getEntryTimestamp(left.entry.lastEdited);
-    const rightEditedTime = getEntryTimestamp(right.entry.lastEdited);
+    const leftEventTime = getEventStartTimestamp(left);
+    const rightEventTime = getEventStartTimestamp(right);
+    const leftEditedTime = getEntryTimestamp(left.lastEdited);
+    const rightEditedTime = getEntryTimestamp(right.lastEdited);
 
     if (sortOption === "nearest") {
       const leftHasDate = Number.isFinite(leftEventTime);
@@ -299,31 +293,24 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
         >
           <div
             data-animate="up"
-            className="mb-8 flex flex-col gap-6 border-b border-white/8 pb-6 lg:flex-row lg:items-end lg:justify-between"
+            className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
           >
-            <div>
-              <p className="text-gold-400 text-xs font-medium tracking-[0.28em] uppercase">
-                Kalender Agenda
-              </p>
-              <h2 className="mt-3 font-serif text-3xl text-white md:text-5xl">
-                Peta waktu kegiatan HIMA Musik
-              </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-stone-400 md:text-base">
-                Jelajahi agenda per bulan untuk melihat ritme kegiatan, tanggal
-                pelaksanaan, dan publikasi yang sedang aktif.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 self-start lg:self-auto">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() =>
                   setActiveMonthIndex((index) => Math.max(0, index - 1))
                 }
                 disabled={activeMonthIndex === 0}
-                className="hover:border-gold-500/40 cursor-pointer border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                className="hover:border-gold-500/40 cursor-pointer border border-white/10 px-2.5 py-1.5 text-sm text-stone-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                style={ACTION_RADIUS}
+                aria-label="Bulan sebelumnya"
               >
-                ← Bulan sebelumnya
+                ←
               </button>
+              <p className="min-w-40 text-center font-serif text-2xl text-white md:text-3xl">
+                {activeMonth ? formatMonthLabel(activeMonth) : "—"}
+              </p>
               <button
                 type="button"
                 onClick={() =>
@@ -332,26 +319,12 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                   )
                 }
                 disabled={activeMonthIndex === monthOptions.length - 1}
-                className="hover:border-gold-500/40 cursor-pointer border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+                className="hover:border-gold-500/40 cursor-pointer border border-white/10 px-2.5 py-1.5 text-sm text-stone-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                style={ACTION_RADIUS}
+                aria-label="Bulan berikutnya"
               >
-                Bulan berikutnya →
+                →
               </button>
-            </div>
-          </div>
-
-          <div
-            data-animate="up"
-            className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
-          >
-            <div>
-              <p className="font-serif text-2xl text-white md:text-3xl">
-                {activeMonth
-                  ? formatMonthLabel(activeMonth)
-                  : "Belum ada bulan"}
-              </p>
-              <p className="mt-2 text-sm text-stone-500">
-                {activeMonthEntries.length} agenda bertanggal pada bulan ini
-              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               {monthOptions.map((month, index) => {
@@ -366,6 +339,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                         ? "border-gold-500/50 bg-gold-500/12 text-gold-200"
                         : "border-white/8 text-stone-500 hover:border-white/20 hover:text-stone-200"
                     }`}
+                    style={ACTION_RADIUS}
                   >
                     {month.toLocaleDateString("id-ID", {
                       month: "short",
@@ -485,7 +459,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                           })}
                           {dayEntries.length > 3 && (
                             <span className="block px-1 text-[0.7rem] text-stone-500">
-                              +{dayEntries.length - 3} agenda lainnya
+                              +{dayEntries.length - 3} lainnya
                             </span>
                           )}
                         </div>
@@ -506,6 +480,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                       key={entry.id}
                       type="button"
                       onClick={() => setSelectedDateKey(dateKey)}
+                      style={ACTION_RADIUS}
                       className={`flex w-full items-start gap-4 border px-4 py-4 text-left transition ${
                         isSelected
                           ? "border-gold-500/40 bg-gold-500/10"
@@ -535,16 +510,20 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                             entry.eventDateEnd,
                           )}
                         </p>
-                        <p className="mt-2 text-sm leading-relaxed text-stone-400">
-                          {entry.summary ||
-                            "Agenda bertanggal yang sudah diterbitkan."}
-                        </p>
+                        {entry.summary && (
+                          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-stone-400">
+                            {entry.summary}
+                          </p>
+                        )}
                       </div>
                     </button>
                   );
                 })}
                 {activeMonthEntries.length === 0 && (
-                  <div className="border border-white/8 bg-white/2 px-4 py-6 text-sm text-stone-500">
+                  <div
+                    className="border border-white/8 bg-white/2 px-4 py-6 text-sm text-stone-500"
+                    style={ACTION_RADIUS}
+                  >
                     Belum ada agenda bertanggal pada bulan ini.
                   </div>
                 )}
@@ -552,49 +531,37 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
             </div>
 
             <aside className="border border-white/8 bg-black/35 p-5 md:p-6">
-              <p className="text-gold-400 text-xs tracking-[0.22em] uppercase">
-                Detail Tanggal
-              </p>
               {selectedDate && selectedEntries.length > 0 ? (
                 <>
-                  <h3 className="mt-3 font-serif text-2xl text-white">
+                  <h3 className="font-serif text-2xl text-white">
                     {formatDate(selectedDate.toISOString())}
                   </h3>
-                  <p className="mt-2 text-sm text-stone-500">
-                    {selectedEntries.length} agenda dipublikasikan untuk tanggal
-                    ini
-                  </p>
 
-                  <div className="mt-6 space-y-4">
+                  <div className="mt-5 space-y-4">
                     {selectedEntries.map((entry) => (
                       <Link
                         key={entry.id}
                         href={`/events/${entry.slug}`}
                         className="group hover:border-gold-500/30 hover:bg-gold-500/6 block border border-white/8 bg-white/3 p-4 transition"
+                        style={ACTION_RADIUS}
                       >
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span
-                            className={`border px-2.5 py-1 text-[0.62rem] tracking-[0.18em] uppercase ${getEventTone(entry)}`}
-                          >
-                            {getEventLabel(entry)}
-                          </span>
-                          {entry.ownerUnit && (
-                            <span className="text-[0.68rem] tracking-[0.16em] text-stone-500 uppercase">
-                              {entry.ownerUnit}
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="group-hover:text-gold-200 font-serif text-xl text-white transition">
+                        <span
+                          className={`inline-block border px-2.5 py-1 text-[0.62rem] tracking-[0.18em] uppercase ${getEventTone(entry)}`}
+                          style={ACTION_RADIUS}
+                        >
+                          {getLifecycleLabel(entry)}
+                        </span>
+                        <h4 className="group-hover:text-gold-200 mt-3 font-serif text-xl text-white transition">
                           {entry.title}
                         </h4>
-                        <p className="mt-3 text-sm leading-relaxed text-stone-400">
-                          {entry.summary ||
-                            "Buka detail agenda untuk informasi lengkap."}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-3 text-xs text-stone-500">
+                        {entry.summary && (
+                          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-stone-400">
+                            {entry.summary}
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
                           {entry.eventDate && (
                             <span>
-                              Jadwal:{" "}
                               {formatEventDateLabel(
                                 entry.eventDate,
                                 entry.eventDateEnd,
@@ -602,12 +569,21 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                             </span>
                           )}
                           {entry.location && (
-                            <span>Lokasi: {entry.location}</span>
+                            <>
+                              <span className="text-white/15">·</span>
+                              <span className="inline-flex items-center gap-1">
+                                <IconMapPin width={11} height={11} />
+                                {entry.location}
+                              </span>
+                            </>
                           )}
                           {entry.registrationLink && (
-                            <span className="text-gold-300">
-                              Pendaftaran tersedia
-                            </span>
+                            <>
+                              <span className="text-white/15">·</span>
+                              <span className="text-gold-400">
+                                <IconExternalLink width={11} height={11} />
+                              </span>
+                            </>
                           )}
                         </div>
                       </Link>
@@ -615,23 +591,21 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                   </div>
                 </>
               ) : (
-                <div className="mt-4 border border-dashed border-white/10 px-4 py-6 text-sm leading-relaxed text-stone-500">
-                  Pilih tanggal pada kalender untuk melihat agenda yang terbit
-                  pada hari tersebut.
+                <div className="flex flex-col items-center justify-center py-10 text-stone-600">
+                  <IconCalendar width={24} height={24} />
+                  <p className="mt-3 text-xs tracking-wide">Pilih tanggal</p>
                 </div>
               )}
 
               {collection.announcements.length > 0 && (
-                <div className="mt-8 border-t border-white/8 pt-6">
-                  <p className="text-xs tracking-[0.22em] text-stone-500 uppercase">
-                    Info tanpa tanggal acara
-                  </p>
-                  <div className="mt-4 space-y-3">
+                <div className="mt-6 border-t border-white/8 pt-5">
+                  <div className="space-y-2">
                     {collection.announcements.slice(0, 3).map((entry) => (
                       <Link
                         key={entry.id}
                         href={`/events/${entry.slug}`}
                         className="block border border-white/8 px-4 py-3 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
+                        style={ACTION_RADIUS}
                       >
                         {entry.title}
                       </Link>
@@ -652,6 +626,7 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
     <Link
       href={`/events/${entry.slug}`}
       className="group hover:border-gold-500/25 relative flex w-full flex-col overflow-hidden border border-white/6 bg-white/2 transition-[border-color,background-color,color] duration-300 hover:bg-white/4 md:flex-row"
+      style={ACTION_RADIUS}
       data-animate="up"
       data-animate-duration="0.8"
       data-animate-delay={String(Math.min(index * 0.05, 0.35))}
@@ -670,17 +645,15 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
         </div>
       ) : (
-        <div className="relative flex h-44 shrink-0 items-center justify-center border-b border-white/6 bg-[radial-gradient(circle_at_top,rgba(212,166,77,0.08)_0%,transparent_70%)] md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
-          <span className="text-gold-500/60 font-serif text-xl">
-            {entry.icon || entry.ownerUnit || "Acara"}
-          </span>
+        <div className="relative h-44 shrink-0 overflow-hidden border-b border-white/6 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,101,1,0.12)_0%,transparent_60%)]" />
         </div>
       )}
 
       <div className="flex flex-1 flex-col p-5 md:p-6">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="border-gold-500/30 bg-gold-500/10 text-gold-300 rounded-full border px-3 py-1 text-[0.62rem] font-medium tracking-[0.18em] uppercase">
-            {getEventLabel(entry)}
+            {getLifecycleLabel(entry)}
           </span>
           {entry.ownerUnit && (
             <span className="text-[0.68rem] tracking-[0.16em] text-stone-500 uppercase">
@@ -689,49 +662,38 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
           )}
         </div>
 
-        <div className="mb-4">
+        <div className="mb-auto">
           <h2 className="group-hover:text-gold-400 font-serif text-2xl text-white transition-colors md:text-[1.85rem]">
             {entry.title}
           </h2>
-          {entry.summary && (
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-stone-400">
-              {entry.summary}
-            </p>
-          )}
+          <p className="mt-3 line-clamp-2 min-h-10.5 max-w-3xl text-sm leading-relaxed text-stone-400">
+            {entry.summary || "\u00A0"}
+          </p>
         </div>
 
-        <dl className="mb-5 grid gap-3 text-xs text-stone-500 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
           {entry.eventDate && (
-            <div>
-              <dt className="mb-1 tracking-[0.18em] uppercase">Tanggal</dt>
-              <dd className="text-sm text-stone-300">
-                {formatEventDateLabel(entry.eventDate, entry.eventDateEnd)}
-              </dd>
-            </div>
-          )}
-          {entry.ownerUnit && (
-            <div>
-              <dt className="mb-1 tracking-[0.18em] uppercase">Penerbit</dt>
-              <dd className="text-sm text-stone-300">{entry.ownerUnit}</dd>
-            </div>
+            <span className="text-stone-300">
+              {formatEventDateLabel(entry.eventDate, entry.eventDateEnd)}
+            </span>
           )}
           {entry.location && (
-            <div>
-              <dt className="mb-1 tracking-[0.18em] uppercase">Lokasi</dt>
-              <dd className="text-sm text-stone-300">{entry.location}</dd>
-            </div>
+            <>
+              <span className="text-white/15">·</span>
+              <span className="inline-flex items-center gap-1">
+                <IconMapPin width={11} height={11} />
+                {entry.location}
+              </span>
+            </>
           )}
-        </dl>
-
-        <div className="mt-auto flex flex-col gap-3 border-t border-white/6 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-gold-400 group-hover:text-gold-300 text-sm transition-colors">
-            Buka detail acara →
-          </span>
-          <div className="flex flex-wrap gap-3 text-xs text-stone-500">
-            {entry.registrationLink && (
-              <span className="text-gold-300">Pendaftaran tersedia</span>
-            )}
-          </div>
+          {entry.registrationLink && (
+            <>
+              <span className="text-white/15">·</span>
+              <span className="text-gold-400">
+                <IconExternalLink width={11} height={11} />
+              </span>
+            </>
+          )}
         </div>
       </div>
     </Link>
@@ -744,222 +706,230 @@ export default function EventsView({
   collection: EventsCollection;
 }) {
   const scopeRef = useViewEntrance("/events");
-  const sectionConfigs = useMemo<SectionConfig[]>(() => {
-    const configs: SectionConfig[] = [
-      {
-        key: "upcoming",
-        title: "Pra-Acara",
-        count: collection.upcoming.length,
-        entries: collection.upcoming,
-      },
-      {
-        key: "ongoing",
-        title: "Sedang Berlangsung",
-        count: collection.ongoing.length,
-        entries: collection.ongoing,
-      },
-      {
-        key: "announcement",
-        title: "Info & Pengumuman",
-        count: collection.announcements.length,
-        entries: collection.announcements,
-      },
-      {
-        key: "past",
-        title: "Pasca-Acara",
-        count: collection.past.length,
-        entries: collection.past,
-      },
-    ];
 
-    return configs.filter((section) => section.count > 0);
+  // Build a flat list of all entries with their entryKind for filtering
+  const allEntries = useMemo(() => {
+    return [
+      ...collection.upcoming,
+      ...collection.ongoing,
+      ...collection.past,
+      ...collection.announcements,
+    ];
   }, [collection]);
-  const [activeFilter, setActiveFilter] = useState<EventSectionKey>("all");
+
+  // Extract unique entryKind values for dynamic filter buttons
+  const entryKindFilters = useMemo(() => {
+    const kinds = new Map<string, number>();
+    for (const entry of allEntries) {
+      const kind = entry.entryKind || "Other";
+      kinds.set(kind, (kinds.get(kind) ?? 0) + 1);
+    }
+    return [...kinds.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([kind, count]) => ({ kind, count }));
+  }, [allEntries]);
+
+  const [activeKindFilter, setActiveKindFilter] = useState<string>("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
-  const hasEntries =
-    collection.upcoming.length > 0 ||
-    collection.ongoing.length > 0 ||
-    collection.past.length > 0 ||
-    collection.announcements.length > 0;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const hasEntries = allEntries.length > 0;
 
   const filteredEntries = useMemo(() => {
-    const sourceSections =
-      activeFilter === "all"
-        ? sectionConfigs
-        : sectionConfigs.filter((section) => section.key === activeFilter);
+    const source =
+      activeKindFilter === "all"
+        ? allEntries
+        : allEntries.filter(
+            (entry) => (entry.entryKind || "Other") === activeKindFilter,
+          );
 
-    const flattenedEntries = sourceSections.flatMap((section) =>
-      section.entries.map((entry) => ({
-        entry,
-        sectionKey: section.key,
-      })),
-    );
+    return sortEntries(source, sortOption);
+  }, [activeKindFilter, allEntries, sortOption]);
 
-    return sortSectionedEntries(flattenedEntries, sortOption);
-  }, [activeFilter, sectionConfigs, sortOption]);
-
-  const totalEntries = filteredEntries.length;
-  const visibleEntries = filteredEntries.map((item) => item.entry);
-  const totalPublishedEntries = sectionConfigs.reduce(
-    (count, section) => count + section.count,
-    0,
+  // Reset page when filters change
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEntries.length / ITEMS_PER_PAGE),
   );
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedEntries = filteredEntries.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE,
+  );
+
+  const handleFilterChange = (kind: string) => {
+    setActiveKindFilter(kind);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortOption(value as SortOption);
+    setCurrentPage(1);
+  };
 
   return (
     <div
       ref={scopeRef}
-      className="relative min-h-screen overflow-x-hidden px-6 pt-28 pb-24 md:px-10 lg:px-16"
+      className="relative min-h-screen overflow-x-hidden px-6 pt-40 pb-32 md:px-10 lg:px-16"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,166,77,0.03)_0%,transparent_70%)]" />
       <div className="relative z-10 mx-auto max-w-7xl">
-        <header className="mb-18 border-b border-white/5 pb-10">
-          <div data-animate="fade" className="mb-5 flex items-center gap-4">
-            <span
-              className="bg-gold-500/40 block h-px w-8 md:w-12"
-              aria-hidden="true"
-            />
-            <p className="text-gold-500 text-sm font-medium">Publikasi Acara</p>
-          </div>
-          <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1
-                data-animate="up"
-                data-animate-delay="0.1"
-                className="font-serif text-5xl tracking-tight text-white md:text-7xl"
-              >
-                Agenda &{" "}
-                <span className="text-gold-500/80 font-light italic">
-                  Catatan Kegiatan
-                </span>
-              </h1>
-              <p
-                data-animate="up"
-                data-animate-delay="0.2"
-                className="mt-6 max-w-3xl text-base leading-relaxed text-stone-400"
-              >
-                Ruang publikasi resmi HIMA MUSIK dan KKM untuk pengumuman,
-                rangkaian pra-acara, dokumentasi pasca-acara, serta catatan
-                kegiatan internal yang dikelola langsung oleh organisasi.
-              </p>
+        <header className="relative mb-16 flex flex-col items-start justify-between border-b border-white/5 pb-10 md:flex-row md:items-end">
+          <div className="bg-gold-500/50 absolute bottom-0 left-0 h-px w-32" />
+          <div>
+            <div data-animate="up" className="mb-6 flex items-center gap-4">
+              <span
+                className="bg-gold-500/40 block h-px w-8 md:w-12"
+                aria-hidden="true"
+              />
+              <p className="text-gold-500 text-sm font-medium">Agenda</p>
             </div>
-            <p
+            <h1
               data-animate="up"
-              data-animate-delay="0.25"
-              className="text-sm text-stone-500"
+              data-animate-delay="0.1"
+              className="font-serif text-5xl tracking-tight text-white md:text-7xl"
             >
-              Diklasifikasikan otomatis berdasarkan tanggal acara dan tanggal
-              publikasi
-            </p>
+              Agenda &{" "}
+              <span className="text-gold-500/80 font-light italic">
+                Kegiatan
+              </span>
+            </h1>
           </div>
+          <p
+            data-animate="up"
+            data-animate-delay="0.2"
+            className="mt-8 text-sm text-neutral-400 md:mt-0"
+          >
+            {allEntries.length > 0
+              ? `${allEntries.length} Publikasi`
+              : "Arsip Kegiatan"}
+          </p>
         </header>
 
         {!hasEntries && (
           <div
             data-animate="up"
-            className="group hover:border-gold-500/30 relative overflow-hidden border border-white/5 bg-white/1 px-8 py-24 text-center transition-colors duration-500"
+            className="flex flex-col items-center justify-center border border-dashed border-white/8 px-8 py-20 text-center"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.05)_0%,transparent_50%)] opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
-            <div className="relative z-10 mx-auto max-w-2xl">
-              <p className="text-sm tracking-wide text-neutral-400">
-                Database acara sudah terhubung, tetapi belum ada entri yang
-                terbit untuk ditampilkan.
-              </p>
-              <p className="mt-3 text-sm text-neutral-500">
-                Isi kolom `Publish` dan `Event Date` di Notion untuk mulai
-                membentuk kategori acara secara otomatis.
-              </p>
-            </div>
+            <p className="text-sm text-stone-500">
+              Belum ada agenda yang diterbitkan.
+            </p>
           </div>
         )}
 
         <EventCalendar collection={collection} />
 
-        {sectionConfigs.length > 0 && (
+        {hasEntries && (
           <section
             id="events-archive-controls"
             aria-label="Kontrol arsip acara"
-            className="mb-10 overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.015)_100%)]"
+            className="mb-8"
           >
-            <div className="flex flex-col gap-5 px-5 py-5 md:px-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <p className="text-gold-400 text-xs tracking-[0.24em] uppercase">
-                    Jelajahi Publikasi
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-stone-400">
-                    {totalEntries > 0
-                      ? `Menampilkan ${totalEntries} publikasi`
-                      : "Tidak ada publikasi yang cocok dengan tampilan saat ini"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs tracking-[0.18em] uppercase">
-                  <label className="flex items-center gap-2 text-stone-500">
-                    <span>Urutkan</span>
-                    <select
-                      value={sortOption}
-                      onChange={(event) => {
-                        setSortOption(event.target.value as SortOption);
-                      }}
-                      className="border border-white/10 bg-[#0d0d0d] px-3 py-2 text-[0.72rem] text-stone-300 transition outline-none hover:border-white/20"
-                    >
-                      <option value="newest">Terbaru</option>
-                      <option value="nearest">Terdekat</option>
-                      <option value="oldest">Terlama</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveFilter("all");
-                  }}
-                  className={`inline-flex items-center gap-3 border px-4 py-3 text-sm transition ${
-                    activeFilter === "all"
+                  onClick={() => handleFilterChange("all")}
+                  style={ACTION_RADIUS}
+                  className={`inline-flex items-center gap-2 border px-3.5 py-2.5 text-sm transition ${
+                    activeKindFilter === "all"
                       ? "border-gold-500/30 bg-gold-500/8 text-white"
-                      : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-300 hover:text-white"
+                      : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-400 hover:text-white"
                   }`}
                 >
-                  <span>Semua Rubrik</span>
-                  <span className="border border-white/8 px-2 py-1 text-[0.62rem] tracking-[0.2em] text-stone-500 uppercase">
-                    {totalPublishedEntries}
+                  <span>All</span>
+                  <span className="text-[0.62rem] text-stone-500">
+                    {allEntries.length}
                   </span>
                 </button>
-                {sectionConfigs.map((section) => (
+                {entryKindFilters.map(({ kind, count }) => (
                   <button
-                    key={section.key}
+                    key={kind}
                     type="button"
-                    onClick={() => {
-                      setActiveFilter(section.key);
-                    }}
-                    className={`inline-flex items-center gap-3 border px-4 py-3 text-sm transition ${
-                      activeFilter === section.key
+                    onClick={() => handleFilterChange(kind)}
+                    style={ACTION_RADIUS}
+                    className={`inline-flex items-center gap-2 border px-3.5 py-2.5 text-sm transition ${
+                      activeKindFilter === kind
                         ? "border-gold-500/30 bg-gold-500/8 text-white"
-                        : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-300 hover:text-white"
+                        : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-400 hover:text-white"
                     }`}
                   >
-                    <span>{section.title}</span>
-                    <span className="border border-white/8 px-2 py-1 text-[0.62rem] tracking-[0.2em] text-stone-500 uppercase">
-                      {section.count}
+                    <span>{kind}</span>
+                    <span className="text-[0.62rem] text-stone-500">
+                      {count}
                     </span>
                   </button>
                 ))}
+              </div>
+              <div className="group relative">
+                <select
+                  value={sortOption}
+                  onChange={(event) => handleSortChange(event.target.value)}
+                  className="cursor-pointer appearance-none border border-white/10 bg-[#0d0d0d] px-3 py-2 pr-8 text-xs tracking-[0.15em] text-stone-400 uppercase transition outline-none hover:border-white/20 hover:text-stone-200"
+                  style={ACTION_RADIUS}
+                >
+                  <option className="bg-[#111] text-neutral-300" value="newest">
+                    Terbaru
+                  </option>
+                  <option
+                    className="bg-[#111] text-neutral-300"
+                    value="nearest"
+                  >
+                    Terdekat
+                  </option>
+                  <option className="bg-[#111] text-neutral-300" value="oldest">
+                    Terlama
+                  </option>
+                </select>
+                <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-2.5 transition-colors duration-300">
+                  <IconChevronDown width={12} height={12} />
+                </div>
               </div>
             </div>
           </section>
         )}
 
-        {visibleEntries.length > 0 ? (
+        {pagedEntries.length > 0 ? (
           <section className="space-y-4">
-            {visibleEntries.map((entry, index) => (
+            {pagedEntries.map((entry, index) => (
               <EventCard key={entry.id} entry={entry} index={index} />
             ))}
           </section>
         ) : (
-          <div className="border border-dashed border-white/10 px-5 py-8 text-sm leading-relaxed text-stone-500">
-            Tidak ada publikasi yang cocok dengan filter saat ini.
+          hasEntries && (
+            <div
+              className="flex items-center justify-center border border-dashed border-white/8 px-5 py-12 text-sm text-stone-600"
+              style={ACTION_RADIUS}
+            >
+              Tidak ada hasil.
+            </div>
+          )
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-10 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+              style={ACTION_RADIUS}
+            >
+              ←
+            </button>
+            <span className="px-3 text-xs tracking-wide text-stone-500">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+              style={ACTION_RADIUS}
+            >
+              →
+            </button>
           </div>
         )}
       </div>
