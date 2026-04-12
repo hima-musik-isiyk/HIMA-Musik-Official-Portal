@@ -10,6 +10,16 @@ const enableLocator =
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    localPatterns: [
+      {
+        pathname: "/api/notion-image",
+      },
+      {
+        pathname: "/api/notion-image/**",
+      },
+    ],
+  },
   turbopack: enableLocator
     ? {
         rules: {
