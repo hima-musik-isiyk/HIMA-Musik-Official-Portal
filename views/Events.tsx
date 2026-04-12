@@ -1091,15 +1091,6 @@ export default function EventsView({
               </span>
             </h1>
           </div>
-          <p
-            data-animate="up"
-            data-animate-delay="0.2"
-            className="mt-8 text-sm text-neutral-400 md:mt-0"
-          >
-            {allEntries.length > 0
-              ? `${allEntries.length} Publikasi`
-              : "Arsip Kegiatan"}
-          </p>
         </header>
 
         {!hasEntries && (
@@ -1124,7 +1115,7 @@ export default function EventsView({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex flex-row flex-wrap items-center gap-3">
-                  <div className="group relative inline-flex w-full self-start sm:w-[15.5rem]">
+                  <div className="group relative inline-flex w-full self-start sm:w-62">
                     <select
                       value={activeKindFilter}
                       onChange={(event) =>
