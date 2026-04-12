@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
 import type { NotionContentScope } from "@/lib/notion";
+import { toCachedImageUrl } from "@/lib/notion-image";
 import type { NotionBlock } from "@/lib/notion-shared";
 import {
   ANCHOR_TAG_RE,
@@ -1092,7 +1093,12 @@ function BlockRenderer({
         <span className="shrink-0 text-xl">{iconData.emoji}</span>
       ) : iconData?.type === "external" && iconData.external?.url ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={iconData.external.url} alt="" className="h-5 w-5 shrink-0" />
+        <img
+          src={toCachedImageUrl(iconData.external.url)}
+          alt=""
+          className="h-5 w-5 shrink-0"
+          loading="lazy"
+        />
       ) : null;
 
       const bgCls = blockBgClass
@@ -1158,7 +1164,7 @@ function BlockRenderer({
           {url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={url}
+              src={toCachedImageUrl(url)}
               alt={caption?.map((c) => c.plain_text).join("") || ""}
               className="w-full rounded-lg border border-stone-800"
               loading="lazy"

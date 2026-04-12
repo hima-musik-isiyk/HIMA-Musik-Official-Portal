@@ -218,6 +218,64 @@ function getCoverUrl(page: NotionPage, name = "Cover Image"): string | null {
   return getFiles(page, name)[0] ?? null;
 }
 
+function getChildPageTitle(block: NotionBlock): string {
+  if (block.type !== "child_page") return "";
+  const typed = block.child_page as { title?: string } | undefined;
+  return (typed?.title ?? "").trim();
+}
+
+function isPreferredEventChildPage(title: string): boolean {
+  const normalized = title.trim().toLowerCase();
+  return /shared|share|draft|publish|published|konten|content|public|umum/.test(
+    normalized,
+  );
+}
+
+function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
+  let firstChildPage: NotionBlock | null = null;
+
+  for (const block of blocks) {
+    if (block.type === "child_page") {
+      if (!firstChildPage) {
+        firstChildPage = block;
+      }
+
+      if (isPreferredEventChildPage(getChildPageTitle(block))) {
+        return block;
+      }
+    }
+
+    if (block.children?.length) {
+      const nested = findPreferredChildPage(block.children);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  return firstChildPage;
+}
+
+function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
+  const dropUntilAfterFirstTopLevelTable = (
+    items: NotionBlock[],
+  ): NotionBlock[] => {
+    const firstTableIndex = items.findIndex((block) => block.type === "table");
+    if (firstTableIndex < 0) return items;
+    return items.slice(firstTableIndex + 1);
+  };
+
+  const preferredChildPage = findPreferredChildPage(blocks);
+  if (preferredChildPage?.children?.length) {
+    // Shared subpages may include internal briefing blocks before the
+    // admin/KKM communication table. Hide everything up to and including
+    // that first top-level table from public event rendering.
+    return dropUntilAfterFirstTopLevelTable(preferredChildPage.children);
+  }
+
+  return blocks;
+}
+
 function getSlugValue(page: NotionPage, fallbackText: string): string {
   return (
     getRichText(page, "Slug") ||
@@ -670,7 +728,8 @@ export const fetchEventBySlug = cache(
 
     if (!matchedPage) return null;
 
-    const blocks = await fetchAllBlocks(matchedPage.id);
+    const rootBlocks = await fetchAllBlocks(matchedPage.id);
+    const blocks = selectEventContentBlocks(rootBlocks);
 
     return {
       meta: mapEventPage(matchedPage, today),

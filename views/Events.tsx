@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -18,6 +19,7 @@ import {
   parseEventDateValue,
 } from "@/lib/event-dates";
 import type { EventEntryMeta, EventsCollection } from "@/lib/notion";
+import { toCachedImageUrl } from "@/lib/notion-image";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 const DAYS_OF_WEEK = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
@@ -666,10 +668,12 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
 }
 
 function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
+  const coverUrl = toCachedImageUrl(entry.coverImageUrl);
+
   return (
     <Link
       href={`/events/${entry.slug}`}
-      className="group hover:border-gold-500/25 relative flex w-full flex-col overflow-hidden border border-white/6 bg-white/2 transition-[border-color,background-color,color] duration-300 hover:bg-white/4 md:flex-row"
+      className="group hover:border-gold-500/35 relative flex w-full flex-col overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] shadow-[0_10px_35px_rgba(0,0,0,0.22)] transition-[border-color,background-color,color,transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:bg-white/4 hover:shadow-[0_18px_42px_rgba(0,0,0,0.28)] md:flex-row"
       style={ACTION_RADIUS}
       data-animate="up"
       data-animate-duration="0.8"
@@ -677,20 +681,21 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
       data-animate-start="top 92%"
       data-animate-scroll="true"
     >
-      {entry.coverImageUrl ? (
-        <div className="relative h-44 shrink-0 overflow-hidden border-b border-white/6 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={entry.coverImageUrl}
+      {coverUrl ? (
+        <div className="relative h-44 shrink-0 overflow-hidden border-b border-white/6 bg-stone-900 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
+          <Image
+            src={coverUrl}
             alt={entry.title}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            loading="lazy"
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 40vw, 22rem"
           />
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
         </div>
       ) : (
         <div className="relative h-44 shrink-0 overflow-hidden border-b border-white/6 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,101,1,0.12)_0%,transparent_60%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,101,1,0.14)_0%,rgba(255,255,255,0.02)_55%,transparent_100%)]" />
         </div>
       )}
 
