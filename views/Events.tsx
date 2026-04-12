@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   IconCalendar,
@@ -13,6 +13,7 @@ import {
   formatEventDateLabel,
   getDateOnly,
   getEventDateKeysInRange,
+  getEventDateSortValue,
   getEventMonthKeysInRange,
   parseEventDateValue,
 } from "@/lib/event-dates";
@@ -22,6 +23,8 @@ import useViewEntrance from "@/lib/useViewEntrance";
 const DAYS_OF_WEEK = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const ITEMS_PER_PAGE = 5;
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
+const SCROLL_OFFSET_PADDING = 16;
+const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
 function formatDate(date: string): string {
   const parsed = parseEventDateValue(date);
@@ -31,7 +34,7 @@ function formatDate(date: string): string {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Jakarta",
+    timeZone: JAKARTA_TIME_ZONE,
   });
 }
 
@@ -39,7 +42,7 @@ function formatMonthLabel(date: Date): string {
   return date.toLocaleDateString("id-ID", {
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Jakarta",
+    timeZone: JAKARTA_TIME_ZONE,
   });
 }
 
@@ -93,16 +96,59 @@ function getEventTone(entry: EventEntryMeta): string {
   }
 }
 
-type SortOption = "newest" | "oldest" | "nearest";
+type SortOption = "newest" | "nearest";
+type TimeFilter = "all" | "upcoming" | "archive";
+
+const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
+  all: "Semua Waktu",
+  upcoming: "Mendatang",
+  archive: "Arsip",
+};
+
+const TIME_FILTERS: TimeFilter[] = ["all", "upcoming", "archive"];
+
+function getTodayInJakarta(): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: JAKARTA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const parsed = parseEventDateValue(dateKey);
+  if (!parsed) return dateKey;
+
+  const nextDate = new Date(parsed.getTime());
+  nextDate.setUTCDate(nextDate.getUTCDate() + days);
+  return getDateOnly(nextDate.toISOString());
+}
+
+function matchesTimeFilter(
+  entry: EventEntryMeta,
+  timeFilter: TimeFilter,
+  todayKey: string,
+  tomorrowKey: string,
+): boolean {
+  if (timeFilter === "all") return true;
+  if (timeFilter === "archive") return entry.lifecycle === "past";
+
+  const startKey = getDateOnly(entry.eventDate);
+  const endKey = getDateOnly(entry.eventDateEnd || entry.eventDate);
+
+  if (!startKey) return false;
+  return startKey <= tomorrowKey && endKey >= todayKey;
+}
 
 function getEntryTimestamp(value: string): number {
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-function getEventStartTimestamp(entry: EventEntryMeta): number {
-  const parsed = parseEventDateValue(entry.eventDate);
-  return parsed ? parsed.getTime() : Number.POSITIVE_INFINITY;
+function getCreatedTimestamp(entry: EventEntryMeta): number {
+  const parsed = Date.parse(entry.createdAt);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function sortEntries(
@@ -110,8 +156,16 @@ function sortEntries(
   sortOption: SortOption,
 ): EventEntryMeta[] {
   return [...entries].sort((left, right) => {
-    const leftEventTime = getEventStartTimestamp(left);
-    const rightEventTime = getEventStartTimestamp(right);
+    const leftCreatedTime = getCreatedTimestamp(left);
+    const rightCreatedTime = getCreatedTimestamp(right);
+    const leftEventTime = getEventDateSortValue(
+      left.eventDate,
+      left.eventDateEnd,
+    );
+    const rightEventTime = getEventDateSortValue(
+      right.eventDate,
+      right.eventDateEnd,
+    );
     const leftEditedTime = getEntryTimestamp(left.lastEdited);
     const rightEditedTime = getEntryTimestamp(right.lastEdited);
 
@@ -128,13 +182,9 @@ function sortEntries(
       return rightEditedTime - leftEditedTime;
     }
 
-    if (sortOption === "oldest") {
-      if (leftEditedTime !== rightEditedTime) {
-        return leftEditedTime - rightEditedTime;
-      }
-      return leftEventTime - rightEventTime;
+    if (leftCreatedTime !== rightCreatedTime) {
+      return rightCreatedTime - leftCreatedTime;
     }
-
     if (leftEditedTime !== rightEditedTime) {
       return rightEditedTime - leftEditedTime;
     }
@@ -369,7 +419,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
               </div>
 
               <div className="hidden md:grid md:grid-cols-7 md:gap-px md:bg-white/8">
-                {calendarDays.map((date, index) => {
+                {calendarDays.map((date) => {
                   const dateKey = getDateOnly(date.toISOString());
                   const dayEntries = entriesByDay.get(dateKey) ?? [];
                   const isCurrentMonth =
@@ -378,7 +428,6 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                     date.getUTCFullYear() === activeMonth.getUTCFullYear();
                   const isSelected = activeDateKey === dateKey;
                   const isToday = isSameDay(date, new Date());
-                  const dayColumn = index % 7;
 
                   return (
                     <button
@@ -397,8 +446,8 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                         isSelected ? "ring-gold-500/50 ring-1 ring-inset" : ""
                       }`}
                     >
-                      <div className="flex h-full flex-col px-4 py-4">
-                        <div className="mb-4 flex items-center justify-between">
+                      <div className="flex h-full flex-col py-4">
+                        <div className="mb-4 flex items-start px-4">
                           <span
                             className={`font-serif text-lg ${
                               isCurrentMonth ? "text-white" : "text-stone-600"
@@ -407,8 +456,9 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                             {date.getUTCDate()}
                           </span>
                           {isToday && (
-                            <span className="text-gold-400 text-[0.58rem] tracking-[0.22em] uppercase">
-                              Hari ini
+                            <span className="text-gold-400 ml-auto text-right text-[0.58rem] leading-[1.15] tracking-[0.22em] uppercase">
+                              <span className="block">Hari</span>
+                              <span className="block">ini</span>
                             </span>
                           )}
                         </div>
@@ -423,16 +473,10 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                             const isActualStart = rangeKeys[0] === dateKey;
                             const isActualEnd =
                               rangeKeys[rangeKeys.length - 1] === dateKey;
-                            const continuesFromPreviousDay =
-                              rangeKeys.includes(dateKey) && !isActualStart;
-                            const continuesToNextDay =
-                              rangeKeys.includes(dateKey) && !isActualEnd;
-                            const isSegmentStart =
-                              !continuesFromPreviousDay || dayColumn === 0;
-                            const isSegmentEnd =
-                              !continuesToNextDay || dayColumn === 6;
                             const showTitle =
-                              !isRangeEvent || isActualStart || dayColumn === 0;
+                              !isRangeEvent ||
+                              isActualStart ||
+                              date.getUTCDay() === 1;
 
                             return (
                               <span
@@ -440,15 +484,15 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                                 className={`relative block border px-2.5 py-2 text-[0.72rem] leading-snug ${
                                   isRangeEvent
                                     ? [
-                                        isSegmentStart
-                                          ? "ml-0 rounded-l-sm border-l"
+                                        isActualStart
+                                          ? "ml-4 rounded-l-sm border-l"
                                           : "-ml-px rounded-none border-l-0",
-                                        isSegmentEnd
-                                          ? "mr-0 rounded-r-sm border-r"
+                                        isActualEnd
+                                          ? "mr-4 rounded-r-sm border-r"
                                           : "-mr-px rounded-none border-r-0",
                                         "border-y",
                                       ].join(" ")
-                                    : "rounded-sm"
+                                    : "mx-4 rounded-sm"
                                 } ${getEventTone(entry)}`}
                               >
                                 <span className="block truncate">
@@ -458,7 +502,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                             );
                           })}
                           {dayEntries.length > 3 && (
-                            <span className="block px-1 text-[0.7rem] text-stone-500">
+                            <span className="block px-4 text-[0.7rem] text-stone-500">
                               +{dayEntries.length - 3} lainnya
                             </span>
                           )}
@@ -706,6 +750,8 @@ export default function EventsView({
   collection: EventsCollection;
 }) {
   const scopeRef = useViewEntrance("/events");
+  const todayKey = useMemo(() => getTodayInJakarta(), []);
+  const tomorrowKey = useMemo(() => addDaysToDateKey(todayKey, 1), [todayKey]);
 
   // Build a flat list of all entries with their entryKind for filtering
   const allEntries = useMemo(() => {
@@ -717,34 +763,126 @@ export default function EventsView({
     ];
   }, [collection]);
 
-  // Extract unique entryKind values for dynamic filter buttons
-  const entryKindFilters = useMemo(() => {
-    const kinds = new Map<string, number>();
-    for (const entry of allEntries) {
-      const kind = entry.entryKind || "Other";
-      kinds.set(kind, (kinds.get(kind) ?? 0) + 1);
-    }
-    return [...kinds.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([kind, count]) => ({ kind, count }));
-  }, [allEntries]);
-
   const [activeKindFilter, setActiveKindFilter] = useState<string>("all");
+  const [activeTimeFilter, setActiveTimeFilter] = useState<TimeFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pendingPaginationScroll, setPendingPaginationScroll] = useState(false);
+  const paginationTopBeforeChangeRef = useRef<number | null>(null);
+  const activePaginationAnchorRef = useRef<"top" | "bottom" | null>(null);
+
+  const timeScopedEntries = useMemo(
+    () =>
+      allEntries.filter((entry) =>
+        matchesTimeFilter(entry, activeTimeFilter, todayKey, tomorrowKey),
+      ),
+    [activeTimeFilter, allEntries, todayKey, tomorrowKey],
+  );
+
+  const allEntryKindFilters = useMemo(() => {
+    const kinds = new Map<
+      string,
+      {
+        count: number;
+        latestCreatedAt: number;
+      }
+    >();
+
+    for (const entry of allEntries) {
+      const kind = entry.entryKind || "Other";
+      const createdAt = getCreatedTimestamp(entry);
+      const existing = kinds.get(kind);
+
+      if (existing) {
+        existing.count += 1;
+        existing.latestCreatedAt = Math.max(
+          existing.latestCreatedAt,
+          createdAt,
+        );
+        continue;
+      }
+
+      kinds.set(kind, {
+        count: 1,
+        latestCreatedAt: createdAt,
+      });
+    }
+
+    return [...kinds.entries()]
+      .map(([kind, meta]) => ({
+        kind,
+        count: meta.count,
+        latestCreatedAt: meta.latestCreatedAt,
+      }))
+      .sort((left, right) => {
+        if (left.latestCreatedAt !== right.latestCreatedAt) {
+          return right.latestCreatedAt - left.latestCreatedAt;
+        }
+        if (left.count !== right.count) {
+          return right.count - left.count;
+        }
+        return left.kind.localeCompare(right.kind);
+      });
+  }, [allEntries]);
+
+  // Track entry kind counts and freshness so UI reflects current time scope
+  const entryKindFilters = useMemo(() => {
+    const scopedCounts = new Map<string, number>();
+
+    for (const entry of timeScopedEntries) {
+      const kind = entry.entryKind || "Other";
+      scopedCounts.set(kind, (scopedCounts.get(kind) ?? 0) + 1);
+    }
+
+    return allEntryKindFilters.map(({ kind, latestCreatedAt }) => ({
+      kind,
+      count: scopedCounts.get(kind) ?? 0,
+      latestCreatedAt,
+    }));
+  }, [allEntryKindFilters, timeScopedEntries]);
+
+  const featuredEntryKindFilters = useMemo(
+    () => entryKindFilters.slice(0, 3),
+    [entryKindFilters],
+  );
 
   const hasEntries = allEntries.length > 0;
 
+  const kindFilteredEntries = useMemo(() => {
+    return activeKindFilter === "all"
+      ? timeScopedEntries
+      : timeScopedEntries.filter(
+          (entry) => (entry.entryKind || "Other") === activeKindFilter,
+        );
+  }, [activeKindFilter, timeScopedEntries]);
+
+  const timeFilterCounts = useMemo(
+    () =>
+      ({
+        all: kindFilteredEntries.length,
+        upcoming: kindFilteredEntries.filter((entry) =>
+          matchesTimeFilter(entry, "upcoming", todayKey, tomorrowKey),
+        ).length,
+        archive: kindFilteredEntries.filter((entry) =>
+          matchesTimeFilter(entry, "archive", todayKey, tomorrowKey),
+        ).length,
+      }) satisfies Record<TimeFilter, number>,
+    [kindFilteredEntries, todayKey, tomorrowKey],
+  );
+
   const filteredEntries = useMemo(() => {
-    const source =
-      activeKindFilter === "all"
-        ? allEntries
-        : allEntries.filter(
-            (entry) => (entry.entryKind || "Other") === activeKindFilter,
-          );
+    const source = kindFilteredEntries.filter((entry) =>
+      matchesTimeFilter(entry, activeTimeFilter, todayKey, tomorrowKey),
+    );
 
     return sortEntries(source, sortOption);
-  }, [activeKindFilter, allEntries, sortOption]);
+  }, [
+    activeTimeFilter,
+    kindFilteredEntries,
+    sortOption,
+    todayKey,
+    tomorrowKey,
+  ]);
 
   // Reset page when filters change
   const totalPages = Math.max(
@@ -758,14 +896,172 @@ export default function EventsView({
   );
 
   const handleFilterChange = (kind: string) => {
-    setActiveKindFilter(kind);
+    setActiveKindFilter((current) => (current === kind ? "all" : kind));
+    setCurrentPage(1);
+  };
+
+  const handleTimeFilterChange = (timeFilter: TimeFilter) => {
+    if (timeFilter !== "all" && activeTimeFilter === timeFilter) {
+      setSortOption("newest");
+      setActiveTimeFilter("all");
+      setCurrentPage(1);
+      return;
+    }
+
+    setActiveTimeFilter(timeFilter);
     setCurrentPage(1);
   };
 
   const handleSortChange = (value: string) => {
-    setSortOption(value as SortOption);
+    const nextSort = value as SortOption;
+    setSortOption(nextSort);
+    if (nextSort === "nearest") {
+      setActiveTimeFilter("upcoming");
+    }
     setCurrentPage(1);
   };
+
+  const handleResetFilters = () => {
+    setActiveKindFilter("all");
+    setActiveTimeFilter("all");
+    setSortOption("newest");
+    setCurrentPage(1);
+  };
+
+  const activeFilterMeta =
+    activeKindFilter === "all"
+      ? {
+          count: timeScopedEntries.length,
+        }
+      : (entryKindFilters.find(({ kind }) => kind === activeKindFilter) ?? {
+          count: 0,
+        });
+
+  const activeSortLabel = sortOption === "nearest" ? "Terdekat" : "Terbaru";
+  const activeKindLabel = activeKindFilter === "all" ? "All" : activeKindFilter;
+  const activeTimeLabel = TIME_FILTER_LABELS[activeTimeFilter];
+  const hasActiveControls =
+    activeKindFilter !== "all" ||
+    activeTimeFilter !== "all" ||
+    sortOption !== "newest";
+
+  useEffect(() => {
+    if (
+      activeKindFilter === "all" ||
+      entryKindFilters.some(({ kind }) => kind === activeKindFilter)
+    ) {
+      return;
+    }
+    setActiveKindFilter("all");
+  }, [activeKindFilter, entryKindFilters]);
+
+  const handlePaginationChange = (
+    anchor: "top" | "bottom",
+    updater: (page: number) => number,
+  ) => {
+    activePaginationAnchorRef.current = anchor;
+    const anchorElement = document.querySelector(
+      `[data-pagination-controls=\"${anchor}\"]`,
+    ) as HTMLDivElement | null;
+    paginationTopBeforeChangeRef.current =
+      anchorElement?.getBoundingClientRect().top ?? null;
+    setCurrentPage(updater);
+    setPendingPaginationScroll(true);
+  };
+
+  useEffect(() => {
+    if (!pendingPaginationScroll) return;
+
+    let frameA = 0;
+    let frameB = 0;
+
+    frameA = window.requestAnimationFrame(() => {
+      const activeAnchor = activePaginationAnchorRef.current;
+      const anchorElement = activeAnchor
+        ? ((document.querySelector(
+            `[data-pagination-controls=\"${activeAnchor}\"]`,
+          ) as HTMLDivElement | null) ?? null)
+        : null;
+      const paginationTopBefore = paginationTopBeforeChangeRef.current;
+      const paginationTopAfter =
+        anchorElement?.getBoundingClientRect().top ?? null;
+
+      if (paginationTopBefore !== null && paginationTopAfter !== null) {
+        const delta = paginationTopAfter - paginationTopBefore;
+        if (delta !== 0) {
+          window.scrollBy({ top: delta, behavior: "auto" });
+        }
+      }
+
+      frameB = window.requestAnimationFrame(() => {
+        const controls = document.getElementById("events-archive-controls");
+        if (!controls) {
+          paginationTopBeforeChangeRef.current = null;
+          activePaginationAnchorRef.current = null;
+          setPendingPaginationScroll(false);
+          return;
+        }
+
+        const navbar = document.querySelector(
+          "nav.fixed.top-0.left-0.w-full",
+        ) as HTMLElement | null;
+        const navbarHeight = navbar?.getBoundingClientRect().height ?? 80;
+        const targetY =
+          controls.getBoundingClientRect().top +
+          window.scrollY -
+          navbarHeight -
+          SCROLL_OFFSET_PADDING;
+
+        window.scrollTo({
+          top: Math.max(0, targetY),
+          behavior: "smooth",
+        });
+        paginationTopBeforeChangeRef.current = null;
+        activePaginationAnchorRef.current = null;
+        setPendingPaginationScroll(false);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+    };
+  }, [pendingPaginationScroll, safePage]);
+
+  const renderPaginationControls = (anchor: "top" | "bottom") => (
+    <div
+      data-pagination-controls={anchor}
+      className="mt-10 flex items-center justify-center gap-3"
+    >
+      <button
+        type="button"
+        disabled={safePage <= 1}
+        onClick={(event) => {
+          event.currentTarget.blur();
+          handlePaginationChange(anchor, (p) => Math.max(1, p - 1));
+        }}
+        className="border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+        style={ACTION_RADIUS}
+      >
+        ←
+      </button>
+      <span className="px-3 text-xs tracking-wide text-stone-500">
+        {safePage} / {totalPages}
+      </span>
+      <button
+        type="button"
+        disabled={safePage >= totalPages}
+        onClick={(event) => {
+          event.currentTarget.blur();
+          handlePaginationChange(anchor, (p) => Math.min(totalPages, p + 1));
+        }}
+        className="border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+        style={ACTION_RADIUS}
+      >
+        →
+      </button>
+    </div>
+  );
 
   return (
     <div
@@ -825,76 +1121,143 @@ export default function EventsView({
             aria-label="Kontrol arsip acara"
             className="mb-8"
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-row flex-wrap items-center gap-3">
+                  <div className="group relative inline-flex w-full self-start sm:w-[15.5rem]">
+                    <select
+                      value={activeKindFilter}
+                      onChange={(event) =>
+                        handleFilterChange(event.target.value)
+                      }
+                      aria-label="Filter berdasarkan jenis entri"
+                      className="w-full cursor-pointer appearance-none border border-white/10 bg-[#0d0d0d] px-3 py-2 pr-16 text-sm text-stone-300 transition outline-none hover:border-white/20 hover:text-white"
+                      style={ACTION_RADIUS}
+                    >
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="all"
+                      >
+                        All ({allEntries.length})
+                      </option>
+                      {entryKindFilters.map(({ kind, count }) => (
+                        <option
+                          key={kind}
+                          className="bg-[#111] text-neutral-300"
+                          value={kind}
+                        >
+                          {kind} ({count})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-8 flex items-center">
+                      <span className="text-[0.62rem] text-stone-500">
+                        {activeFilterMeta.count}
+                      </span>
+                    </div>
+                    <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-2.5 transition-colors duration-300">
+                      <IconChevronDown width={12} height={12} />
+                    </div>
+                  </div>
+
+                  <div className="hidden flex-wrap items-center gap-2 md:flex">
+                    {featuredEntryKindFilters.map(({ kind, count }) => (
+                      <button
+                        key={kind}
+                        type="button"
+                        onClick={() => handleFilterChange(kind)}
+                        style={ACTION_RADIUS}
+                        className={`inline-flex items-center gap-2 border px-3.5 py-2 text-sm transition ${
+                          activeKindFilter === kind
+                            ? "border-gold-500/30 bg-gold-500/8 text-white"
+                            : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-400 hover:text-white"
+                        }`}
+                      >
+                        <span>{kind}</span>
+                        <span className="text-[0.62rem] text-stone-500">
+                          {count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-row flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {TIME_FILTERS.map((timeFilter) => (
+                      <button
+                        key={timeFilter}
+                        type="button"
+                        onClick={() => handleTimeFilterChange(timeFilter)}
+                        style={ACTION_RADIUS}
+                        className={`inline-flex items-center gap-2 border px-3.5 py-2 text-sm transition ${
+                          activeTimeFilter === timeFilter
+                            ? "border-gold-500/30 bg-gold-500/8 text-white"
+                            : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-400 hover:text-white"
+                        }`}
+                      >
+                        <span>{TIME_FILTER_LABELS[timeFilter]}</span>
+                        <span className="text-[0.62rem] text-stone-500">
+                          {timeFilterCounts[timeFilter]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="group relative inline-flex w-fit self-start sm:self-auto">
+                    <select
+                      value={sortOption}
+                      onChange={(event) => handleSortChange(event.target.value)}
+                      className="cursor-pointer appearance-none border border-white/10 bg-[#0d0d0d] px-3 py-2 pr-8 text-xs tracking-[0.15em] text-stone-400 uppercase transition outline-none hover:border-white/20 hover:text-stone-200"
+                      style={ACTION_RADIUS}
+                    >
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="newest"
+                      >
+                        Terbaru
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="nearest"
+                      >
+                        Terdekat
+                      </option>
+                    </select>
+                    <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-2.5 transition-colors duration-300">
+                      <IconChevronDown width={12} height={12} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 text-sm text-stone-500">
+                <div>
+                  {activeKindLabel} · {activeTimeLabel} · {activeSortLabel} ·{" "}
+                  {filteredEntries.length} hasil
+                </div>
                 <button
                   type="button"
-                  onClick={() => handleFilterChange("all")}
-                  style={ACTION_RADIUS}
-                  className={`inline-flex items-center gap-2 border px-3.5 py-2.5 text-sm transition ${
-                    activeKindFilter === "all"
-                      ? "border-gold-500/30 bg-gold-500/8 text-white"
-                      : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-400 hover:text-white"
-                  }`}
+                  onClick={handleResetFilters}
+                  disabled={!hasActiveControls}
+                  className="text-gold-500/75 hover:text-gold-300 inline-flex items-center border-b border-transparent pb-0.5 text-xs tracking-[0.18em] uppercase transition hover:border-current disabled:cursor-not-allowed disabled:border-transparent disabled:text-stone-600"
                 >
-                  <span>All</span>
-                  <span className="text-[0.62rem] text-stone-500">
-                    {allEntries.length}
-                  </span>
+                  Reset
                 </button>
-                {entryKindFilters.map(({ kind, count }) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    onClick={() => handleFilterChange(kind)}
-                    style={ACTION_RADIUS}
-                    className={`inline-flex items-center gap-2 border px-3.5 py-2.5 text-sm transition ${
-                      activeKindFilter === kind
-                        ? "border-gold-500/30 bg-gold-500/8 text-white"
-                        : "hover:border-gold-500/30 hover:bg-gold-500/8 border-white/8 text-stone-400 hover:text-white"
-                    }`}
-                  >
-                    <span>{kind}</span>
-                    <span className="text-[0.62rem] text-stone-500">
-                      {count}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <div className="group relative">
-                <select
-                  value={sortOption}
-                  onChange={(event) => handleSortChange(event.target.value)}
-                  className="cursor-pointer appearance-none border border-white/10 bg-[#0d0d0d] px-3 py-2 pr-8 text-xs tracking-[0.15em] text-stone-400 uppercase transition outline-none hover:border-white/20 hover:text-stone-200"
-                  style={ACTION_RADIUS}
-                >
-                  <option className="bg-[#111] text-neutral-300" value="newest">
-                    Terbaru
-                  </option>
-                  <option
-                    className="bg-[#111] text-neutral-300"
-                    value="nearest"
-                  >
-                    Terdekat
-                  </option>
-                  <option className="bg-[#111] text-neutral-300" value="oldest">
-                    Terlama
-                  </option>
-                </select>
-                <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-2.5 transition-colors duration-300">
-                  <IconChevronDown width={12} height={12} />
-                </div>
               </div>
             </div>
           </section>
         )}
 
         {pagedEntries.length > 0 ? (
-          <section className="space-y-4">
-            {pagedEntries.map((entry, index) => (
-              <EventCard key={entry.id} entry={entry} index={index} />
-            ))}
-          </section>
+          <>
+            {totalPages > 1 && renderPaginationControls("top")}
+            <section className="mt-10 space-y-4">
+              {pagedEntries.map((entry, index) => (
+                <EventCard key={entry.id} entry={entry} index={index} />
+              ))}
+            </section>
+          </>
         ) : (
           hasEntries && (
             <div
@@ -907,31 +1270,7 @@ export default function EventsView({
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-10 flex items-center justify-center gap-3">
-            <button
-              type="button"
-              disabled={safePage <= 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
-              style={ACTION_RADIUS}
-            >
-              ←
-            </button>
-            <span className="px-3 text-xs tracking-wide text-stone-500">
-              {safePage} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={safePage >= totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
-              style={ACTION_RADIUS}
-            >
-              →
-            </button>
-          </div>
-        )}
+        {totalPages > 1 && renderPaginationControls("bottom")}
       </div>
     </div>
   );
