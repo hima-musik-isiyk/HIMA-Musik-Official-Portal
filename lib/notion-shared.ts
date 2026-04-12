@@ -17,6 +17,7 @@ export interface DocMeta {
   category: string;
   icon: string | null;
   order: number;
+  createdAt: string;
   lastEdited: string;
   published: boolean;
 }

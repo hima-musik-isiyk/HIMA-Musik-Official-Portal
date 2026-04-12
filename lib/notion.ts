@@ -341,6 +341,7 @@ export const fetchAllDocs = unstable_cache(
         category: getSelect(page, "Category"),
         icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
         order: getNumber(page, "Order"),
+        createdAt: page.created_time,
         lastEdited: page.last_edited_time,
         published: getCheckbox(page, "Publish", true),
       }))
@@ -488,6 +489,7 @@ export const fetchKKMEntryBySlug = cache(
         icon:
           matchedPage.icon?.type === "emoji" ? matchedPage.icon.emoji : null,
         order: 999,
+        createdAt: matchedPage.created_time,
         lastEdited: matchedPage.last_edited_time,
         published: true,
       },
@@ -516,6 +518,7 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     category: "Events",
     icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
     order: 999,
+    createdAt: page.created_time,
     lastEdited: page.last_edited_time,
     published: getCheckbox(page, "Publish", true),
     summary: getRichText(page, "Summary"),
@@ -726,6 +729,7 @@ export const fetchDocBySlug = cache(
         category: getSelect(page, "Category"),
         icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
         order: getNumber(page, "Order"),
+        createdAt: page.created_time,
         lastEdited: page.last_edited_time,
         published: getCheckbox(page, "Publish", true),
       },
