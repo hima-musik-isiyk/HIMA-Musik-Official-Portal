@@ -22,3 +22,9 @@ export function toCachedImageUrl(rawUrl: string | null | undefined): string {
 
   return `/api/notion-image?src=${encodedSrc}&key=${encodedKey}`;
 }
+
+export function toEventCoverUrl(slug: string | null | undefined): string {
+  if (!slug) return "";
+
+  return `/api/events/${encodeURIComponent(slug)}/cover`;
+}
