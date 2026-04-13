@@ -90,6 +90,28 @@ function makeImageResponse(body: Buffer, contentType: string): NextResponse {
   });
 }
 
+function makeUpstreamImageResponse(upstream: Response): NextResponse {
+  return new NextResponse(upstream.body, {
+    status: 200,
+    headers: {
+      "Content-Type": safeContentType(
+        upstream.headers.get("content-type") || "application/octet-stream",
+      ),
+      // Browser cache for repeated page visits.
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+    },
+  });
+}
+
+function makeUpstreamErrorResponse(status = 502): NextResponse {
+  return new NextResponse(null, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 function makeRedirectResponse(sourceUrl: URL): NextResponse {
   // Use Next.js redirect signature: (url, status). Then set headers.
   const response = NextResponse.redirect(sourceUrl, 307);
@@ -127,15 +149,13 @@ export async function GET(request: NextRequest) {
     cacheKeyParam ||
     `${sourceUrl.protocol}//${sourceUrl.host}${sourceUrl.pathname}`;
 
-  // On Vercel, proxying binary responses can hit function payload/storage limits.
-  // Redirecting keeps the client request direct to Notion's signed asset URL.
-  if (process.env.VERCEL) {
-    return makeRedirectResponse(sourceUrl);
-  }
+  const isVercel = Boolean(process.env.VERCEL);
 
-  const cached = await readFreshCache(cacheKey);
-  if (cached) {
-    return makeImageResponse(cached.body, cached.contentType);
+  if (!isVercel) {
+    const cached = await readFreshCache(cacheKey);
+    if (cached) {
+      return makeImageResponse(cached.body, cached.contentType);
+    }
   }
 
   let upstream: Response;
@@ -147,11 +167,23 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
   } catch {
+    if (isVercel) {
+      return makeUpstreamErrorResponse(502);
+    }
     return makeRedirectResponse(sourceUrl);
   }
 
   if (!upstream.ok) {
+    if (isVercel) {
+      return makeUpstreamErrorResponse(upstream.status);
+    }
     return makeRedirectResponse(sourceUrl);
+  }
+
+  // Vercel can choke on extremely long redirect Location headers for Notion's
+  // signed asset URLs. Stream the upstream image instead and skip disk cache.
+  if (isVercel) {
+    return makeUpstreamImageResponse(upstream);
   }
 
   const body = Buffer.from(await upstream.arrayBuffer());
