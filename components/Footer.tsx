@@ -284,7 +284,7 @@ const Footer: React.FC = () => {
             className="text-gold-500 text-[0.65rem] tracking-[0.3em] uppercase"
             title="Nama Kabinet HIMA Musik 2026"
           >
-            Kabinet Emergence
+            Kabinet Candenza
           </p>
         </div>
 

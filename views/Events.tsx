@@ -18,6 +18,7 @@ import {
   getEventMonthKeysInRange,
   parseEventDateValue,
 } from "@/lib/event-dates";
+import type { KKMGroup } from "@/lib/kkm-data";
 import type { EventEntryMeta, EventsCollection } from "@/lib/notion";
 import { toCachedImageUrl } from "@/lib/notion-image";
 import useViewEntrance from "@/lib/useViewEntrance";
@@ -27,6 +28,25 @@ const ITEMS_PER_PAGE = 5;
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 const SCROLL_OFFSET_PADDING = 16;
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
+
+function normalizeUnitName(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/^kkm[\s:/-]*/i, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getEventHref(
+  entry: EventEntryMeta,
+  kkmSlugByUnitName: Map<string, string>,
+): string {
+  const ownerUnit = normalizeUnitName(entry.ownerUnit);
+  const kkmSlug = ownerUnit ? kkmSlugByUnitName.get(ownerUnit) : undefined;
+  return kkmSlug ? `/kkm/${kkmSlug}` : `/events/${entry.slug}`;
+}
 
 function formatDate(date: string): string {
   const parsed = parseEventDateValue(date);
@@ -642,13 +662,20 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
   );
 }
 
-function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
+function EventCard({
+  entry,
+  index,
+  kkmHref,
+}: {
+  entry: EventEntryMeta;
+  index: number;
+  kkmHref?: string;
+}) {
   const coverUrl = toCachedImageUrl(entry.coverImageUrl);
 
   return (
-    <Link
-      href={`/events/${entry.slug}`}
-      className="group hover:border-gold-500/35 relative flex w-full flex-col overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] shadow-[0_10px_35px_rgba(0,0,0,0.22)] transition-[border-color,background-color,color,transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:bg-white/4 hover:shadow-[0_18px_42px_rgba(0,0,0,0.28)] md:flex-row"
+    <div
+      className="group hover:border-gold-500/35 relative flex w-full flex-col overflow-hidden border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] shadow-[0_10px_35px_rgba(0,0,0,0.22)] hover:bg-white/4 hover:shadow-[0_18px_42px_rgba(0,0,0,0.28)] md:flex-row"
       style={ACTION_RADIUS}
       data-animate="up"
       data-animate-duration="0.8"
@@ -656,8 +683,13 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
       data-animate-start="top 92%"
       data-animate-scroll="true"
     >
+      <Link
+        href={`/events/${entry.slug}`}
+        aria-label={`Buka ${entry.title}`}
+        className="absolute inset-0 z-10"
+      />
       {coverUrl ? (
-        <div className="relative h-44 shrink-0 overflow-hidden border-b border-white/6 bg-stone-900 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
+        <div className="pointer-events-none relative z-20 h-44 shrink-0 overflow-hidden border-b border-white/6 bg-stone-900 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
           <Image
             src={coverUrl}
             alt={entry.title}
@@ -669,21 +701,29 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
         </div>
       ) : (
-        <div className="relative h-44 shrink-0 overflow-hidden border-b border-white/6 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
+        <div className="pointer-events-none relative z-20 h-44 shrink-0 overflow-hidden border-b border-white/6 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
           <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,101,1,0.14)_0%,rgba(255,255,255,0.02)_55%,transparent_100%)]" />
         </div>
       )}
 
-      <div className="flex flex-1 flex-col p-5 md:p-6">
+      <div className="pointer-events-none relative z-20 flex flex-1 flex-col p-5 md:p-6">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="border-gold-500/30 bg-gold-500/10 text-gold-300 rounded-full border px-3 py-1 text-[0.62rem] font-medium tracking-[0.18em] uppercase">
             {getLifecycleLabel(entry)}
           </span>
-          {entry.ownerUnit && (
-            <span className="text-[0.68rem] tracking-[0.16em] text-stone-500 uppercase">
-              {entry.ownerUnit}
-            </span>
-          )}
+          {entry.ownerUnit &&
+            (kkmHref ? (
+              <Link
+                href={kkmHref}
+                className="hover:border-gold-500/35 hover:bg-gold-500/10 hover:text-gold-300 pointer-events-auto relative z-30 inline-flex rounded-full border border-white/8 px-3 py-1 text-[0.68rem] tracking-[0.16em] text-stone-400 uppercase transition-colors duration-300"
+              >
+                {entry.ownerUnit}
+              </Link>
+            ) : (
+              <span className="text-[0.68rem] tracking-[0.16em] text-stone-500 uppercase">
+                {entry.ownerUnit}
+              </span>
+            ))}
         </div>
 
         <div className="mb-auto">
@@ -720,16 +760,29 @@ function EventCard({ entry, index }: { entry: EventEntryMeta; index: number }) {
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
 export default function EventsView({
   collection,
+  kkmGroups,
 }: {
   collection: EventsCollection;
+  kkmGroups: KKMGroup[];
 }) {
   const scopeRef = useViewEntrance("/events");
+  const kkmSlugByUnitName = useMemo(() => {
+    const map = new Map<string, string>();
+
+    for (const group of kkmGroups) {
+      const normalizedName = normalizeUnitName(group.name);
+      if (!normalizedName) continue;
+      map.set(normalizedName, group.slug);
+    }
+
+    return map;
+  }, [kkmGroups]);
 
   // Build a flat list of all entries with their entryKind for filtering
   const allEntries = useMemo(() => {
@@ -1214,9 +1267,21 @@ export default function EventsView({
           <>
             {totalPages > 1 && renderPaginationControls("top")}
             <section className="mt-10 space-y-4">
-              {pagedEntries.map((entry, index) => (
-                <EventCard key={entry.id} entry={entry} index={index} />
-              ))}
+              {pagedEntries.map((entry, index) => {
+                const resolvedHref = getEventHref(entry, kkmSlugByUnitName);
+                return (
+                  <EventCard
+                    key={entry.id}
+                    entry={entry}
+                    index={index}
+                    kkmHref={
+                      resolvedHref.startsWith("/kkm/")
+                        ? resolvedHref
+                        : undefined
+                    }
+                  />
+                );
+              })}
             </section>
           </>
         ) : (
