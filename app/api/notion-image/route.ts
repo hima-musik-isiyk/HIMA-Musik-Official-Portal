@@ -91,13 +91,14 @@ function makeImageResponse(body: Buffer, contentType: string): NextResponse {
 }
 
 function makeRedirectResponse(sourceUrl: URL): NextResponse {
-  return NextResponse.redirect(sourceUrl, {
-    status: 307,
-    headers: {
-      // Keep redirects short-lived because Notion signed URLs rotate.
-      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
-    },
-  });
+  // Use Next.js redirect signature: (url, status). Then set headers.
+  const response = NextResponse.redirect(sourceUrl, 307);
+  // Keep redirects short-lived because Notion signed URLs rotate.
+  response.headers.set(
+    "Cache-Control",
+    "public, max-age=60, stale-while-revalidate=300",
+  );
+  return response;
 }
 
 export async function GET(request: NextRequest) {
