@@ -43,7 +43,7 @@ export const ANCHOR_TAG_RE = /\[#([a-zA-Z0-9_-]+)(\+?)\]\s*$/;
  * Strips [#anchor-id] or [#anchor-id+] tags and other internal syntax from a string.
  */
 export function stripCustomTags(text: string): string {
-  return text.replace(ANCHOR_TAG_RE, "").trim();
+  return text.replace(ANCHOR_TAG_RE, "");
 }
 
 const BLOCK_LINK_RE = /^block:\/\/(.+)$/;

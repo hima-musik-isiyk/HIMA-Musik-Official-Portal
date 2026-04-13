@@ -175,7 +175,7 @@ Rules:
 | `upcoming`      | Upcoming      |
 | `ongoing`       | Ongoing       |
 | `past`          | Archive       |
-| `announcement`  | Bulletin      |
+| `announcement`  | Announcement  |
 | `timeless`      | Note          |
 
 Filters are based on `entryKind` (content type), not `lifecycle` (time status).

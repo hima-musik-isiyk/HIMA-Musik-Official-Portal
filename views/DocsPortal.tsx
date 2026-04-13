@@ -19,42 +19,35 @@ import { cn } from "@/lib/utils";
 /*  Category metadata                                                  */
 /* ------------------------------------------------------------------ */
 
-const CATEGORIES = [
+const FOCUSED_SECTIONS = [
   {
-    key: "Legalitas",
-    title: "Regulasi & Konstitusi",
+    key: "Pedoman",
+    title: "Pedoman & SOP",
     description:
-      "AD/ART sebagai konstitusi organisasi, garis besar haluan, dan landasan peraturan HIMA MUSIK.",
+      "Panduan inti untuk alur administrasi, prosedur surat-menyurat, dan standar kerja sekretariat.",
+    aliases: ["pedoman", "panduan", "sop", "prosedur"],
   },
   {
-    key: "Panduan & SOP",
-    title: "Panduan & SOP",
+    key: "FAQ",
+    title: "FAQ Sekretariat",
     description:
-      "Prosedur operasional standar: pengajuan proposal, aturan penggunaan fasilitas, dan birokrasi kampus.",
+      "Jawaban cepat untuk pertanyaan yang paling sering diajukan terkait dokumen, layanan, dan birokrasi.",
+    aliases: ["faq", "tanya", "pertanyaan", "qna"],
   },
   {
-    key: "Arsip",
-    title: "Arsip Transparansi",
+    key: "Laporan Kinerja",
+    title: "Laporan Kinerja Bulanan",
     description:
-      "Hasil rapat BPH, laporan keuangan kuartalan, dan evaluasi program kerja — terbuka untuk seluruh anggota.",
-  },
-  {
-    key: "Templat",
-    title: "Layanan Persuratan",
-    description:
-      "Format surat resmi, formulir peminjaman, dan templat dokumen organisasi siap pakai.",
-  },
-  {
-    key: "Identitas",
-    title: "Identitas Visual",
-    description:
-      "Panduan penggunaan logo, warna resmi, tipografi, dan aset visual identitas HIMA MUSIK.",
-  },
-  {
-    key: "KKM",
-    title: "Regulasi KKM",
-    description:
-      "AD/ART Pasal 26-27: aturan pendirian, hak & kewajiban, serta tata kelola 8 KKM di bawah naungan HIMA MUSIK.",
+      "Ringkasan eksekutif bulanan berisi capaian, progres program, dan update transparansi organisasi.",
+    aliases: [
+      "laporan kinerja",
+      "executive",
+      "eksekutif",
+      "monthly",
+      "bulanan",
+      "summary",
+      "ringkasan",
+    ],
   },
 ];
 
@@ -66,13 +59,17 @@ interface DocsPortalViewProps {
   docs: DocMeta[];
 }
 
+function normalize(value: string) {
+  return value.trim().toLowerCase();
+}
+
 export default function DocsPortalView({ docs }: DocsPortalViewProps) {
   const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
   const scopeRef = useViewEntrance("/sekretariat");
   const cardsRef = useRef<HTMLDivElement>(null);
 
   // Grouping & Recently Updated calculations
-  const { groupedDocs, recentlyUpdated } = useMemo(() => {
+  const { groupedDocs, recentlyUpdated, focusedSections } = useMemo(() => {
     const grouped: Record<string, DocMeta[]> = {};
 
     for (const doc of docs) {
@@ -88,9 +85,36 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
       )
       .slice(0, 3);
 
+    const matchedDocIds = new Set<string>();
+    const resolvedFocusedSections = FOCUSED_SECTIONS.map((section) => {
+      const aliases = section.aliases.map(normalize);
+      const matchedDocs = docs
+        .filter((doc) => {
+          if (matchedDocIds.has(doc.id)) return false;
+
+          const haystack = [doc.category, doc.title, doc.slug]
+            .filter(Boolean)
+            .map(normalize)
+            .join(" ");
+
+          return aliases.some((alias) => haystack.includes(alias));
+        })
+        .sort((a, b) => a.order - b.order);
+
+      for (const doc of matchedDocs) {
+        matchedDocIds.add(doc.id);
+      }
+
+      return {
+        ...section,
+        docs: matchedDocs,
+      };
+    });
+
     return {
       groupedDocs: grouped,
       recentlyUpdated: sortedUpdated,
+      focusedSections: resolvedFocusedSections,
     };
   }, [docs]);
 
@@ -115,9 +139,9 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
           <span className="font-light text-stone-500 italic">HIMA MUSIK</span>
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-400">
-          Pusat administrasi terpadu untuk regulasi, konstitusi, dan arsip
-          transparansi organisasi. Kami mengedepankan akuntabilitas dalam setiap
-          dokumentasi.
+          Akses cepat dokumen sekretariat yang paling dibutuhkan: pedoman, FAQ,
+          dan laporan kinerja bulanan. Navigasi dibuat ringkas agar anggota bisa
+          langsung menemukan informasi inti tanpa kewalahan.
         </p>
 
         {/* Search hint */}
@@ -142,7 +166,7 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
               />
             </svg>
             <span className="flex-1 text-left">
-              Cari AD/ART, SOP, atau Notulensi Rapat...
+              Cari pedoman, FAQ, atau laporan bulanan...
             </span>
             <kbd className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-stone-500">
               {tokenizeShortcutLabel(commandPaletteShortcutLabel).map(
@@ -170,31 +194,34 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
             FEATURES.SHOW_DOCS_SIDEBAR ? "lg:col-span-2" : "lg:col-span-3",
           )}
         >
-          {CATEGORIES.map((cat) => {
-            const catDocs = groupedDocs[cat.key] ?? [];
+          {focusedSections.map((section) => {
+            const sectionDocs =
+              section.docs.length > 0
+                ? section.docs
+                : (groupedDocs[section.key] ?? []);
             return (
               <div
-                key={cat.key}
+                key={section.key}
                 className="group relative flex flex-col border border-white/5 p-7 transition-colors hover:bg-stone-900/10"
                 data-animate="up"
               >
                 <div className="relative mb-6">
                   <p className="mb-2 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
-                    {cat.key}
+                    Fokus Utama
                   </p>
                   <h2 className="group-hover:text-gold-400 font-serif text-2xl text-white transition-colors">
-                    {cat.title}
+                    {section.title}
                   </h2>
                 </div>
 
                 <p className="mb-8 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
-                  {cat.description}
+                  {section.description}
                 </p>
 
                 <div className="mt-auto">
-                  {catDocs.length > 0 ? (
+                  {sectionDocs.length > 0 ? (
                     <div className="space-y-2">
-                      {catDocs.slice(0, 4).map((doc) => (
+                      {sectionDocs.slice(0, 4).map((doc) => (
                         <Link
                           key={doc.id}
                           href={`/sekretariat/${doc.slug}`}
@@ -220,16 +247,16 @@ export default function DocsPortalView({ docs }: DocsPortalViewProps) {
                           <span className="flex-1 truncate">{doc.title}</span>
                         </Link>
                       ))}
-                      {catDocs.length > 4 && (
+                      {sectionDocs.length > 4 && (
                         <p className="mt-3 text-center text-[0.65rem] font-medium tracking-wide text-stone-600">
-                          +{catDocs.length - 4} DOKUMEN LAINNYA
+                          +{sectionDocs.length - 4} DOKUMEN LAINNYA
                         </p>
                       )}
                     </div>
                   ) : (
                     <div className="border-t border-dashed border-stone-800/50 py-8 text-center text-stone-600">
                       <p className="text-[0.65rem] tracking-wider italic">
-                        Belum ada dokumen tersedia.
+                        Dokumen belum ditambahkan untuk bagian ini.
                       </p>
                     </div>
                   )}
