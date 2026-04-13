@@ -36,6 +36,9 @@ export interface EventEntryMeta extends DocMeta {
   eventDateEnd: string;
   location: string;
   registrationLink: string;
+  sourceLink: string;
+  sourceName: string;
+  isRepost: boolean;
   coverImageUrl: string | null;
   lifecycle: EventLifecycle;
 }
@@ -561,6 +564,9 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
   const slug = getSlugValue(page, title);
   const eventDate = getDate(page, "Event Date");
   const eventDateEnd = getDateEnd(page, "Event Date");
+  const sourceLink = getUrl(page, "Source Link");
+  const sourceName = getRichText(page, "Source Name");
+  const isRepost = getCheckbox(page, "Repost", false);
   const entryKind =
     getSelect(page, "Entry Kind") || (eventDate ? "Event" : "Announcement");
   const lifecycle = classifyEventLifecycle(
@@ -568,6 +574,7 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     { start: eventDate, end: eventDateEnd },
     today,
   );
+  const ownerUnit = getSelect(page, "Owner Unit");
 
   return {
     id: page.id,
@@ -580,12 +587,15 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     lastEdited: page.last_edited_time,
     published: getCheckbox(page, "Publish", true),
     summary: getRichText(page, "Summary"),
-    ownerUnit: getSelect(page, "Owner Unit"),
+    ownerUnit,
     entryKind,
     eventDate,
     eventDateEnd,
     location: getRichText(page, "Location"),
     registrationLink: getUrl(page, "Registration Link"),
+    sourceLink,
+    sourceName,
+    isRepost,
     coverImageUrl: getCoverUrl(page),
     lifecycle,
   };

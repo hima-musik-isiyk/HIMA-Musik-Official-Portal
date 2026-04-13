@@ -48,6 +48,12 @@ function getEventHref(
   return kkmSlug ? `/kkm/${kkmSlug}` : `/events/${entry.slug}`;
 }
 
+function getEventDetailHref(entry: EventEntryMeta): string {
+  return entry.isRepost
+    ? `/events/repost/${entry.slug}`
+    : `/events/${entry.slug}`;
+}
+
 function formatDate(date: string): string {
   const parsed = parseEventDateValue(date);
   if (!parsed) return "";
@@ -87,6 +93,10 @@ function isSameDay(left: Date, right: Date): boolean {
 }
 
 function getLifecycleLabel(entry: EventEntryMeta): string {
+  if (entry.isRepost) {
+    return "Repost";
+  }
+
   switch (entry.lifecycle) {
     case "upcoming":
       return "Upcoming";
@@ -95,7 +105,7 @@ function getLifecycleLabel(entry: EventEntryMeta): string {
     case "past":
       return "Archive";
     case "announcement":
-      return "Bulletin";
+      return "Announcement";
     case "timeless":
       return "Note";
     default:
@@ -582,7 +592,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                     {selectedEntries.map((entry) => (
                       <Link
                         key={entry.id}
-                        href={`/events/${entry.slug}`}
+                        href={getEventDetailHref(entry)}
                         className="group hover:border-gold-500/30 hover:bg-gold-500/6 block border border-white/8 bg-white/3 p-4 transition"
                         style={ACTION_RADIUS}
                       >
@@ -644,7 +654,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
                     {collection.announcements.slice(0, 3).map((entry) => (
                       <Link
                         key={entry.id}
-                        href={`/events/${entry.slug}`}
+                        href={getEventDetailHref(entry)}
                         className="block border border-white/8 px-4 py-3 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
                         style={ACTION_RADIUS}
                       >
@@ -684,7 +694,7 @@ function EventCard({
       data-animate-scroll="true"
     >
       <Link
-        href={`/events/${entry.slug}`}
+        href={getEventDetailHref(entry)}
         aria-label={`Buka ${entry.title}`}
         className="absolute inset-0 z-10"
       />

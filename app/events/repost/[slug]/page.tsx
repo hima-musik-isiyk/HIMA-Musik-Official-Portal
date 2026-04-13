@@ -12,26 +12,24 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   const entries = await fetchAllEventEntries();
   return entries
-    .filter((entry) => !entry.isRepost)
+    .filter((entry) => entry.isRepost)
     .map((entry) => ({ slug: entry.slug }));
 }
 
-type EventEntryPageProps = {
+type RepostEntryPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function EventEntryPage({ params }: EventEntryPageProps) {
+export default async function RepostEntryPage({
+  params,
+}: RepostEntryPageProps) {
   const { slug } = await params;
   const [result, kkmGroups] = await Promise.all([
     fetchEventBySlug(slug),
     fetchKKMGroups(),
   ]);
 
-  if (!result) {
-    notFound();
-  }
-
-  if (result.meta.isRepost) {
+  if (!result || !result.meta.isRepost) {
     notFound();
   }
 

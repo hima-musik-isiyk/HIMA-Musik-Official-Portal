@@ -13,6 +13,10 @@ import useViewEntrance from "@/lib/useViewEntrance";
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 
 function getLifecycleLabel(meta: EventEntryMeta): string {
+  if (meta.isRepost) {
+    return "Repost";
+  }
+
   switch (meta.lifecycle) {
     case "upcoming":
       return "Upcoming";
@@ -21,7 +25,7 @@ function getLifecycleLabel(meta: EventEntryMeta): string {
     case "past":
       return "Archive";
     case "announcement":
-      return "Bulletin";
+      return "Announcement";
     case "timeless":
       return "Note";
     default:
@@ -121,6 +125,31 @@ export default function EventDetailView({
                 style={ACTION_RADIUS}
               >
                 Buka Pendaftaran
+              </a>
+              {meta.sourceLink && (
+                <a
+                  href={meta.sourceLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 border border-white/15 px-4 py-2 text-sm text-stone-300 transition-colors hover:border-white/30 hover:bg-white/6 hover:text-white"
+                  style={ACTION_RADIUS}
+                >
+                  Sumber Asli
+                </a>
+              )}
+            </div>
+          )}
+
+          {!meta.registrationLink && meta.sourceLink && (
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a
+                href={meta.sourceLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 border border-white/15 px-4 py-2 text-sm text-stone-300 transition-colors hover:border-white/30 hover:bg-white/6 hover:text-white"
+                style={ACTION_RADIUS}
+              >
+                Sumber Asli
               </a>
             </div>
           )}
