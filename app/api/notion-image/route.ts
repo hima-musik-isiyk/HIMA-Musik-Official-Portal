@@ -90,6 +90,16 @@ function makeImageResponse(body: Buffer, contentType: string): NextResponse {
   });
 }
 
+function makeRedirectResponse(sourceUrl: URL): NextResponse {
+  return NextResponse.redirect(sourceUrl, {
+    status: 307,
+    headers: {
+      // Keep redirects short-lived because Notion signed URLs rotate.
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const src = request.nextUrl.searchParams.get("src");
   const cacheKeyParam = request.nextUrl.searchParams.get("key");
@@ -116,6 +126,12 @@ export async function GET(request: NextRequest) {
     cacheKeyParam ||
     `${sourceUrl.protocol}//${sourceUrl.host}${sourceUrl.pathname}`;
 
+  // On Vercel, proxying binary responses can hit function payload/storage limits.
+  // Redirecting keeps the client request direct to Notion's signed asset URL.
+  if (process.env.VERCEL) {
+    return makeRedirectResponse(sourceUrl);
+  }
+
   const cached = await readFreshCache(cacheKey);
   if (cached) {
     return makeImageResponse(cached.body, cached.contentType);
@@ -130,17 +146,11 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
   } catch {
-    return NextResponse.json(
-      { error: "Failed to fetch source image" },
-      { status: 502 },
-    );
+    return makeRedirectResponse(sourceUrl);
   }
 
   if (!upstream.ok) {
-    return NextResponse.json(
-      { error: `Upstream failed (${upstream.status})` },
-      { status: 502 },
-    );
+    return makeRedirectResponse(sourceUrl);
   }
 
   const body = Buffer.from(await upstream.arrayBuffer());
