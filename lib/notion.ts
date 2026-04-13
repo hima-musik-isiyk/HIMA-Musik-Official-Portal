@@ -748,6 +748,40 @@ export const fetchEventBySlug = cache(
   },
 );
 
+export async function fetchEventCoverUrlBySlug(
+  slug: string,
+): Promise<string | null> {
+  if (!EVENTS_DB_ID) return null;
+
+  const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+  if (!eventsDataSourceId) return null;
+  const normalizedSlug = slug.trim().toLowerCase();
+  let cursor: string | undefined;
+
+  do {
+    const response = await notion.dataSources.query({
+      data_source_id: eventsDataSourceId,
+      start_cursor: cursor,
+    });
+
+    const page = (response.results as NotionPage[]).find((entry) => {
+      const title = getTitleProperty(entry, "Name") || getTitle(entry);
+      const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
+      return entrySlug === normalizedSlug && isEventPublished(entry);
+    });
+
+    if (page) {
+      return getCoverUrl(page);
+    }
+
+    cursor = response.has_more
+      ? (response.next_cursor ?? undefined)
+      : undefined;
+  } while (cursor);
+
+  return null;
+}
+
 export const fetchDocBySlug = cache(
   async (
     slug: string,
