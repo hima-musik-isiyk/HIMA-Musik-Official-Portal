@@ -20,7 +20,7 @@ import {
 } from "@/lib/event-dates";
 import type { KKMGroup } from "@/lib/kkm-data";
 import type { EventEntryMeta, EventsCollection } from "@/lib/notion";
-import { toEventCoverUrl } from "@/lib/notion-image";
+import { toCachedImageUrl } from "@/lib/notion-image";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 const DAYS_OF_WEEK = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
@@ -681,7 +681,7 @@ function EventCard({
   index: number;
   kkmHref?: string;
 }) {
-  const coverUrl = toEventCoverUrl(entry.slug);
+  const coverUrl = toCachedImageUrl(entry.coverImageUrl);
 
   return (
     <div
