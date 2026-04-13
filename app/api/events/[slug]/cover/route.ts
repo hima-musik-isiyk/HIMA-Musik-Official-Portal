@@ -12,6 +12,20 @@ function safeContentType(input: string | null): string {
   return input;
 }
 
+async function makeImageResponse(upstream: Response): Promise<NextResponse> {
+  const body = Buffer.from(await upstream.arrayBuffer());
+
+  return new NextResponse(new Uint8Array(body), {
+    status: 200,
+    headers: {
+      "Content-Type": safeContentType(
+        upstream.headers.get("content-type") || "application/octet-stream",
+      ),
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+    },
+  });
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
@@ -50,15 +64,7 @@ export async function GET(
       });
     }
 
-    return new NextResponse(upstream.body, {
-      status: 200,
-      headers: {
-        "Content-Type": safeContentType(
-          upstream.headers.get("content-type") || "application/octet-stream",
-        ),
-        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      },
-    });
+    return await makeImageResponse(upstream);
   } catch {
     return new NextResponse(null, {
       status: 502,

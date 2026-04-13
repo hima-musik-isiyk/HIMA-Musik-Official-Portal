@@ -90,8 +90,12 @@ function makeImageResponse(body: Buffer, contentType: string): NextResponse {
   });
 }
 
-function makeUpstreamImageResponse(upstream: Response): NextResponse {
-  return new NextResponse(upstream.body, {
+async function makeUpstreamImageResponse(
+  upstream: Response,
+): Promise<NextResponse> {
+  const body = Buffer.from(await upstream.arrayBuffer());
+
+  return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {
       "Content-Type": safeContentType(
@@ -183,7 +187,7 @@ export async function GET(request: NextRequest) {
   // Vercel can choke on extremely long redirect Location headers for Notion's
   // signed asset URLs. Stream the upstream image instead and skip disk cache.
   if (isVercel) {
-    return makeUpstreamImageResponse(upstream);
+    return await makeUpstreamImageResponse(upstream);
   }
 
   const body = Buffer.from(await upstream.arrayBuffer());
