@@ -109,38 +109,13 @@ const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
 
 const TIME_FILTERS: TimeFilter[] = ["all", "upcoming", "archive"];
 
-function getTodayInJakarta(): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: JAKARTA_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function addDaysToDateKey(dateKey: string, days: number): string {
-  const parsed = parseEventDateValue(dateKey);
-  if (!parsed) return dateKey;
-
-  const nextDate = new Date(parsed.getTime());
-  nextDate.setUTCDate(nextDate.getUTCDate() + days);
-  return getDateOnly(nextDate.toISOString());
-}
-
 function matchesTimeFilter(
   entry: EventEntryMeta,
   timeFilter: TimeFilter,
-  todayKey: string,
-  tomorrowKey: string,
 ): boolean {
   if (timeFilter === "all") return true;
   if (timeFilter === "archive") return entry.lifecycle === "past";
-
-  const startKey = getDateOnly(entry.eventDate);
-  const endKey = getDateOnly(entry.eventDateEnd || entry.eventDate);
-
-  if (!startKey) return false;
-  return startKey <= tomorrowKey && endKey >= todayKey;
+  return entry.lifecycle === "upcoming" || entry.lifecycle === "ongoing";
 }
 
 function getEntryTimestamp(value: string): number {
@@ -755,8 +730,6 @@ export default function EventsView({
   collection: EventsCollection;
 }) {
   const scopeRef = useViewEntrance("/events");
-  const todayKey = useMemo(() => getTodayInJakarta(), []);
-  const tomorrowKey = useMemo(() => addDaysToDateKey(todayKey, 1), [todayKey]);
 
   // Build a flat list of all entries with their entryKind for filtering
   const allEntries = useMemo(() => {
@@ -778,10 +751,8 @@ export default function EventsView({
 
   const timeScopedEntries = useMemo(
     () =>
-      allEntries.filter((entry) =>
-        matchesTimeFilter(entry, activeTimeFilter, todayKey, tomorrowKey),
-      ),
-    [activeTimeFilter, allEntries, todayKey, tomorrowKey],
+      allEntries.filter((entry) => matchesTimeFilter(entry, activeTimeFilter)),
+    [activeTimeFilter, allEntries],
   );
 
   const allEntryKindFilters = useMemo(() => {
@@ -866,28 +837,22 @@ export default function EventsView({
       ({
         all: kindFilteredEntries.length,
         upcoming: kindFilteredEntries.filter((entry) =>
-          matchesTimeFilter(entry, "upcoming", todayKey, tomorrowKey),
+          matchesTimeFilter(entry, "upcoming"),
         ).length,
         archive: kindFilteredEntries.filter((entry) =>
-          matchesTimeFilter(entry, "archive", todayKey, tomorrowKey),
+          matchesTimeFilter(entry, "archive"),
         ).length,
       }) satisfies Record<TimeFilter, number>,
-    [kindFilteredEntries, todayKey, tomorrowKey],
+    [kindFilteredEntries],
   );
 
   const filteredEntries = useMemo(() => {
     const source = kindFilteredEntries.filter((entry) =>
-      matchesTimeFilter(entry, activeTimeFilter, todayKey, tomorrowKey),
+      matchesTimeFilter(entry, activeTimeFilter),
     );
 
     return sortEntries(source, sortOption);
-  }, [
-    activeTimeFilter,
-    kindFilteredEntries,
-    sortOption,
-    todayKey,
-    tomorrowKey,
-  ]);
+  }, [activeTimeFilter, kindFilteredEntries, sortOption]);
 
   // Reset page when filters change
   const totalPages = Math.max(
