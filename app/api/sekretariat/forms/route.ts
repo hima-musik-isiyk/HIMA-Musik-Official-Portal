@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { notion } from "@/lib/notion";
+import { getNotionClient } from "@/lib/notion";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     /* ---- Create card in Notion Kanban ---- */
     if (KANBAN_DB_ID) {
       try {
-        await notion.pages.create({
+        await getNotionClient().pages.create({
           parent: { database_id: KANBAN_DB_ID },
           properties: {
             Name: {

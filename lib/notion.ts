@@ -66,10 +66,18 @@ function createNotionClient() {
   return new Client({ auth: token });
 }
 
-export const notion = globalForNotion.notion ?? createNotionClient();
+export function getNotionClient(): Client {
+  if (globalForNotion.notion) {
+    return globalForNotion.notion;
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForNotion.notion = notion;
+  const client = createNotionClient();
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForNotion.notion = client;
+  }
+
+  return client;
 }
 
 /* ------------------------------------------------------------------ */
@@ -334,7 +342,7 @@ async function resolveDataSourceId(id: string): Promise<string> {
   if (cached) return cached;
 
   try {
-    const database = await notion.databases.retrieve({
+    const database = await getNotionClient().databases.retrieve({
       database_id: normalizedId,
     });
 
@@ -350,7 +358,7 @@ async function resolveDataSourceId(id: string): Promise<string> {
     dataSourceIdCache.set(normalizedId, dataSourceId);
     return dataSourceId;
   } catch {
-    const dataSource = await notion.dataSources.retrieve({
+    const dataSource = await getNotionClient().dataSources.retrieve({
       data_source_id: normalizedId,
     });
     dataSourceIdCache.set(normalizedId, dataSource.id);
@@ -384,10 +392,11 @@ export const fetchAllDocs = unstable_cache(
     let cursor: string | undefined;
 
     do {
-      const response: QueryDataSourceResponse = await notion.dataSources.query({
-        data_source_id: docsDataSourceId,
-        start_cursor: cursor,
-      });
+      const response: QueryDataSourceResponse =
+        await getNotionClient().dataSources.query({
+          data_source_id: docsDataSourceId,
+          start_cursor: cursor,
+        });
       results.push(...(response.results as NotionPage[]));
       cursor = response.has_more
         ? (response.next_cursor ?? undefined)
@@ -437,7 +446,7 @@ export const fetchKKMGroups = unstable_cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.dataSources.query({
+      const response = await getNotionClient().dataSources.query({
         data_source_id: kkmDataSourceId,
         start_cursor: cursor,
       });
@@ -506,7 +515,7 @@ export const fetchKKMEntryBySlug = cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.dataSources.query({
+      const response = await getNotionClient().dataSources.query({
         data_source_id: kkmDataSourceId,
         start_cursor: cursor,
       });
@@ -649,7 +658,7 @@ export const fetchEventsCollection = unstable_cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.dataSources.query({
+      const response = await getNotionClient().dataSources.query({
         data_source_id: eventsDataSourceId,
         start_cursor: cursor,
       });
@@ -715,7 +724,7 @@ export const fetchEventBySlug = cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.dataSources.query({
+      const response = await getNotionClient().dataSources.query({
         data_source_id: eventsDataSourceId,
         start_cursor: cursor,
       });
@@ -759,7 +768,7 @@ export async function fetchEventCoverUrlBySlug(
   let cursor: string | undefined;
 
   do {
-    const response = await notion.dataSources.query({
+    const response = await getNotionClient().dataSources.query({
       data_source_id: eventsDataSourceId,
       start_cursor: cursor,
     });
@@ -796,7 +805,7 @@ export const fetchDocBySlug = cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.dataSources.query({
+      const response = await getNotionClient().dataSources.query({
         data_source_id: docsDataSourceId,
         start_cursor: cursor,
       });
@@ -857,7 +866,7 @@ export const fetchArchives = unstable_cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.dataSources.query({
+      const response = await getNotionClient().dataSources.query({
         data_source_id: docsDataSourceId,
         start_cursor: cursor,
       });
@@ -903,7 +912,7 @@ export async function fetchArchiveById(
   if (!DOCS_DB_ID) return null;
 
   try {
-    const page = (await notion.pages.retrieve({
+    const page = (await getNotionClient().pages.retrieve({
       page_id: id,
     })) as NotionPage;
 
@@ -941,7 +950,7 @@ export const fetchAllBlocks = cache(
     let cursor: string | undefined;
 
     do {
-      const response = await notion.blocks.children.list({
+      const response = await getNotionClient().blocks.children.list({
         block_id: blockId,
         start_cursor: cursor,
         page_size: 100,
@@ -979,7 +988,7 @@ export async function searchDocs(query: string): Promise<
 > {
   if (!query.trim()) return [];
 
-  const response = await notion.search({
+  const response = await getNotionClient().search({
     query,
     filter: { value: "page", property: "object" },
     page_size: 10,
