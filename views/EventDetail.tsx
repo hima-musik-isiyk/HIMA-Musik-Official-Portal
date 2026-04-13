@@ -32,9 +32,11 @@ function getLifecycleLabel(meta: EventEntryMeta): string {
 export default function EventDetailView({
   meta,
   blocks,
+  kkmHref,
 }: {
   meta: EventEntryMeta;
   blocks: NotionBlock[];
+  kkmHref?: string;
 }) {
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname || "");
@@ -67,11 +69,19 @@ export default function EventDetailView({
             <span className="border-gold-500/30 bg-gold-500/10 text-gold-300 rounded-full border px-3 py-1 text-[0.62rem] font-medium tracking-[0.18em] uppercase">
               {getLifecycleLabel(meta)}
             </span>
-            {meta.ownerUnit && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.62rem] font-medium tracking-[0.18em] text-stone-300 uppercase">
-                {meta.ownerUnit}
-              </span>
-            )}
+            {meta.ownerUnit &&
+              (kkmHref ? (
+                <Link
+                  href={kkmHref}
+                  className="hover:border-gold-500/35 hover:bg-gold-500/10 hover:text-gold-300 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.62rem] font-medium tracking-[0.18em] text-stone-300 uppercase transition-colors duration-300"
+                >
+                  {meta.ownerUnit}
+                </Link>
+              ) : (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.62rem] font-medium tracking-[0.18em] text-stone-300 uppercase">
+                  {meta.ownerUnit}
+                </span>
+              ))}
           </div>
 
           <h1 className="font-serif text-3xl font-bold text-white md:text-4xl lg:text-5xl">
@@ -89,12 +99,6 @@ export default function EventDetailView({
               <span className="text-stone-300">
                 {formatEventDateLabel(meta.eventDate, meta.eventDateEnd)}
               </span>
-            )}
-            {meta.ownerUnit && (
-              <>
-                <span className="text-white/15">·</span>
-                <span>{meta.ownerUnit}</span>
-              </>
             )}
             {meta.location && (
               <>

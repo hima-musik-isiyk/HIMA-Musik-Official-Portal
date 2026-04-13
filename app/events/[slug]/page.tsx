@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { fetchAllEventEntries, fetchEventBySlug } from "@/lib/notion";
+import {
+  fetchAllEventEntries,
+  fetchEventBySlug,
+  fetchKKMGroups,
+} from "@/lib/notion";
 import EventDetailView from "@/views/EventDetail";
 
 export const revalidate = 60;
@@ -16,11 +20,39 @@ type EventEntryPageProps = {
 
 export default async function EventEntryPage({ params }: EventEntryPageProps) {
   const { slug } = await params;
-  const result = await fetchEventBySlug(slug);
+  const [result, kkmGroups] = await Promise.all([
+    fetchEventBySlug(slug),
+    fetchKKMGroups(),
+  ]);
 
   if (!result) {
     notFound();
   }
 
-  return <EventDetailView meta={result.meta} blocks={result.blocks} />;
+  const normalizeUnitName = (value: string) =>
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/^kkm[\s:/-]*/i, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  const ownerUnit = normalizeUnitName(result.meta.ownerUnit);
+  const kkmHref = ownerUnit
+    ? (() => {
+        const match = kkmGroups.find(
+          (group) => normalizeUnitName(group.name) === ownerUnit,
+        );
+        return match ? `/kkm/${match.slug}` : undefined;
+      })()
+    : undefined;
+
+  return (
+    <EventDetailView
+      meta={result.meta}
+      blocks={result.blocks}
+      kkmHref={kkmHref}
+    />
+  );
 }
