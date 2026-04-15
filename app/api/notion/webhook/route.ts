@@ -231,6 +231,25 @@ export async function POST(request: NextRequest) {
   const scopes = await inferScopes(payload);
   scopes.forEach(revalidateScope);
 
+  const eventSummary = {
+    type: payload.type ?? null,
+    entityType: payload.entity?.type ?? null,
+    entityId: payload.entity?.id ?? null,
+    parentType: payload.data?.parent?.type ?? null,
+    parentId: payload.data?.parent?.id ?? null,
+    parentDataSourceId: payload.data?.parent?.data_source_id ?? null,
+    revalidatedScopes: scopes,
+  };
+
+  if (scopes.length === 0) {
+    console.error(
+      "Notion webhook received but matched no site scope.",
+      eventSummary,
+    );
+  } else {
+    console.warn("Notion webhook revalidated scope(s).", eventSummary);
+  }
+
   return NextResponse.json({
     ok: true,
     receivedType: payload.type ?? null,
