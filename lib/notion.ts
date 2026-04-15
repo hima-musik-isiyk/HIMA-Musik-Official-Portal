@@ -115,6 +115,35 @@ export async function resolveCitation(
 /* ------------------------------------------------------------------ */
 /*  Notion property helpers                                            */
 /* ------------------------------------------------------------------ */
+const propertyNameMapCache = new WeakMap<
+  NotionPage["properties"],
+  Map<string, keyof NotionPage["properties"]>
+>();
+
+function normalizePropertyName(name: string): string {
+  return name.trim().toLocaleLowerCase();
+}
+
+function getProperty(
+  page: NotionPage,
+  name: string,
+): NotionPage["properties"][string] | undefined {
+  const properties = page.properties;
+  const normalizedName = normalizePropertyName(name);
+
+  let propertyNameMap = propertyNameMapCache.get(properties);
+  if (!propertyNameMap) {
+    propertyNameMap = new Map();
+    for (const key of Object.keys(properties)) {
+      propertyNameMap.set(normalizePropertyName(key), key);
+    }
+    propertyNameMapCache.set(properties, propertyNameMap);
+  }
+
+  const matchedKey = propertyNameMap.get(normalizedName);
+  return matchedKey ? properties[matchedKey] : undefined;
+}
+
 function getTitle(page: NotionPage): string {
   for (const prop of Object.values(page.properties)) {
     if (prop.type === "title" && prop.title.length > 0) {
@@ -125,7 +154,7 @@ function getTitle(page: NotionPage): string {
 }
 
 function getTitleProperty(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "title" && prop.title.length > 0) {
     return stripCustomTags(prop.title.map((t) => t.plain_text).join(""));
   }
@@ -133,7 +162,7 @@ function getTitleProperty(page: NotionPage, name: string): string {
 }
 
 function getRichText(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "rich_text") {
     return stripCustomTags(prop.rich_text.map((t) => t.plain_text).join(""));
   }
@@ -141,7 +170,7 @@ function getRichText(page: NotionPage, name: string): string {
 }
 
 function getSelect(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "select" && prop.select) {
     return prop.select.name;
   }
@@ -149,7 +178,7 @@ function getSelect(page: NotionPage, name: string): string {
 }
 
 function getMultiSelect(page: NotionPage, name: string): string[] {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "multi_select") {
     return prop.multi_select.map((s) => s.name);
   }
@@ -157,7 +186,7 @@ function getMultiSelect(page: NotionPage, name: string): string[] {
 }
 
 function getNumber(page: NotionPage, name: string): number {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "number" && prop.number !== null) {
     return prop.number;
   }
@@ -169,7 +198,7 @@ function getCheckbox(
   name: string,
   defaultValue = false,
 ): boolean {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "checkbox") {
     return prop.checkbox;
   }
@@ -177,7 +206,7 @@ function getCheckbox(
 }
 
 function getDate(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date) {
     return prop.date.start;
   }
@@ -185,7 +214,7 @@ function getDate(page: NotionPage, name: string): string {
 }
 
 function getDateEnd(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date?.end) {
     return prop.date.end;
   }
@@ -193,7 +222,7 @@ function getDateEnd(page: NotionPage, name: string): string {
 }
 
 function getUrl(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "url" && prop.url) {
     return prop.url.trim();
   }
@@ -201,7 +230,7 @@ function getUrl(page: NotionPage, name: string): string {
 }
 
 function getFormulaString(page: NotionPage, name: string): string {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type === "formula") {
     if (prop.formula.type === "string" && prop.formula.string) {
       return prop.formula.string.trim();
@@ -214,7 +243,7 @@ function getFormulaString(page: NotionPage, name: string): string {
 }
 
 function getFiles(page: NotionPage, name: string): string[] {
-  const prop = page.properties[name];
+  const prop = getProperty(page, name);
   if (prop?.type !== "files") return [];
   return prop.files
     .map((file) => {
