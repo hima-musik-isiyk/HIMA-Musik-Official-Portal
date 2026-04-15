@@ -12,6 +12,7 @@ type WebhookEntityType = "page" | "database" | "data_source" | "block";
 type NotionWebhookPayload = {
   verification_token?: string;
   type?: string;
+  timestamp?: string;
   entity?: {
     id?: string;
     type?: WebhookEntityType;
@@ -35,6 +36,10 @@ const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
 const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
+const parentChainCache = new Map<
+  string,
+  { databaseId: string | null; dataSourceId: string | null }
+>();
 
 function normalizeNotionId(id: string): string {
   const compact = id.replace(/-/g, "");
@@ -94,6 +99,114 @@ async function buildScopeMatchers() {
   };
 }
 
+type ScopeHints = {
+  databaseId: string | null;
+  dataSourceId: string | null;
+};
+
+type ParentRef = {
+  type?: string;
+  id?: string;
+  data_source_id?: string;
+};
+
+function emptyScopeHints(): ScopeHints {
+  return { databaseId: null, dataSourceId: null };
+}
+
+function cacheScopeHints(key: string, hints: ScopeHints): ScopeHints {
+  parentChainCache.set(key, hints);
+  return hints;
+}
+
+async function resolveParentScopeHints(
+  parent: ParentRef | null | undefined,
+  depth = 0,
+): Promise<ScopeHints> {
+  if (!parent || depth > 8) {
+    return emptyScopeHints();
+  }
+
+  const parentType = parent.type?.trim();
+  const parentId = parent.id?.trim();
+  const parentDataSourceId = parent.data_source_id?.trim();
+
+  if (parentDataSourceId) {
+    return {
+      databaseId:
+        parentType === "database" && parentId
+          ? normalizeNotionId(parentId)
+          : null,
+      dataSourceId: normalizeNotionId(parentDataSourceId),
+    };
+  }
+
+  if (!parentType || !parentId) {
+    return emptyScopeHints();
+  }
+
+  const normalizedParentId = normalizeNotionId(parentId);
+  const cacheKey = `${parentType}:${normalizedParentId}`;
+  const cached = parentChainCache.get(cacheKey);
+  if (cached) return cached;
+
+  if (parentType === "database") {
+    return cacheScopeHints(cacheKey, {
+      databaseId: normalizedParentId,
+      dataSourceId: await resolvePrimaryDataSourceId(normalizedParentId),
+    });
+  }
+
+  if (parentType === "data_source") {
+    return cacheScopeHints(cacheKey, {
+      databaseId: null,
+      dataSourceId: normalizedParentId,
+    });
+  }
+
+  try {
+    if (parentType === "page") {
+      const page = (await getNotionClient().pages.retrieve({
+        page_id: normalizedParentId,
+      })) as { parent?: ParentRef };
+      const hints = await resolveParentScopeHints(page.parent, depth + 1);
+      return cacheScopeHints(cacheKey, hints);
+    }
+
+    if (parentType === "block") {
+      const block = (await getNotionClient().blocks.retrieve({
+        block_id: normalizedParentId,
+      })) as { parent?: ParentRef };
+      const hints = await resolveParentScopeHints(block.parent, depth + 1);
+      return cacheScopeHints(cacheKey, hints);
+    }
+  } catch (error) {
+    console.error("Failed to resolve Notion parent scope hints:", {
+      parentType,
+      parentId: normalizedParentId,
+      error,
+    });
+  }
+
+  return cacheScopeHints(cacheKey, emptyScopeHints());
+}
+
+async function resolveEntityScopeHints(
+  entity: NotionWebhookPayload["entity"],
+): Promise<ScopeHints> {
+  if (!entity?.type || !entity.id) {
+    return emptyScopeHints();
+  }
+
+  return resolveParentScopeHints(
+    {
+      type: entity.type,
+      id: entity.id,
+    },
+    0,
+  );
+}
+
 function verifySignature(rawBody: string, signature: string, secret: string) {
   const expectedSignature = `sha256=${createHmac("sha256", secret).update(rawBody).digest("hex")}`;
   const expectedBuffer = Buffer.from(expectedSignature);
@@ -145,6 +258,8 @@ async function inferScopes(
   const normalizedParentDataSourceId = payload.data?.parent?.data_source_id
     ? normalizeNotionId(payload.data.parent.data_source_id)
     : null;
+  const entityScopeHints = await resolveEntityScopeHints(payload.entity);
+  const parentScopeHints = await resolveParentScopeHints(payload.data?.parent);
 
   for (const scope of ["docs", "events", "kkm"] as const) {
     const matcher = matches[scope];
@@ -172,6 +287,34 @@ async function inferScopes(
       payload.data?.parent?.type === "database" &&
       normalizedParentId &&
       matcher.databaseId === normalizedParentId
+    ) {
+      scopeSet.add(scope);
+    }
+
+    if (
+      parentScopeHints.dataSourceId &&
+      matcher.dataSourceId === parentScopeHints.dataSourceId
+    ) {
+      scopeSet.add(scope);
+    }
+
+    if (
+      parentScopeHints.databaseId &&
+      matcher.databaseId === parentScopeHints.databaseId
+    ) {
+      scopeSet.add(scope);
+    }
+
+    if (
+      entityScopeHints.dataSourceId &&
+      matcher.dataSourceId === entityScopeHints.dataSourceId
+    ) {
+      scopeSet.add(scope);
+    }
+
+    if (
+      entityScopeHints.databaseId &&
+      matcher.databaseId === entityScopeHints.databaseId
     ) {
       scopeSet.add(scope);
     }
@@ -233,6 +376,10 @@ export async function POST(request: NextRequest) {
 
   const eventSummary = {
     type: payload.type ?? null,
+    timestamp: payload.timestamp ?? null,
+    deliveryDelayMs: payload.timestamp
+      ? Date.now() - new Date(payload.timestamp).getTime()
+      : null,
     entityType: payload.entity?.type ?? null,
     entityId: payload.entity?.id ?? null,
     parentType: payload.data?.parent?.type ?? null,
