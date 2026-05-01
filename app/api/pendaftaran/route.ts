@@ -57,16 +57,17 @@ const htmlEscapes: Record<string, string> = {
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => htmlEscapes[char] ?? char);
 
-const escapeTelegramMarkdownV2 = (value: string) =>
-  value.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
+const DISCORD_FIELD_LIMIT = 1024;
 
-const sendTelegramMessage = async (
-  token: string,
+const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
+  value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+
+const sendDiscordWebhook = async (
+  webhookUrl: string,
   payload: Record<string, unknown>,
   context: string,
 ) => {
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  const response = await fetch(url, {
+  const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -530,138 +531,141 @@ export async function POST(request: Request) {
     if (dbWriteError) {
       console.error("DB write failed (pendaftaran):", dbWriteError);
 
-      const errorToken = process.env.TELEGRAM_BOT_TOKEN;
-      const errorChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
-      const errorTopicIdRaw =
-        process.env.TELEGRAM_PENDAFTARAN_TOPIC_ID ??
-        process.env.TELEGRAM_ERROR_TOPIC_ID;
+      const errorWebhookUrl =
+        process.env.DISCORD_ERROR_WEBHOOK_URL ??
+        process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
 
-      if (errorToken && errorChatId) {
-        const errorText = [
-          "\u26a0\ufe0f *DB WRITE FAILED \\- PENDAFTARAN*",
-          "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
-          `\ud83d\udc64 *Nama:* ${escapeTelegramMarkdownV2(escapeHtml(fullName))}`,
-          `\ud83c\udd94 *NIM:* ${escapeTelegramMarkdownV2(escapeHtml(nim))}`,
-          `\ud83d\udce7 *Email:* ${escapeTelegramMarkdownV2(escapeHtml(email))}`,
-          `\ud83c\udfaf *Divisi:* ${escapeTelegramMarkdownV2(escapeHtml(divisionLabel))}`,
-          "",
-          "\u2757 Email berhasil terkirim tetapi data TIDAK tersimpan di database\\.",
-          "Manual data entry required\\.",
-        ].join("\n");
-
-        const errorPayload: Record<string, unknown> = {
-          chat_id: errorChatId,
-          text: errorText,
-          parse_mode: "MarkdownV2",
-        };
-
-        const topicId = errorTopicIdRaw ? Number(errorTopicIdRaw) : undefined;
-        if (
-          typeof topicId === "number" &&
-          Number.isInteger(topicId) &&
-          topicId !== 0
-        ) {
-          errorPayload.message_thread_id = topicId;
-        }
-
+      if (errorWebhookUrl) {
         try {
-          await sendTelegramMessage(
-            errorToken,
-            errorPayload,
-            "DB error notification to Telegram",
+          await sendDiscordWebhook(
+            errorWebhookUrl,
+            {
+              username: "HIMA Musik Alerts",
+              allowed_mentions: { parse: [] },
+              embeds: [
+                {
+                  title: "DB Write Failed - Pendaftaran",
+                  description:
+                    "Confirmation email sent, but pendaftaran data was not saved to database. Manual entry required.",
+                  color: 0xff4d4f,
+                  timestamp: new Date().toISOString(),
+                  fields: [
+                    { name: "Nama", value: truncate(fullName), inline: true },
+                    { name: "NIM", value: truncate(nim || "-"), inline: true },
+                    {
+                      name: "Email",
+                      value: truncate(email),
+                      inline: true,
+                    },
+                    {
+                      name: "Divisi 1",
+                      value: truncate(divisionLabel),
+                      inline: true,
+                    },
+                  ],
+                  footer: { text: "HIMA Musik Official Portal" },
+                },
+              ],
+            },
+            "DB error notification to Discord",
           );
-        } catch (telegramError) {
+        } catch (discordError) {
           console.error(
-            "Failed to send DB error notification to Telegram:",
-            telegramError,
+            "Failed to send DB error notification to Discord:",
+            discordError,
           );
         }
       }
     } else {
-      const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
-      const telegramChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
-      const telegramTopicIdRaw = process.env.TELEGRAM_PENDAFTARAN_TOPIC_ID;
+      const webhookUrl = process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
 
-      if (telegramToken && telegramChatId) {
-        const successText = [
-          "\ud83c\udf89 PENDAFTARAN BARU MASUK",
-          "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
-          `\ud83d\udc64 Nama: ${fullName}`,
-          `\ud83c\udd94 NIM: ${nim || "-"}`,
-          `\ud83d\udce7 Email: ${email}`,
-          `\ud83d\udcf1 WhatsApp: ${phone || "-"}`,
-          `\ud83c\udfaf Divisi 1: ${divisionLabel}`,
-          secondaryDivisionLabel
-            ? `\ud83e\udd48 Divisi 2: ${secondaryDivisionLabel}`
-            : "",
-          `\ud83c\udf93 Angkatan: ${angkatan}`,
-          subfocusLabel ? `\ud83c\udfa8 Sub-fokus PDD: ${subfocusLabel}` : "",
-          availability.length > 0
-            ? `\ud83d\uddd3\ufe0f Ketersediaan: ${availability.join(", ")}`
-            : "",
-          "",
-          `\u23f0 Waktu: ${submittedAtFormatted}`,
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        const successPayload: Record<string, unknown> = {
-          chat_id: telegramChatId,
-          text: successText,
-        };
-
-        const topicId = telegramTopicIdRaw
-          ? Number(telegramTopicIdRaw)
-          : undefined;
-        if (
-          typeof topicId === "number" &&
-          Number.isInteger(topicId) &&
-          topicId !== 0
-        ) {
-          successPayload.message_thread_id = topicId;
-        }
-
+      if (webhookUrl) {
         try {
-          await sendTelegramMessage(
-            telegramToken,
-            successPayload,
-            "Success notification to Telegram",
-          );
-        } catch (telegramError) {
-          const canFallbackToBaseChat =
-            typeof successPayload.message_thread_id !== "undefined";
-
-          if (canFallbackToBaseChat) {
-            const fallbackPayload = { ...successPayload };
-            delete fallbackPayload.message_thread_id;
-
-            try {
-              await sendTelegramMessage(
-                telegramToken,
-                fallbackPayload,
-                "Fallback success notification to Telegram base chat",
-              );
-            } catch (fallbackError) {
-              console.error(
-                "Failed to send success notification to Telegram (topic + fallback):",
+          await sendDiscordWebhook(
+            webhookUrl,
+            {
+              username: "HIMA Musik Pendaftaran",
+              allowed_mentions: { parse: [] },
+              embeds: [
                 {
-                  topicError:
-                    telegramError instanceof Error
-                      ? telegramError.message
-                      : telegramError,
-                  fallbackError:
-                    fallbackError instanceof Error
-                      ? fallbackError.message
-                      : fallbackError,
+                  title: "Pendaftaran Baru Masuk",
+                  description:
+                    "Email bukti pendaftaran sudah terkirim dan data berhasil tersimpan.",
+                  color: 0x57f287,
+                  timestamp: submittedAt.toISOString(),
+                  fields: [
+                    { name: "Nama", value: truncate(fullName), inline: true },
+                    { name: "NIM", value: truncate(nim || "-"), inline: true },
+                    {
+                      name: "Angkatan",
+                      value: truncate(angkatan),
+                      inline: true,
+                    },
+                    { name: "Email", value: truncate(email), inline: true },
+                    {
+                      name: "WhatsApp",
+                      value: truncate(phone || "-"),
+                      inline: true,
+                    },
+                    {
+                      name: "Instagram",
+                      value: truncate(instagram || "-"),
+                      inline: true,
+                    },
+                    {
+                      name: "Divisi 1",
+                      value: truncate(divisionLabel),
+                      inline: true,
+                    },
+                    ...(secondaryDivisionLabel
+                      ? [
+                          {
+                            name: "Divisi 2",
+                            value: truncate(secondaryDivisionLabel),
+                            inline: true,
+                          },
+                        ]
+                      : []),
+                    ...(subfocusLabel
+                      ? [
+                          {
+                            name: "Sub-fokus PDD",
+                            value: truncate(subfocusLabel),
+                            inline: true,
+                          },
+                        ]
+                      : []),
+                    {
+                      name: "Ketersediaan",
+                      value: truncate(availability.join(", ")),
+                      inline: false,
+                    },
+                    ...(portfolio
+                      ? [
+                          {
+                            name: "Portofolio / Lampiran",
+                            value: truncate(portfolio),
+                            inline: false,
+                          },
+                        ]
+                      : []),
+                    {
+                      name: "Waktu",
+                      value: submittedAtFormatted,
+                      inline: false,
+                    },
+                  ],
+                  footer: { text: "HIMA Musik Official Portal" },
                 },
-              );
-            }
-          } else {
-            console.error(
-              "Failed to send success notification to Telegram:",
-              telegramError,
-            );
-          }
+              ],
+            },
+            "Success notification to Discord",
+          );
+        } catch (discordError) {
+          console.error(
+            "Failed to send success notification to Discord:",
+            discordError,
+          );
         }
       }
     }
