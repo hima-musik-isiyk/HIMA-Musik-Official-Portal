@@ -1,58 +1,113 @@
 const DISCORD_EMBED_LIMIT = 4096;
 const DISCORD_FIELD_LIMIT = 1024;
-const DISCORD_CONTENT_LIMIT = 2000;
+const DISCORD_CODE_BLOCK_LIMIT = 4084;
 const INSTAGRAM_LOGO_URL =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/132px-Instagram_logo_2016.svg.png";
 
 const IDENTIFIER_ADJECTIVES = [
+  "acoustic",
+  "agile",
   "amber",
+  "analog",
+  "arcade",
+  "azure",
+  "bold",
+  "bouncy",
   "brisk",
   "bright",
   "calm",
+  "cedar",
   "clear",
+  "cloudy",
   "cosmic",
   "crimson",
+  "daring",
+  "dusky",
   "electric",
+  "faded",
+  "fierce",
+  "fluid",
+  "gentle",
   "golden",
+  "hollow",
   "honest",
+  "ivory",
+  "jolly",
+  "kinetic",
   "lively",
   "lunar",
+  "lush",
   "mellow",
+  "minty",
   "neon",
   "nimble",
+  "opal",
+  "patient",
   "polished",
   "quick",
+  "quiet",
   "radiant",
+  "restless",
+  "rosy",
   "silver",
+  "sleepy",
+  "solar",
   "steady",
+  "tender",
+  "tidy",
   "velvet",
   "vivid",
   "warm",
+  "wild",
+  "witty",
   "zesty",
 ];
 
 const IDENTIFIER_NOUNS = [
   "amp",
+  "anthem",
+  "archive",
+  "bassline",
+  "beat",
   "bridge",
   "cadence",
   "chorus",
+  "clef",
   "cymbal",
+  "delay",
   "echo",
   "fader",
+  "filter",
+  "gain",
   "groove",
   "harmony",
+  "hook",
+  "jam",
+  "kick",
   "lyric",
+  "melody",
   "meter",
+  "mixer",
+  "motif",
   "octave",
+  "pedal",
+  "phrase",
   "pulse",
   "reverb",
   "riff",
+  "scale",
   "signal",
   "snare",
   "spark",
+  "stage",
+  "studio",
   "tempo",
+  "tone",
   "track",
+  "tremolo",
   "verse",
+  "vinyl",
+  "vocal",
   "wave",
   "wire",
   "zine",
@@ -125,13 +180,15 @@ async function processInstagramWebhook(body) {
   const entries = Array.isArray(body.entry) ? body.entry : [];
 
   for (const entry of entries) {
+    const context = await getEntryContext(entry);
+
     try {
-      await sendRawToDiscord(entry);
+      await sendRawToDiscord(entry, context);
     } catch (error) {
       console.error("Failed to send raw Instagram webhook:", error);
     }
 
-    const embeds = await buildEmbedsForEntry(entry);
+    const embeds = await buildEmbedsForEntry(entry, context);
 
     for (const embed of embeds) {
       try {
@@ -143,34 +200,32 @@ async function processInstagramWebhook(body) {
   }
 }
 
-async function buildEmbedsForEntry(entry) {
+async function buildEmbedsForEntry(entry, context) {
   return [
-    ...(await buildMessagingEmbeds(entry)),
-    ...buildChangeEmbeds(entry),
-    ...buildStandbyEmbeds(entry),
+    ...(await buildMessagingEmbeds(entry, context)),
+    ...buildChangeEmbeds(entry, context),
+    ...buildStandbyEmbeds(entry, context),
   ];
 }
 
-async function buildMessagingEmbeds(entry) {
+async function buildMessagingEmbeds(entry, context) {
   const messagingEvents = Array.isArray(entry.messaging) ? entry.messaging : [];
   const embeds = [];
 
   for (const event of messagingEvents) {
     const eventType = getMessagingEventType(event);
-    const identifier = createEventIdentifier(entry, event, eventType);
-    const senderProfile = await fetchInstagramProfile(event.sender?.id);
-    const message = event.message;
-    const title = FIELD_TITLES[eventType] ?? "Instagram Messaging Event";
+    const identifier = context.identifier;
+    const senderProfile =
+      context.senderProfile ?? (await fetchInstagramProfile(event.sender?.id));
+    const title = identifier;
     const fields = [
-      formatField("Identifier", identifier, true),
-      formatField("Type", eventType, true),
-      formatField("Time", formatMetaTimestamp(event.timestamp), true),
       formatField(
-        "Sender",
-        formatProfile(senderProfile, event.sender?.id),
+        "From",
+        formatProfile(senderProfile, event.sender?.id, { includeId: false }),
         true,
       ),
-      formatField("Recipient ID", event.recipient?.id, true),
+      formatField("Event", formatEventLabel(eventType), true),
+      formatField("Time", formatDisplayTime(event.timestamp), true),
     ].filter(Boolean);
 
     embeds.push({
@@ -180,12 +235,9 @@ async function buildMessagingEmbeds(entry) {
       thumbnail: senderProfile?.profile_pic
         ? { url: senderProfile.profile_pic }
         : undefined,
-      fields: [
-        ...fields,
-        ...buildMessageDetailFields(message, eventType),
-      ].filter(Boolean),
+      fields,
       footer: {
-        text: `Instagram webhook | ${identifier}`,
+        text: "Instagram webhook",
       },
     });
   }
@@ -193,49 +245,45 @@ async function buildMessagingEmbeds(entry) {
   return embeds;
 }
 
-function buildChangeEmbeds(entry) {
+function buildChangeEmbeds(entry, context) {
   const changes = Array.isArray(entry.changes) ? entry.changes : [];
 
   return changes.map((change) => {
     const value = change.value ?? {};
     const fieldName = change.field ?? "unknown";
-    const identifier = createEventIdentifier(entry, change, fieldName);
+    const identifier = context.identifier;
 
     return {
-      title: FIELD_TITLES[fieldName] ?? `Instagram ${fieldName}`,
+      title: identifier,
       description: getChangeDescription(fieldName, value),
       color: FIELD_COLORS[fieldName] ?? 0x833ab4,
       fields: [
-        formatField("Identifier", identifier, true),
-        formatField("Field", fieldName, true),
-        formatField("Entry ID", entry.id, true),
+        formatField("Event", formatEventLabel(fieldName), true),
         ...buildChangeDetailFields(fieldName, value),
       ].filter(Boolean),
       footer: {
-        text: `Instagram webhook | ${identifier}`,
+        text: "Instagram webhook",
       },
     };
   });
 }
 
-function buildStandbyEmbeds(entry) {
+function buildStandbyEmbeds(entry, context) {
   const standbyEvents = Array.isArray(entry.standby) ? entry.standby : [];
 
   return standbyEvents.map((event) => {
-    const identifier = createEventIdentifier(entry, event, "standby");
+    const identifier = context.identifier;
 
     return {
-      title: FIELD_TITLES.standby,
+      title: identifier,
       description: "Standby channel event received.",
       color: FIELD_COLORS.standby,
       fields: [
-        formatField("Identifier", identifier, true),
-        formatField("Sender ID", event.sender?.id, true),
-        formatField("Recipient ID", event.recipient?.id, true),
-        formatField("Time", formatMetaTimestamp(event.timestamp), true),
+        formatField("Event", "Standby", true),
+        formatField("Time", formatDisplayTime(event.timestamp), true),
       ].filter(Boolean),
       footer: {
-        text: `Instagram webhook | ${identifier}`,
+        text: "Instagram webhook",
       },
     };
   });
@@ -324,33 +372,11 @@ function getChangeDescription(fieldName, value) {
   return truncate(`${fieldName} event received.`, DISCORD_EMBED_LIMIT);
 }
 
-function buildMessageDetailFields(message, eventType) {
-  if (!message) {
-    return [
-      formatField(
-        "Note",
-        `${eventType} event has no message text payload.`,
-        false,
-      ),
-    ].filter(Boolean);
-  }
-
-  return [
-    formatField("Message ID", message.mid, false),
-    formatField("Reply To", message.reply_to?.mid, true),
-    formatField("Folder", message.folder, true),
-    formatField("Story ID", message.story?.id, true),
-    formatField("Attachments", describeAttachments(message), false),
-  ].filter(Boolean);
-}
-
 function buildChangeDetailFields(fieldName, value) {
   if (fieldName === "comments" || fieldName === "live_comments") {
     return [
       formatField("From", formatUser(value.from), true),
-      formatField("Media ID", value.media?.id, true),
-      formatField("Product Type", value.media?.media_product_type, true),
-      formatField("Parent Comment ID", value.parent_id, true),
+      formatField("Message", value.text, false),
       formatField(
         "Ad",
         [value.ad_title, value.ad_id].filter(Boolean).join(" | "),
@@ -360,20 +386,13 @@ function buildChangeDetailFields(fieldName, value) {
   }
 
   if (fieldName === "mentions") {
-    return [
-      formatField("Media ID", value.media_id, true),
-      formatField("Comment ID", value.comment_id, true),
-    ].filter(Boolean);
+    return [formatField("Media ID", value.media_id, true)].filter(Boolean);
   }
 
   if (fieldName === "story_insights") {
     return [
-      formatField("Media ID", value.media_id, true),
       formatField("Impressions", value.impressions, true),
       formatField("Reach", value.reach, true),
-      formatField("Taps Forward", value.taps_forward, true),
-      formatField("Taps Back", value.taps_back, true),
-      formatField("Exits", value.exits, true),
       formatField("Replies", value.replies, true),
     ].filter(Boolean);
   }
@@ -393,13 +412,17 @@ function formatField(name, value, inline = false) {
 
 function formatUser(user) {
   if (!user) return null;
-  return [user.username, user.id].filter(Boolean).join(" | ");
+  const username = user.username ? `@${user.username}` : null;
+  return [username, user.name].filter(Boolean).join(" | ");
 }
 
-function formatProfile(profile, fallbackId) {
-  if (!profile) return fallbackId;
+function formatProfile(profile, fallbackId, options = {}) {
+  const { includeId = true } = options;
+  if (!profile) return includeId ? fallbackId : "Unknown Instagram user";
   const username = profile.username ? `@${profile.username}` : null;
-  return [username, profile.name, profile.id].filter(Boolean).join(" | ");
+  return [username, profile.name, includeId ? profile.id : null]
+    .filter(Boolean)
+    .join(" | ");
 }
 
 function describeAttachments(message) {
@@ -422,10 +445,20 @@ function stringifyRawPayload(value) {
   return JSON.stringify(value, null, 2);
 }
 
-function formatMetaTimestamp(timestamp) {
+function formatDisplayTime(timestamp) {
   if (!timestamp) return null;
   const date = new Date(Number(timestamp));
-  return Number.isNaN(date.getTime()) ? String(timestamp) : date.toISOString();
+  if (Number.isNaN(date.getTime())) return String(timestamp);
+
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Jakarta",
+  }).format(date);
+}
+
+function formatEventLabel(eventType) {
+  return FIELD_TITLES[eventType]?.replace("Instagram ", "") ?? eventType;
 }
 
 function truncate(value, maxLength) {
@@ -456,9 +489,7 @@ function createEventIdentifier(entry, event, eventType) {
     IDENTIFIER_NOUNS[
       Math.floor(hash / IDENTIFIER_ADJECTIVES.length) % IDENTIFIER_NOUNS.length
     ];
-  const suffix = String(hash % 10000).padStart(4, "0");
-
-  return `${adjective}-${noun}-${suffix}`;
+  return `${adjective}-${noun}`;
 }
 
 function hashString(value) {
@@ -489,7 +520,49 @@ async function fetchInstagramProfile(id) {
   }
 }
 
-async function sendRawToDiscord(entry) {
+async function getEntryContext(entry) {
+  const primaryEvent = getPrimaryEvent(entry);
+  const eventType = primaryEvent
+    ? getEventType(primaryEvent)
+    : entry?.changes?.[0]?.field || "instagram";
+  const identifier = createEventIdentifier(
+    entry,
+    primaryEvent ?? entry,
+    eventType,
+  );
+  const senderId =
+    primaryEvent?.sender?.id || entry?.changes?.[0]?.value?.from?.id;
+  const senderProfile = await fetchInstagramProfile(senderId);
+
+  return {
+    eventType,
+    identifier,
+    senderProfile,
+  };
+}
+
+function getPrimaryEvent(entry) {
+  if (Array.isArray(entry.messaging) && entry.messaging[0]) {
+    return entry.messaging[0];
+  }
+
+  if (Array.isArray(entry.changes) && entry.changes[0]) {
+    return entry.changes[0];
+  }
+
+  if (Array.isArray(entry.standby) && entry.standby[0]) {
+    return entry.standby[0];
+  }
+
+  return null;
+}
+
+function getEventType(event) {
+  if (event?.field) return event.field;
+  return getMessagingEventType(event);
+}
+
+async function sendRawToDiscord(entry, context) {
   const webhookUrl =
     process.env.DISCORD_RAW_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_RAW_URL;
 
@@ -500,9 +573,23 @@ async function sendRawToDiscord(entry) {
 
   const rawPayload = stringifyRawPayload(entry);
 
-  for (const chunk of chunkForDiscord(rawPayload, DISCORD_CONTENT_LIMIT)) {
+  for (const chunk of chunkForDiscord(rawPayload, DISCORD_CODE_BLOCK_LIMIT)) {
     await sendDiscordPayload(webhookUrl, {
-      content: chunk,
+      username: context.identifier,
+      avatar_url: context.senderProfile?.profile_pic ?? INSTAGRAM_LOGO_URL,
+      embeds: [
+        {
+          title: context.identifier,
+          description: `\`\`\`json\n${chunk}\n\`\`\``,
+          color: FIELD_COLORS[context.eventType] ?? 0x5865f2,
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: formatProfile(context.senderProfile, null, {
+              includeId: false,
+            }),
+          },
+        },
+      ],
     });
   }
 }
@@ -517,8 +604,8 @@ async function sendParsedToDiscord(embed) {
   }
 
   await sendDiscordPayload(webhookUrl, {
-    username: "Instagram Notif",
-    avatar_url: INSTAGRAM_LOGO_URL,
+    username: embed.title,
+    avatar_url: embed.thumbnail?.url ?? INSTAGRAM_LOGO_URL,
     embeds: [
       {
         ...embed,
