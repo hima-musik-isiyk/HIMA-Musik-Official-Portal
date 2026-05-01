@@ -20,6 +20,7 @@ const shouldSkipAutoRouteAnimation = (pathname: string) => {
     "/events",
     "/gallery",
     "/aduan",
+    "/kkm",
     "/pendaftaran",
     "/sekretariat",
   ];
