@@ -2,8 +2,29 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 
-const sanitize = (str: string) =>
-  str.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
+const DISCORD_FIELD_LIMIT = 1024;
+
+const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
+  value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+
+const sendDiscordWebhook = async (
+  webhookUrl: string,
+  payload: Record<string, unknown>,
+  context: string,
+) => {
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `${context} failed (${response.status}): ${responseText || "No response body"}`,
+    );
+  }
+};
 
 export async function POST(request: Request) {
   try {
@@ -29,15 +50,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_GROUP_CHAT_ID;
-    const topicIdRaw =
-      process.env.TELEGRAM_TOPIC_ID_COMPLAINTS ?? process.env.TELEGRAM_TOPIC_ID;
+    const webhookUrl = process.env.DISCORD_ADUAN_WEBHOOK_URL;
 
-    if (!token || !chatId) {
+    if (!webhookUrl) {
       console.error("Missing environment variables:", {
-        hasToken: !!token,
-        hasChatId: !!chatId,
+        hasDiscordAduanWebhookUrl: !!webhookUrl,
       });
       return NextResponse.json(
         { error: "Server misconfiguration: Missing env variables" },
@@ -45,55 +62,47 @@ export async function POST(request: Request) {
       );
     }
 
-    const safeName = sanitize(
-      typeof name === "string" && name.trim() ? name : "Anonim",
-    );
-    const safeNim = sanitize(typeof nim === "string" && nim.trim() ? nim : "-");
-    const safeCategory = sanitize(
-      typeof category === "string" && category.trim() ? category : "Umum",
-    );
-    const safeMessage = sanitize(message.trim());
+    const safeName = typeof name === "string" && name.trim() ? name : "Anonim";
+    const safeNim = typeof nim === "string" && nim.trim() ? nim : "-";
+    const safeCategory =
+      typeof category === "string" && category.trim() ? category : "Umum";
+    const safeMessage = message.trim();
 
-    const text = [
-      "📢 *ADUAN BARU MASUK*",
-      "──────────────────",
-      `👤 *Nama:* ${safeName}`,
-      `🆔 *NIM:* ${safeNim}`,
-      `📂 *Kategori:* ${safeCategory}`,
-      "",
-      "📝 *Pesan:*",
-      safeMessage,
-    ].join("\n");
-
-    const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-
-    const topicId = topicIdRaw ? Number(topicIdRaw) : undefined;
-    const payload: Record<string, unknown> = {
-      chat_id: chatId,
-      text,
-      parse_mode: "MarkdownV2",
+    const payload = {
+      username: "HIMA Musik Aduan",
+      allowed_mentions: { parse: [] },
+      embeds: [
+        {
+          title: "Aduan Baru Masuk",
+          description: truncate(safeMessage, 4096),
+          color: 0xd4a64d,
+          timestamp: new Date().toISOString(),
+          fields: [
+            { name: "Nama", value: truncate(safeName), inline: true },
+            { name: "NIM", value: truncate(safeNim), inline: true },
+            { name: "Kategori", value: truncate(safeCategory), inline: true },
+          ],
+          footer: { text: "HIMA Musik Official Portal" },
+        },
+      ],
     };
 
-    if (
-      typeof topicId === "number" &&
-      Number.isInteger(topicId) &&
-      topicId !== 0
-    ) {
-      payload.message_thread_id = topicId;
-    }
-
-    const response = await fetch(telegramUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Telegram API Error:", { status: response.status, data });
+    try {
+      await sendDiscordWebhook(
+        webhookUrl,
+        payload,
+        "Aduan notification to Discord",
+      );
+    } catch (discordError) {
+      console.error("Discord API Error:", discordError);
       return NextResponse.json(
-        { error: "Failed to send to Telegram", details: data },
+        {
+          error: "Failed to send to Discord",
+          details:
+            discordError instanceof Error
+              ? discordError.message
+              : "Unknown Discord error",
+        },
         { status: 500 },
       );
     }
@@ -113,46 +122,41 @@ export async function POST(request: Request) {
     } catch (dbError) {
       console.error("DB write failed (aduan):", dbError);
 
-      const errorToken = process.env.TELEGRAM_BOT_TOKEN;
-      const errorChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
-      const errorTopicId = process.env.TELEGRAM_ERROR_TOPIC_ID;
+      const errorWebhookUrl =
+        process.env.DISCORD_ERROR_WEBHOOK_URL ?? webhookUrl;
 
-      if (errorToken && errorChatId) {
-        const errorText = [
-          "\u26a0\ufe0f *DB WRITE FAILED \\- ADUAN*",
-          "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
-          `\ud83d\udce2 *Kategori:* ${safeCategory}`,
-          `\ud83d\udc64 *Nama:* ${safeName}`,
-          "",
-          "\u2757 Telegram berhasil terkirim tetapi data TIDAK tersimpan di database\\.",
-          "Manual data entry required\\.",
-        ].join("\n");
-
-        const errorPayload: Record<string, unknown> = {
-          chat_id: errorChatId,
-          text: errorText,
-          parse_mode: "MarkdownV2",
-        };
-
-        const topicId = errorTopicId ? Number(errorTopicId) : undefined;
-        if (
-          typeof topicId === "number" &&
-          Number.isInteger(topicId) &&
-          topicId !== 0
-        ) {
-          errorPayload.message_thread_id = topicId;
-        }
-
+      if (errorWebhookUrl) {
         try {
-          await fetch(`https://api.telegram.org/bot${errorToken}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(errorPayload),
-          });
-        } catch (telegramError) {
+          await sendDiscordWebhook(
+            errorWebhookUrl,
+            {
+              username: "HIMA Musik Alerts",
+              allowed_mentions: { parse: [] },
+              embeds: [
+                {
+                  title: "DB Write Failed - Aduan",
+                  description:
+                    "Discord notification sent, but aduan data was not saved to database. Manual entry required.",
+                  color: 0xff4d4f,
+                  timestamp: new Date().toISOString(),
+                  fields: [
+                    { name: "Nama", value: truncate(safeName), inline: true },
+                    {
+                      name: "Kategori",
+                      value: truncate(safeCategory),
+                      inline: true,
+                    },
+                  ],
+                  footer: { text: "HIMA Musik Official Portal" },
+                },
+              ],
+            },
+            "DB error notification to Discord",
+          );
+        } catch (discordError) {
           console.error(
-            "Failed to send DB error notification to Telegram:",
-            telegramError,
+            "Failed to send DB error notification to Discord:",
+            discordError,
           );
         }
       }

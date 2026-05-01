@@ -20,7 +20,7 @@ The portal focuses on:
   - Category selection (Akademik, Fasilitas, Organisasi, Lainnya)
   - Local draft autosave with recovery
   - AI-assisted refinement of the message text using Groq
-  - Submission to Telegram via a serverless API endpoint
+  - Submission to Discord via a serverless API endpoint
 
 ## Tech Stack
 
@@ -29,7 +29,7 @@ The portal focuses on:
 - Tailwind CSS 4
 - ESLint for linting
 - Groq API for AI-assisted text refinement
-- Vercel serverless function for Telegram integration
+- Vercel serverless function for Discord integration
 
 ## Getting Started
 
@@ -50,8 +50,9 @@ The portal focuses on:
 
    ```bash
    GROQ_API_KEY=your_groq_api_key
-   TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-   TELEGRAM_GROUP_CHAT_ID=your_TELEGRAM_GROUP_CHAT_ID
+   DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
+   DISCORD_PENDAFTARAN_WEBHOOK_URL=your_pendaftaran_discord_webhook_url
+   DISCORD_ERROR_WEBHOOK_URL=optional_error_discord_webhook_url
    ```
 
    Alternatively, the Groq client also accepts `API_KEY` if you prefer that variable name.
@@ -78,7 +79,7 @@ High-level structure:
 - `pages/` – Top-level pages (Home, About, Events, Aduan, Gallery)
 - `components/` – Shared UI components (Navigation, Footer)
 - `services/aiTextService.ts` – AI helpers for text refinement using Groq
-- `api/submit.ts` – Serverless endpoint that forwards Aduan submissions to Telegram
+- `app/api/submit/route.ts` – API endpoint that forwards Aduan submissions to Discord
 
 ## Deployment Notes
 
@@ -86,5 +87,6 @@ The project is configured to work with Vercel serverless functions via the `api/
 Ensure the production environment has the same environment variables configured:
 
 - `GROQ_API_KEY` or `API_KEY`
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_GROUP_CHAT_ID`
+- `DISCORD_ADUAN_WEBHOOK_URL`
+- `DISCORD_PENDAFTARAN_WEBHOOK_URL`
+- `DISCORD_ERROR_WEBHOOK_URL` (optional; falls back to the relevant form webhook)
