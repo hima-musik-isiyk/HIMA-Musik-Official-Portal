@@ -230,6 +230,7 @@ async function buildMessagingEmbeds(entry, context) {
 
     embeds.push({
       title,
+      webhookUsername: formatDiscordUsername(senderProfile, identifier),
       description: getMessagingDescription(event, eventType),
       color: FIELD_COLORS[eventType] ?? 0xe1306c,
       thumbnail: senderProfile?.profile_pic
@@ -255,6 +256,7 @@ function buildChangeEmbeds(entry, context) {
 
     return {
       title: identifier,
+      webhookUsername: identifier,
       description: getChangeDescription(fieldName, value),
       color: FIELD_COLORS[fieldName] ?? 0x833ab4,
       fields: [
@@ -276,6 +278,7 @@ function buildStandbyEmbeds(entry, context) {
 
     return {
       title: identifier,
+      webhookUsername: identifier,
       description: "Standby channel event received.",
       color: FIELD_COLORS.standby,
       fields: [
@@ -575,7 +578,10 @@ async function sendRawToDiscord(entry, context) {
 
   for (const chunk of chunkForDiscord(rawPayload, DISCORD_CODE_BLOCK_LIMIT)) {
     await sendDiscordPayload(webhookUrl, {
-      username: context.identifier,
+      username: formatDiscordUsername(
+        context.senderProfile,
+        context.identifier,
+      ),
       avatar_url: context.senderProfile?.profile_pic ?? INSTAGRAM_LOGO_URL,
       embeds: [
         {
@@ -603,16 +609,22 @@ async function sendParsedToDiscord(embed) {
     return;
   }
 
+  const { webhookUsername, ...discordEmbed } = embed;
+
   await sendDiscordPayload(webhookUrl, {
-    username: embed.title,
+    username: webhookUsername ?? embed.title,
     avatar_url: embed.thumbnail?.url ?? INSTAGRAM_LOGO_URL,
     embeds: [
       {
-        ...embed,
+        ...discordEmbed,
         timestamp: new Date().toISOString(),
       },
     ],
   });
+}
+
+function formatDiscordUsername(profile, fallback) {
+  return profile?.username ? `@${profile.username}` : fallback;
 }
 
 async function sendDiscordPayload(webhookUrl, payload) {
