@@ -40,6 +40,12 @@ const NAV_LINKS = [
   // Open Recruitment intentionally hidden
 ];
 
+const LEGAL_LINKS = [
+  { name: "Privacy Policy", href: "/privacy-policy" },
+  { name: "Data Deletion", href: "/data-deletion" },
+  { name: "Terms", href: "/terms-of-service" },
+];
+
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const pathname = usePathname();
@@ -280,6 +286,21 @@ const Footer: React.FC = () => {
           <p className="text-center text-[0.65rem] tracking-[0.5em] text-stone-700 uppercase md:text-left">
             &copy; {currentYear} HIMA Musik ISI Yogyakarta
           </p>
+          <nav
+            aria-label="Legal links"
+            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
+          >
+            {LEGAL_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={markIntentionalRouteAnimation}
+                className="text-[0.65rem] tracking-[0.22em] text-stone-600 uppercase transition-colors hover:text-stone-300"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </nav>
           <p
             className="text-gold-500 text-[0.65rem] tracking-[0.3em] uppercase"
             title="Nama Kabinet HIMA Musik 2026"
