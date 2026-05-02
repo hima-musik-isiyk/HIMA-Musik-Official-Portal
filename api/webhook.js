@@ -159,7 +159,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const body = req.body;
 
-    if (body?.object !== "instagram") {
+    if (!isInstagramWebhookPayload(body)) {
       return res.status(200).send("EVENT_RECEIVED");
     }
 
@@ -198,6 +198,18 @@ async function processInstagramWebhook(body) {
       }
     }
   }
+}
+
+function isInstagramWebhookPayload(body) {
+  if (body?.object === "instagram") return true;
+
+  const entries = Array.isArray(body?.entry) ? body.entry : [];
+  return entries.some(
+    (entry) =>
+      Array.isArray(entry?.messaging) ||
+      Array.isArray(entry?.changes) ||
+      Array.isArray(entry?.standby),
+  );
 }
 
 async function buildEmbedsForEntry(entry, context) {
