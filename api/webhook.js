@@ -3,6 +3,7 @@ const DISCORD_FIELD_LIMIT = 1024;
 const DISCORD_CODE_BLOCK_LIMIT = 4084;
 const INSTAGRAM_LOGO_URL =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/132px-Instagram_logo_2016.svg.png";
+const HIMA_INSTAGRAM_ID = process.env.HIMA_INSTAGRAM_ID;
 
 const IDENTIFIER_ADJECTIVES = [
   "acoustic",
@@ -227,27 +228,46 @@ async function buildMessagingEmbeds(entry, context) {
   for (const event of messagingEvents) {
     const eventType = getMessagingEventType(event);
     const identifier = context.identifier;
+    const himaSender = isHimaSender(entry, event);
     const senderProfile =
-      context.senderProfile ?? (await fetchInstagramProfile(event.sender?.id));
-    const title = identifier;
+      context.senderId === event.sender?.id
+        ? context.senderProfile
+        : await fetchInstagramProfile(event.sender?.id);
+    const discordIdentity = getDiscordIdentity({
+      profile: senderProfile,
+      fallback: identifier,
+      isHima: himaSender,
+    });
+    const attachments = getMessageAttachments(event.message);
+    const imageAttachment = attachments.find(isDiscordImageAttachment);
+    const title = himaSender
+      ? formatHimaDiscordUsername(senderProfile)
+      : identifier;
     const fields = [
       formatField(
         "From",
-        formatProfile(senderProfile, event.sender?.id, { includeId: false }),
+        himaSender
+          ? formatHimaDiscordUsername(senderProfile)
+          : formatProfile(senderProfile, event.sender?.id, {
+              includeId: false,
+            }),
         true,
       ),
       formatField("Event", formatEventLabel(eventType), true),
       formatField("Time", formatDisplayTime(event.timestamp), true),
+      formatField("Attachments", formatAttachments(attachments), false),
     ].filter(Boolean);
 
     embeds.push({
       title,
-      webhookUsername: formatDiscordUsername(senderProfile, identifier),
+      webhookUsername: discordIdentity.username,
+      webhookAvatarUrl: discordIdentity.avatarUrl,
       description: getMessagingDescription(event, eventType),
       color: FIELD_COLORS[eventType] ?? 0xe1306c,
-      thumbnail: senderProfile?.profile_pic
-        ? { url: senderProfile.profile_pic }
+      thumbnail: discordIdentity.avatarUrl
+        ? { url: discordIdentity.avatarUrl }
         : undefined,
+      image: imageAttachment ? { url: imageAttachment.url } : undefined,
       fields,
       footer: {
         text: "Instagram webhook",
@@ -441,19 +461,62 @@ function formatProfile(profile, fallbackId, options = {}) {
 }
 
 function describeAttachments(message) {
-  const attachments = Array.isArray(message?.attachments)
-    ? message.attachments
-    : [];
+  const attachments = getMessageAttachments(message);
   if (!attachments.length) return null;
 
   return attachments
-    .map((attachment) => {
-      const postId = attachment.payload?.ig_post_media_id;
-      return [attachment.type, postId && `post:${postId}`]
+    .map((attachment) =>
+      [
+        attachment.type,
+        attachment.url,
+        attachment.postId && `post:${attachment.postId}`,
+      ]
         .filter(Boolean)
-        .join(" ");
-    })
+        .join(" "),
+    )
     .join("\n");
+}
+
+function getMessageAttachments(message) {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : [];
+
+  return attachments
+    .map((attachment) => ({
+      type: attachment.type ?? "attachment",
+      url: attachment.payload?.url,
+      postId: attachment.payload?.ig_post_media_id,
+    }))
+    .filter((attachment) => attachment.url || attachment.postId);
+}
+
+function formatAttachments(attachments) {
+  if (!attachments.length) return null;
+
+  return attachments
+    .map((attachment) =>
+      [
+        attachment.type,
+        attachment.url,
+        attachment.postId && `post:${attachment.postId}`,
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    )
+    .join("\n");
+}
+
+function isDiscordImageUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  return /\.(?:avif|gif|jpe?g|png|webp)(?:[?#].*)?$/i.test(url);
+}
+
+function isDiscordImageAttachment(attachment) {
+  return (
+    Boolean(attachment?.url) &&
+    (attachment.type === "image" || isDiscordImageUrl(attachment.url))
+  );
 }
 
 function stringifyRawPayload(value) {
@@ -548,11 +611,19 @@ async function getEntryContext(entry) {
   const senderId =
     primaryEvent?.sender?.id || entry?.changes?.[0]?.value?.from?.id;
   const senderProfile = await fetchInstagramProfile(senderId);
+  const himaSender = isHimaSender(entry, primaryEvent);
+  const discordIdentity = getDiscordIdentity({
+    profile: senderProfile,
+    fallback: identifier,
+    isHima: himaSender,
+  });
 
   return {
     eventType,
     identifier,
+    senderId,
     senderProfile,
+    discordIdentity,
   };
 }
 
@@ -577,6 +648,15 @@ function getEventType(event) {
   return getMessagingEventType(event);
 }
 
+function isHimaSender(entry, event) {
+  const senderId = event?.sender?.id;
+  if (!senderId) return false;
+
+  return [entry?.id, process.env.INSTAGRAM_ACCOUNT_ID, HIMA_INSTAGRAM_ID]
+    .filter(Boolean)
+    .includes(senderId);
+}
+
 async function sendRawToDiscord(entry, context) {
   const webhookUrl =
     process.env.DISCORD_RAW_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_RAW_URL;
@@ -590,11 +670,8 @@ async function sendRawToDiscord(entry, context) {
 
   for (const chunk of chunkForDiscord(rawPayload, DISCORD_CODE_BLOCK_LIMIT)) {
     await sendDiscordPayload(webhookUrl, {
-      username: formatDiscordUsername(
-        context.senderProfile,
-        context.identifier,
-      ),
-      avatar_url: context.senderProfile?.profile_pic ?? INSTAGRAM_LOGO_URL,
+      username: context.discordIdentity.username,
+      avatar_url: context.discordIdentity.avatarUrl,
       embeds: [
         {
           title: context.identifier,
@@ -621,11 +698,11 @@ async function sendParsedToDiscord(embed) {
     return;
   }
 
-  const { webhookUsername, ...discordEmbed } = embed;
+  const { webhookUsername, webhookAvatarUrl, ...discordEmbed } = embed;
 
   await sendDiscordPayload(webhookUrl, {
     username: webhookUsername ?? embed.title,
-    avatar_url: embed.thumbnail?.url ?? INSTAGRAM_LOGO_URL,
+    avatar_url: webhookAvatarUrl ?? embed.thumbnail?.url ?? INSTAGRAM_LOGO_URL,
     embeds: [
       {
         ...discordEmbed,
@@ -637,6 +714,24 @@ async function sendParsedToDiscord(embed) {
 
 function formatDiscordUsername(profile, fallback) {
   return profile?.username ? `@${profile.username}` : fallback;
+}
+
+function getDiscordIdentity({ profile, fallback, isHima }) {
+  if (isHima) {
+    return {
+      username: formatHimaDiscordUsername(profile),
+      avatarUrl: profile?.profile_pic ?? INSTAGRAM_LOGO_URL,
+    };
+  }
+
+  return {
+    username: formatDiscordUsername(profile, fallback),
+    avatarUrl: profile?.profile_pic ?? INSTAGRAM_LOGO_URL,
+  };
+}
+
+function formatHimaDiscordUsername(profile) {
+  return profile?.username ? `@${profile.username}` : "Instagram Account";
 }
 
 async function sendDiscordPayload(webhookUrl, payload) {
