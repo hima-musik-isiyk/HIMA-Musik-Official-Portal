@@ -121,6 +121,7 @@ const FIELD_TITLES = {
   message_edit: "Instagram Message Edited",
   message_reactions: "Instagram Message Reaction",
   messages: "Instagram DM",
+  story_replies: "Instagram Story Reply",
   messaging_handover: "Instagram Messaging Handover",
   messaging_postbacks: "Instagram Postback",
   messaging_referral: "Instagram Referral",
@@ -136,6 +137,7 @@ const FIELD_COLORS = {
   message_edit: 0x5851db,
   message_reactions: 0xffdc80,
   messages: 0xe1306c,
+  story_replies: 0xf56040,
   messaging_handover: 0x405de6,
   messaging_postbacks: 0x0099ff,
   messaging_referral: 0x00b894,
@@ -239,7 +241,10 @@ async function buildMessagingEmbeds(entry, context) {
       isHima: himaSender,
     });
     const attachments = getMessageAttachments(event.message);
-    const imageAttachment = attachments.find(isDiscordImageAttachment);
+    const storyReply = getStoryReply(event.message);
+    const imageAttachment = storyReply?.url
+      ? { url: storyReply.url }
+      : attachments.find(isDiscordImageAttachment);
     const title = himaSender
       ? formatHimaDiscordUsername(senderProfile)
       : identifier;
@@ -255,7 +260,12 @@ async function buildMessagingEmbeds(entry, context) {
       ),
       formatField("Event", formatEventLabel(eventType), true),
       formatField("Time", formatDisplayTime(event.timestamp), true),
-      formatField("Attachments", formatAttachments(attachments), false),
+      formatField("Story", formatStoryReply(storyReply), true),
+      formatField(
+        "Attachments",
+        imageAttachment ? null : formatAttachments(attachments),
+        false,
+      ),
     ].filter(Boolean);
 
     embeds.push({
@@ -326,6 +336,7 @@ function buildStandbyEmbeds(entry, context) {
 
 function getMessagingEventType(event) {
   if (event.message?.is_deleted) return "message_edit";
+  if (event.message?.reply_to?.story) return "story_replies";
   if (event.message) return "messages";
   if (event.reaction) return "message_reactions";
   if (event.read) return "messaging_seen";
@@ -345,7 +356,15 @@ function getMessagingEventType(event) {
 function getMessagingDescription(event, eventType) {
   if (eventType === "messages") {
     return truncate(
-      event.message?.text || describeAttachments(event.message),
+      event.message?.text ||
+        describeAttachments(event.message, { compact: true }),
+      DISCORD_EMBED_LIMIT,
+    );
+  }
+
+  if (eventType === "story_replies") {
+    return truncate(
+      `Replied to your story${event.message?.text ? `: ${event.message.text}` : "."}`,
       DISCORD_EMBED_LIMIT,
     );
   }
@@ -460,9 +479,13 @@ function formatProfile(profile, fallbackId, options = {}) {
     .join(" | ");
 }
 
-function describeAttachments(message) {
+function describeAttachments(message, options = {}) {
   const attachments = getMessageAttachments(message);
   if (!attachments.length) return null;
+
+  if (options.compact && attachments.some(isDiscordImageAttachment)) {
+    return "Sent an image.";
+  }
 
   return attachments
     .map((attachment) =>
@@ -505,6 +528,21 @@ function formatAttachments(attachments) {
         .join(" | "),
     )
     .join("\n");
+}
+
+function getStoryReply(message) {
+  const story = message?.reply_to?.story;
+  if (!story) return null;
+
+  return {
+    id: story.id,
+    url: story.url,
+  };
+}
+
+function formatStoryReply(story) {
+  if (!story) return null;
+  return story.id ? `ID: ${story.id}` : "Story";
 }
 
 function isDiscordImageUrl(url) {
