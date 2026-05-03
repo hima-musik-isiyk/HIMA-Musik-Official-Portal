@@ -114,7 +114,7 @@ def get_discord_identity(sender, avatars=None):
     }
 import mimetypes
 
-async def send_message(client, webhook_url, payload, tg_msg_id, state_file, local_path=None):
+async def send_message(client, webhook_url, payload, tg_msg_id, topic_id, state_file, local_path=None):
     # Append ?wait=true to get the Discord message ID back
     url_with_wait = f"{webhook_url}?wait=true"
     try:
@@ -124,10 +124,12 @@ async def send_message(client, webhook_url, payload, tg_msg_id, state_file, loca
             if not mime_type:
                 mime_type = "application/octet-stream"
             
-            # Discord limits webhook files. Let's warn if > 25MB (Discord max without boost)
+            # Discord limits webhook files. Let's warn if > 10MB (Free Discord max without boost usually 10MB-25MB)
             # We'll try to send anyway, if it fails with 413, we catch it later.
-            if Path(local_path).stat().st_size > 25 * 1024 * 1024:
-                payload["content"] = payload.get("content", "") + f"\n\n*[Attachment too large for Discord: {Path(local_path).name}]*"
+            if Path(local_path).stat().st_size > 10 * 1024 * 1024:
+                t_topic = "1" if topic_id == "general" else topic_id
+                tg_link = f"https://t.me/c/5297892133/{t_topic}/{tg_msg_id}"
+                payload["content"] = payload.get("content", "") + f"\n\n*[Attachment too large (>10MB). View on Telegram: {tg_link}]*"
                 resp = await client.post(url_with_wait, json=payload)
             else:
                 with open(local_path, "rb") as f:
@@ -283,6 +285,11 @@ async def migrate(args):
                 webhook_key = TOPIC_MAP.get(topic_id)
                 webhook_url = WEBHOOKS.get(webhook_key)
 
+                # Fallback to yapping channel if no destination mapped or url is None
+                if not webhook_url:
+                    webhook_key = "yapping"
+                    webhook_url = WEBHOOKS.get("yapping")
+
                 if not webhook_url:
                     continue
 
@@ -311,7 +318,7 @@ async def migrate(args):
                 else:
                     # Send with retry for rate limits AND timeouts
                     while True:
-                        success, discord_msg_id = await send_message(client, webhook_url, payload, tg_msg_id, state_path, local_media_path)
+                        success, discord_msg_id = await send_message(client, webhook_url, payload, tg_msg_id, topic_id, state_path, local_media_path)
                         if success:
                             count_sent += 1
                             media_str = " + Media" if local_media_path else ""
@@ -322,7 +329,9 @@ async def migrate(args):
                             continue # Will sleep and loop again
                         elif discord_msg_id == "FILE_TOO_LARGE":
                             print(f"[Eval {count_evaluated}/{args.limit}] Failed msg {tg_msg_id}: File too large. Sending without media.")
-                            payload["content"] = payload.get("content", "") + "\n\n*[Attachment too large for Discord]*"
+                            t_topic = "1" if topic_id == "general" else topic_id
+                            tg_link = f"https://t.me/c/5297892133/{t_topic}/{tg_msg_id}"
+                            payload["content"] = payload.get("content", "") + f"\n\n*[Attachment too large for Discord. View on Telegram: {tg_link}]*"
                             local_media_path = None
                         else:
                             print(f"[Eval {count_evaluated}/{args.limit}] Failed msg {tg_msg_id}: {discord_msg_id}")
