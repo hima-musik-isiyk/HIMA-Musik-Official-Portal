@@ -327,6 +327,12 @@ async def migrate(args):
                         text = "*[Media/Empty]*"
 
                 identity = get_discord_identity(msg.get("sender"), avatars=avatars)
+                
+                if len(text) > 1900:
+                    t_topic = "1" if topic_id == "general" else topic_id
+                    tg_link = f"https://t.me/c/{STRIPPED_CHAT_ID}/{t_topic}/{tg_msg_id}"
+                    text = text[:1850] + f"...\n\n*[Message truncated (>2000 chars). View on Telegram: {tg_link}]*"
+
                 payload = {
                     "username": identity["username"],
                     "avatar_url": identity["avatar_url"],
