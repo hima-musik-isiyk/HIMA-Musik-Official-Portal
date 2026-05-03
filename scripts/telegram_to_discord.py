@@ -47,6 +47,10 @@ WEBHOOKS = {
     "pendaftaran": None,
 }
 
+# Extract the stripped chat ID for Telegram links
+RAW_CHAT_ID = os.environ.get("TELEGRAM_GROUP_CHAT_ID", "-1003749076588")
+STRIPPED_CHAT_ID = RAW_CHAT_ID[4:] if RAW_CHAT_ID.startswith("-100") else RAW_CHAT_ID
+
 # Mapping Telegram topics to Discord webhooks keys
 TOPIC_MAP = {
     "general": "yapping",
@@ -128,7 +132,7 @@ async def send_message(client, webhook_url, payload, tg_msg_id, topic_id, state_
             # We'll try to send anyway, if it fails with 413, we catch it later.
             if Path(local_path).stat().st_size > 10 * 1024 * 1024:
                 t_topic = "1" if topic_id == "general" else topic_id
-                tg_link = f"https://t.me/c/5297892133/{t_topic}/{tg_msg_id}"
+                tg_link = f"https://t.me/c/{STRIPPED_CHAT_ID}/{t_topic}/{tg_msg_id}"
                 payload["content"] = payload.get("content", "") + f"\n\n*[Attachment too large (>10MB). View on Telegram: {tg_link}]*"
                 resp = await client.post(url_with_wait, json=payload)
             else:
@@ -257,7 +261,16 @@ async def migrate(args):
         except Exception as e:
             print(f"Warning: Could not read state for resume: {e}")
 
-    print(f"Starting migration (Evaluating first {args.limit} messages from the dump)...")
+    range_start = None
+    range_end = None
+    if hasattr(args, 'range') and args.range:
+        range_start = args.range[0]
+        range_end = args.range[-1]
+        args.limit = float('inf')
+        print(f"Starting migration for message IDs in range {range_start} to {range_end}...")
+    else:
+        print(f"Starting migration (Evaluating first {args.limit} messages from the dump)...")
+    
     count_evaluated = 0
     count_sent = 0
     
@@ -276,6 +289,14 @@ async def migrate(args):
                     continue
                 
                 tg_msg_id = msg.get("message_id")
+                
+                # If range is specified, skip messages outside the range
+                if range_start is not None:
+                    if tg_msg_id < range_start:
+                        continue
+                    if tg_msg_id > range_end:
+                        # Assuming messages are sorted chronologically
+                        continue
                 
                 # Skip if already migrated (Fast O(1) set lookup for gap detection)
                 if tg_msg_id in sent_ids:
@@ -330,7 +351,7 @@ async def migrate(args):
                         elif discord_msg_id == "FILE_TOO_LARGE":
                             print(f"[Eval {count_evaluated}/{args.limit}] Failed msg {tg_msg_id}: File too large. Sending without media.")
                             t_topic = "1" if topic_id == "general" else topic_id
-                            tg_link = f"https://t.me/c/5297892133/{t_topic}/{tg_msg_id}"
+                            tg_link = f"https://t.me/c/{STRIPPED_CHAT_ID}/{t_topic}/{tg_msg_id}"
                             payload["content"] = payload.get("content", "") + f"\n\n*[Attachment too large for Discord. View on Telegram: {tg_link}]*"
                             local_media_path = None
                         else:
@@ -348,6 +369,7 @@ def main():
     parser.add_argument("--limit", type=int, default=10, help="Number of messages to process")
     parser.add_argument("--revert", action="store_true", help="Delete all previously sent messages tracked in state file")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be sent without sending")
+    parser.add_argument("--range", nargs="+", type=int, help="Migrate specific message IDs. E.g. --range 109 or --range 109 115")
     
     args = parser.parse_args()
     asyncio.run(migrate(args))
