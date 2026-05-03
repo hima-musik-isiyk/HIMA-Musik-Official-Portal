@@ -40,3 +40,10 @@ __pycache__/
 telegram_dump/
 *.session
 *.session-journal
+
+# Virtual Environments
+.venv/
+.venv*/
+venv/
+env/
+.env/
