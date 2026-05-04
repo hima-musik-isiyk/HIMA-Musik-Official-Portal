@@ -177,11 +177,16 @@ async def main():
     parser.add_argument("--limit", type=int, default=0, help="Limit number of messages to send (0 = no limit)")
     parser.add_argument("--range", nargs="+", type=int, help="Migrate specific message IDs. E.g. --range 109 or --range 109 115")
     parser.add_argument("--revert", action="store_true", help="Delete all previously sent messages tracked in state file")
-    parser.add_argument("--state", type=str, default=str(REPO_ROOT / "telegram_dump" / "whatsapp_sent.jsonl"), help="Path to track sent messages")
+    parser.add_argument("--target", type=str, choices=["group", "private"], default="group", help="Target webhook: 'group' or 'private' (default: group)")
+    parser.add_argument("--state", type=str, help="Path to track sent messages (defaults to telegram_dump/whatsapp_sent_<target>.jsonl)")
     args = parser.parse_args()
 
     load_env()
-    state_path = Path(args.state)
+    
+    if args.state:
+        state_path = Path(args.state)
+    else:
+        state_path = REPO_ROOT / "telegram_dump" / f"whatsapp_sent_{args.target}.jsonl"
     
     if args.revert:
         await revert_migration(state_path)
@@ -191,9 +196,15 @@ async def main():
         print("Error: --zip is required unless --revert is used.")
         return
 
-    webhook_url = os.environ.get("DISCORD_WEBHOOK_WHATSAPP_DUMP")
+    if args.target == "private":
+        webhook_url = os.environ.get("DISCORD_WEBHOOK_PRIVATE")
+        env_name = "DISCORD_WEBHOOK_PRIVATE"
+    else:
+        webhook_url = os.environ.get("DISCORD_WEBHOOK_GROUP_CHAT")
+        env_name = "DISCORD_WEBHOOK_GROUP_CHAT"
+
     if not webhook_url:
-        print("Error: DISCORD_WEBHOOK_WHATSAPP_DUMP not set in .env.local")
+        print(f"Error: {env_name} not set in .env.local")
         return
         
     zip_path = Path(args.zip)
