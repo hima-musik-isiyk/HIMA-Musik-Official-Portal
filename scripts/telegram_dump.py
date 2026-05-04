@@ -377,6 +377,18 @@ def parse_args() -> argparse.Namespace:
 
 
 async def main() -> None:
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(".env.local")
+    except ImportError:
+        env_path = Path(".env.local")
+        if env_path.exists():
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, _, value = line.partition("=")
+                    os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
     args = parse_args()
     api_id = int(os.environ["TG_API_ID"])
     api_hash = os.environ["TG_API_HASH"]
