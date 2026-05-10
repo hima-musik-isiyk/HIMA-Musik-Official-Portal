@@ -68,6 +68,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch the meeting details to get the 'Jadwal' (Schedule)
+    // We fetch it because webhooks often don't include all properties in the payload
+    const meetingPage = await notion.pages.retrieve({ page_id: meetingId });
+    const meetingJadwal = (meetingPage as any).properties?.["Jadwal"]?.date
+      ?.start;
+
     // Sync attendees (Add missing, Remove deleted)
     const results = await syncMeetingAttendees(
       notion,
@@ -75,7 +81,7 @@ export async function POST(req: Request) {
       invitationRelation.map((r: any) => r.id),
       presensiDbId,
       presensiDataSourceId,
-      body.data.properties?.["Jadwal"]?.date?.start,
+      meetingJadwal,
     );
 
     return NextResponse.json({
