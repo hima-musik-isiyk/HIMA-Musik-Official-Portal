@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 
-import { getNotionClient } from "@/lib/notion";
+import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 
 /**
  * Webhook Handler for Notion "Database Rapat & Keputusan"
  *
  * When a meeting is created or updated, this endpoint:
- * 1. Extracts the list of invited persons (Daftar Undangan relation).
- * 2. Loops through each person and fetches their details.
+ * 1. Extracts the list of invited attendees (Daftar Undangan relation).
+ * 2. Loops through each attendee and fetches their details.
  * 3. Creates a record in "Database Rekam Presensi" if it doesn't exist.
- * 4. Uses a handshake ID (meetingId_personId) to prevent duplicates.
+ * 4. Uses a handshake ID (meetingId_attendeeId) to prevent duplicates.
  */
 
 export async function GET() {
@@ -62,17 +62,29 @@ export async function POST(req: Request) {
       );
     }
 
+    // Resolve Database ID to Data Source ID for querying in 2026-03-11+
+    const presensiDataSourceId = await resolveDataSourceIdSafe(presensiDbId);
+    if (!presensiDataSourceId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Could not resolve data source for database ${presensiDbId}. Check integration permissions.`,
+        },
+        { status: 500 },
+      );
+    }
+
     const results: any[] = [];
 
-    // Process each person in the invited list
+    // Process each attendee in the invited list
     for (const rel of invitationRelation) {
-      const personId = rel.id;
-      const handshakeId = `${meetingId}_${personId}`;
+      const attendeeId = rel.id;
+      const handshakeId = `${meetingId}_${attendeeId}`;
 
       try {
-        // 1. Check for existing record to avoid duplicates
-        const existing = await (notion.databases as any).query({
-          database_id: presensiDbId,
+        // 1. Check for existing record to avoid duplicates using dataSources.query
+        const existing = await (notion as any).dataSources.query({
+          data_source_id: presensiDataSourceId,
           filter: {
             property: "id presensi",
             rich_text: {
@@ -83,30 +95,32 @@ export async function POST(req: Request) {
 
         if (existing.results.length > 0) {
           results.push({
-            personId,
+            attendeeId,
             status: "exists",
             pageId: existing.results[0].id,
           });
           continue;
         }
 
-        // 2. Retrieve person details from SDM Database (optional, for record title)
-        let personName = "Peserta";
+        // 2. Retrieve attendee details (pages in database, as clarified by user)
+        let attendeeName = "Peserta";
         try {
-          const personPage = (await notion.pages.retrieve({
-            page_id: personId,
+          const attendeePage = (await notion.pages.retrieve({
+            page_id: attendeeId,
           })) as any;
           // Look for title property (usually "Nama" or "Name")
-          const titleProp = Object.values(personPage.properties).find(
+          const titleProp = Object.values(attendeePage.properties).find(
             (p: any) => p.type === "title",
           ) as any;
-          personName = titleProp?.title?.[0]?.plain_text || "Peserta";
+          attendeeName = titleProp?.title?.[0]?.plain_text || "Peserta";
         } catch (e) {
-          console.error(`Failed to fetch details for person ${personId}:`, e);
+          console.error(
+            `Failed to fetch details for attendee ${attendeeId}:`,
+            e,
+          );
         }
 
         // 3. Create a new entry in the "Database Rekam Presensi"
-        // Note: property names "Name", "Rapat", and "SDM" are assumed defaults.
         const newPage = await notion.pages.create({
           parent: { database_id: presensiDbId },
           properties: {
@@ -114,7 +128,7 @@ export async function POST(req: Request) {
               title: [
                 {
                   text: {
-                    content: `Presensi: ${personName}`,
+                    content: `Presensi: ${attendeeName}`,
                   },
                 },
               ],
@@ -132,17 +146,21 @@ export async function POST(req: Request) {
             Rapat: {
               relation: [{ id: meetingId }],
             },
-            // Link back to the SDM page
+            // Link back to the SDM page (attendee database)
             SDM: {
-              relation: [{ id: personId }],
+              relation: [{ id: attendeeId }],
             },
           },
         });
 
-        results.push({ personId, status: "created", pageId: newPage.id });
+        results.push({ attendeeId, status: "created", pageId: newPage.id });
       } catch (innerError) {
-        console.error(`Error processing person ${personId}:`, innerError);
-        results.push({ personId, status: "error", error: String(innerError) });
+        console.error(`Error processing attendee ${attendeeId}:`, innerError);
+        results.push({
+          attendeeId,
+          status: "error",
+          error: String(innerError),
+        });
       }
     }
 

@@ -402,19 +402,16 @@ const DOCS_DB_ID =
   "";
 */
 
-// const dataSourceIdCache = new Map<string, string>();
-// const warnedDatabaseIds = new Set<string>();
+const dataSourceIdCache = new Map<string, string>();
+const warnedDatabaseIds = new Set<string>();
 
-/*
 function normalizeNotionId(id: string): string {
   const compact = id.replace(/-/g, "");
   if (!/^[0-9a-fA-F]{32}$/.test(compact)) return id;
   return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
 }
-*/
 
-/*
-async function resolveDataSourceId(id: string): Promise<string> {
+export async function resolveDataSourceId(id: string): Promise<string> {
   const normalizedId = normalizeNotionId(id);
   const cached = dataSourceIdCache.get(normalizedId);
   if (cached) return cached;
@@ -436,17 +433,17 @@ async function resolveDataSourceId(id: string): Promise<string> {
     dataSourceIdCache.set(normalizedId, dataSourceId);
     return dataSourceId;
   } catch {
-    const dataSource = await getNotionClient().dataSources.retrieve({
+    const dataSource = await (getNotionClient() as any).dataSources.retrieve({
       data_source_id: normalizedId,
     });
     dataSourceIdCache.set(normalizedId, dataSource.id);
     return dataSource.id;
   }
 }
-*/
 
-/*
-async function resolveDataSourceIdSafe(id: string): Promise<string | null> {
+export async function resolveDataSourceIdSafe(
+  id: string,
+): Promise<string | null> {
   try {
     return await resolveDataSourceId(id);
   } catch (error) {
@@ -461,7 +458,6 @@ async function resolveDataSourceIdSafe(id: string): Promise<string | null> {
     return null;
   }
 }
-*/
 
 export const fetchAllDocs = unstable_cache(
   async (): Promise<DocMeta[]> => {
