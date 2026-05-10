@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const results = [];
+    const results: any[] = [];
     for (const rel of invitationRelation) {
       const result = await syncAttendee(
         notion,
@@ -210,7 +210,7 @@ async function handleBulkSync() {
 
     console.warn(`[Bulk Sync] Found ${meetings.length} meetings to process.`);
 
-    const overallResults = [];
+    const overallResults: any[] = [];
 
     // 2. Process each meeting
     for (const meeting of meetings) {
@@ -227,7 +227,7 @@ async function handleBulkSync() {
         `[Bulk Sync] Processing "${meetingName}" (${attendees.length} attendees)`,
       );
 
-      const meetingResults = [];
+      const meetingResults: any[] = [];
       for (const rel of attendees) {
         const result = await syncAttendee(
           notion,
