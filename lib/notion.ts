@@ -63,7 +63,7 @@ function createNotionClient() {
   if (!token) {
     throw new Error("Missing NOTION_INTEGRATION_TOKEN environment variable");
   }
-  return new Client({ auth: token });
+  return new Client({ auth: token, notionVersion: "2026-03-11" });
 }
 
 export function getNotionClient(): Client {
