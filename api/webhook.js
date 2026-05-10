@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 const DISCORD_EMBED_LIMIT = 4096;
 const DISCORD_FIELD_LIMIT = 1024;
 const DISCORD_CODE_BLOCK_LIMIT = 4084;
@@ -161,10 +161,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    // Disabled: User only cares for notion's sync-presensi api
-    return res.status(200).send("EVENT_RECEIVED");
-
-    /*
     const body = req.body;
 
     if (!isInstagramWebhookPayload(body)) {
@@ -178,7 +174,6 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).send("EVENT_RECEIVED");
-    */
   }
 
   res.setHeader("Allow", ["GET", "POST"]);
