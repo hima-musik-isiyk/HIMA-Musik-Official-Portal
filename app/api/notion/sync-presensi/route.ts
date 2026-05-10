@@ -109,61 +109,44 @@ async function syncAttendee(
   const handshakeId = `${meetingId}_${attendeeId}`;
 
   try {
-    // 1. Check for existing record
+    // 1. Check for existing record — ID Presensi is the TITLE field
     let existing: any;
-    const propertyCandidates = ["id presensi", "ID Presensi", "Id Presensi"];
-
-    for (const propName of propertyCandidates) {
-      try {
-        existing = await (notion as any).dataSources.query({
-          data_source_id: presensiDataSourceId,
-          filter: {
-            property: propName,
-            rich_text: { equals: handshakeId },
-          },
-        });
-        break; // Success
-      } catch (e: any) {
-        if (e.message?.includes("Could not find property")) {
-          continue; // Try next
-        }
-        throw e;
-      }
+    try {
+      existing = await (notion as any).dataSources.query({
+        data_source_id: presensiDataSourceId,
+        filter: {
+          property: "ID Presensi",
+          title: { equals: handshakeId },
+        },
+      });
+    } catch (e: any) {
+      console.error("[syncAttendee] dataSources.query failed:", e.message);
+      throw e;
     }
 
     if (existing?.results?.length > 0) {
       return { attendeeId, status: "exists", pageId: existing.results[0].id };
     }
 
-    // 2. Fetch attendee name
-    let attendeeName = "Peserta";
-    try {
-      const attendeePage = (await notion.pages.retrieve({
-        page_id: attendeeId,
-      })) as any;
-      const titleProp = Object.values(attendeePage.properties).find(
-        (p: any) => p.type === "title",
-      ) as any;
-      attendeeName = titleProp?.title?.[0]?.plain_text || "Peserta";
-    } catch (e) {
-      console.error(`Failed to fetch details for attendee ${attendeeId}:`, e);
-    }
-
-    // 3. Create entry
+    // 3. Create entry with correct property names from actual Notion schema
     const newPage = await notion.pages.create({
       parent: { database_id: presensiDbId },
       properties: {
-        Name: {
-          title: [{ text: { content: `Presensi: ${attendeeName}` } }],
+        // Title field is "ID Presensi" — used as the handshake identifier
+        "ID Presensi": {
+          title: [{ text: { content: handshakeId } }],
         },
-        "id presensi": {
-          rich_text: [{ text: { content: handshakeId } }],
-        },
-        Rapat: {
+        // Relation back to the Rapat (meeting) page
+        "Rapat Terkait": {
           relation: [{ id: meetingId }],
         },
-        SDM: {
+        // Relation back to the SDM/person page
+        Peserta: {
           relation: [{ id: attendeeId }],
+        },
+        // Default status
+        "Status Kehadiran": {
+          status: { name: "Belum Hadir" },
         },
       },
     });
