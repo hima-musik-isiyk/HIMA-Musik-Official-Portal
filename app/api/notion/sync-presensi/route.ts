@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
     // Get the automation 'kind' (intention)
     // First check search params (from webhook URL), then fallback to page properties
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const kindFromUrl = searchParams.get("kind");
     const kindFromProp = (meetingPage as any).properties?.["Kind"]
       ?.rich_text?.[0]?.plain_text;
