@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
       ],
     };
 
+    /*
     try {
       await sendDiscordWebhook(
         webhookUrl,
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+    */
 
     try {
       await prisma.aduan.create({
@@ -122,6 +125,7 @@ export async function POST(request: Request) {
     } catch (dbError) {
       console.error("DB write failed (aduan):", dbError);
 
+      /*
       const errorWebhookUrl =
         process.env.DISCORD_ERROR_WEBHOOK_URL ?? webhookUrl;
 
@@ -160,6 +164,7 @@ export async function POST(request: Request) {
           );
         }
       }
+      */
     }
 
     return NextResponse.json({ success: true });

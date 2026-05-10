@@ -1,3 +1,4 @@
+ 
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -577,6 +578,7 @@ export async function POST(request: Request) {
         }
       }
     } else {
+      /*
       const webhookUrl = process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
 
       if (webhookUrl) {
@@ -668,6 +670,7 @@ export async function POST(request: Request) {
           );
         }
       }
+      */
     }
 
     return NextResponse.json({ success: true });
