@@ -268,7 +268,7 @@ async function syncMeetingAttendees(
       }
     });
 
-    const results = [];
+    const results: any[] = [];
 
     // 2. Addition Sync: Add missing attendees
     for (const attendeeId of targetAttendeeIds) {
