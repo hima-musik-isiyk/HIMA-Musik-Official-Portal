@@ -80,7 +80,17 @@ export async function POST(req: Request) {
     const kindFromUrl = searchParams.get("kind");
     const kindFromProp = (meetingPage as any).properties?.["Kind"]
       ?.rich_text?.[0]?.plain_text;
-    const kind = kindFromUrl || kindFromProp;
+    let kind = kindFromUrl || kindFromProp;
+
+    // Smart Inference Fallback:
+    // If kind is unknown, check which properties are in the payload to guess the intention
+    if (!kind) {
+      if (body.data.properties?.["Divisi Terlibat"]) {
+        kind = "Divisi Terlibat";
+      } else if (body.data.properties?.["Daftar Undangan"]) {
+        kind = "Daftar Undangan";
+      }
+    }
 
     let finalInvitationIds = invitationRelation.map((r: any) => r.id);
 
