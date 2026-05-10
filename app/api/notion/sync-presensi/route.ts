@@ -75,6 +75,7 @@ export async function POST(req: Request) {
       invitationRelation.map((r: any) => r.id),
       presensiDbId,
       presensiDataSourceId,
+      payload.data.properties?.["Jadwal"]?.date?.start,
     );
 
     return NextResponse.json({
@@ -102,6 +103,7 @@ async function syncAttendee(
   attendeeId: string,
   presensiDbId: string,
   presensiDataSourceId: string,
+  meetingJadwal?: string,
 ) {
   const handshakeId = `${meetingId}_${attendeeId}`;
 
@@ -145,6 +147,14 @@ async function syncAttendee(
         "Status Kehadiran": {
           status: { name: "Belum Hadir" },
         },
+        // Pre-fill arrival time with the meeting's scheduled time
+        ...(meetingJadwal
+          ? {
+              "Waktu Kedatangan": {
+                date: { start: meetingJadwal },
+              },
+            }
+          : {}),
       },
     });
 
@@ -213,6 +223,7 @@ async function handleBulkSync() {
         attendees.map((r: any) => r.id),
         presensiDbId,
         presensiDataSourceId,
+        meeting.properties?.["Jadwal"]?.date?.start,
       );
       overallResults.push({
         meetingName,
@@ -244,6 +255,7 @@ async function syncMeetingAttendees(
   targetAttendeeIds: string[],
   presensiDbId: string,
   presensiDataSourceId: string,
+  meetingJadwal?: string,
 ) {
   try {
     // 1. Fetch ALL current records for this meeting in Rekam Presensi DB
@@ -279,6 +291,7 @@ async function syncMeetingAttendees(
           attendeeId,
           presensiDbId,
           presensiDataSourceId,
+          meetingJadwal,
         );
         results.push(result);
       } else {
