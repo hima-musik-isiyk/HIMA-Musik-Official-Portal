@@ -74,11 +74,53 @@ export async function POST(req: Request) {
     const meetingJadwal = (meetingPage as any).properties?.["Jadwal"]?.date
       ?.start;
 
+    const kind = (meetingPage as any).properties?.["Kind"]?.rich_text?.[0]
+      ?.plain_text;
+    let finalInvitationIds = invitationRelation.map((r: any) => r.id);
+
+    console.warn(`[Webhook] Automation Kind: ${kind || "Unknown"}`);
+
+    // If this is a Division update, we need to populate the invitation list first
+    if (kind === "Divisi Terlibat") {
+      const divisions =
+        (meetingPage as any).properties?.["Divisi Terlibat"]?.relation || [];
+      const newMemberIds = new Set<string>(finalInvitationIds);
+
+      for (const div of divisions) {
+        try {
+          const divPage = await notion.pages.retrieve({ page_id: div.id });
+          const members =
+            (divPage as any).properties?.["Anggota Divisi"]?.relation || [];
+          members.forEach((m: any) => newMemberIds.add(m.id));
+        } catch (e: any) {
+          console.error(
+            `[Webhook] Failed to fetch members for division ${div.id}:`,
+            e.message,
+          );
+        }
+      }
+
+      finalInvitationIds = Array.from(newMemberIds);
+
+      // Update the meeting page with the expanded invitation list
+      await notion.pages.update({
+        page_id: meetingId,
+        properties: {
+          "Daftar Undangan": {
+            relation: finalInvitationIds.map((id) => ({ id })),
+          },
+        },
+      });
+      console.warn(
+        `[Webhook] Expanded invitation list to ${finalInvitationIds.length} members`,
+      );
+    }
+
     // Sync attendees (Add missing, Remove deleted)
     const results = await syncMeetingAttendees(
       notion,
       meetingId,
-      invitationRelation.map((r: any) => r.id),
+      finalInvitationIds,
       presensiDbId,
       presensiDataSourceId,
       meetingJadwal,
