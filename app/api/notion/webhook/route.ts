@@ -79,27 +79,25 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
-  /*
   const [docsDataSourceId, eventsDataSourceId, kkmDataSourceId] =
     await Promise.all([
       resolvePrimaryDataSourceId(DOCS_DB_ID),
       resolvePrimaryDataSourceId(EVENTS_DB_ID),
       resolvePrimaryDataSourceId(KKM_DB_ID),
     ]);
-    */
 
   return {
     docs: {
       databaseId: DOCS_DB_ID ? normalizeNotionId(DOCS_DB_ID) : null,
-      dataSourceId: null,
+      dataSourceId: docsDataSourceId,
     },
     events: {
       databaseId: EVENTS_DB_ID ? normalizeNotionId(EVENTS_DB_ID) : null,
-      dataSourceId: null,
+      dataSourceId: eventsDataSourceId,
     },
     kkm: {
       databaseId: KKM_DB_ID ? normalizeNotionId(KKM_DB_ID) : null,
-      dataSourceId: null,
+      dataSourceId: kkmDataSourceId,
     },
   };
 }
