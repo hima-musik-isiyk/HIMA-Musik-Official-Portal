@@ -68,17 +68,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const results: any[] = [];
-    for (const rel of invitationRelation) {
-      const result = await syncAttendee(
-        notion,
-        meetingId,
-        rel.id,
-        presensiDbId,
-        presensiDataSourceId,
-      );
-      results.push(result);
-    }
+    // Sync attendees (Add missing, Remove deleted)
+    const results = await syncMeetingAttendees(
+      notion,
+      meetingId,
+      invitationRelation.map((r: any) => r.id),
+      presensiDbId,
+      presensiDataSourceId,
+    );
 
     return NextResponse.json({
       success: true,
@@ -210,17 +207,13 @@ async function handleBulkSync() {
         `[Bulk Sync] Processing "${meetingName}" (${attendees.length} attendees)`,
       );
 
-      const meetingResults: any[] = [];
-      for (const rel of attendees) {
-        const result = await syncAttendee(
-          notion,
-          meetingId,
-          rel.id,
-          presensiDbId,
-          presensiDataSourceId,
-        );
-        meetingResults.push(result);
-      }
+      const meetingResults = await syncMeetingAttendees(
+        notion,
+        meetingId,
+        attendees.map((r: any) => r.id),
+        presensiDbId,
+        presensiDataSourceId,
+      );
       overallResults.push({
         meetingName,
         meetingId,
@@ -239,5 +232,93 @@ async function handleBulkSync() {
       { success: false, error: error.message },
       { status: 500 },
     );
+  }
+}
+
+/**
+ * Syncs the entire attendee set for a meeting: Adds new, Removes deleted.
+ */
+async function syncMeetingAttendees(
+  notion: any,
+  meetingId: string,
+  targetAttendeeIds: string[],
+  presensiDbId: string,
+  presensiDataSourceId: string,
+) {
+  try {
+    // 1. Fetch ALL current records for this meeting in Rekam Presensi DB
+    // Use the relation property to find all records linked to this meeting
+    const existingRecordsResponse = await (notion as any).dataSources.query({
+      data_source_id: presensiDataSourceId,
+      filter: {
+        property: "Rapat Terkait",
+        relation: { contains: meetingId },
+      },
+    });
+
+    const existingRecords = existingRecordsResponse.results;
+
+    // Map existing records to Peserta IDs (attendeeId -> pageId)
+    const existingAttendeeMap = new Map();
+    existingRecords.forEach((page: any) => {
+      // Find the "Peserta" relation property
+      const attendeeRel = page.properties["Peserta"]?.relation?.[0]?.id;
+      if (attendeeRel) {
+        existingAttendeeMap.set(attendeeRel, page.id);
+      }
+    });
+
+    const results = [];
+
+    // 2. Addition Sync: Add missing attendees
+    for (const attendeeId of targetAttendeeIds) {
+      if (!existingAttendeeMap.has(attendeeId)) {
+        const result = await syncAttendee(
+          notion,
+          meetingId,
+          attendeeId,
+          presensiDbId,
+          presensiDataSourceId,
+        );
+        results.push(result);
+      } else {
+        results.push({
+          attendeeId,
+          status: "exists",
+          pageId: existingAttendeeMap.get(attendeeId),
+        });
+      }
+    }
+
+    // 3. Removal Sync: Archive records that are no longer in the invitation list
+    for (const [attendeeId, pageId] of existingAttendeeMap.entries()) {
+      if (!targetAttendeeIds.includes(attendeeId)) {
+        try {
+          await notion.pages.update({
+            page_id: pageId,
+            archived: true,
+          });
+          results.push({ attendeeId, status: "removed", pageId });
+          console.warn(
+            `[Sync] Removed attendee ${attendeeId} from meeting ${meetingId}`,
+          );
+        } catch (e: any) {
+          console.error(
+            `[Sync] Failed to remove attendee ${attendeeId}:`,
+            e.message,
+          );
+          results.push({
+            attendeeId,
+            status: "error_removing",
+            error: e.message,
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (error: any) {
+    console.error("[syncMeetingAttendees] Critical Error:", error.message);
+    throw error;
   }
 }
