@@ -74,8 +74,14 @@ export async function POST(req: Request) {
     const meetingJadwal = (meetingPage as any).properties?.["Jadwal"]?.date
       ?.start;
 
-    const kind = (meetingPage as any).properties?.["Kind"]?.rich_text?.[0]
-      ?.plain_text;
+    // Get the automation 'kind' (intention)
+    // First check search params (from webhook URL), then fallback to page properties
+    const { searchParams } = new URL(request.url);
+    const kindFromUrl = searchParams.get("kind");
+    const kindFromProp = (meetingPage as any).properties?.["Kind"]
+      ?.rich_text?.[0]?.plain_text;
+    const kind = kindFromUrl || kindFromProp;
+
     let finalInvitationIds = invitationRelation.map((r: any) => r.id);
 
     console.warn(`[Webhook] Automation Kind: ${kind || "Unknown"}`);
