@@ -13,11 +13,19 @@ import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
  * 4. Uses a handshake ID (meetingId_attendeeId) to prevent duplicates.
  */
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const isBulk = searchParams.get("bulk") === "true";
+
+  if (isBulk) {
+    return handleBulkSync();
+  }
+
   return NextResponse.json({
     status: "active",
     endpoint: "/api/notion/sync-presensi",
-    message: "Active. Waiting for POST requests from Notion Automation.",
+    message:
+      "To trigger a bulk sync of ALL meetings, call GET /api/notion/sync-presensi?bulk=true",
   });
 }
 
@@ -25,14 +33,13 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Log the payload for debugging (visible in terminal logs)
+    // Log the payload for debugging
     console.warn(
       "🚀 [Notion Webhook] Incoming Payload:",
       JSON.stringify(body, null, 2),
     );
 
     const meetingId = body?.data?.id;
-    // Extract relations from "Daftar Undangan" property
     const invitationRelation =
       body?.data?.properties?.["Daftar Undangan"]?.relation || [];
 
@@ -44,124 +51,33 @@ export async function POST(req: Request) {
     }
 
     const notion = getNotionClient();
-    if (!notion) {
-      return NextResponse.json(
-        { success: false, error: "Notion client not initialized" },
-        { status: 500 },
-      );
-    }
-
     const presensiDbId = process.env.NOTION_DATABASE_ID_PRESENSI;
-    if (!presensiDbId) {
+
+    if (!notion || !presensiDbId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Missing NOTION_DATABASE_ID_PRESENSI in .env",
-        },
+        { success: false, error: "Missing Notion client or Database ID" },
         { status: 500 },
       );
     }
 
-    // Resolve Database ID to Data Source ID for querying in 2026-03-11+
     const presensiDataSourceId = await resolveDataSourceIdSafe(presensiDbId);
     if (!presensiDataSourceId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Could not resolve data source for database ${presensiDbId}. Check integration permissions.`,
-        },
+        { error: "Could not resolve Presensi data source" },
         { status: 500 },
       );
     }
 
-    const results: any[] = [];
-
-    // Process each attendee in the invited list
+    const results = [];
     for (const rel of invitationRelation) {
-      const attendeeId = rel.id;
-      const handshakeId = `${meetingId}_${attendeeId}`;
-
-      try {
-        // 1. Check for existing record to avoid duplicates using dataSources.query
-        const existing = await (notion as any).dataSources.query({
-          data_source_id: presensiDataSourceId,
-          filter: {
-            property: "id presensi",
-            rich_text: {
-              equals: handshakeId,
-            },
-          },
-        });
-
-        if (existing.results.length > 0) {
-          results.push({
-            attendeeId,
-            status: "exists",
-            pageId: existing.results[0].id,
-          });
-          continue;
-        }
-
-        // 2. Retrieve attendee details (pages in database, as clarified by user)
-        let attendeeName = "Peserta";
-        try {
-          const attendeePage = (await notion.pages.retrieve({
-            page_id: attendeeId,
-          })) as any;
-          // Look for title property (usually "Nama" or "Name")
-          const titleProp = Object.values(attendeePage.properties).find(
-            (p: any) => p.type === "title",
-          ) as any;
-          attendeeName = titleProp?.title?.[0]?.plain_text || "Peserta";
-        } catch (e) {
-          console.error(
-            `Failed to fetch details for attendee ${attendeeId}:`,
-            e,
-          );
-        }
-
-        // 3. Create a new entry in the "Database Rekam Presensi"
-        const newPage = await notion.pages.create({
-          parent: { database_id: presensiDbId },
-          properties: {
-            Name: {
-              title: [
-                {
-                  text: {
-                    content: `Presensi: ${attendeeName}`,
-                  },
-                },
-              ],
-            },
-            "id presensi": {
-              rich_text: [
-                {
-                  text: {
-                    content: handshakeId,
-                  },
-                },
-              ],
-            },
-            // Link back to the Rapat page
-            Rapat: {
-              relation: [{ id: meetingId }],
-            },
-            // Link back to the SDM page (attendee database)
-            SDM: {
-              relation: [{ id: attendeeId }],
-            },
-          },
-        });
-
-        results.push({ attendeeId, status: "created", pageId: newPage.id });
-      } catch (innerError) {
-        console.error(`Error processing attendee ${attendeeId}:`, innerError);
-        results.push({
-          attendeeId,
-          status: "error",
-          error: String(innerError),
-        });
-      }
+      const result = await syncAttendee(
+        notion,
+        meetingId,
+        rel.id,
+        presensiDbId,
+        presensiDataSourceId,
+      );
+      results.push(result);
     }
 
     return NextResponse.json({
@@ -174,10 +90,170 @@ export async function POST(req: Request) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("❌ [Notion Webhook] Error:", errorMessage);
     return NextResponse.json(
-      {
-        success: false,
-        error: errorMessage,
+      { success: false, error: errorMessage },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * Shared logic to sync a single attendee for a specific meeting
+ */
+async function syncAttendee(
+  notion: any,
+  meetingId: string,
+  attendeeId: string,
+  presensiDbId: string,
+  presensiDataSourceId: string,
+) {
+  const handshakeId = `${meetingId}_${attendeeId}`;
+
+  try {
+    // 1. Check for existing record
+    let existing: any;
+    const propertyCandidates = ["id presensi", "ID Presensi", "Id Presensi"];
+
+    for (const propName of propertyCandidates) {
+      try {
+        existing = await (notion as any).dataSources.query({
+          data_source_id: presensiDataSourceId,
+          filter: {
+            property: propName,
+            rich_text: { equals: handshakeId },
+          },
+        });
+        break; // Success
+      } catch (e: any) {
+        if (e.message?.includes("Could not find property")) {
+          continue; // Try next
+        }
+        throw e;
+      }
+    }
+
+    if (existing?.results?.length > 0) {
+      return { attendeeId, status: "exists", pageId: existing.results[0].id };
+    }
+
+    // 2. Fetch attendee name
+    let attendeeName = "Peserta";
+    try {
+      const attendeePage = (await notion.pages.retrieve({
+        page_id: attendeeId,
+      })) as any;
+      const titleProp = Object.values(attendeePage.properties).find(
+        (p: any) => p.type === "title",
+      ) as any;
+      attendeeName = titleProp?.title?.[0]?.plain_text || "Peserta";
+    } catch (e) {
+      console.error(`Failed to fetch details for attendee ${attendeeId}:`, e);
+    }
+
+    // 3. Create entry
+    const newPage = await notion.pages.create({
+      parent: { database_id: presensiDbId },
+      properties: {
+        Name: {
+          title: [{ text: { content: `Presensi: ${attendeeName}` } }],
+        },
+        "id presensi": {
+          rich_text: [{ text: { content: handshakeId } }],
+        },
+        Rapat: {
+          relation: [{ id: meetingId }],
+        },
+        SDM: {
+          relation: [{ id: attendeeId }],
+        },
       },
+    });
+
+    return { attendeeId, status: "created", pageId: newPage.id };
+  } catch (error: any) {
+    console.error(`Error processing attendee ${attendeeId}:`, error);
+    return { attendeeId, status: "error", error: error.message };
+  }
+}
+
+/**
+ * Bulk sync: Loops through ALL meetings in the Rapat database
+ * and ensures every attendee has a Presensi record.
+ */
+async function handleBulkSync() {
+  try {
+    const notion = getNotionClient();
+    const rapatDbId = process.env.NOTION_DATABASE_ID_RAPAT;
+    const presensiDbId = process.env.NOTION_DATABASE_ID_PRESENSI;
+
+    if (!notion || !rapatDbId || !presensiDbId) {
+      throw new Error("Missing Notion client or Database IDs in .env");
+    }
+
+    const rapatDataSourceId = await resolveDataSourceIdSafe(rapatDbId);
+    const presensiDataSourceId = await resolveDataSourceIdSafe(presensiDbId);
+
+    if (!rapatDataSourceId || !presensiDataSourceId) {
+      throw new Error("Could not resolve data sources for bulk sync");
+    }
+
+    // 1. Fetch all meetings (paginated)
+    let cursor: string | undefined;
+    const meetings: any[] = [];
+    do {
+      const response = await (notion as any).dataSources.query({
+        data_source_id: rapatDataSourceId,
+        start_cursor: cursor,
+      });
+      meetings.push(...response.results);
+      cursor = response.has_more ? response.next_cursor : undefined;
+    } while (cursor);
+
+    console.warn(`[Bulk Sync] Found ${meetings.length} meetings to process.`);
+
+    const overallResults = [];
+
+    // 2. Process each meeting
+    for (const meeting of meetings) {
+      const meetingId = meeting.id;
+      // Get meeting name for logging
+      const meetingTitleProp = Object.values(meeting.properties).find(
+        (p: any) => p.type === "title",
+      ) as any;
+      const meetingName =
+        meetingTitleProp?.title?.[0]?.plain_text || "Unnamed Meeting";
+
+      const attendees = meeting.properties?.["Daftar Undangan"]?.relation || [];
+      console.warn(
+        `[Bulk Sync] Processing "${meetingName}" (${attendees.length} attendees)`,
+      );
+
+      const meetingResults = [];
+      for (const rel of attendees) {
+        const result = await syncAttendee(
+          notion,
+          meetingId,
+          rel.id,
+          presensiDbId,
+          presensiDataSourceId,
+        );
+        meetingResults.push(result);
+      }
+      overallResults.push({
+        meetingName,
+        meetingId,
+        results: meetingResults,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Processed ${meetings.length} meetings.`,
+      details: overallResults,
+    });
+  } catch (error: any) {
+    console.error("❌ [Bulk Sync] Error:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
       { status: 500 },
     );
   }
