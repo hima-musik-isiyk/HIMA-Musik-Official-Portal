@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       invitationRelation.map((r: any) => r.id),
       presensiDbId,
       presensiDataSourceId,
-      payload.data.properties?.["Jadwal"]?.date?.start,
+      body.data.properties?.["Jadwal"]?.date?.start,
     );
 
     return NextResponse.json({
