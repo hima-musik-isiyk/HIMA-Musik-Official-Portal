@@ -57,7 +57,10 @@ async function resolvePrimaryDataSourceId(
   if (cached !== undefined) return cached;
 
   try {
-    const database = await getNotionClient().databases.retrieve({
+    const client = getNotionClient();
+    if (!client) return null;
+
+    const database = await client.databases.retrieve({
       database_id: normalizedId,
     });
     const dataSourceId = (database as { data_sources?: Array<{ id: string }> })
@@ -76,25 +79,27 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
+  /*
   const [docsDataSourceId, eventsDataSourceId, kkmDataSourceId] =
     await Promise.all([
       resolvePrimaryDataSourceId(DOCS_DB_ID),
       resolvePrimaryDataSourceId(EVENTS_DB_ID),
       resolvePrimaryDataSourceId(KKM_DB_ID),
     ]);
+    */
 
   return {
     docs: {
       databaseId: DOCS_DB_ID ? normalizeNotionId(DOCS_DB_ID) : null,
-      dataSourceId: docsDataSourceId,
+      dataSourceId: null,
     },
     events: {
       databaseId: EVENTS_DB_ID ? normalizeNotionId(EVENTS_DB_ID) : null,
-      dataSourceId: eventsDataSourceId,
+      dataSourceId: null,
     },
     kkm: {
       databaseId: KKM_DB_ID ? normalizeNotionId(KKM_DB_ID) : null,
-      dataSourceId: kkmDataSourceId,
+      dataSourceId: null,
     },
   };
 }
@@ -165,8 +170,11 @@ async function resolveParentScopeHints(
   }
 
   try {
+    const client = getNotionClient();
+    if (!client) return emptyScopeHints();
+
     if (parentType === "page") {
-      const page = (await getNotionClient().pages.retrieve({
+      const page = (await client.pages.retrieve({
         page_id: normalizedParentId,
       })) as { parent?: ParentRef };
       const hints = await resolveParentScopeHints(page.parent, depth + 1);
@@ -174,7 +182,7 @@ async function resolveParentScopeHints(
     }
 
     if (parentType === "block") {
-      const block = (await getNotionClient().blocks.retrieve({
+      const block = (await client.blocks.retrieve({
         block_id: normalizedParentId,
       })) as { parent?: ParentRef };
       const hints = await resolveParentScopeHints(block.parent, depth + 1);

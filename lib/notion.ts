@@ -1,20 +1,19 @@
 import { Client } from "@notionhq/client";
-import type {
-  BlockObjectResponse,
-  QueryDataSourceResponse,
-} from "@notionhq/client/build/src/api-endpoints";
+import type {} from // BlockObjectResponse,
+// QueryDataSourceResponse,
+"@notionhq/client/build/src/api-endpoints";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
-import { KKM_ENTRY_ORDER, type KKMGroup } from "./kkm-data";
+import {} from /* classifyEventLifecycle, getEventDateSortValue */ "./event-dates";
+import { /* KKM_ENTRY_ORDER, */ type KKMGroup } from "./kkm-data";
 import {
   ArchiveEntry,
   buildAnchorMap,
   DocMeta,
   NotionBlock,
-  NotionPage,
-  stripCustomTags,
+  // NotionPage,
+  // stripCustomTags,
 } from "./notion-shared";
 
 export * from "./notion-shared";
@@ -61,7 +60,8 @@ const globalForNotion = globalThis as unknown as {
 function createNotionClient() {
   const token = process.env.NOTION_INTEGRATION_TOKEN;
   if (!token) {
-    throw new Error("Missing NOTION_INTEGRATION_TOKEN environment variable");
+    console.warn("Missing NOTION_INTEGRATION_TOKEN environment variable");
+    return null;
   }
   return new Client({ auth: token, notionVersion: "2026-03-11" });
 }
@@ -73,11 +73,11 @@ export function getNotionClient(): Client {
 
   const client = createNotionClient();
 
-  if (process.env.NODE_ENV !== "production") {
+  if (client && process.env.NODE_ENV !== "production") {
     globalForNotion.notion = client;
   }
 
-  return client;
+  return client as Client;
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,6 +115,7 @@ export async function resolveCitation(
 /* ------------------------------------------------------------------ */
 /*  Notion property helpers                                            */
 /* ------------------------------------------------------------------ */
+/*
 const propertyNameMapCache = new WeakMap<
   NotionPage["properties"],
   Map<string, keyof NotionPage["properties"]>
@@ -143,7 +144,9 @@ function getProperty(
   const matchedKey = propertyNameMap.get(normalizedName);
   return matchedKey ? properties[matchedKey] : undefined;
 }
+*/
 
+/*
 function getTitle(page: NotionPage): string {
   for (const prop of Object.values(page.properties)) {
     if (prop.type === "title" && prop.title.length > 0) {
@@ -152,7 +155,9 @@ function getTitle(page: NotionPage): string {
   }
   return "Untitled";
 }
+*/
 
+/*
 function getTitleProperty(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "title" && prop.title.length > 0) {
@@ -160,7 +165,9 @@ function getTitleProperty(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getRichText(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "rich_text") {
@@ -168,7 +175,9 @@ function getRichText(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getSelect(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "select" && prop.select) {
@@ -176,7 +185,9 @@ function getSelect(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getMultiSelect(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
   if (prop?.type === "multi_select") {
@@ -184,7 +195,9 @@ function getMultiSelect(page: NotionPage, name: string): string[] {
   }
   return [];
 }
+*/
 
+/*
 function getNumber(page: NotionPage, name: string): number {
   const prop = getProperty(page, name);
   if (prop?.type === "number" && prop.number !== null) {
@@ -192,7 +205,9 @@ function getNumber(page: NotionPage, name: string): number {
   }
   return 999;
 }
+*/
 
+/*
 function getCheckbox(
   page: NotionPage,
   name: string,
@@ -204,7 +219,9 @@ function getCheckbox(
   }
   return defaultValue;
 }
+*/
 
+/*
 function getDate(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date) {
@@ -212,7 +229,9 @@ function getDate(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getDateEnd(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date?.end) {
@@ -220,7 +239,9 @@ function getDateEnd(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getUrl(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "url" && prop.url) {
@@ -228,7 +249,9 @@ function getUrl(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getFormulaString(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "formula") {
@@ -241,7 +264,9 @@ function getFormulaString(page: NotionPage, name: string): string {
   }
   return "";
 }
+*/
 
+/*
 function getFiles(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
   if (prop?.type !== "files") return [];
@@ -253,24 +278,32 @@ function getFiles(page: NotionPage, name: string): string[] {
     })
     .filter(Boolean);
 }
+*/
 
+/*
 function getCoverUrl(page: NotionPage, name = "Cover Image"): string | null {
   return getFiles(page, name)[0] ?? null;
 }
+*/
 
+/*
 function getChildPageTitle(block: NotionBlock): string {
   if (block.type !== "child_page") return "";
   const typed = block.child_page as { title?: string } | undefined;
   return (typed?.title ?? "").trim();
 }
+*/
 
+/*
 function isPreferredEventChildPage(title: string): boolean {
   const normalized = title.trim().toLowerCase();
   return /shared|share|draft|publish|published|konten|content|public|umum/.test(
     normalized,
   );
 }
+*/
 
+/*
 function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
   let firstChildPage: NotionBlock | null = null;
 
@@ -295,7 +328,9 @@ function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
 
   return firstChildPage;
 }
+*/
 
+/*
 function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
   const dropUntilAfterFirstTopLevelTable = (
     items: NotionBlock[],
@@ -315,7 +350,9 @@ function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
 
   return blocks;
 }
+*/
 
+/*
 function getSlugValue(page: NotionPage, fallbackText: string): string {
   return (
     getRichText(page, "Slug") ||
@@ -323,7 +360,9 @@ function getSlugValue(page: NotionPage, fallbackText: string): string {
     slugify(fallbackText)
   );
 }
+*/
 
+/*
 function getTodayInJakarta(): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Jakarta",
@@ -332,12 +371,16 @@ function getTodayInJakarta(): string {
     day: "2-digit",
   }).format(new Date());
 }
+*/
 
+/*
 function isEventPublished(page: NotionPage): boolean {
   if (!getCheckbox(page, "Publish", true)) return false;
   return true;
 }
+*/
 
+/*
 function slugify(text: string): string {
   return text
     .normalize("NFKD")
@@ -346,25 +389,31 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+*/
 
 /* ------------------------------------------------------------------ */
 /*  Docs database queries                                              */
 /* ------------------------------------------------------------------ */
 
+/*
 const DOCS_DB_ID =
   process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
   process.env.NOTION_PROJECT_DATABASE_ID ??
   "";
+*/
 
-const dataSourceIdCache = new Map<string, string>();
-const warnedDatabaseIds = new Set<string>();
+// const dataSourceIdCache = new Map<string, string>();
+// const warnedDatabaseIds = new Set<string>();
 
+/*
 function normalizeNotionId(id: string): string {
   const compact = id.replace(/-/g, "");
   if (!/^[0-9a-fA-F]{32}$/.test(compact)) return id;
   return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
 }
+*/
 
+/*
 async function resolveDataSourceId(id: string): Promise<string> {
   const normalizedId = normalizeNotionId(id);
   const cached = dataSourceIdCache.get(normalizedId);
@@ -394,7 +443,9 @@ async function resolveDataSourceId(id: string): Promise<string> {
     return dataSource.id;
   }
 }
+*/
 
+/*
 async function resolveDataSourceIdSafe(id: string): Promise<string | null> {
   try {
     return await resolveDataSourceId(id);
@@ -410,9 +461,11 @@ async function resolveDataSourceIdSafe(id: string): Promise<string | null> {
     return null;
   }
 }
+*/
 
 export const fetchAllDocs = unstable_cache(
   async (): Promise<DocMeta[]> => {
+    /*
     if (!DOCS_DB_ID) return [];
 
     const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
@@ -453,6 +506,8 @@ export const fetchAllDocs = unstable_cache(
         if (categoryCompare !== 0) return categoryCompare;
         return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
       });
+    */
+    return [];
   },
   ["notion-all-docs"],
   { revalidate: 60, tags: ["notion-docs"] },
@@ -462,11 +517,14 @@ export const fetchAllDocs = unstable_cache(
 /*  KKM database queries                                               */
 /* ------------------------------------------------------------------ */
 
+/*
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
 const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
+*/
 
 export const fetchKKMGroups = unstable_cache(
   async (): Promise<KKMGroup[]> => {
+    /*
     if (!KKM_DB_ID) return [];
 
     const kkmDataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
@@ -525,6 +583,8 @@ export const fetchKKMGroups = unstable_cache(
     );
 
     return [...orderedGroups, ...extraGroups];
+    */
+    return [];
   },
   ["notion-kkm-groups"],
   { revalidate: 60, tags: ["notion-kkm"] },
@@ -532,8 +592,9 @@ export const fetchKKMGroups = unstable_cache(
 
 export const fetchKKMEntryBySlug = cache(
   async (
-    slug: string,
+    _slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
+    /*
     if (!KKM_DB_ID) return null;
 
     const kkmDataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
@@ -594,9 +655,12 @@ export const fetchKKMEntryBySlug = cache(
       },
       blocks,
     };
+    */
+    return null;
   },
 );
 
+/*
 function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
   const title = getTitleProperty(page, "Name") || getTitle(page);
   const slug = getSlugValue(page, title);
@@ -638,7 +702,9 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     lifecycle,
   };
 }
+*/
 
+/*
 function sortEventEntries(
   entries: EventEntryMeta[],
   lifecycle: EventLifecycle,
@@ -668,6 +734,7 @@ function sortEventEntries(
     return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
   });
 }
+*/
 
 export const fetchEventsCollection = unstable_cache(
   async (): Promise<EventsCollection> => {
@@ -678,6 +745,7 @@ export const fetchEventsCollection = unstable_cache(
       announcements: [],
     };
 
+    /*
     if (!EVENTS_DB_ID) return emptyCollection;
 
     const today = getTodayInJakarta();
@@ -719,6 +787,8 @@ export const fetchEventsCollection = unstable_cache(
         "announcement",
       ),
     };
+    */
+    return emptyCollection;
   },
   ["notion-events-collection"],
   { revalidate: 60, tags: ["notion-events"] },
@@ -740,8 +810,9 @@ export const fetchAllEventEntries = unstable_cache(
 
 export const fetchEventBySlug = cache(
   async (
-    slug: string,
+    _slug: string,
   ): Promise<{ meta: EventEntryMeta; blocks: NotionBlock[] } | null> => {
+    /*
     if (!EVENTS_DB_ID) return null;
 
     const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
@@ -783,12 +854,15 @@ export const fetchEventBySlug = cache(
       meta: mapEventPage(matchedPage, today),
       blocks,
     };
+    */
+    return null;
   },
 );
 
 export async function fetchEventCoverUrlBySlug(
-  slug: string,
+  _slug: string,
 ): Promise<string | null> {
+  /*
   if (!EVENTS_DB_ID) return null;
 
   const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
@@ -816,14 +890,16 @@ export async function fetchEventCoverUrlBySlug(
       ? (response.next_cursor ?? undefined)
       : undefined;
   } while (cursor);
+  */
 
   return null;
 }
 
 export const fetchDocBySlug = cache(
   async (
-    slug: string,
+    _slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
+    /*
     if (!DOCS_DB_ID) return null;
 
     const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
@@ -876,6 +952,8 @@ export const fetchDocBySlug = cache(
       },
       blocks,
     };
+    */
+    return null;
   },
 );
 
@@ -884,7 +962,8 @@ export const fetchDocBySlug = cache(
 /* ------------------------------------------------------------------ */
 
 export const fetchArchives = unstable_cache(
-  async (tag?: string): Promise<ArchiveEntry[]> => {
+  async (_tag?: string): Promise<ArchiveEntry[]> => {
+    /*
     if (!DOCS_DB_ID) return [];
 
     const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
@@ -930,14 +1009,17 @@ export const fetchArchives = unstable_cache(
         if (!b.date) return -1;
         return b.date.localeCompare(a.date);
       });
+    */
+    return [];
   },
   ["notion-archives"],
   { revalidate: 60, tags: ["notion-archives"] },
 );
 
 export async function fetchArchiveById(
-  id: string,
+  _id: string,
 ): Promise<{ entry: ArchiveEntry; blocks: NotionBlock[] } | null> {
+  /*
   if (!DOCS_DB_ID) return null;
 
   try {
@@ -967,6 +1049,8 @@ export async function fetchArchiveById(
   } catch {
     return null;
   }
+  */
+  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -974,7 +1058,8 @@ export async function fetchArchiveById(
 /* ------------------------------------------------------------------ */
 
 export const fetchAllBlocks = cache(
-  async (blockId: string): Promise<NotionBlock[]> => {
+  async (_blockId: string): Promise<NotionBlock[]> => {
+    /*
     const blocks: NotionBlock[] = [];
     let cursor: string | undefined;
 
@@ -999,6 +1084,8 @@ export const fetchAllBlocks = cache(
     } while (cursor);
 
     return blocks;
+    */
+    return [];
   },
 );
 
@@ -1006,7 +1093,7 @@ export const fetchAllBlocks = cache(
 /*  Search across all docs                                             */
 /* ------------------------------------------------------------------ */
 
-export async function searchDocs(query: string): Promise<
+export async function searchDocs(_query: string): Promise<
   Array<{
     id: string;
     title: string;
@@ -1015,6 +1102,7 @@ export async function searchDocs(query: string): Promise<
     highlight: string;
   }>
 > {
+  /*
   if (!query.trim()) return [];
 
   const response = await getNotionClient().search({
@@ -1046,4 +1134,6 @@ export async function searchDocs(query: string): Promise<
   }
 
   return results;
+  */
+  return [];
 }

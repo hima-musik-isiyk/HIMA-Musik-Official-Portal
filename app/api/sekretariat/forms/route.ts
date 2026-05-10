@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { getNotionClient } from "@/lib/notion";
+// import { getNotionClient } from "@/lib/notion";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,12 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const KANBAN_DB_ID = process.env.NOTION_KANBAN_DATABASE_ID;
+    // const KANBAN_DB_ID = process.env.NOTION_KANBAN_DATABASE_ID;
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
     const TELEGRAM_FORMS_TOPIC_ID = process.env.TELEGRAM_FORMS_TOPIC_ID;
 
     /* ---- Create card in Notion Kanban ---- */
+    /*
     if (KANBAN_DB_ID) {
       try {
         await getNotionClient().pages.create({
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
         console.error("Notion Kanban creation failed:", notionError);
       }
     }
+    */
 
     /* ---- Send Telegram notification ---- */
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
