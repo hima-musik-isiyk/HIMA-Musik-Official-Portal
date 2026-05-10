@@ -296,7 +296,7 @@ async function syncMeetingAttendees(
         try {
           await notion.pages.update({
             page_id: pageId,
-            archived: true,
+            in_trash: true,
           });
           results.push({ attendeeId, status: "removed", pageId });
           console.warn(
