@@ -41,20 +41,8 @@ async function getActiveMemberIds(
       const response = await (notion as any).dataSources.query({
         data_source_id: sdmDataSourceId,
         filter: {
-          or: [
-            {
-              property: "Status Keaktifan",
-              status: { equals: "Aktif" },
-            },
-            {
-              property: "Status Keaktifan",
-              select: { equals: "Aktif" },
-            },
-            {
-              property: "Status Keaktifan",
-              rich_text: { equals: "Aktif" },
-            },
-          ],
+          property: "Status Keaktifan",
+          select: { equals: "Aktif" },
         },
         start_cursor: cursor,
         page_size: 100,
