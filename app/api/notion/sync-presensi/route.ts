@@ -86,7 +86,7 @@ function findPropertyKey(properties: Record<string, any>, suffix: string) {
  * Webhook Handler for Notion "Database Rapat & Keputusan"
  *
  * When a meeting is created or updated, this endpoint:
- * 1. Extracts the list of invited attendees (Daftar Undangan relation).
+ * 1. Extracts the list of invited attendees ((AUT) Daftar Undangan relation).
  * 2. Loops through each attendee and fetches their details.
  * 3. Creates a record in "Database Rekam Presensi" if it doesn't exist.
  * 4. Uses a handshake ID (meetingId_attendeeId) to prevent duplicates.
@@ -158,20 +158,20 @@ export async function POST(req: Request) {
       const payloadProperties = body.data?.properties ?? {};
       const invitationPayloadKey = findPropertyKey(
         payloadProperties,
-        "Daftar Undangan",
+        "(AUT) Daftar Undangan",
       );
       const divisiPayloadKey = findPropertyKey(
         payloadProperties,
-        "Divisi Terlibat",
+        "(AUT) Divisi Terlibat",
       );
 
       const meetingDivisiKey = findPropertyKey(
         meetingProperties,
-        "Divisi Terlibat",
+        "(AUT) Divisi Terlibat",
       );
       const meetingInvitationKey = findPropertyKey(
         meetingProperties,
-        "Daftar Undangan",
+        "(AUT) Daftar Undangan",
       );
       const meetingKindKey = findPropertyKey(meetingProperties, "Kind");
 
@@ -185,9 +185,9 @@ export async function POST(req: Request) {
       // Smart Inference Fallback
       if (!kind) {
         if (divisiPayloadKey) {
-          kind = "Divisi Terlibat";
+          kind = "(AUT) Divisi Terlibat";
         } else if (invitationPayloadKey) {
-          kind = "Daftar Undangan";
+          kind = "(AUT) Daftar Undangan";
         }
       }
 
@@ -199,7 +199,7 @@ export async function POST(req: Request) {
       console.warn(`[Webhook] Automation Kind: ${kind || "Unknown"}`);
 
       // If this is a Division update, we need to populate the invitation list first
-      if (kind === "Divisi Terlibat" && sdmDbId) {
+      if (kind === "(AUT) Divisi Terlibat" && sdmDbId) {
         const divisions = meetingDivisiKey
           ? meetingProperties[meetingDivisiKey]?.relation || []
           : [];
@@ -395,7 +395,13 @@ async function handleBulkSync() {
       const meetingName =
         meetingTitleProp?.title?.[0]?.plain_text || "Unnamed Meeting";
 
-      const attendees = meeting.properties?.["Daftar Undangan"]?.relation || [];
+      const meetingInvitationKey = findPropertyKey(
+        meeting.properties,
+        "(AUT) Daftar Undangan",
+      );
+      const attendees = meetingInvitationKey
+        ? meeting.properties[meetingInvitationKey]?.relation || []
+        : [];
       console.warn(
         `[Bulk Sync] Processing "${meetingName}" (${attendees.length} attendees)`,
       );
