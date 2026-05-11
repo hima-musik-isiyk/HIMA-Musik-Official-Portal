@@ -104,11 +104,18 @@ export async function POST(req: Request) {
     let kind = kindFromUrl || kindFromProp;
 
     // Smart Inference Fallback:
-    // If kind is unknown, check which properties are in the payload to guess the intention
+    // If kind is unknown, check which properties are in the payload to guess the intention.
+    // Notion automation properties may be prefixed with metadata like "(AUT) ".
+    const payloadPropertyKeys = Object.keys(body.data?.properties ?? {});
+    const hasPayloadProperty = (suffix: string) =>
+      payloadPropertyKeys.some(
+        (key) => key === suffix || key.endsWith(` ${suffix}`),
+      );
+
     if (!kind) {
-      if (body.data.properties?.["Divisi Terlibat"]) {
+      if (hasPayloadProperty("Divisi Terlibat")) {
         kind = "Divisi Terlibat";
-      } else if (body.data.properties?.["Daftar Undangan"]) {
+      } else if (hasPayloadProperty("Daftar Undangan")) {
         kind = "Daftar Undangan";
       }
     }
