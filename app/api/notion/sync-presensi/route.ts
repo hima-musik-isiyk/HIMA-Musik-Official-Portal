@@ -28,7 +28,7 @@ async function withLock(id: string, task: () => Promise<any>) {
 
 async function getActiveMemberIds(
   notion: any,
-  sdmDbId: string,
+  sdmDataSourceId: string,
 ): Promise<Set<string>> {
   console.warn(
     "[Optimization] Fetching all active SDM members to avoid N+1 queries...",
@@ -38,8 +38,8 @@ async function getActiveMemberIds(
 
   try {
     do {
-      const response = await notion.databases.query({
-        database_id: sdmDbId,
+      const response = await (notion as any).dataSources.query({
+        data_source_id: sdmDataSourceId,
         filter: {
           or: [
             {
@@ -228,7 +228,10 @@ export async function POST(req: Request) {
         divisionMembers.flat().forEach((id) => candidateMemberIds.add(id));
 
         // 2. Batch check "Aktif" status for all candidates
-        const activeMemberIds = await getActiveMemberIds(notion, sdmDbId);
+        const sdmDataSourceId = await resolveDataSourceIdSafe(sdmDbId);
+        const activeMemberIds = sdmDataSourceId
+          ? await getActiveMemberIds(notion, sdmDataSourceId)
+          : new Set<string>();
 
         // 3. Filter candidates
         const validatedInvitationIds = Array.from(candidateMemberIds).filter(
