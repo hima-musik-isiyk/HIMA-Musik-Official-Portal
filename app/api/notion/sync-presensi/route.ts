@@ -3,6 +3,27 @@ import { NextResponse } from "next/server";
 
 import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 
+async function isActiveSdmMember(notion: any, pageId: string) {
+  try {
+    const memberPage = await notion.pages.retrieve({ page_id: pageId });
+    const statusProperty = memberPage?.properties?.["Status Keaktifan"];
+
+    const statusValue =
+      statusProperty?.select?.name ||
+      statusProperty?.status?.name ||
+      statusProperty?.rich_text?.[0]?.plain_text ||
+      "";
+
+    return statusValue === "Aktif";
+  } catch (error: any) {
+    console.error(
+      `[Webhook] Failed to resolve Status Keaktifan for member ${pageId}:`,
+      error?.message ?? error,
+    );
+    return false;
+  }
+}
+
 /**
  * Webhook Handler for Notion "Database Rapat & Keputusan"
  *
@@ -107,7 +128,20 @@ export async function POST(req: Request) {
           const divPage = await notion.pages.retrieve({ page_id: div.id });
           const members =
             (divPage as any).properties?.["Anggota Divisi"]?.relation || [];
-          members.forEach((m: any) => newMemberIds.add(m.id));
+
+          for (const member of members) {
+            const memberId = member.id;
+            if (!memberId) continue;
+
+            const isActive = await isActiveSdmMember(notion, memberId);
+            if (isActive) {
+              newMemberIds.add(memberId);
+            } else {
+              console.warn(
+                `[Webhook] Skipping non-active SDM/Evaluasi member ${memberId}`,
+              );
+            }
+          }
         } catch (e: any) {
           console.error(
             `[Webhook] Failed to fetch members for division ${div.id}:`,
@@ -128,7 +162,7 @@ export async function POST(req: Request) {
         },
       });
       console.warn(
-        `[Webhook] Expanded invitation list to ${finalInvitationIds.length} members`,
+        `[Webhook] Expanded invitation list to ${finalInvitationIds.length} active members`,
       );
     }
 
