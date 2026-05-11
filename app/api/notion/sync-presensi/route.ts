@@ -24,6 +24,12 @@ async function isActiveSdmMember(notion: any, pageId: string) {
   }
 }
 
+function findPropertyKey(properties: Record<string, any>, suffix: string) {
+  return Object.keys(properties).find(
+    (key) => key === suffix || key.endsWith(` ${suffix}`),
+  );
+}
+
 /**
  * Webhook Handler for Notion "Database Rapat & Keputusan"
  *
@@ -61,8 +67,6 @@ export async function POST(req: Request) {
     );
 
     const meetingId = body?.data?.id;
-    const invitationRelation =
-      body?.data?.properties?.["Daftar Undangan"]?.relation || [];
 
     if (!meetingId) {
       return NextResponse.json(
@@ -92,42 +96,61 @@ export async function POST(req: Request) {
     // Fetch the meeting details to get the 'Jadwal' (Schedule)
     // We fetch it because webhooks often don't include all properties in the payload
     const meetingPage = await notion.pages.retrieve({ page_id: meetingId });
-    const meetingJadwal = (meetingPage as any).properties?.["Jadwal"]?.date
-      ?.start;
+    const meetingProperties = (meetingPage as any).properties ?? {};
+    const meetingJadwalKey = findPropertyKey(meetingProperties, "Jadwal");
+    const meetingJadwal = meetingJadwalKey
+      ? meetingProperties[meetingJadwalKey]?.date?.start
+      : undefined;
 
-    // Get the automation 'kind' (intention)
-    // First check search params (from webhook URL), then fallback to page properties
+    const payloadProperties = body.data?.properties ?? {};
+    const invitationPayloadKey = findPropertyKey(
+      payloadProperties,
+      "Daftar Undangan",
+    );
+    const divisiPayloadKey = findPropertyKey(
+      payloadProperties,
+      "Divisi Terlibat",
+    );
+
+    const meetingDivisiKey = findPropertyKey(
+      meetingProperties,
+      "Divisi Terlibat",
+    );
+    const meetingInvitationKey = findPropertyKey(
+      meetingProperties,
+      "Daftar Undangan",
+    );
+    const meetingKindKey = findPropertyKey(meetingProperties, "Kind");
+
     const { searchParams } = new URL(req.url);
     const kindFromUrl = searchParams.get("kind");
-    const kindFromProp = (meetingPage as any).properties?.["Kind"]
-      ?.rich_text?.[0]?.plain_text;
+    const kindFromProp = meetingKindKey
+      ? meetingProperties[meetingKindKey]?.rich_text?.[0]?.plain_text
+      : undefined;
     let kind = kindFromUrl || kindFromProp;
 
     // Smart Inference Fallback:
     // If kind is unknown, check which properties are in the payload to guess the intention.
-    // Notion automation properties may be prefixed with metadata like "(AUT) ".
-    const payloadPropertyKeys = Object.keys(body.data?.properties ?? {});
-    const hasPayloadProperty = (suffix: string) =>
-      payloadPropertyKeys.some(
-        (key) => key === suffix || key.endsWith(` ${suffix}`),
-      );
-
     if (!kind) {
-      if (hasPayloadProperty("Divisi Terlibat")) {
+      if (divisiPayloadKey) {
         kind = "Divisi Terlibat";
-      } else if (hasPayloadProperty("Daftar Undangan")) {
+      } else if (invitationPayloadKey) {
         kind = "Daftar Undangan";
       }
     }
 
+    const invitationRelation = invitationPayloadKey
+      ? payloadProperties[invitationPayloadKey]?.relation || []
+      : [];
     let finalInvitationIds = invitationRelation.map((r: any) => r.id);
 
     console.warn(`[Webhook] Automation Kind: ${kind || "Unknown"}`);
 
     // If this is a Division update, we need to populate the invitation list first
     if (kind === "Divisi Terlibat") {
-      const divisions =
-        (meetingPage as any).properties?.["Divisi Terlibat"]?.relation || [];
+      const divisions = meetingDivisiKey
+        ? meetingProperties[meetingDivisiKey]?.relation || []
+        : [];
       const newMemberIds = new Set<string>(finalInvitationIds);
 
       for (const div of divisions) {
@@ -159,18 +182,23 @@ export async function POST(req: Request) {
 
       finalInvitationIds = Array.from(newMemberIds);
 
-      // Update the meeting page with the expanded invitation list
-      await notion.pages.update({
-        page_id: meetingId,
-        properties: {
-          "Daftar Undangan": {
-            relation: finalInvitationIds.map((id) => ({ id })),
+      if (meetingInvitationKey) {
+        await notion.pages.update({
+          page_id: meetingId,
+          properties: {
+            [meetingInvitationKey]: {
+              relation: finalInvitationIds.map((id) => ({ id })),
+            },
           },
-        },
-      });
-      console.warn(
-        `[Webhook] Expanded invitation list to ${finalInvitationIds.length} active members`,
-      );
+        });
+        console.warn(
+          `[Webhook] Expanded invitation list to ${finalInvitationIds.length} active members`,
+        );
+      } else {
+        console.warn(
+          `[Webhook] Could not update Daftar Undangan because the meeting page property was not found.`,
+        );
+      }
     }
 
     // Sync attendees (Add missing, Remove deleted)
