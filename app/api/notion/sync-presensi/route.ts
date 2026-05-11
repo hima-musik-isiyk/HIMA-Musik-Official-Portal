@@ -3,24 +3,76 @@ import { NextResponse } from "next/server";
 
 import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 
-async function isActiveSdmMember(notion: any, pageId: string) {
+// Global locks to prevent concurrent syncs for the same meeting
+const syncLocks = new Map<string, Promise<any>>();
+
+/**
+ * Ensures that only one sync operation runs at a time for a given ID.
+ */
+async function withLock(id: string, task: () => Promise<any>) {
+  // Wait if there's an ongoing sync for this meeting
+  while (syncLocks.has(id)) {
+    console.warn(`[Queue] Meeting ${id} is already syncing. Waiting...`);
+    await syncLocks.get(id);
+  }
+
+  const promise = task();
+  syncLocks.set(id, promise);
+
   try {
-    const memberPage = await notion.pages.retrieve({ page_id: pageId });
-    const statusProperty = memberPage?.properties?.["Status Keaktifan"];
+    return await promise;
+  } finally {
+    syncLocks.delete(id);
+  }
+}
 
-    const statusValue =
-      statusProperty?.select?.name ||
-      statusProperty?.status?.name ||
-      statusProperty?.rich_text?.[0]?.plain_text ||
-      "";
+async function getActiveMemberIds(
+  notion: any,
+  sdmDbId: string,
+): Promise<Set<string>> {
+  console.warn(
+    "[Optimization] Fetching all active SDM members to avoid N+1 queries...",
+  );
+  const activeIds = new Set<string>();
+  let cursor: string | undefined;
 
-    return statusValue === "Aktif";
+  try {
+    do {
+      const response = await notion.databases.query({
+        database_id: sdmDbId,
+        filter: {
+          or: [
+            {
+              property: "Status Keaktifan",
+              status: { equals: "Aktif" },
+            },
+            {
+              property: "Status Keaktifan",
+              select: { equals: "Aktif" },
+            },
+            {
+              property: "Status Keaktifan",
+              rich_text: { equals: "Aktif" },
+            },
+          ],
+        },
+        start_cursor: cursor,
+        page_size: 100,
+      });
+
+      response.results.forEach((page: any) => activeIds.add(page.id));
+      cursor = response.has_more ? response.next_cursor : undefined;
+    } while (cursor);
+
+    console.warn(`[Optimization] Found ${activeIds.size} active members.`);
+    return activeIds;
   } catch (error: any) {
     console.error(
-      `[Webhook] Failed to resolve Status Keaktifan for member ${pageId}:`,
-      error?.message ?? error,
+      "[Optimization] Failed to fetch active members bulk:",
+      error.message,
     );
-    return false;
+    // Return empty set, fallback to individual check if absolutely necessary (though we want to avoid that)
+    return activeIds;
   }
 }
 
@@ -57,174 +109,181 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json();
+  const body = await req.json();
+  const meetingId = body?.data?.id;
 
-    // Log the payload for debugging
-    console.warn(
-      "🚀 [Notion Webhook] Incoming Payload:",
-      JSON.stringify(body, null, 2),
+  if (!meetingId) {
+    return NextResponse.json(
+      { success: false, error: "Missing meeting ID (page ID)" },
+      { status: 400 },
     );
+  }
 
-    const meetingId = body?.data?.id;
-
-    if (!meetingId) {
-      return NextResponse.json(
-        { success: false, error: "Missing meeting ID (page ID)" },
-        { status: 400 },
+  // Wrap the entire processing logic in a lock based on meetingId
+  return withLock(meetingId, async () => {
+    try {
+      // Log the payload for debugging
+      console.warn(
+        `🚀 [Notion Webhook] Processing Meeting: ${meetingId}`,
+        JSON.stringify(body, null, 2),
       );
-    }
 
-    const notion = getNotionClient();
-    const presensiDbId = process.env.NOTION_DATABASE_ID_PRESENSI;
+      const notion = getNotionClient();
+      const presensiDbId = process.env.NOTION_DATABASE_ID_PRESENSI;
+      const sdmDbId = process.env.NOTION_DATABASE_ID_SDM;
 
-    if (!notion || !presensiDbId) {
-      return NextResponse.json(
-        { success: false, error: "Missing Notion client or Database ID" },
-        { status: 500 },
-      );
-    }
-
-    const presensiDataSourceId = await resolveDataSourceIdSafe(presensiDbId);
-    if (!presensiDataSourceId) {
-      return NextResponse.json(
-        { error: "Could not resolve Presensi data source" },
-        { status: 500 },
-      );
-    }
-
-    // Fetch the meeting details to get the 'Jadwal' (Schedule)
-    // We fetch it because webhooks often don't include all properties in the payload
-    const meetingPage = await notion.pages.retrieve({ page_id: meetingId });
-    const meetingProperties = (meetingPage as any).properties ?? {};
-    const meetingJadwalKey = findPropertyKey(meetingProperties, "Jadwal");
-    const meetingJadwal = meetingJadwalKey
-      ? meetingProperties[meetingJadwalKey]?.date?.start
-      : undefined;
-
-    const payloadProperties = body.data?.properties ?? {};
-    const invitationPayloadKey = findPropertyKey(
-      payloadProperties,
-      "Daftar Undangan",
-    );
-    const divisiPayloadKey = findPropertyKey(
-      payloadProperties,
-      "Divisi Terlibat",
-    );
-
-    const meetingDivisiKey = findPropertyKey(
-      meetingProperties,
-      "Divisi Terlibat",
-    );
-    const meetingInvitationKey = findPropertyKey(
-      meetingProperties,
-      "Daftar Undangan",
-    );
-    const meetingKindKey = findPropertyKey(meetingProperties, "Kind");
-
-    const { searchParams } = new URL(req.url);
-    const kindFromUrl = searchParams.get("kind");
-    const kindFromProp = meetingKindKey
-      ? meetingProperties[meetingKindKey]?.rich_text?.[0]?.plain_text
-      : undefined;
-    let kind = kindFromUrl || kindFromProp;
-
-    // Smart Inference Fallback:
-    // If kind is unknown, check which properties are in the payload to guess the intention.
-    if (!kind) {
-      if (divisiPayloadKey) {
-        kind = "Divisi Terlibat";
-      } else if (invitationPayloadKey) {
-        kind = "Daftar Undangan";
+      if (!notion || !presensiDbId) {
+        return NextResponse.json(
+          { success: false, error: "Missing Notion client or Database ID" },
+          { status: 500 },
+        );
       }
-    }
 
-    const invitationRelation = invitationPayloadKey
-      ? payloadProperties[invitationPayloadKey]?.relation || []
-      : [];
-    let finalInvitationIds = invitationRelation.map((r: any) => r.id);
+      const presensiDataSourceId = await resolveDataSourceIdSafe(presensiDbId);
+      if (!presensiDataSourceId) {
+        return NextResponse.json(
+          { error: "Could not resolve Presensi data source" },
+          { status: 500 },
+        );
+      }
 
-    console.warn(`[Webhook] Automation Kind: ${kind || "Unknown"}`);
+      // Fetch the meeting details to get the 'Jadwal' (Schedule)
+      const meetingPage = await notion.pages.retrieve({ page_id: meetingId });
+      const meetingProperties = (meetingPage as any).properties ?? {};
+      const meetingJadwalKey = findPropertyKey(meetingProperties, "Jadwal");
+      const meetingJadwal = meetingJadwalKey
+        ? meetingProperties[meetingJadwalKey]?.date?.start
+        : undefined;
 
-    // If this is a Division update, we need to populate the invitation list first
-    if (kind === "Divisi Terlibat") {
-      const divisions = meetingDivisiKey
-        ? meetingProperties[meetingDivisiKey]?.relation || []
+      const payloadProperties = body.data?.properties ?? {};
+      const invitationPayloadKey = findPropertyKey(
+        payloadProperties,
+        "Daftar Undangan",
+      );
+      const divisiPayloadKey = findPropertyKey(
+        payloadProperties,
+        "Divisi Terlibat",
+      );
+
+      const meetingDivisiKey = findPropertyKey(
+        meetingProperties,
+        "Divisi Terlibat",
+      );
+      const meetingInvitationKey = findPropertyKey(
+        meetingProperties,
+        "Daftar Undangan",
+      );
+      const meetingKindKey = findPropertyKey(meetingProperties, "Kind");
+
+      const { searchParams } = new URL(req.url);
+      const kindFromUrl = searchParams.get("kind");
+      const kindFromProp = meetingKindKey
+        ? meetingProperties[meetingKindKey]?.rich_text?.[0]?.plain_text
+        : undefined;
+      let kind = kindFromUrl || kindFromProp;
+
+      // Smart Inference Fallback
+      if (!kind) {
+        if (divisiPayloadKey) {
+          kind = "Divisi Terlibat";
+        } else if (invitationPayloadKey) {
+          kind = "Daftar Undangan";
+        }
+      }
+
+      const invitationRelation = invitationPayloadKey
+        ? payloadProperties[invitationPayloadKey]?.relation || []
         : [];
-      const newMemberIds = new Set<string>(finalInvitationIds);
+      let finalInvitationIds = invitationRelation.map((r: any) => r.id);
 
-      for (const div of divisions) {
-        try {
-          const divPage = await notion.pages.retrieve({ page_id: div.id });
-          const members =
-            (divPage as any).properties?.["Anggota Divisi"]?.relation || [];
+      console.warn(`[Webhook] Automation Kind: ${kind || "Unknown"}`);
 
-          for (const member of members) {
-            const memberId = member.id;
-            if (!memberId) continue;
+      // If this is a Division update, we need to populate the invitation list first
+      if (kind === "Divisi Terlibat" && sdmDbId) {
+        const divisions = meetingDivisiKey
+          ? meetingProperties[meetingDivisiKey]?.relation || []
+          : [];
+        const candidateMemberIds = new Set<string>(finalInvitationIds);
 
-            const isActive = await isActiveSdmMember(notion, memberId);
-            if (isActive) {
-              newMemberIds.add(memberId);
-            } else {
-              console.warn(
-                `[Webhook] Skipping non-active SDM/Evaluasi member ${memberId}`,
+        // 1. Collect all member IDs from all involved divisions in parallel
+        const divisionMembers = await Promise.all(
+          divisions.map(async (div: any) => {
+            try {
+              const divPage = await notion.pages.retrieve({ page_id: div.id });
+              return (
+                (divPage as any).properties?.["Anggota Divisi"]?.relation?.map(
+                  (r: any) => r.id,
+                ) || []
               );
+            } catch (e: any) {
+              console.error(
+                `[Webhook] Failed to fetch division ${div.id}:`,
+                e.message,
+              );
+              return [];
             }
-          }
-        } catch (e: any) {
-          console.error(
-            `[Webhook] Failed to fetch members for division ${div.id}:`,
-            e.message,
+          }),
+        );
+
+        divisionMembers.flat().forEach((id) => candidateMemberIds.add(id));
+
+        // 2. Batch check "Aktif" status for all candidates
+        const activeMemberIds = await getActiveMemberIds(notion, sdmDbId);
+
+        // 3. Filter candidates
+        const validatedInvitationIds = Array.from(candidateMemberIds).filter(
+          (id) => {
+            if (activeMemberIds.has(id)) return true;
+            console.warn(
+              `[Webhook] Skipping non-active or missing member: ${id}`,
+            );
+            return false;
+          },
+        );
+
+        finalInvitationIds = validatedInvitationIds;
+
+        if (meetingInvitationKey) {
+          await notion.pages.update({
+            page_id: meetingId,
+            properties: {
+              [meetingInvitationKey]: {
+                relation: finalInvitationIds.map((id) => ({ id })),
+              },
+            },
+          });
+          console.warn(
+            `[Webhook] Expanded invitation list to ${finalInvitationIds.length} active members`,
           );
         }
       }
 
-      finalInvitationIds = Array.from(newMemberIds);
+      // Sync attendees
+      const results = await syncMeetingAttendees(
+        notion,
+        meetingId,
+        finalInvitationIds,
+        presensiDbId,
+        presensiDataSourceId,
+        meetingJadwal,
+      );
 
-      if (meetingInvitationKey) {
-        await notion.pages.update({
-          page_id: meetingId,
-          properties: {
-            [meetingInvitationKey]: {
-              relation: finalInvitationIds.map((id) => ({ id })),
-            },
-          },
-        });
-        console.warn(
-          `[Webhook] Expanded invitation list to ${finalInvitationIds.length} active members`,
-        );
-      } else {
-        console.warn(
-          `[Webhook] Could not update Daftar Undangan because the meeting page property was not found.`,
-        );
-      }
+      return NextResponse.json({
+        success: true,
+        meetingId,
+        processed: invitationRelation.length,
+        results,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("❌ [Notion Webhook] Error:", errorMessage);
+      return NextResponse.json(
+        { success: false, error: errorMessage },
+        { status: 500 },
+      );
     }
-
-    // Sync attendees (Add missing, Remove deleted)
-    const results = await syncMeetingAttendees(
-      notion,
-      meetingId,
-      finalInvitationIds,
-      presensiDbId,
-      presensiDataSourceId,
-      meetingJadwal,
-    );
-
-    return NextResponse.json({
-      success: true,
-      meetingId,
-      processed: invitationRelation.length,
-      results,
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("❌ [Notion Webhook] Error:", errorMessage);
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 },
-    );
-  }
+  });
 }
 
 /**
@@ -241,7 +300,7 @@ async function syncAttendee(
   const handshakeId = `${meetingId}_${attendeeId}`;
 
   try {
-    // 1. Check for existing record — ID Presensi is the TITLE field
+    // 1. Check for existing record
     let existing: any;
     try {
       existing = await (notion as any).dataSources.query({
@@ -260,27 +319,22 @@ async function syncAttendee(
       return { attendeeId, status: "exists", pageId: existing.results[0].id };
     }
 
-    // 3. Create entry with correct property names from actual Notion schema
+    // 2. Create entry
     const newPage = await notion.pages.create({
       parent: { database_id: presensiDbId },
       properties: {
-        // Title field is "ID Presensi" — used as the handshake identifier
         "ID Presensi": {
           title: [{ text: { content: handshakeId } }],
         },
-        // Relation back to the Rapat (meeting) page
         "Rapat Terkait": {
           relation: [{ id: meetingId }],
         },
-        // Relation back to the SDM/person page
         Peserta: {
           relation: [{ id: attendeeId }],
         },
-        // Default status
         "Status Kehadiran": {
           status: { name: "Belum Hadir" },
         },
-        // Pre-fill arrival time with the meeting's scheduled time
         ...(meetingJadwal
           ? {
               "Waktu Kedatangan": {
@@ -300,7 +354,6 @@ async function syncAttendee(
 
 /**
  * Bulk sync: Loops through ALL meetings in the Rapat database
- * and ensures every attendee has a Presensi record.
  */
 async function handleBulkSync() {
   try {
@@ -319,7 +372,6 @@ async function handleBulkSync() {
       throw new Error("Could not resolve data sources for bulk sync");
     }
 
-    // 1. Fetch all meetings (paginated)
     let cursor: string | undefined;
     const meetings: any[] = [];
     do {
@@ -335,10 +387,8 @@ async function handleBulkSync() {
 
     const overallResults: any[] = [];
 
-    // 2. Process each meeting
     for (const meeting of meetings) {
       const meetingId = meeting.id;
-      // Get meeting name for logging
       const meetingTitleProp = Object.values(meeting.properties).find(
         (p: any) => p.type === "title",
       ) as any;
@@ -391,8 +441,6 @@ async function syncMeetingAttendees(
   meetingJadwal?: string,
 ) {
   try {
-    // 1. Fetch ALL current records for this meeting in Rekam Presensi DB
-    // Use the relation property to find all records linked to this meeting
     const existingRecordsResponse = await (notion as any).dataSources.query({
       data_source_id: presensiDataSourceId,
       filter: {
@@ -402,11 +450,8 @@ async function syncMeetingAttendees(
     });
 
     const existingRecords = existingRecordsResponse.results;
-
-    // Map existing records to Peserta IDs (attendeeId -> pageId)
     const existingAttendeeMap = new Map();
     existingRecords.forEach((page: any) => {
-      // Find the "Peserta" relation property
       const attendeeRel = page.properties["Peserta"]?.relation?.[0]?.id;
       if (attendeeRel) {
         existingAttendeeMap.set(attendeeRel, page.id);
@@ -415,7 +460,6 @@ async function syncMeetingAttendees(
 
     const results: any[] = [];
 
-    // 2. Addition Sync: Add missing attendees
     for (const attendeeId of targetAttendeeIds) {
       if (!existingAttendeeMap.has(attendeeId)) {
         const result = await syncAttendee(
@@ -436,7 +480,6 @@ async function syncMeetingAttendees(
       }
     }
 
-    // 3. Removal Sync: Archive records that are no longer in the invitation list
     for (const [attendeeId, pageId] of existingAttendeeMap.entries()) {
       if (!targetAttendeeIds.includes(attendeeId)) {
         try {
