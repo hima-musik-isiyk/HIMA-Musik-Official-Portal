@@ -5,6 +5,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getNotionClient } from "@/lib/notion";
+import { handleNotionRoomWebhook } from "@/lib/notion-room/webhook";
 
 export const runtime = "nodejs";
 
@@ -334,9 +335,8 @@ export async function GET() {
   return NextResponse.json({ ok: true });
 }
 
-export async function POST(_request: NextRequest) {
-  // Disabled: User only wants the sync presensi for now
-  return NextResponse.json({ ok: true });
+export async function POST(request: NextRequest) {
+  return handleNotionRoomWebhook(request);
 
   /*
   const rawBody = await request.text();
