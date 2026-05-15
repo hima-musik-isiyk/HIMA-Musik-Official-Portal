@@ -1142,7 +1142,6 @@ function PostCell({
   onAddCarousel,
   onDelete,
   onDownload,
-  _onCanvaLink,
   onIndexChange,
 }: {
   item: InstagramGridItem;
