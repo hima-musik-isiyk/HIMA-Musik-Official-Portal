@@ -6,7 +6,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const CACHE_DIR = path.join(process.cwd(), ".next", "cache", "notion-images");
+const CACHE_DIR = path.join(
+  /*turbopackIgnore: true*/ process.cwd(),
+  ".next",
+  "cache",
+  "notion-images",
+);
 const MAX_FILE_AGE_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 
 function hashKey(value: string): string {
