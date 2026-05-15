@@ -58,6 +58,7 @@ type RoomStore = {
 
 const pageIdPattern =
   /^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const roomsCacheKey = "notion-secret-page.rooms";
 
 const typeIcons: Record<
   NotionRoomPageType,
@@ -108,6 +109,21 @@ function getRoomSlug(room: Pick<NotionRoom, "id" | "name">) {
   return slug || room.id;
 }
 
+function readCachedRooms() {
+  try {
+    const raw = localStorage.getItem(roomsCacheKey);
+    if (!raw) return [];
+    const cached = JSON.parse(raw) as NotionRoom[];
+    return Array.isArray(cached) ? cached : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedRooms(rooms: NotionRoom[]) {
+  localStorage.setItem(roomsCacheKey, JSON.stringify(rooms));
+}
+
 export default function NotionSecretPage() {
   const params = useParams<{ slug?: string }>();
   const router = useRouter();
@@ -128,12 +144,17 @@ export default function NotionSecretPage() {
   const [roomInput, setRoomInput] = useState("");
   const [roomNameInput, setRoomNameInput] = useState("");
   const [rooms, setRooms] = useState<NotionRoom[]>([]);
+  const [roomsHydrated, setRoomsHydrated] = useState(false);
+  const [roomSkeletonCount, setRoomSkeletonCount] = useState(3);
+  const [currentRoomName, setCurrentRoomName] = useState("");
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [isLoadingPages, setIsLoadingPages] = useState(false);
+  const [hasLoadedCurrentRoomPages, setHasLoadedCurrentRoomPages] =
+    useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
   const [creatingType, setCreatingType] = useState<NotionRoomPageType | null>(
     null,
@@ -143,6 +164,7 @@ export default function NotionSecretPage() {
   const roomsChannelRef = useRef<RealtimeChannel | null>(null);
   const selectedPageIdsRef = useRef<string[]>([]);
   const hasOpenedRouteRoomRef = useRef(false);
+  const isNavigatingToRoomRef = useRef(false);
 
   const selectedPages = useMemo(
     () =>
@@ -154,16 +176,36 @@ export default function NotionSecretPage() {
     [currentRoomId, rooms],
   );
   const routeSlug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+  const showRoomSkeletons =
+    (!roomsHydrated || isLoadingRooms) && rooms.length === 0;
+  const showPageSkeletons =
+    isLoadingPages &&
+    !hasLoadedCurrentRoomPages &&
+    chronologicalPages.length === 0;
+  const shouldShowRoom =
+    Boolean(currentRoomId) &&
+    (Boolean(routeSlug) || isNavigatingToRoomRef.current);
 
   useEffect(() => {
     selectedPageIdsRef.current = selectedPageIds;
   }, [selectedPageIds]);
 
   useEffect(() => {
+    if (currentRoom?.name) setCurrentRoomName(currentRoom.name);
+  }, [currentRoom?.name]);
+
+  useEffect(() => {
     const storedName =
       localStorage.getItem("notion-room-display-name") ?? "Operator";
     setNameInput(storedName);
     setDisplayName(storedName);
+
+    const cachedRooms = readCachedRooms();
+    if (cachedRooms.length > 0) {
+      setRooms(cachedRooms);
+      setRoomSkeletonCount(cachedRooms.length);
+    }
+    setRoomsHydrated(true);
   }, [setDisplayName]);
 
   const loadRooms = useCallback(async () => {
@@ -173,7 +215,10 @@ export default function NotionSecretPage() {
       const response = await fetch("/api/notion/rooms");
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Failed to load rooms");
-      setRooms(data.rooms ?? []);
+      const nextRooms = data.rooms ?? [];
+      setRooms(nextRooms);
+      setRoomSkeletonCount(Math.max(nextRooms.length, 1));
+      writeCachedRooms(nextRooms);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Failed to load rooms",
@@ -191,10 +236,15 @@ export default function NotionSecretPage() {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? "Failed to save room");
-    setRooms((current) => [
-      data.room,
-      ...current.filter((room) => room.id !== data.room.id),
-    ]);
+    setRooms((current) => {
+      const nextRooms = [
+        data.room,
+        ...current.filter((room) => room.id !== data.room.id),
+      ];
+      setRoomSkeletonCount(Math.max(nextRooms.length, 1));
+      writeCachedRooms(nextRooms);
+      return nextRooms;
+    });
     return data.room as NotionRoom;
   }, []);
 
@@ -238,6 +288,7 @@ export default function NotionSecretPage() {
   const loadPages = useCallback(
     async (roomId: string, quiet = false) => {
       setIsLoadingPages(true);
+      if (!quiet) setHasLoadedCurrentRoomPages(false);
       setError("");
       try {
         const response = await fetch(
@@ -250,6 +301,7 @@ export default function NotionSecretPage() {
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "Failed to load");
       } finally {
+        if (!quiet) setHasLoadedCurrentRoomPages(true);
         setIsLoadingPages(false);
       }
     },
@@ -336,10 +388,16 @@ export default function NotionSecretPage() {
         return;
       }
 
+      isNavigatingToRoomRef.current = updateUrl;
+      setCurrentRoomName(
+        name?.trim() || `Room ${normalizedRoomId.slice(0, 6)}`,
+      );
+      setHasLoadedCurrentRoomPages(false);
       setCurrentRoomId(normalizedRoomId);
       setSelectedPageIds([]);
       try {
         const room = await saveRoom(normalizedRoomId, name);
+        setCurrentRoomName(room.name);
         if (updateUrl) {
           router.push(`/notion-secret-page/${getRoomSlug(room)}`);
         }
@@ -359,6 +417,22 @@ export default function NotionSecretPage() {
     },
     [loadPages, router, saveRoom, setCurrentRoomId, setSelectedPageIds],
   );
+
+  useEffect(() => {
+    if (routeSlug) {
+      isNavigatingToRoomRef.current = false;
+      return;
+    }
+    if (!currentRoomId || isNavigatingToRoomRef.current) return;
+
+    resetRoom();
+    setCurrentRoomName("");
+    setHasLoadedCurrentRoomPages(false);
+    setPeers({});
+    setStatus("");
+    setError("");
+    hasOpenedRouteRoomRef.current = false;
+  }, [currentRoomId, resetRoom, routeSlug]);
 
   useEffect(() => {
     if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
@@ -462,6 +536,8 @@ export default function NotionSecretPage() {
 
   function leaveRoom() {
     resetRoom();
+    setCurrentRoomName("");
+    setHasLoadedCurrentRoomPages(false);
     setRoomInput("");
     setRoomNameInput("");
     setPeers({});
@@ -472,7 +548,7 @@ export default function NotionSecretPage() {
     window.scrollTo({ top: 0 });
   }
 
-  if (!currentRoomId) {
+  if (!shouldShowRoom) {
     return (
       <section className="relative min-h-[calc(100svh-5rem)] overflow-hidden border-b border-white/5 px-6 py-16 md:px-10 lg:px-16">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_10%,rgba(255,101,1,0.12),transparent_32%),radial-gradient(circle_at_20%_80%,rgba(120,113,108,0.18),transparent_30%)]" />
@@ -570,6 +646,19 @@ export default function NotionSecretPage() {
           ) : null}
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {showRoomSkeletons
+              ? Array.from({ length: roomSkeletonCount }).map((_, index) => (
+                  <div
+                    key={`room-skeleton-${index}`}
+                    className="min-h-56 animate-pulse border border-white/5 bg-stone-950/20 p-6"
+                  >
+                    <div className="mb-5 h-3 w-16 bg-stone-800/80" />
+                    <div className="h-8 w-3/4 bg-stone-800/70" />
+                    <div className="mt-7 h-3 w-full bg-stone-900" />
+                    <div className="mt-3 h-3 w-2/3 bg-stone-900" />
+                  </div>
+                ))
+              : null}
             {rooms.map((room) => (
               <button
                 key={room.id}
@@ -624,7 +713,7 @@ export default function NotionSecretPage() {
                 </span>
               </div>
               <h1 className="font-serif text-4xl text-white md:text-6xl">
-                {currentRoom?.name ?? "Context Assembly"}
+                {currentRoomName}
               </h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -689,6 +778,20 @@ export default function NotionSecretPage() {
           </div>
 
           <div className="space-y-3">
+            {showPageSkeletons
+              ? Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`page-skeleton-${index}`}
+                    className="grid animate-pulse grid-cols-[2rem_minmax(0,1fr)] gap-4 border border-white/5 bg-stone-950/20 p-5"
+                  >
+                    <div className="mt-1 h-5 w-5 border border-stone-800 bg-stone-900/70" />
+                    <div className="min-w-0">
+                      <div className="h-6 w-2/3 bg-stone-800/80" />
+                      <div className="mt-3 h-4 w-1/2 bg-stone-900" />
+                    </div>
+                  </div>
+                ))
+              : null}
             {chronologicalPages.map((page) => {
               const checked = selectedPageIds.includes(page.id);
               const isTemp = page.id.startsWith("temp-");
@@ -730,7 +833,7 @@ export default function NotionSecretPage() {
                 </button>
               );
             })}
-            {chronologicalPages.length === 0 ? (
+            {hasLoadedCurrentRoomPages && chronologicalPages.length === 0 ? (
               <div className="border border-white/5 bg-stone-950/20 p-8 text-stone-500">
                 No child pages found. Create first block from action panel.
               </div>
