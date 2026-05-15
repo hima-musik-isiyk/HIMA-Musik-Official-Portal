@@ -304,7 +304,7 @@ async def migrate(args):
                 
                 topic_id = str(msg.get("topic_id"))
                 webhook_key = TOPIC_MAP.get(topic_id)
-                webhook_url = WEBHOOKS.get(webhook_key)
+                webhook_url = WEBHOOKS[webhook_key] if (webhook_key and webhook_key in WEBHOOKS) else None
 
                 # Fallback to yapping channel if no destination mapped or url is None
                 if not webhook_url:

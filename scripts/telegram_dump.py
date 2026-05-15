@@ -114,9 +114,10 @@ def safe_filename(value: str) -> str:
 
 
 def media_meta(message: Any) -> dict[str, Any] | None:
-    if not message.media:
+    media_obj = getattr(message, "media", None)
+    if not media_obj:
         return None
-    media_type = type(message.media).__name__
+    media_type = type(media_obj).__name__
     file_obj = getattr(message, "file", None)
     return {
         "type": media_type,
@@ -131,16 +132,16 @@ def media_meta(message: Any) -> dict[str, Any] | None:
 
 
 async def download_media(message: Any, out_dir: Path, topic_id: str, timeout: int) -> str | None:
-    if not message.media:
+    media_obj = getattr(message, "media", None)
+    if not media_obj:
         return None
-    media_type = type(message.media).__name__
+    media_type = type(media_obj).__name__
     if media_type not in {"MessageMediaPhoto", "MessageMediaDocument"}:
         return None
 
     file_obj = getattr(message, "file", None)
     original_name = getattr(file_obj, "name", None) if file_obj else None
     ext = getattr(file_obj, "ext", None) if file_obj else None
-    media_type = type(message.media).__name__
 
     if original_name:
         filename = f"{message.id}_{safe_filename(original_name)}"
@@ -155,7 +156,7 @@ async def download_media(message: Any, out_dir: Path, topic_id: str, timeout: in
         return str(target)
 
     try:
-        downloaded = await asyncio.wait_for(message.download_media(file=str(target)), timeout=timeout)
+        downloaded = await asyncio.wait_for(getattr(message, "download_media")(file=str(target)), timeout=timeout)
     except Exception:
         if target.exists():
             target.unlink()
@@ -191,7 +192,7 @@ async def message_to_row(
         "reply_to_msg_id": reply_to.reply_to_msg_id if reply_to else None,
         "reply_to_top_id": reply_to.reply_to_top_id if reply_to else None,
         "text": message.message,
-        "has_media": bool(message.media),
+        "has_media": bool(getattr(message, "media", None)),
         "media_type": media["type"] if media else None,
         "media": media,
         "action": action_to_dict(message.action),
@@ -259,7 +260,8 @@ async def download_media_manifest(
             else:
                 try:
                     message = await client.get_messages(chat_id, ids=row["message_id"])
-                    if not message or not message.media:
+                    media_obj = getattr(message, "media", None)
+                    if not message or not media_obj:
                         error = "Missing media from Telegram"
                     else:
                         local_path = await download_media(
@@ -378,9 +380,9 @@ def parse_args() -> argparse.Namespace:
 
 async def main() -> None:
     try:
-        from dotenv import load_dotenv
+        from dotenv import load_dotenv  # type: ignore
         load_dotenv(".env.local")
-    except ImportError:
+    except Exception:
         env_path = Path(".env.local")
         if env_path.exists():
             for line in env_path.read_text(encoding="utf-8").splitlines():
@@ -408,11 +410,21 @@ async def main() -> None:
     max_existing_id = max(existing_ids, default=0)
 
     client = TelegramClient(args.session, api_id, api_hash)
-    await client.start(
-        phone=os.environ.get("TG_PHONE"),
-        code_callback=(lambda: os.environ["TG_CODE"]) if os.environ.get("TG_CODE") else None,
-        password=(lambda: os.environ["TG_PASSWORD"]) if os.environ.get("TG_PASSWORD") else None,
-    )
+    await client.connect()
+    # Ensure session is authorized; attempt non-interactive sign-in if env vars provided
+    if not await client.is_user_authorized():
+        phone = os.environ.get("TG_PHONE")
+        code = os.environ.get("TG_CODE")
+        password = os.environ.get("TG_PASSWORD")
+        if phone and code:
+            try:
+                await client.sign_in(phone, code)
+            except Exception as e:
+                print(f"Login failed: {e}")
+                return
+        else:
+            print("Session not authorized. Provide TG_PHONE and TG_CODE to sign in or run interactively.")
+            return
 
     fetch_kwargs: dict[str, Any] = {"limit": args.limit}
     if existing_ids and not args.full:

@@ -107,7 +107,14 @@ async def main():
         await asyncio.sleep(0.5)
 
     print(f"Finished. Found {new_found} new avatars.")
-    await client.disconnect()
+    # Telethon's disconnect may be synchronous in some versions; call without await
+    try:
+        await client.disconnect()
+    except TypeError:
+        try:
+            client.disconnect()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     asyncio.run(main())
