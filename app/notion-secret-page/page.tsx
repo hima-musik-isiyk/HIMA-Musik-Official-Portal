@@ -18,6 +18,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import {
   type ComponentType,
   useCallback,
@@ -97,7 +98,19 @@ function getSupabaseClient() {
   return createClient(url, key);
 }
 
+function getRoomSlug(room: Pick<NotionRoom, "id" | "name">) {
+  const slug = room.name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || room.id;
+}
+
 export default function NotionSecretPage() {
+  const params = useParams<{ slug?: string }>();
+  const router = useRouter();
   const {
     displayName,
     currentRoomId,
@@ -129,12 +142,18 @@ export default function NotionSecretPage() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const roomsChannelRef = useRef<RealtimeChannel | null>(null);
   const selectedPageIdsRef = useRef<string[]>([]);
+  const hasOpenedRouteRoomRef = useRef(false);
 
   const selectedPages = useMemo(
     () =>
       chronologicalPages.filter((page) => selectedPageIds.includes(page.id)),
     [chronologicalPages, selectedPageIds],
   );
+  const currentRoom = useMemo(
+    () => rooms.find((room) => room.id === currentRoomId),
+    [currentRoomId, rooms],
+  );
+  const routeSlug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   useEffect(() => {
     selectedPageIdsRef.current = selectedPageIds;
@@ -309,31 +328,48 @@ export default function NotionSecretPage() {
     void channel.send({ type: "broadcast", event: "selection", payload });
   }, [displayName, selectedPageIds]);
 
-  async function openRoom(roomId: string, name?: string) {
-    const normalizedRoomId = extractNotionPageId(roomId);
-    if (!isValidPageId(roomId)) {
-      setError("Paste a Notion page URL or 32-character page ID.");
-      return;
-    }
+  const openRoom = useCallback(
+    async (roomId: string, name?: string, updateUrl = true) => {
+      const normalizedRoomId = extractNotionPageId(roomId);
+      if (!isValidPageId(roomId)) {
+        setError("Paste a Notion page URL or 32-character page ID.");
+        return;
+      }
 
-    setCurrentRoomId(normalizedRoomId);
-    setSelectedPageIds([]);
-    try {
-      await saveRoom(normalizedRoomId, name);
-      void roomsChannelRef.current?.send({
-        type: "broadcast",
-        event: "rooms-refresh",
-        payload: { roomId: normalizedRoomId },
-      });
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Failed to save room",
-      );
-      return;
-    }
-    window.scrollTo({ top: 0 });
-    await loadPages(normalizedRoomId);
-  }
+      setCurrentRoomId(normalizedRoomId);
+      setSelectedPageIds([]);
+      try {
+        const room = await saveRoom(normalizedRoomId, name);
+        if (updateUrl) {
+          router.push(`/notion-secret-page/${getRoomSlug(room)}`);
+        }
+        void roomsChannelRef.current?.send({
+          type: "broadcast",
+          event: "rooms-refresh",
+          payload: { roomId: normalizedRoomId },
+        });
+      } catch (caught) {
+        setError(
+          caught instanceof Error ? caught.message : "Failed to save room",
+        );
+        return;
+      }
+      window.scrollTo({ top: 0 });
+      await loadPages(normalizedRoomId);
+    },
+    [loadPages, router, saveRoom, setCurrentRoomId, setSelectedPageIds],
+  );
+
+  useEffect(() => {
+    if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
+    const matchedRoom = rooms.find(
+      (room) => getRoomSlug(room) === routeSlug || room.id === routeSlug,
+    );
+    if (!matchedRoom) return;
+
+    hasOpenedRouteRoomRef.current = true;
+    void openRoom(matchedRoom.id, matchedRoom.name, false);
+  }, [currentRoomId, openRoom, rooms, routeSlug]);
 
   async function addRoom(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -431,6 +467,8 @@ export default function NotionSecretPage() {
     setPeers({});
     setStatus("");
     setError("");
+    hasOpenedRouteRoomRef.current = false;
+    router.push("/notion-secret-page");
     window.scrollTo({ top: 0 });
   }
 
@@ -586,7 +624,7 @@ export default function NotionSecretPage() {
                 </span>
               </div>
               <h1 className="font-serif text-4xl text-white md:text-6xl">
-                Context Assembly
+                {currentRoom?.name ?? "Context Assembly"}
               </h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -692,7 +730,7 @@ export default function NotionSecretPage() {
                 </button>
               );
             })}
-            {!isLoadingPages && chronologicalPages.length === 0 ? (
+            {chronologicalPages.length === 0 ? (
               <div className="border border-white/5 bg-stone-950/20 p-8 text-stone-500">
                 No child pages found. Create first block from action panel.
               </div>
