@@ -11,10 +11,11 @@ import {
   Plus,
   RefreshCw,
   Trash2,
-  Upload,
   X,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 function useCarouselScroll(
   scrollRef: React.RefObject<HTMLDivElement | null>,
@@ -127,6 +128,8 @@ type InstagramGridItem = {
   sourceNames: string[];
   originalTypes: string[];
   frames: InstagramFrame[];
+  sourceType?: "manual" | "canva";
+  canvaLink?: string;
 };
 
 type InstagramManifest = {
@@ -190,14 +193,14 @@ function fileStem(name: string) {
 function getRows(items: InstagramGridItem[]) {
   if (!items.length) return [0];
 
-  const minRow = Math.min(...items.map((item) => item.row));
-  const maxRow = Math.max(...items.map((item) => item.row));
-  const startRow = minRow - 1;
-  const endRow = maxRow + 1;
-  const rows: number[] = [];
+  const existingRows = Array.from(new Set(items.map((item) => item.row))).sort(
+    (a, b) => a - b,
+  );
 
-  for (let row = startRow; row <= endRow; row += 1) rows.push(row);
-  return rows;
+  const minRow = existingRows[0];
+  const maxRow = existingRows[existingRows.length - 1];
+
+  return [minRow - 1, ...existingRows, maxRow + 1];
 }
 
 async function loadBitmap(file: File) {
@@ -403,6 +406,7 @@ export default function InstagramSecretPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [loadingCells, setLoadingCells] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const itemMap = useMemo(() => {
@@ -463,6 +467,98 @@ export default function InstagramSecretPage() {
     inputRef.current?.click();
   }
 
+  async function handleCanvaLink(
+    url: string,
+    manualTarget?: GridTarget,
+    customPages?: { kiri?: string; tengah?: string; kanan?: string },
+  ) {
+    const activeTarget = manualTarget || target;
+    if (!url || !activeTarget) return;
+
+    setError("");
+
+    if (activeTarget.column === -1) {
+      const row = activeTarget.row;
+      const columnsToFetch = [0, 1, 2];
+
+      setLoadingCells(
+        (prev) => new Set([...prev, `${row}:0`, `${row}:1`, `${row}:2`]),
+      );
+
+      for (const col of columnsToFetch) {
+        try {
+          const payload: Record<string, unknown> = {
+            id: undefined,
+            row,
+            column: col,
+            canvaLink: url,
+            customPages,
+            splitColumns: 3,
+          };
+
+          const formData = new FormData();
+          formData.set("payload", JSON.stringify(payload));
+
+          const response = await fetch(apiPath, {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+
+          if (!response.ok)
+            throw new Error(data.error ?? "Canva fetch failed.");
+          setManifest(normalizeManifest(data.manifest));
+          if (data.item?.id)
+            setActiveFrame((state) => ({ ...state, [data.item.id]: 0 }));
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Canva fetch failed.");
+        } finally {
+          setLoadingCells((prev) => {
+            const next = new Set(prev);
+            next.delete(`${row}:${col}`);
+            return next;
+          });
+        }
+      }
+      setTarget(null);
+      return;
+    }
+
+    setBusy("Fetching Canva");
+    try {
+      const payload: Record<string, unknown> = {
+        id: activeTarget.itemId,
+        row: activeTarget.row,
+        column: activeTarget.column,
+        canvaLink: url,
+      };
+      if (customPages) payload.customPages = customPages;
+
+      const formData = new FormData();
+      formData.set("payload", JSON.stringify(payload));
+
+      const response = await fetch(apiPath, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error ?? "Canva fetch failed.");
+      setManifest(normalizeManifest(data.manifest));
+      if (data.item?.id)
+        setActiveFrame((state) => ({ ...state, [data.item.id]: 0 }));
+    } catch (canvaError) {
+      setError(
+        canvaError instanceof Error
+          ? canvaError.message
+          : "Canva fetch failed.",
+      );
+    } finally {
+      setBusy("");
+      setTarget(null);
+    }
+  }
+
   async function handleUpload(files: FileList | null) {
     if (!files || !target) return;
 
@@ -509,6 +605,7 @@ export default function InstagramSecretPage() {
   }
 
   async function handleDelete(item: InstagramGridItem) {
+    if (!window.confirm("Are you sure you want to delete this cell?")) return;
     setBusy("Deleting");
     setError("");
 
@@ -525,6 +622,33 @@ export default function InstagramSecretPage() {
     } catch (deleteError) {
       setError(
         deleteError instanceof Error ? deleteError.message : "Delete failed.",
+      );
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function handleDeleteRow(row: number) {
+    if (!window.confirm("Are you sure you want to delete this entire row?"))
+      return;
+    setBusy("Deleting row");
+    setError("");
+
+    try {
+      const response = await fetch(apiPath, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ row }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error ?? "Delete row failed.");
+      setManifest(normalizeManifest(data.manifest));
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Delete row failed.",
       );
     } finally {
       setBusy("");
@@ -610,62 +734,183 @@ export default function InstagramSecretPage() {
         </header>
 
         {(busy || error) && (
-          <div className="flex items-center justify-between gap-3 border border-white/10 bg-white/4 px-4 py-3 text-sm">
-            <span className={error ? "text-red-300" : "text-neutral-300"}>
-              {error || busy}
-            </span>
-            {busy && (
-              <Loader2 className="size-4 animate-spin text-neutral-500" />
+          <div
+            className={`flex items-center justify-between gap-3 border px-4 py-3 text-sm transition-all duration-300 ${
+              error
+                ? "border-red-500/50 bg-red-500/10 text-red-200"
+                : "border-blue-500/50 bg-blue-500/10 text-blue-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {busy && <Loader2 className="size-4 animate-spin" />}
+              <span>{error || busy}</span>
+            </div>
+            {error && (
+              <button
+                onClick={() => setError("")}
+                className="text-neutral-500 hover:text-white"
+              >
+                <X className="size-4" />
+              </button>
             )}
           </div>
         )}
 
         <div className="mx-auto w-full" style={{ maxWidth: "935px" }}>
-          <div className="grid grid-cols-3 gap-px bg-black">
-            {rows.flatMap((row) =>
-              [0, 1, 2].map((column) => {
-                const item = row >= 0 ? itemMap.get(`${row}:${column}`) : null;
+          <div className="grid grid-cols-3 gap-px bg-black shadow-2xl">
+            {rows.flatMap((row) => {
+              const hasRowItem = [0, 1, 2].some((col) =>
+                itemMap.has(`${row}:${col}`),
+              );
 
-                return item ? (
-                  <PostCell
-                    key={item.id}
-                    item={item}
-                    activeIndex={activeFrame[item.id] ?? 0}
-                    onOpenPreview={() => openPreview(item)}
-                    onEdit={() =>
-                      openImporter({
-                        row: item.row,
-                        column: item.column,
-                        itemId: item.id,
-                      })
-                    }
-                    onAddCarousel={() =>
-                      openImporter({
-                        row: item.row,
-                        column: item.column,
-                        itemId: item.id,
-                      })
-                    }
-                    onDelete={() => void handleDelete(item)}
-                    onDownload={() => void downloadItem(item)}
-                    onIndexChange={(index) =>
-                      setActiveFrame((state) => ({
-                        ...state,
-                        [item.id]: index,
-                      }))
-                    }
-                  />
-                ) : (
-                  <PlaceholderCell
-                    key={`${row}:${column}`}
-                    row={row}
-                    column={column}
-                    disabled={Boolean(busy)}
-                    onClick={() => openImporter({ row, column })}
-                  />
+              return [0, 1, 2].map((column) => {
+                const item = itemMap.get(`${row}:${column}`);
+                const isCellLoading = loadingCells.has(`${row}:${column}`);
+
+                return (
+                  <div key={`${row}:${column}`} className="relative">
+                    {isCellLoading && (
+                      <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-2 text-blue-400">
+                          <Loader2 className="size-6 animate-spin" />
+                          <span className="text-[10px] font-bold tracking-widest text-white uppercase">
+                            Fetching
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {item ? (
+                      <PostCell
+                        item={item}
+                        activeIndex={activeFrame[item.id] ?? 0}
+                        onOpenPreview={() => openPreview(item)}
+                        onEdit={() =>
+                          openImporter({
+                            row: item.row,
+                            column: item.column,
+                            itemId: item.id,
+                          })
+                        }
+                        onAddCarousel={() =>
+                          openImporter({
+                            row: item.row,
+                            column: item.column,
+                            itemId: item.id,
+                          })
+                        }
+                        onDelete={() => void handleDelete(item)}
+                        onDownload={() => void downloadItem(item)}
+                        onIndexChange={(index) =>
+                          setActiveFrame((state) => ({
+                            ...state,
+                            [item.id]: index,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <PlaceholderCell
+                        row={row}
+                        column={column}
+                        disabled={Boolean(busy)}
+                        onUpload={() => openImporter({ row, column })}
+                      />
+                    )}
+
+                    {/* Row-level Canva button (only on first column of empty rows) */}
+                    {column === 2 && !hasRowItem && (
+                      <div className="absolute top-1/2 left-full z-50 ml-4 -translate-y-1/2">
+                        <RowCanvaButton
+                          busy={Boolean(busy)}
+                          onFetch={(url, customPages) => {
+                            const t = { row, column: -1 };
+                            setTarget(t);
+                            void handleCanvaLink(url, t, customPages);
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Delete Row button (on last column of non-empty rows) */}
+                    {column === 2 && hasRowItem && (
+                      <div className="absolute top-1/2 left-full z-50 ml-4 -translate-y-1/2">
+                        <button
+                          type="button"
+                          disabled={Boolean(busy)}
+                          onClick={() => void handleDeleteRow(row)}
+                          className="flex size-11 flex-col items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 shadow-lg shadow-red-500/10 backdrop-blur transition hover:scale-110 hover:bg-red-500 hover:text-white disabled:cursor-wait disabled:opacity-50"
+                        >
+                          {busy ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-4 fill-current" />
+                          )}
+                          <span className="text-[7px] font-bold uppercase">
+                            Row
+                          </span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Row Source Indicator */}
+                    {column === 0 && hasRowItem && (
+                      <div className="absolute top-1/2 right-full z-40 mr-4 -translate-y-1/2">
+                        {(() => {
+                          const isCanva = [0, 1, 2].some(
+                            (c) =>
+                              itemMap.get(`${row}:${c}`)?.sourceType ===
+                              "canva",
+                          );
+                          const tagContent = (
+                            <div
+                              className={`flex items-center justify-center gap-2 rounded-lg border border-white/10 px-2 py-4 text-[9px] font-bold tracking-widest whitespace-nowrap uppercase shadow-xl backdrop-blur-md transition-all ${isCanva ? "cursor-pointer bg-neutral-900/90 text-blue-400 hover:scale-105 hover:bg-neutral-800 hover:shadow-blue-500/20" : "bg-neutral-900/90 text-neutral-400"}`}
+                              style={{
+                                writingMode: "vertical-rl",
+                                transform: "rotate(180deg)",
+                              }}
+                            >
+                              {isCanva ? (
+                                <>
+                                  <Zap className="size-3 rotate-90 fill-current" />{" "}
+                                  Canva Tap
+                                </>
+                              ) : (
+                                <>
+                                  <Layers className="size-3 rotate-90" /> Manual
+                                </>
+                              )}
+                            </div>
+                          );
+
+                          if (isCanva) {
+                            const canvaLink =
+                              [0, 1, 2]
+                                .map(
+                                  (c) => itemMap.get(`${row}:${c}`)?.canvaLink,
+                                )
+                                .find(Boolean) || "";
+                            return (
+                              <RowCanvaButton
+                                busy={Boolean(busy)}
+                                defaultUrl={canvaLink}
+                                trigger={tagContent}
+                                onFetch={(url, customPages) => {
+                                  const t = { row, column: -1 };
+                                  setTarget(t);
+                                  void handleCanvaLink(url, t, customPages);
+                                }}
+                              />
+                            );
+                          }
+
+                          return tagContent;
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 );
-              }),
-            )}
+              });
+            })}
           </div>
         </div>
       </div>
@@ -707,33 +952,185 @@ function PlaceholderCell({
   row,
   column,
   disabled,
-  onClick,
+  onUpload,
 }: {
   row: number;
   column: number;
   disabled: boolean;
-  onClick: () => void;
+  onUpload: () => void;
 }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="group relative aspect-3/4 overflow-hidden bg-[#121212] text-neutral-500 transition hover:bg-[#1a1a1a] hover:text-neutral-200 disabled:cursor-wait disabled:opacity-60"
-    >
-      <span className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-        <span className="grid size-10 place-items-center rounded-full border border-white/15 bg-black/35 transition group-hover:border-white/35">
-          <Plus className="size-5" />
-        </span>
-        <span className="inline-flex items-center gap-2 text-[11px] font-medium tracking-[0.08em] uppercase">
-          <Upload className="size-3.5" />
-          Import
-        </span>
-        <span className="text-[10px] text-neutral-600">
+    <div className="group relative aspect-3/4 overflow-hidden bg-[#121212] transition hover:bg-[#1a1a1a]">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+        <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onUpload}
+            className="grid size-12 place-items-center rounded-full border border-white/15 bg-black/35 text-neutral-400 transition hover:border-white/35 hover:text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            <Plus className="size-6" />
+          </button>
+          <span className="text-[11px] font-medium tracking-[0.08em] text-neutral-500 uppercase">
+            Import
+          </span>
+        </div>
+
+        <span className="absolute bottom-3 text-[10px] text-neutral-700">
           {row + 1}:{column + 1}
         </span>
-      </span>
-    </button>
+      </div>
+    </div>
+  );
+}
+
+function RowCanvaButton({
+  busy,
+  onFetch,
+  trigger,
+  defaultUrl,
+}: {
+  busy: boolean;
+  onFetch: (
+    url: string,
+    customPages?: { kiri: string; tengah: string; kanan: string },
+  ) => void;
+  trigger?: React.ReactNode;
+  defaultUrl?: string;
+}) {
+  const [isLinking, setIsLinking] = useState(false);
+  const [url, setUrl] = useState(defaultUrl || "");
+  const [pages, setPages] = useState({ kiri: "1", tengah: "2", kanan: "3" });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (defaultUrl) setUrl(defaultUrl);
+  }, [defaultUrl]);
+
+  useEffect(() => {
+    if (!isLinking) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsLinking(false);
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isLinking]);
+
+  return (
+    <>
+      {trigger ? (
+        <div onClick={() => setIsLinking(true)}>{trigger}</div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setIsLinking(true)}
+          className="flex size-11 flex-col items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 shadow-lg shadow-blue-500/10 backdrop-blur transition hover:scale-110 hover:bg-blue-500 hover:text-white disabled:cursor-wait disabled:opacity-50"
+        >
+          {busy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Zap className="size-4 fill-current" />
+          )}
+          <span className="text-[7px] font-bold uppercase">Row</span>
+        </button>
+      )}
+
+      {mounted &&
+        isLinking &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setIsLinking(false)}
+          >
+            <div
+              className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-white/10 bg-neutral-900/95 p-5 shadow-2xl backdrop-blur-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white">
+                  Import Row via Canva
+                </h3>
+                <button
+                  onClick={() => setIsLinking(false)}
+                  className="text-neutral-400 transition hover:text-white"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              <div className="mt-2 flex flex-col gap-1.5">
+                <label className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                  Canva Link
+                </label>
+                <input
+                  autoFocus
+                  placeholder="Paste link..."
+                  className="w-full rounded border border-white/10 bg-black/50 px-3 py-2 text-xs text-white transition outline-none placeholder:text-neutral-600 focus:border-white/30"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                  Target Pages
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="mb-1 block text-[10px] text-neutral-400">
+                      Kiri
+                    </label>
+                    <input
+                      value={pages.kiri}
+                      onChange={(e) =>
+                        setPages({ ...pages, kiri: e.target.value })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-center text-xs text-white focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-neutral-400">
+                      Tengah
+                    </label>
+                    <input
+                      value={pages.tengah}
+                      onChange={(e) =>
+                        setPages({ ...pages, tengah: e.target.value })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-center text-xs text-white focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[10px] text-neutral-400">
+                      Kanan
+                    </label>
+                    <input
+                      value={pages.kanan}
+                      onChange={(e) =>
+                        setPages({ ...pages, kanan: e.target.value })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-center text-xs text-white focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  onFetch(url, pages);
+                  setIsLinking(false);
+                }}
+                className="mt-2 w-full rounded bg-blue-600 py-2 text-xs font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-500"
+              >
+                Fetch Row
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -745,6 +1142,7 @@ function PostCell({
   onAddCarousel,
   onDelete,
   onDownload,
+  _onCanvaLink,
   onIndexChange,
 }: {
   item: InstagramGridItem;
@@ -984,12 +1382,14 @@ function PreviewModal({
       <div
         className="relative flex h-full w-full items-center justify-center"
         style={{ maxWidth: "1080px" }}
-        onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           className="absolute top-3 right-3 z-20 grid size-10 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black"
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           aria-label="Close preview"
         >
           <X className="size-5" />
@@ -1000,7 +1400,10 @@ function PreviewModal({
             <button
               type="button"
               className="absolute left-3 z-20 grid size-11 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-black/70 disabled:hover:text-white"
-              onClick={onPrev}
+              onClick={(e) => {
+                e.stopPropagation();
+                onPrev();
+              }}
               disabled={activeIndex === 0}
               aria-label="Previous image"
             >
@@ -1009,7 +1412,10 @@ function PreviewModal({
             <button
               type="button"
               className="absolute right-3 z-20 grid size-11 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-black/70 disabled:hover:text-white"
-              onClick={onNext}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNext();
+              }}
               disabled={activeIndex === item.frames.length - 1}
               aria-label="Next image"
             >
@@ -1021,6 +1427,7 @@ function PreviewModal({
         <div className="relative aspect-1080/1440 h-full max-h-[92vh] overflow-hidden bg-black">
           <div
             ref={scrollRef}
+            onClick={(e) => e.stopPropagation()}
             className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto"
             style={{ scrollbarWidth: "none" }}
           >
