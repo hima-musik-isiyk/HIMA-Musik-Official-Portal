@@ -6,6 +6,13 @@ export type NotionRoomPage = {
   type: string;
 };
 
+export type NotionRoom = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type NotionRoomPageType =
   | "User"
   | "Response"

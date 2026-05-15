@@ -30,6 +30,7 @@ import { create } from "zustand";
 
 import {
   NOTION_ROOM_PAGE_TYPES,
+  type NotionRoom,
   type NotionRoomPage,
   type NotionRoomPageType,
 } from "@/lib/notion-room/types";
@@ -38,12 +39,6 @@ type PeerState = {
   displayName: string;
   selectedPageIds: string[];
   onlineAt: string;
-};
-
-type RecentRoom = {
-  id: string;
-  name: string;
-  lastOpenedAt: string;
 };
 
 type RoomStore = {
@@ -105,23 +100,6 @@ function getSupabaseClient() {
   return createClient(url, key);
 }
 
-function readRecentRooms(): RecentRoom[] {
-  try {
-    return JSON.parse(localStorage.getItem("notion-room-recents") ?? "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveRecentRoom(room: RecentRoom) {
-  const next = [
-    room,
-    ...readRecentRooms().filter((item) => item.id !== room.id),
-  ].slice(0, 8);
-  localStorage.setItem("notion-room-recents", JSON.stringify(next));
-  return next;
-}
-
 export default function NotionSecretPage() {
   const {
     displayName,
@@ -139,9 +117,10 @@ export default function NotionSecretPage() {
   const [nameInput, setNameInput] = useState("");
   const [roomInput, setRoomInput] = useState("");
   const [roomNameInput, setRoomNameInput] = useState("");
-  const [recentRooms, setRecentRooms] = useState<RecentRoom[]>([]);
+  const [rooms, setRooms] = useState<NotionRoom[]>([]);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [isLoadingPages, setIsLoadingPages] = useState(false);
@@ -168,18 +147,66 @@ export default function NotionSecretPage() {
       localStorage.getItem("notion-room-display-name") ?? "Operator";
     setNameInput(storedName);
     setDisplayName(storedName);
-    setRecentRooms(readRecentRooms());
   }, [setDisplayName]);
 
-  const rememberRoom = useCallback((roomId: string, name?: string) => {
-    setRecentRooms(
-      saveRecentRoom({
-        id: roomId,
-        name: name?.trim() || `Room ${roomId.slice(0, 6)}`,
-        lastOpenedAt: new Date().toISOString(),
-      }),
-    );
+  const loadRooms = useCallback(async () => {
+    setIsLoadingRooms(true);
+    setError("");
+    try {
+      const response = await fetch("/api/notion/rooms");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to load rooms");
+      setRooms(data.rooms ?? []);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Failed to load rooms",
+      );
+    } finally {
+      setIsLoadingRooms(false);
+    }
   }, []);
+
+  const saveRoom = useCallback(async (roomId: string, name?: string) => {
+    const response = await fetch("/api/notion/rooms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: roomId, name }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? "Failed to save room");
+    setRooms((current) => [
+      data.room,
+      ...current.filter((room) => room.id !== data.room.id),
+    ]);
+    return data.room as NotionRoom;
+  }, []);
+
+  useEffect(() => {
+    void loadRooms();
+  }, [loadRooms]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel("notion-rooms")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notion_rooms" },
+        () => {
+          void loadRooms();
+        },
+      )
+      .on("broadcast", { event: "rooms-refresh" }, () => {
+        void loadRooms();
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadRooms]);
 
   const loadPages = useCallback(
     async (roomId: string, quiet = false) => {
@@ -283,7 +310,22 @@ export default function NotionSecretPage() {
 
     setCurrentRoomId(normalizedRoomId);
     setSelectedPageIds([]);
-    rememberRoom(normalizedRoomId, name);
+    try {
+      await saveRoom(normalizedRoomId, name);
+      const supabase = getSupabaseClient();
+      const channel = supabase?.channel("notion-rooms");
+      void channel?.send({
+        type: "broadcast",
+        event: "rooms-refresh",
+        payload: { roomId: normalizedRoomId },
+      });
+      if (channel) void supabase?.removeChannel(channel);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Failed to save room",
+      );
+      return;
+    }
     window.scrollTo({ top: 0 });
     await loadPages(normalizedRoomId);
   }
@@ -440,6 +482,17 @@ export default function NotionSecretPage() {
                 )}
                 {isAddingRoom ? "Close" : "Add Room"}
               </button>
+              <button
+                onClick={() => void loadRooms()}
+                className="hover:border-gold-500/40 inline-flex items-center gap-2 rounded-xl border border-stone-800/80 bg-stone-900/30 px-5 py-3 text-sm text-stone-300 transition"
+              >
+                {isLoadingRooms ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Sync Rooms
+              </button>
             </div>
           </div>
 
@@ -474,7 +527,7 @@ export default function NotionSecretPage() {
           ) : null}
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {recentRooms.map((room) => (
+            {rooms.map((room) => (
               <button
                 key={room.id}
                 onClick={() => void openRoom(room.id, room.name)}
@@ -490,7 +543,7 @@ export default function NotionSecretPage() {
                   {room.id}
                 </p>
                 <p className="mt-3 text-xs text-stone-500">
-                  Last opened {new Date(room.lastOpenedAt).toLocaleString()}
+                  Updated {new Date(room.updatedAt).toLocaleString()}
                 </p>
               </button>
             ))}
