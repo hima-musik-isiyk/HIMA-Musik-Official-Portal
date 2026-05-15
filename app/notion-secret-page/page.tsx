@@ -726,10 +726,7 @@ export default function NotionSecretPage() {
   }
 
   return (
-    <section
-      key={routeSlug || currentRoomId || "live-room"}
-      className="animate-in fade-in slide-in-from-bottom-4 relative min-h-[calc(100svh-5rem)] border-b border-white/5 px-6 py-10 duration-500 md:px-10 lg:px-16"
-    >
+    <section className="relative min-h-[calc(100svh-5rem)] border-b border-white/5 px-6 py-10 md:px-10 lg:px-16">
       <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0">
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6">
