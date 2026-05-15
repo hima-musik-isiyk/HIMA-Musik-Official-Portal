@@ -2,16 +2,100 @@
 
 import { unzipSync, zipSync } from "fflate";
 import {
+  ChevronLeft,
+  ChevronRight,
   Download,
-  ImagePlus,
-  Layers,
   Loader2,
   Plus,
   RefreshCw,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+function useCarouselScroll(
+  scrollRef: React.RefObject<HTMLDivElement | null>,
+  frameCount: number,
+) {
+  const animId = useRef(0);
+  const [visualIndex, setVisualIndex] = useState(0);
+
+  const scrollToX = useCallback(
+    (target: number, duration = 150) => {
+      const el = scrollRef.current;
+      if (!el) return;
+      cancelAnimationFrame(animId.current);
+      const start = el.scrollLeft;
+      const delta = target - start;
+      if (Math.abs(delta) < 1) {
+        el.scrollLeft = target;
+        return;
+      }
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min((now - t0) / duration, 1);
+        el.scrollLeft = start + delta * (1 - (1 - p) ** 3);
+        if (p < 1) animId.current = requestAnimationFrame(tick);
+      };
+      animId.current = requestAnimationFrame(tick);
+    },
+    [scrollRef],
+  );
+
+  // Real-time visual index from scroll position
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const w = el.offsetWidth;
+      if (!w) return;
+      setVisualIndex(
+        Math.max(0, Math.min(frameCount - 1, Math.round(el.scrollLeft / w))),
+      );
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [scrollRef, frameCount]);
+
+  // Touch: disable CSS snap while finger is down, fast JS snap on release
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || frameCount <= 1) return;
+    const onStart = () => {
+      cancelAnimationFrame(animId.current);
+      el.style.scrollSnapType = "none";
+    };
+    const onEnd = () => {
+      const w = el.offsetWidth;
+      if (!w) return;
+      const idx = Math.max(
+        0,
+        Math.min(frameCount - 1, Math.round(el.scrollLeft / w)),
+      );
+      scrollToX(idx * w);
+      setTimeout(() => {
+        el.style.scrollSnapType = "x mandatory";
+      }, 180);
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchend", onEnd, { passive: true });
+    el.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [scrollRef, frameCount, scrollToX]);
+
+  useEffect(() => () => cancelAnimationFrame(animId.current), []);
+
+  return {
+    visualIndex,
+    scrollToX,
+    cancelAnim: () => cancelAnimationFrame(animId.current),
+  };
+}
 
 const canvasWidth = 1080;
 const canvasHeight = 1440;
@@ -60,6 +144,11 @@ type GridTarget = {
   itemId?: string;
 };
 
+type PreviewState = {
+  itemId: string;
+  frameIndex: number;
+};
+
 const naturalCollator = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: "base",
@@ -97,16 +186,15 @@ function fileStem(name: string) {
 }
 
 function getRows(items: InstagramGridItem[]) {
-  const rowZeroFull = [0, 1, 2].every((column) =>
-    items.some((item) => item.row === 0 && item.column === column),
-  );
-  const maxRow = items.length
-    ? Math.max(...items.map((item) => item.row), 0)
-    : 0;
-  const startRow = rowZeroFull ? -1 : 0;
+  if (!items.length) return [0];
+
+  const minRow = Math.min(...items.map((item) => item.row));
+  const maxRow = Math.max(...items.map((item) => item.row));
+  const startRow = minRow - 1;
+  const endRow = maxRow + 1;
   const rows: number[] = [];
 
-  for (let row = startRow; row <= maxRow; row += 1) rows.push(row);
+  for (let row = startRow; row <= endRow; row += 1) rows.push(row);
   return rows;
 }
 
@@ -159,8 +247,11 @@ async function extractInputImages(files: File[]) {
       .sort(([a], [b]) => naturalCollator.compare(a, b))
       .forEach(([name, bytes]) => {
         const cleanName = name.split("/").filter(Boolean).pop() ?? name;
+        const safeBytes = Uint8Array.from(bytes);
         extracted.push(
-          new File([bytes], cleanName, { type: getMimeFromName(cleanName) }),
+          new File([safeBytes], cleanName, {
+            type: getMimeFromName(cleanName),
+          }),
         );
       });
   }
@@ -293,8 +384,9 @@ async function downloadItem(item: InstagramGridItem) {
   }
 
   const zipped = zipSync(bytes, { level: 0 });
+  const safeZip = Uint8Array.from(zipped);
   saveBlob(
-    new Blob([zipped], { type: "application/zip" }),
+    new Blob([safeZip], { type: "application/zip" }),
     `instagram-cell-${item.row + 1}-${item.column + 1}.zip`,
   );
 }
@@ -304,6 +396,7 @@ export default function InstagramSecretPage() {
     normalizeManifest({ items: [] }),
   );
   const [activeFrame, setActiveFrame] = useState<Record<string, number>>({});
+  const [preview, setPreview] = useState<PreviewState | null>(null);
   const [target, setTarget] = useState<GridTarget | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [busy, setBusy] = useState("");
@@ -319,6 +412,13 @@ export default function InstagramSecretPage() {
   }, [manifest.items]);
 
   const rows = useMemo(() => getRows(manifest.items), [manifest.items]);
+  const currentPreviewItem = useMemo(
+    () =>
+      preview
+        ? (manifest.items.find((item) => item.id === preview.itemId) ?? null)
+        : null,
+    [manifest.items, preview],
+  );
   const frameCount = manifest.items.reduce(
     (total, item) => total + item.frames.length,
     0,
@@ -344,6 +444,17 @@ export default function InstagramSecretPage() {
   useEffect(() => {
     void loadManifest();
   }, [loadManifest]);
+
+  useEffect(() => {
+    if (!preview) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [preview]);
 
   function openImporter(nextTarget: GridTarget) {
     setTarget(nextTarget);
@@ -418,12 +529,34 @@ export default function InstagramSecretPage() {
     }
   }
 
-  function cycleFrame(item: InstagramGridItem) {
-    if (item.frames.length <= 1) return;
-    setActiveFrame((state) => ({
-      ...state,
-      [item.id]: ((state[item.id] ?? 0) + 1) % item.frames.length,
-    }));
+  function openPreview(item: InstagramGridItem) {
+    setPreview({
+      itemId: item.id,
+      frameIndex: Math.min(activeFrame[item.id] ?? 0, item.frames.length - 1),
+    });
+  }
+
+  function closePreview() {
+    setPreview(null);
+  }
+
+  function movePreviewFrame(direction: -1 | 1) {
+    setPreview((state) => {
+      if (!state) return state;
+
+      const item = manifest.items.find((entry) => entry.id === state.itemId);
+      if (!item || item.frames.length <= 1) return state;
+
+      const next = Math.max(
+        0,
+        Math.min(item.frames.length - 1, state.frameIndex + direction),
+      );
+
+      if (next === state.frameIndex) return state;
+
+      setActiveFrame((frames) => ({ ...frames, [state.itemId]: next }));
+      return { ...state, frameIndex: next };
+    });
   }
 
   return (
@@ -449,19 +582,19 @@ export default function InstagramSecretPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-center text-xs text-neutral-400 sm:min-w-80">
-            <div className="border border-white/10 bg-white/[0.03] p-3">
+            <div className="border border-white/10 bg-white/3 p-3">
               <strong className="block text-lg text-white">
                 {manifest.items.length}
               </strong>
               cells
             </div>
-            <div className="border border-white/10 bg-white/[0.03] p-3">
+            <div className="border border-white/10 bg-white/3 p-3">
               <strong className="block text-lg text-white">{frameCount}</strong>
               frames
             </div>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-2 border border-white/10 bg-white/[0.03] p-3 text-neutral-300 transition hover:border-white/30 hover:bg-white/[0.07]"
+              className="inline-flex items-center justify-center gap-2 border border-white/10 bg-white/3 p-3 text-neutral-300 transition hover:border-white/30 hover:bg-white/7"
               onClick={() => void loadManifest()}
             >
               {isLoading ? (
@@ -475,7 +608,7 @@ export default function InstagramSecretPage() {
         </header>
 
         {(busy || error) && (
-          <div className="flex items-center justify-between gap-3 border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
+          <div className="flex items-center justify-between gap-3 border border-white/10 bg-white/4 px-4 py-3 text-sm">
             <span className={error ? "text-red-300" : "text-neutral-300"}>
               {error || busy}
             </span>
@@ -485,8 +618,8 @@ export default function InstagramSecretPage() {
           </div>
         )}
 
-        <div className="mx-auto w-full max-w-[860px]">
-          <div className="grid grid-cols-3 gap-1 bg-[#121212] p-1 sm:gap-1.5 sm:p-1.5">
+        <div className="mx-auto w-full" style={{ maxWidth: "935px" }}>
+          <div className="grid grid-cols-3 gap-px bg-black">
             {rows.flatMap((row) =>
               [0, 1, 2].map((column) => {
                 const item = row >= 0 ? itemMap.get(`${row}:${column}`) : null;
@@ -496,7 +629,7 @@ export default function InstagramSecretPage() {
                     key={item.id}
                     item={item}
                     activeIndex={activeFrame[item.id] ?? 0}
-                    onCycle={() => cycleFrame(item)}
+                    onOpenPreview={() => openPreview(item)}
                     onEdit={() =>
                       openImporter({
                         row: item.row,
@@ -506,6 +639,12 @@ export default function InstagramSecretPage() {
                     }
                     onDelete={() => void handleDelete(item)}
                     onDownload={() => void downloadItem(item)}
+                    onIndexChange={(index) =>
+                      setActiveFrame((state) => ({
+                        ...state,
+                        [item.id]: index,
+                      }))
+                    }
                   />
                 ) : (
                   <PlaceholderCell
@@ -521,6 +660,19 @@ export default function InstagramSecretPage() {
           </div>
         </div>
       </div>
+
+      {preview && currentPreviewItem && (
+        <PreviewModal
+          item={currentPreviewItem}
+          activeIndex={Math.min(
+            preview.frameIndex,
+            currentPreviewItem.frames.length - 1,
+          )}
+          onClose={closePreview}
+          onPrev={() => movePreviewFrame(-1)}
+          onNext={() => movePreviewFrame(1)}
+        />
+      )}
     </section>
   );
 }
@@ -536,28 +688,23 @@ function PlaceholderCell({
   disabled: boolean;
   onClick: () => void;
 }) {
-  const hue = (row + 4) * 31 + column * 47;
-
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="group relative aspect-[3/4] overflow-hidden border border-dashed border-white/15 bg-neutral-950 text-neutral-400 transition hover:border-white/35 hover:text-white disabled:cursor-wait disabled:opacity-60"
-      style={{
-        backgroundImage: `linear-gradient(135deg, hsl(${hue} 16% 13%), #050505 55%), radial-gradient(circle at ${
-          28 + column * 18
-        }% ${24 + (row + 1) * 11}%, hsl(${hue + 30} 70% 35% / .36), transparent 34%)`,
-      }}
+      className="group relative aspect-3/4 overflow-hidden bg-[#121212] text-neutral-500 transition hover:bg-[#1a1a1a] hover:text-neutral-200 disabled:cursor-wait disabled:opacity-60"
     >
-      <span className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.055)_1px,transparent_1px)] bg-[size:22px_22px] opacity-40" />
-      <span className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-        <span className="grid size-12 place-items-center rounded-full border border-white/20 bg-black/45 backdrop-blur-sm transition group-hover:scale-105 group-hover:border-white/50">
-          <Plus className="size-6" />
+      <span className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <span className="grid size-10 place-items-center rounded-full border border-white/15 bg-black/35 transition group-hover:border-white/35">
+          <Plus className="size-5" />
         </span>
-        <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] uppercase">
+        <span className="inline-flex items-center gap-2 text-[11px] font-medium tracking-[0.08em] uppercase">
           <Upload className="size-3.5" />
           Import
+        </span>
+        <span className="text-[10px] text-neutral-600">
+          {row + 1}:{column + 1}
         </span>
       </span>
     </button>
@@ -567,91 +714,293 @@ function PlaceholderCell({
 function PostCell({
   item,
   activeIndex,
-  onCycle,
+  onOpenPreview,
   onEdit,
   onDelete,
   onDownload,
+  onIndexChange,
 }: {
   item: InstagramGridItem;
   activeIndex: number;
-  onCycle: () => void;
+  onOpenPreview: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onDownload: () => void;
+  onIndexChange: (index: number) => void;
 }) {
-  const frame = item.frames[Math.min(activeIndex, item.frames.length - 1)];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { visualIndex, scrollToX } = useCarouselScroll(
+    scrollRef,
+    item.frames.length,
+  );
+  const isProgScroll = useRef(false);
+
+  // Sync scroll when parent activeIndex changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const target = activeIndex * el.offsetWidth;
+    if (Math.abs(el.scrollLeft - target) > 2) {
+      isProgScroll.current = true;
+      scrollToX(target);
+      setTimeout(() => {
+        isProgScroll.current = false;
+      }, 200);
+    }
+  }, [activeIndex, scrollToX]);
+
+  // Commit settled index to parent
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (isProgScroll.current) return;
+        const w = el.offsetWidth;
+        if (!w) return;
+        const idx = Math.round(el.scrollLeft / w);
+        if (idx !== activeIndex) onIndexChange(idx);
+      }, 80);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [activeIndex, onIndexChange]);
 
   return (
-    <article className="group relative aspect-[3/4] overflow-hidden bg-neutral-900">
-      <button
-        type="button"
-        className="absolute inset-0"
-        onClick={onCycle}
-        aria-label="Cycle carousel frame"
+    <article className="group relative aspect-3/4 overflow-hidden bg-[#0f0f0f]">
+      <div
+        ref={scrollRef}
+        className="scrollbar-none absolute inset-0 flex cursor-pointer snap-x snap-mandatory overflow-x-auto"
+        style={{ scrollbarWidth: "none" }}
+        onClick={() => onOpenPreview()}
       >
-        {frame && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={frame.url}
-            alt={frame.originalName}
-            className="h-full w-full object-cover"
-            draggable={false}
-          />
-        )}
-      </button>
-
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/55 to-transparent p-2 opacity-100">
-        <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white">
-          <ImagePlus className="size-3" />
-          {item.row + 1}:{item.column + 1}
-        </span>
-        {item.frames.length > 1 && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white">
-            <Layers className="size-3" />
-            {activeIndex + 1}/{item.frames.length}
-          </span>
-        )}
+        {item.frames.map((frame) => (
+          <div
+            key={frame.id}
+            className="h-full w-full shrink-0 snap-center select-none"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={frame.url}
+              alt={frame.originalName}
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+          </div>
+        ))}
       </div>
 
       {item.frames.length > 1 && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+        <div className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] text-white">
           {item.frames.slice(0, 10).map((frameDot, index) => (
             <span
               key={frameDot.id}
-              className={`size-1.5 rounded-full ${
-                index === activeIndex ? "bg-white" : "bg-white/35"
+              className={`size-1.5 rounded-full transition-colors duration-150 ${
+                index === visualIndex ? "bg-white" : "bg-white/35"
               }`}
             />
           ))}
         </div>
       )}
 
-      <div className="absolute inset-x-2 bottom-2 flex translate-y-3 justify-center gap-1.5 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
+      <div className="pointer-events-none absolute inset-0 z-10 bg-black/0 transition group-hover:bg-black/22" />
+
+      <div className="absolute inset-x-2 bottom-2 z-20 flex translate-y-3 justify-center gap-1.5 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
         <button
           type="button"
-          className="grid size-9 place-items-center rounded-full bg-black/70 text-white backdrop-blur transition hover:bg-white hover:text-black"
-          onClick={onEdit}
+          className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
           title="Replace"
         >
           <Upload className="size-4" />
         </button>
         <button
           type="button"
-          className="grid size-9 place-items-center rounded-full bg-black/70 text-white backdrop-blur transition hover:bg-white hover:text-black"
-          onClick={onDownload}
+          className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownload();
+          }}
           title="Download"
         >
           <Download className="size-4" />
         </button>
         <button
           type="button"
-          className="grid size-9 place-items-center rounded-full bg-black/70 text-red-200 backdrop-blur transition hover:bg-red-500 hover:text-white"
-          onClick={onDelete}
+          className="grid size-8 place-items-center rounded-full bg-black/72 text-red-200 backdrop-blur transition hover:bg-red-500 hover:text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
           title="Delete"
         >
           <Trash2 className="size-4" />
         </button>
       </div>
     </article>
+  );
+}
+
+function PreviewModal({
+  item,
+  activeIndex,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  item: InstagramGridItem;
+  activeIndex: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { visualIndex, scrollToX } = useCarouselScroll(
+    scrollRef,
+    item.frames.length,
+  );
+  const isProgScroll = useRef(false);
+
+  // Keyboard navigation
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+      if (item.frames.length <= 1) return;
+      if (event.key === "ArrowLeft") onPrev();
+      if (event.key === "ArrowRight") onNext();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [item.frames.length, onClose, onNext, onPrev]);
+
+  // Sync scroll when activeIndex changes from buttons/keyboard
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const target = activeIndex * el.offsetWidth;
+    if (Math.abs(el.scrollLeft - target) > 2) {
+      isProgScroll.current = true;
+      scrollToX(target);
+      setTimeout(() => {
+        isProgScroll.current = false;
+      }, 200);
+    }
+  }, [activeIndex, scrollToX]);
+
+  // Commit settled index to parent
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (isProgScroll.current) return;
+        const w = el.offsetWidth;
+        if (!w) return;
+        const idx = Math.round(el.scrollLeft / w);
+        if (idx > activeIndex) onNext();
+        else if (idx < activeIndex) onPrev();
+      }, 80);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [activeIndex, onNext, onPrev]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Instagram image preview"
+    >
+      <div
+        className="relative flex h-full w-full items-center justify-center"
+        style={{ maxWidth: "1080px" }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="absolute top-3 right-3 z-20 grid size-10 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black"
+          onClick={onClose}
+          aria-label="Close preview"
+        >
+          <X className="size-5" />
+        </button>
+
+        {item.frames.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="absolute left-3 z-20 grid size-11 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-black/70 disabled:hover:text-white"
+              onClick={onPrev}
+              disabled={activeIndex === 0}
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="size-6" />
+            </button>
+            <button
+              type="button"
+              className="absolute right-3 z-20 grid size-11 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-black/70 disabled:hover:text-white"
+              onClick={onNext}
+              disabled={activeIndex === item.frames.length - 1}
+              aria-label="Next image"
+            >
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        )}
+
+        <div className="relative aspect-[1080/1440] h-full max-h-[92vh] overflow-hidden bg-black">
+          <div
+            ref={scrollRef}
+            className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {item.frames.map((frame) => (
+              <div
+                key={frame.id}
+                className="h-full w-full shrink-0 snap-center select-none"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={frame.url}
+                  alt={frame.originalName}
+                  className="h-full w-full object-contain"
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {item.frames.length > 1 && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5">
+              {item.frames.map((entry, index) => (
+                <span
+                  key={entry.id}
+                  className={`size-1.5 rounded-full transition-colors duration-150 ${
+                    index === visualIndex ? "bg-white" : "bg-white/35"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
