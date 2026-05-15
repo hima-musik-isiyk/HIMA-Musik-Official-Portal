@@ -183,8 +183,8 @@ export default function NotionSecretPage() {
     !hasLoadedCurrentRoomPages &&
     chronologicalPages.length === 0;
   const shouldShowRoom =
-    Boolean(currentRoomId) &&
-    (Boolean(routeSlug) || isNavigatingToRoomRef.current);
+    Boolean(routeSlug) ||
+    (Boolean(currentRoomId) && isNavigatingToRoomRef.current);
 
   useEffect(() => {
     selectedPageIdsRef.current = selectedPageIds;
@@ -287,9 +287,9 @@ export default function NotionSecretPage() {
 
   const loadPages = useCallback(
     async (roomId: string, quiet = false) => {
-      setIsLoadingPages(true);
+      if (!quiet) setIsLoadingPages(true);
       if (!quiet) setHasLoadedCurrentRoomPages(false);
-      setError("");
+      if (!quiet) setError("");
       try {
         const response = await fetch(
           `/api/notion/pages?roomId=${encodeURIComponent(roomId)}`,
@@ -299,10 +299,12 @@ export default function NotionSecretPage() {
         setChronologicalPages(data.pages ?? []);
         if (!quiet) setStatus("Synced with Notion.");
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Failed to load");
+        if (!quiet) {
+          setError(caught instanceof Error ? caught.message : "Failed to load");
+        }
       } finally {
-        if (!quiet) setHasLoadedCurrentRoomPages(true);
-        setIsLoadingPages(false);
+        setHasLoadedCurrentRoomPages(true);
+        if (!quiet) setIsLoadingPages(false);
       }
     },
     [setChronologicalPages],
@@ -419,31 +421,59 @@ export default function NotionSecretPage() {
   );
 
   useEffect(() => {
-    if (routeSlug) {
-      isNavigatingToRoomRef.current = false;
+    if (!routeSlug) {
+      if (currentRoomId && !isNavigatingToRoomRef.current) {
+        resetRoom();
+        setCurrentRoomName("");
+        setHasLoadedCurrentRoomPages(false);
+        setPeers({});
+        setStatus("");
+        setError("");
+        hasOpenedRouteRoomRef.current = false;
+      }
       return;
     }
-    if (!currentRoomId || isNavigatingToRoomRef.current) return;
 
-    resetRoom();
-    setCurrentRoomName("");
-    setHasLoadedCurrentRoomPages(false);
-    setPeers({});
-    setStatus("");
-    setError("");
-    hasOpenedRouteRoomRef.current = false;
-  }, [currentRoomId, resetRoom, routeSlug]);
+    isNavigatingToRoomRef.current = false;
+    const currentSlug = currentRoom ? getRoomSlug(currentRoom) : null;
+    const isMatch = currentRoomId === routeSlug || currentSlug === routeSlug;
+
+    if (currentRoomId && !isMatch) {
+      resetRoom();
+      setCurrentRoomName("");
+      setHasLoadedCurrentRoomPages(false);
+      setPeers({});
+      setStatus("");
+      setError("");
+      hasOpenedRouteRoomRef.current = false;
+    }
+  }, [currentRoomId, currentRoom, resetRoom, routeSlug]);
 
   useEffect(() => {
     if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
+
     const matchedRoom = rooms.find(
       (room) => getRoomSlug(room) === routeSlug || room.id === routeSlug,
     );
-    if (!matchedRoom) return;
 
-    hasOpenedRouteRoomRef.current = true;
-    void openRoom(matchedRoom.id, matchedRoom.name, false);
-  }, [currentRoomId, openRoom, rooms, routeSlug]);
+    if (matchedRoom) {
+      hasOpenedRouteRoomRef.current = true;
+      void openRoom(matchedRoom.id, matchedRoom.name, false);
+    } else if (isValidPageId(routeSlug)) {
+      hasOpenedRouteRoomRef.current = true;
+      void openRoom(routeSlug, undefined, false);
+    } else if (roomsHydrated && !isLoadingRooms) {
+      hasOpenedRouteRoomRef.current = true;
+      setError("Room not found or invalid ID.");
+    }
+  }, [
+    currentRoomId,
+    isLoadingRooms,
+    openRoom,
+    rooms,
+    roomsHydrated,
+    routeSlug,
+  ]);
 
   async function addRoom(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -701,7 +731,10 @@ export default function NotionSecretPage() {
   }
 
   return (
-    <section className="relative min-h-[calc(100svh-5rem)] border-b border-white/5 px-6 py-10 md:px-10 lg:px-16">
+    <section
+      key={routeSlug || currentRoomId || "live-room"}
+      className="animate-in fade-in slide-in-from-bottom-4 relative min-h-[calc(100svh-5rem)] border-b border-white/5 px-6 py-10 duration-500 md:px-10 lg:px-16"
+    >
       <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0">
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6">
@@ -713,7 +746,9 @@ export default function NotionSecretPage() {
                 </span>
               </div>
               <h1 className="font-serif text-4xl text-white md:text-6xl">
-                {currentRoomName}
+                {currentRoomName || (
+                  <span className="inline-block h-10 w-64 animate-pulse rounded-md bg-stone-800/50 md:h-14" />
+                )}
               </h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
