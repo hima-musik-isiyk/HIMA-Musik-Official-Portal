@@ -29,6 +29,7 @@ import {
 import { create } from "zustand";
 
 import {
+  extractNotionPageId,
   NOTION_ROOM_PAGE_TYPES,
   type NotionRoom,
   type NotionRoomPage,
@@ -85,12 +86,8 @@ const useRoomStore = create<RoomStore>((set) => ({
     set({ currentRoomId: "", selectedPageIds: [], chronologicalPages: [] }),
 }));
 
-function normalizePageId(value: string) {
-  return value.trim().replaceAll("-", "");
-}
-
 function isValidPageId(value: string) {
-  return pageIdPattern.test(value.trim());
+  return pageIdPattern.test(extractNotionPageId(value));
 }
 
 function getSupabaseClient() {
@@ -130,6 +127,7 @@ export default function NotionSecretPage() {
   );
   const [peers, setPeers] = useState<Record<string, PeerState>>({});
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const roomsChannelRef = useRef<RealtimeChannel | null>(null);
   const selectedPageIdsRef = useRef<string[]>([]);
 
   const selectedPages = useMemo(
@@ -186,6 +184,14 @@ export default function NotionSecretPage() {
   }, [loadRooms]);
 
   useEffect(() => {
+    if (currentRoomId) return;
+    const interval = window.setInterval(() => {
+      void loadRooms();
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [currentRoomId, loadRooms]);
+
+  useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
@@ -203,8 +209,10 @@ export default function NotionSecretPage() {
       })
       .subscribe();
 
+    roomsChannelRef.current = channel;
     return () => {
       void supabase.removeChannel(channel);
+      roomsChannelRef.current = null;
     };
   }, [loadRooms]);
 
@@ -233,7 +241,7 @@ export default function NotionSecretPage() {
     if (!currentRoomId) return;
     const interval = window.setInterval(() => {
       void loadPages(currentRoomId, true);
-    }, 20000);
+    }, 5000);
     return () => window.clearInterval(interval);
   }, [currentRoomId, loadPages]);
 
@@ -302,9 +310,9 @@ export default function NotionSecretPage() {
   }, [displayName, selectedPageIds]);
 
   async function openRoom(roomId: string, name?: string) {
-    const normalizedRoomId = normalizePageId(roomId);
+    const normalizedRoomId = extractNotionPageId(roomId);
     if (!isValidPageId(roomId)) {
-      setError("Invalid Notion page ID.");
+      setError("Paste a Notion page URL or 32-character page ID.");
       return;
     }
 
@@ -312,14 +320,11 @@ export default function NotionSecretPage() {
     setSelectedPageIds([]);
     try {
       await saveRoom(normalizedRoomId, name);
-      const supabase = getSupabaseClient();
-      const channel = supabase?.channel("notion-rooms");
-      void channel?.send({
+      void roomsChannelRef.current?.send({
         type: "broadcast",
         event: "rooms-refresh",
         payload: { roomId: normalizedRoomId },
       });
-      if (channel) void supabase?.removeChannel(channel);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Failed to save room",
@@ -517,7 +522,7 @@ export default function NotionSecretPage() {
                 value={roomInput}
                 onChange={(event) => setRoomInput(event.target.value)}
                 className="focus:border-gold-500/60 border border-stone-800 bg-stone-950/70 px-4 py-3 font-mono text-sm text-white transition outline-none"
-                placeholder="Notion parent page ID"
+                placeholder="Notion parent page URL or ID"
               />
               <button className="hover:bg-gold-500 inline-flex items-center justify-center gap-2 bg-white px-5 py-3 text-sm font-semibold text-stone-950 transition">
                 <Users className="h-4 w-4" />
@@ -557,8 +562,8 @@ export default function NotionSecretPage() {
                   New Room
                 </span>
                 <span className="mt-3 block text-sm leading-relaxed text-stone-500">
-                  Add existing Notion parent page ID. Room appears here after
-                  first open.
+                  Add existing Notion parent page URL or ID. Room appears here
+                  after first open.
                 </span>
               </span>
             </button>

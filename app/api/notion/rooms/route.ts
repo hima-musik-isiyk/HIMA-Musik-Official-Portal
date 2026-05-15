@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { normalizePageId } from "@/lib/notion-room/server";
 import { supabaseRestFetch } from "@/lib/notion-room/supabase-server";
-import type { NotionRoom } from "@/lib/notion-room/types";
+import { extractNotionPageId, type NotionRoom } from "@/lib/notion-room/types";
 
 const pageIdPattern =
   /^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -51,7 +51,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { id?: string; name?: string };
-    const rawId = body.id?.trim() ?? "";
+    const rawId = extractNotionPageId(body.id ?? "");
 
     if (!pageIdPattern.test(rawId)) {
       return NextResponse.json({ error: "Invalid room ID" }, { status: 400 });
