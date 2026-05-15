@@ -4,8 +4,10 @@ import { unzipSync, zipSync } from "fflate";
 import {
   ChevronLeft,
   ChevronRight,
-  Download,
+  FileDown,
+  Layers,
   Loader2,
+  Package,
   Plus,
   RefreshCw,
   Trash2,
@@ -637,6 +639,13 @@ export default function InstagramSecretPage() {
                         itemId: item.id,
                       })
                     }
+                    onAddCarousel={() =>
+                      openImporter({
+                        row: item.row,
+                        column: item.column,
+                        itemId: item.id,
+                      })
+                    }
                     onDelete={() => void handleDelete(item)}
                     onDownload={() => void downloadItem(item)}
                     onIndexChange={(index) =>
@@ -674,6 +683,23 @@ export default function InstagramSecretPage() {
         />
       )}
     </section>
+  );
+}
+
+function QuickTooltip({
+  text,
+  children,
+}: {
+  text: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="group/tooltip relative inline-block">
+      {children}
+      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded bg-neutral-900 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-100 group-hover/tooltip:opacity-100">
+        {text}
+      </div>
+    </div>
   );
 }
 
@@ -716,6 +742,7 @@ function PostCell({
   activeIndex,
   onOpenPreview,
   onEdit,
+  onAddCarousel,
   onDelete,
   onDownload,
   onIndexChange,
@@ -724,6 +751,7 @@ function PostCell({
   activeIndex: number;
   onOpenPreview: () => void;
   onEdit: () => void;
+  onAddCarousel: () => void;
   onDelete: () => void;
   onDownload: () => void;
   onIndexChange: (index: number) => void;
@@ -811,39 +839,66 @@ function PostCell({
       <div className="pointer-events-none absolute inset-0 z-10 bg-black/0 transition group-hover:bg-black/22" />
 
       <div className="absolute inset-x-2 bottom-2 z-20 flex translate-y-3 justify-center gap-1.5 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
-        <button
-          type="button"
-          className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          title="Replace"
-        >
-          <Upload className="size-4" />
-        </button>
-        <button
-          type="button"
-          className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDownload();
-          }}
-          title="Download"
-        >
-          <Download className="size-4" />
-        </button>
-        <button
-          type="button"
-          className="grid size-8 place-items-center rounded-full bg-black/72 text-red-200 backdrop-blur transition hover:bg-red-500 hover:text-white"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Delete"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        <QuickTooltip text="Add carousel">
+          <button
+            type="button"
+            className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddCarousel();
+            }}
+          >
+            <Layers className="size-4" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Replace">
+          <button
+            type="button"
+            className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            <RefreshCw className="size-4" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Download original">
+          <button
+            type="button"
+            className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload();
+            }}
+          >
+            <FileDown className="size-4" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Download chopped (zip)">
+          <button
+            type="button"
+            className="grid size-8 place-items-center rounded-full bg-black/72 text-white backdrop-blur transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload();
+            }}
+          >
+            <Package className="size-4" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Delete">
+          <button
+            type="button"
+            className="grid size-8 place-items-center rounded-full bg-black/72 text-red-200 backdrop-blur transition hover:bg-red-500 hover:text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </QuickTooltip>
       </div>
     </article>
   );
@@ -963,7 +1018,7 @@ function PreviewModal({
           </>
         )}
 
-        <div className="relative aspect-[1080/1440] h-full max-h-[92vh] overflow-hidden bg-black">
+        <div className="relative aspect-1080/1440 h-full max-h-[92vh] overflow-hidden bg-black">
           <div
             ref={scrollRef}
             className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto"
