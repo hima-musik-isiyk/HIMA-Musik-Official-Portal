@@ -176,12 +176,23 @@ export default function NotionSecretPage() {
     [currentRoomId, rooms],
   );
   const routeSlug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+  const isRouteMatchingStore = Boolean(
+    !routeSlug ||
+    (currentRoomId &&
+      (currentRoomId === routeSlug ||
+        (currentRoom && getRoomSlug(currentRoom) === routeSlug))),
+  );
+
+  const displayRoomName = isRouteMatchingStore ? currentRoomName : "";
+  const displayPages = isRouteMatchingStore ? chronologicalPages : [];
+  const displayPeers = isRouteMatchingStore ? peers : {};
+  const displaySelectedPages = isRouteMatchingStore ? selectedPages : [];
+
   const showRoomSkeletons =
     (!roomsHydrated || isLoadingRooms) && rooms.length === 0;
   const showPageSkeletons =
-    isLoadingPages &&
-    !hasLoadedCurrentRoomPages &&
-    chronologicalPages.length === 0;
+    (Boolean(routeSlug) && !isRouteMatchingStore) ||
+    (isLoadingPages && !hasLoadedCurrentRoomPages && displayPages.length === 0);
   const shouldShowRoom =
     Boolean(routeSlug) ||
     (Boolean(currentRoomId) && isNavigatingToRoomRef.current);
@@ -253,14 +264,6 @@ export default function NotionSecretPage() {
   }, [loadRooms]);
 
   useEffect(() => {
-    if (currentRoomId) return;
-    const interval = window.setInterval(() => {
-      void loadRooms();
-    }, 5000);
-    return () => window.clearInterval(interval);
-  }, [currentRoomId, loadRooms]);
-
-  useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
@@ -309,14 +312,6 @@ export default function NotionSecretPage() {
     },
     [setChronologicalPages],
   );
-
-  useEffect(() => {
-    if (!currentRoomId) return;
-    const interval = window.setInterval(() => {
-      void loadPages(currentRoomId, true);
-    }, 5000);
-    return () => window.clearInterval(interval);
-  }, [currentRoomId, loadPages]);
 
   useEffect(() => {
     if (!currentRoomId || !displayName) return;
@@ -746,7 +741,7 @@ export default function NotionSecretPage() {
                 </span>
               </div>
               <h1 className="font-serif text-4xl text-white md:text-6xl">
-                {currentRoomName || (
+                {displayRoomName || (
                   <span className="inline-block h-10 w-64 animate-pulse rounded-md bg-stone-800/50 md:h-14" />
                 )}
               </h1>
@@ -793,8 +788,7 @@ export default function NotionSecretPage() {
 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="font-mono text-xs tracking-[0.25em] text-stone-600 uppercase">
-              {selectedPageIds.length} selected / {chronologicalPages.length}{" "}
-              pages
+              {selectedPageIds.length} selected / {displayPages.length} pages
             </p>
             <div className="flex gap-2">
               <button
@@ -827,7 +821,7 @@ export default function NotionSecretPage() {
                   </div>
                 ))
               : null}
-            {chronologicalPages.map((page) => {
+            {displayPages.map((page) => {
               const checked = selectedPageIds.includes(page.id);
               const isTemp = page.id.startsWith("temp-");
               return (
@@ -868,7 +862,9 @@ export default function NotionSecretPage() {
                 </button>
               );
             })}
-            {hasLoadedCurrentRoomPages && chronologicalPages.length === 0 ? (
+            {hasLoadedCurrentRoomPages &&
+            isRouteMatchingStore &&
+            displayPages.length === 0 ? (
               <div className="border border-white/5 bg-stone-950/20 p-8 text-stone-500">
                 No child pages found. Create first block from action panel.
               </div>
@@ -950,8 +946,8 @@ export default function NotionSecretPage() {
               Who&apos;s Here
             </p>
             <div className="space-y-4">
-              {Object.entries(peers).map(([id, peer]) => {
-                const peerPages = chronologicalPages.filter((page) =>
+              {Object.entries(displayPeers).map(([id, peer]) => {
+                const peerPages = displayPages.filter((page) =>
                   peer.selectedPageIds?.includes(page.id),
                 );
                 return (
@@ -970,7 +966,7 @@ export default function NotionSecretPage() {
                   </div>
                 );
               })}
-              {Object.keys(peers).length === 0 ? (
+              {Object.keys(displayPeers).length === 0 ? (
                 <p className="text-sm leading-relaxed text-stone-500">
                   Presence appears after Supabase connects.
                 </p>
@@ -983,12 +979,14 @@ export default function NotionSecretPage() {
               Selected
             </p>
             <div className="space-y-2 text-sm text-stone-500">
-              {selectedPages.map((page) => (
+              {displaySelectedPages.map((page) => (
                 <p key={page.id} className="truncate">
                   {page.title}
                 </p>
               ))}
-              {selectedPages.length === 0 ? <p>Nothing selected.</p> : null}
+              {displaySelectedPages.length === 0 ? (
+                <p>Nothing selected.</p>
+              ) : null}
             </div>
           </div>
         </aside>
