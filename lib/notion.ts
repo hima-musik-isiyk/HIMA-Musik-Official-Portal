@@ -433,7 +433,9 @@ export async function resolveDataSourceId(id: string): Promise<string> {
     dataSourceIdCache.set(normalizedId, dataSourceId);
     return dataSourceId;
   } catch {
-    const dataSource = await (getNotionClient() as any).dataSources.retrieve({
+    const dataSource = await (
+      getNotionClient() as ReturnType<typeof getNotionClient>
+    ).dataSources.retrieve({
       data_source_id: normalizedId,
     });
     dataSourceIdCache.set(normalizedId, dataSource.id);

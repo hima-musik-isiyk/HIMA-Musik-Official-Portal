@@ -109,7 +109,7 @@ async def main():
     print(f"Finished. Found {new_found} new avatars.")
     # Telethon's disconnect may be synchronous in some versions; call without await
     try:
-        await client.disconnect()
+        client.disconnect()
     except TypeError:
         try:
             client.disconnect()
