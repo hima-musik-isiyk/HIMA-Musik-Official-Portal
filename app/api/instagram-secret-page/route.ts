@@ -10,6 +10,7 @@ const manifestPath = "manifest.json";
 const bucketOptions = {
   public: true,
   allowedMimeTypes: [
+    "application/json",
     "application/octet-stream",
     "image/avif",
     "image/gif",
@@ -93,7 +94,9 @@ async function ensureBucket(supabase: ReturnType<typeof getSupabaseAdmin>) {
   const existingBucket = buckets?.find((bucket) => bucket.name === bucketName);
 
   if (existingBucket) {
-    if (!existingBucket.public) {
+    const isMissingJson =
+      !existingBucket.allowed_mime_types?.includes("application/json");
+    if (!existingBucket.public || isMissingJson) {
       const { error: updateError } = await supabase.storage.updateBucket(
         bucketName,
         bucketOptions,
