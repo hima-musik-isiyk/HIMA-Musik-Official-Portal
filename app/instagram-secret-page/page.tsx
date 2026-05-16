@@ -7,6 +7,7 @@ import {
   FileDown,
   Layers,
   Loader2,
+  Minus,
   Package,
   Plus,
   RefreshCw,
@@ -758,159 +759,168 @@ export default function InstagramSecretPage() {
 
         <div className="mx-auto w-full" style={{ maxWidth: "935px" }}>
           <div className="grid grid-cols-3 gap-px bg-black shadow-2xl">
-            {rows.flatMap((row) => {
-              const hasRowItem = [0, 1, 2].some((col) =>
-                itemMap.has(`${row}:${col}`),
-              );
+            {isLoading
+              ? Array.from({ length: 12 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square w-full animate-pulse bg-neutral-900"
+                  />
+                ))
+              : rows.flatMap((row) => {
+                  const hasRowItem = [0, 1, 2].some((col) =>
+                    itemMap.has(`${row}:${col}`),
+                  );
 
-              return [0, 1, 2].map((column) => {
-                const item = itemMap.get(`${row}:${column}`);
-                const isCellLoading = loadingCells.has(`${row}:${column}`);
+                  return [0, 1, 2].map((column) => {
+                    const item = itemMap.get(`${row}:${column}`);
+                    const isCellLoading = loadingCells.has(`${row}:${column}`);
 
-                return (
-                  <div key={`${row}:${column}`} className="relative">
-                    {isCellLoading && (
-                      <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-2 text-blue-400">
-                          <Loader2 className="size-6 animate-spin" />
-                          <span className="text-[10px] font-bold tracking-widest text-white uppercase">
-                            Fetching
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {item ? (
-                      <PostCell
-                        item={item}
-                        activeIndex={activeFrame[item.id] ?? 0}
-                        onOpenPreview={() => openPreview(item)}
-                        onEdit={() =>
-                          openImporter({
-                            row: item.row,
-                            column: item.column,
-                            itemId: item.id,
-                          })
-                        }
-                        onAddCarousel={() =>
-                          openImporter({
-                            row: item.row,
-                            column: item.column,
-                            itemId: item.id,
-                          })
-                        }
-                        onDelete={() => void handleDelete(item)}
-                        onDownload={() => void downloadItem(item)}
-                        onIndexChange={(index) =>
-                          setActiveFrame((state) => ({
-                            ...state,
-                            [item.id]: index,
-                          }))
-                        }
-                      />
-                    ) : (
-                      <PlaceholderCell
-                        row={row}
-                        column={column}
-                        disabled={Boolean(busy)}
-                        onUpload={() => openImporter({ row, column })}
-                      />
-                    )}
-
-                    {/* Row-level Canva button (only on first column of empty rows) */}
-                    {column === 2 && !hasRowItem && (
-                      <div className="absolute top-1/2 left-full z-50 ml-4 -translate-y-1/2">
-                        <RowCanvaButton
-                          busy={Boolean(busy)}
-                          onFetch={(url, customPages) => {
-                            const t = { row, column: -1 };
-                            setTarget(t);
-                            void handleCanvaLink(url, t, customPages);
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Delete Row button (on last column of non-empty rows) */}
-                    {column === 2 && hasRowItem && (
-                      <div className="absolute top-1/2 left-full z-50 ml-4 -translate-y-1/2">
-                        <button
-                          type="button"
-                          disabled={Boolean(busy)}
-                          onClick={() => void handleDeleteRow(row)}
-                          className="flex size-11 flex-col items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 shadow-lg shadow-red-500/10 backdrop-blur transition hover:scale-110 hover:bg-red-500 hover:text-white disabled:cursor-wait disabled:opacity-50"
-                        >
-                          {busy ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-4 fill-current" />
-                          )}
-                          <span className="text-[7px] font-bold uppercase">
-                            Row
-                          </span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Row Source Indicator */}
-                    {column === 0 && hasRowItem && (
-                      <div className="absolute top-1/2 right-full z-40 mr-4 -translate-y-1/2">
-                        {(() => {
-                          const isCanva = [0, 1, 2].some(
-                            (c) =>
-                              itemMap.get(`${row}:${c}`)?.sourceType ===
-                              "canva",
-                          );
-                          const tagContent = (
-                            <div
-                              className={`flex items-center justify-center gap-2 rounded-lg border border-white/10 px-2 py-4 text-[9px] font-bold tracking-widest whitespace-nowrap uppercase shadow-xl backdrop-blur-md transition-all ${isCanva ? "cursor-pointer bg-neutral-900/90 text-blue-400 hover:scale-105 hover:bg-neutral-800 hover:shadow-blue-500/20" : "bg-neutral-900/90 text-neutral-400"}`}
-                              style={{
-                                writingMode: "vertical-rl",
-                                transform: "rotate(180deg)",
-                              }}
-                            >
-                              {isCanva ? (
-                                <>
-                                  <Zap className="size-3 rotate-90 fill-current" />{" "}
-                                  Canva Tap
-                                </>
-                              ) : (
-                                <>
-                                  <Layers className="size-3 rotate-90" /> Manual
-                                </>
-                              )}
+                    return (
+                      <div key={`${row}:${column}`} className="relative">
+                        {isCellLoading && (
+                          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                            <div className="flex flex-col items-center gap-2 text-blue-400">
+                              <Loader2 className="size-6 animate-spin" />
+                              <span className="text-[10px] font-bold tracking-widest text-white uppercase">
+                                Fetching
+                              </span>
                             </div>
-                          );
+                          </div>
+                        )}
 
-                          if (isCanva) {
-                            const canvaLink =
-                              [0, 1, 2]
-                                .map(
-                                  (c) => itemMap.get(`${row}:${c}`)?.canvaLink,
-                                )
-                                .find(Boolean) || "";
-                            return (
-                              <RowCanvaButton
-                                busy={Boolean(busy)}
-                                defaultUrl={canvaLink}
-                                trigger={tagContent}
-                                onFetch={(url, customPages) => {
-                                  const t = { row, column: -1 };
-                                  setTarget(t);
-                                  void handleCanvaLink(url, t, customPages);
-                                }}
-                              />
-                            );
-                          }
+                        {item ? (
+                          <PostCell
+                            item={item}
+                            activeIndex={activeFrame[item.id] ?? 0}
+                            onOpenPreview={() => openPreview(item)}
+                            onEdit={() =>
+                              openImporter({
+                                row: item.row,
+                                column: item.column,
+                                itemId: item.id,
+                              })
+                            }
+                            onAddCarousel={() =>
+                              openImporter({
+                                row: item.row,
+                                column: item.column,
+                                itemId: item.id,
+                              })
+                            }
+                            onDelete={() => void handleDelete(item)}
+                            onDownload={() => void downloadItem(item)}
+                            onIndexChange={(index) =>
+                              setActiveFrame((state) => ({
+                                ...state,
+                                [item.id]: index,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <PlaceholderCell
+                            row={row}
+                            column={column}
+                            disabled={Boolean(busy)}
+                            onUpload={() => openImporter({ row, column })}
+                          />
+                        )}
 
-                          return tagContent;
-                        })()}
+                        {/* Row-level Canva button (only on first column of empty rows) */}
+                        {column === 2 && !hasRowItem && (
+                          <div className="absolute top-1/2 right-2 z-50 -translate-y-1/2 md:right-auto md:left-full md:ml-4">
+                            <RowCanvaButton
+                              busy={Boolean(busy)}
+                              onFetch={(url, customPages) => {
+                                const t = { row, column: -1 };
+                                setTarget(t);
+                                void handleCanvaLink(url, t, customPages);
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Delete Row button (on last column of non-empty rows) */}
+                        {column === 2 && hasRowItem && (
+                          <div className="absolute top-1/2 right-2 z-50 -translate-y-1/2 md:right-auto md:left-full md:ml-4">
+                            <button
+                              type="button"
+                              disabled={Boolean(busy)}
+                              onClick={() => void handleDeleteRow(row)}
+                              className="flex size-11 flex-col items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 shadow-lg shadow-red-500/10 backdrop-blur transition hover:scale-110 hover:bg-red-500 hover:text-white disabled:cursor-wait disabled:opacity-50"
+                            >
+                              {busy ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="size-4 fill-current" />
+                              )}
+                              <span className="text-[7px] font-bold uppercase">
+                                Row
+                              </span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Row Source Indicator */}
+                        {column === 0 && hasRowItem && (
+                          <div className="absolute top-1/2 left-2 z-40 -translate-y-1/2 md:right-full md:left-auto md:mr-4">
+                            {(() => {
+                              const isCanva = [0, 1, 2].some(
+                                (c) =>
+                                  itemMap.get(`${row}:${c}`)?.sourceType ===
+                                  "canva",
+                              );
+                              const tagContent = (
+                                <div
+                                  className={`flex items-center justify-center gap-1.5 rounded-lg border border-white/10 px-1.5 py-2 text-[9px] font-bold tracking-widest whitespace-nowrap uppercase shadow-xl backdrop-blur-md transition-all ${isCanva ? "cursor-pointer bg-neutral-900/90 text-blue-400 hover:scale-105 hover:bg-neutral-800 hover:shadow-blue-500/20" : "bg-neutral-900/90 text-neutral-400"}`}
+                                  style={{
+                                    writingMode: "vertical-rl",
+                                    transform: "rotate(180deg)",
+                                  }}
+                                >
+                                  {isCanva ? (
+                                    <>
+                                      <Zap className="size-3 rotate-90 fill-current" />{" "}
+                                      Canva Tap
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Layers className="size-3 rotate-90" />{" "}
+                                      Manual
+                                    </>
+                                  )}
+                                </div>
+                              );
+
+                              if (isCanva) {
+                                const canvaLink =
+                                  [0, 1, 2]
+                                    .map(
+                                      (c) =>
+                                        itemMap.get(`${row}:${c}`)?.canvaLink,
+                                    )
+                                    .find(Boolean) || "";
+                                return (
+                                  <RowCanvaButton
+                                    busy={Boolean(busy)}
+                                    defaultUrl={canvaLink}
+                                    trigger={tagContent}
+                                    onFetch={(url, customPages) => {
+                                      const t = { row, column: -1 };
+                                      setTarget(t);
+                                      void handleCanvaLink(url, t, customPages);
+                                    }}
+                                  />
+                                );
+                              }
+
+                              return tagContent;
+                            })()}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              });
-            })}
+                    );
+                  });
+                })}
           </div>
         </div>
       </div>
@@ -925,6 +935,27 @@ export default function InstagramSecretPage() {
           onClose={closePreview}
           onPrev={() => movePreviewFrame(-1)}
           onNext={() => movePreviewFrame(1)}
+          onEdit={() => {
+            closePreview();
+            openImporter({
+              row: currentPreviewItem.row,
+              column: currentPreviewItem.column,
+              itemId: currentPreviewItem.id,
+            });
+          }}
+          onAddCarousel={() => {
+            closePreview();
+            openImporter({
+              row: currentPreviewItem.row,
+              column: currentPreviewItem.column,
+              itemId: currentPreviewItem.id,
+            });
+          }}
+          onDelete={() => {
+            void handleDelete(currentPreviewItem);
+            closePreview();
+          }}
+          onDownload={() => void downloadItem(currentPreviewItem)}
         />
       )}
     </section>
@@ -1003,6 +1034,39 @@ function RowCanvaButton({
   const [pages, setPages] = useState({ kiri: "1", tengah: "2", kanan: "3" });
   const [mounted, setMounted] = useState(false);
 
+  const updatePage = (key: keyof typeof pages, idx: number, delta: number) => {
+    setPages((prev) => {
+      const parts = prev[key]
+        .split(/[,\s]+/)
+        .filter(Boolean)
+        .map(Number);
+      if (parts[idx] !== undefined) {
+        parts[idx] = Math.max(1, parts[idx] + delta);
+      }
+      return { ...prev, [key]: parts.join(", ") };
+    });
+  };
+
+  const removePage = (key: keyof typeof pages, idx: number) => {
+    setPages((prev) => {
+      const parts = prev[key].split(/[,\s]+/).filter(Boolean);
+      const newParts = parts.filter((_, i) => i !== idx);
+      return { ...prev, [key]: newParts.join(", ") };
+    });
+  };
+
+  const addPage = (key: keyof typeof pages) => {
+    setPages((prev) => {
+      const parts = prev[key].split(/[,\s]+/).filter(Boolean);
+      const lastVal =
+        parts.length > 0 ? parseInt(parts[parts.length - 1]) || 0 : 0;
+      const nextVal = lastVal + 1;
+      const newVal =
+        parts.length > 0 ? `${prev[key]}, ${nextVal}` : String(nextVal);
+      return { ...prev, [key]: newVal };
+    });
+  };
+
   useEffect(() => {
     setMounted(true);
     if (defaultUrl) setUrl(defaultUrl);
@@ -1074,46 +1138,86 @@ function RowCanvaButton({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
-                  Target Pages
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                    Target Pages
+                  </label>
+                  <span className="text-[9px] text-neutral-600">
+                    Use commas for multiple (1, 5, 7)
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="mb-1 block text-[10px] text-neutral-400">
-                      Kiri
-                    </label>
-                    <input
-                      value={pages.kiri}
-                      onChange={(e) =>
-                        setPages({ ...pages, kiri: e.target.value })
-                      }
-                      className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-center text-xs text-white focus:border-white/30 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[10px] text-neutral-400">
-                      Tengah
-                    </label>
-                    <input
-                      value={pages.tengah}
-                      onChange={(e) =>
-                        setPages({ ...pages, tengah: e.target.value })
-                      }
-                      className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-center text-xs text-white focus:border-white/30 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[10px] text-neutral-400">
-                      Kanan
-                    </label>
-                    <input
-                      value={pages.kanan}
-                      onChange={(e) =>
-                        setPages({ ...pages, kanan: e.target.value })
-                      }
-                      className="w-full rounded border border-white/10 bg-black/50 px-2 py-1.5 text-center text-xs text-white focus:border-white/30 focus:outline-none"
-                    />
-                  </div>
+                  {(["kiri", "tengah", "kanan"] as const).map((key) => {
+                    const parts = pages[key]
+                      .split(/[,\s]+/)
+                      .filter(Boolean)
+                      .map(Number);
+                    return (
+                      <div key={key} className="flex flex-col gap-2">
+                        <label className="text-center text-[9px] font-black tracking-[0.2em] text-neutral-500 uppercase">
+                          {key === "kiri"
+                            ? "Left"
+                            : key === "tengah"
+                              ? "Center"
+                              : "Right"}
+                        </label>
+
+                        <div className="flex min-h-[120px] flex-col gap-2 rounded-xl border border-white/5 bg-black/30 p-1.5">
+                          <div className="flex flex-1 flex-col gap-1.5">
+                            {parts.length === 0 && (
+                              <div className="flex flex-1 items-center justify-center px-1 text-center">
+                                <span className="text-[9px] leading-tight text-neutral-700 italic">
+                                  No pages
+                                </span>
+                              </div>
+                            )}
+                            {parts.map((p, i) => (
+                              <div
+                                key={i}
+                                className="flex flex-col items-center gap-0.5 rounded-lg border border-white/10 bg-white/5 p-1 transition hover:bg-white/10"
+                              >
+                                <div className="flex w-full items-center justify-between">
+                                  <button
+                                    type="button"
+                                    onClick={() => updatePage(key, i, -1)}
+                                    className="flex size-6 items-center justify-center rounded text-neutral-500 transition hover:bg-white/10 hover:text-white"
+                                  >
+                                    <Minus className="size-3" />
+                                  </button>
+                                  <span className="text-[11px] font-bold text-white">
+                                    {p}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => updatePage(key, i, 1)}
+                                    className="flex size-6 items-center justify-center rounded text-neutral-500 transition hover:bg-white/10 hover:text-white"
+                                  >
+                                    <Plus className="size-3" />
+                                  </button>
+                                </div>
+                                <div className="my-0.5 h-px w-full bg-white/5" />
+                                <button
+                                  type="button"
+                                  onClick={() => removePage(key, i)}
+                                  className="flex h-5 w-full items-center justify-center rounded text-neutral-600 transition hover:bg-red-500/20 hover:text-red-400"
+                                >
+                                  <X className="size-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => addPage(key)}
+                            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-white/10 py-2 text-[9px] font-bold text-neutral-500 transition hover:border-blue-500/50 hover:bg-blue-500/5 hover:text-blue-400"
+                          >
+                            <Plus className="size-3" /> Add
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1162,7 +1266,7 @@ function CellImage({
         alt={alt}
         className={`h-full w-full transition-all duration-700 ease-out ${
           objectContain ? "object-contain" : "object-cover"
-        } ${isLoaded ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
+        } ${isLoaded ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setIsLoaded(true)}
         draggable={false}
       />
@@ -1337,12 +1441,20 @@ function PreviewModal({
   onClose,
   onPrev,
   onNext,
+  onEdit,
+  onAddCarousel,
+  onDelete,
+  onDownload,
 }: {
   item: InstagramGridItem;
   activeIndex: number;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onEdit: () => void;
+  onAddCarousel: () => void;
+  onDelete: () => void;
+  onDownload: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { visualIndex, scrollToX } = useCarouselScroll(
@@ -1489,6 +1601,70 @@ function PreviewModal({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Action Buttons Floating Bar */}
+      <div className="absolute bottom-20 z-50 flex items-center justify-center gap-3">
+        <QuickTooltip text="Add carousel">
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddCarousel();
+            }}
+          >
+            <Layers className="size-5" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Replace">
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            <RefreshCw className="size-5" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Download original">
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload();
+            }}
+          >
+            <FileDown className="size-5" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Download chopped (zip)">
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload();
+            }}
+          >
+            <Package className="size-5" />
+          </button>
+        </QuickTooltip>
+        <QuickTooltip text="Delete">
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-full bg-red-500/20 text-red-400 shadow-xl backdrop-blur-md transition hover:bg-red-500 hover:text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="size-5" />
+          </button>
+        </QuickTooltip>
       </div>
     </div>
   );

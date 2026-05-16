@@ -256,7 +256,7 @@ export function filterPagesForColumn(
 ): number[] {
   if (customMapping && customMapping.trim() !== "") {
     const specifiedIndices = customMapping
-      .split(",")
+      .split(/[,\s]+/)
       .map((s) => parseInt(s.trim(), 10))
       .filter((n) => !isNaN(n));
     if (specifiedIndices.length > 0) {
