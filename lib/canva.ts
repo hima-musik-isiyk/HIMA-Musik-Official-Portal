@@ -5,6 +5,19 @@ export interface CanvaPage {
   name?: string;
 }
 
+export async function resolveCanvaLink(url: string): Promise<string> {
+  if (url.includes("canva.link")) {
+    try {
+      const response = await fetch(url, { method: "HEAD", redirect: "manual" });
+      const location = response.headers.get("location");
+      if (location) return location;
+    } catch (e) {
+      console.error("[Canva] Failed to resolve short link:", e);
+    }
+  }
+  return url;
+}
+
 export function extractDesignId(url: string): string | null {
   try {
     const parsed = new URL(url);
