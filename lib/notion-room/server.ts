@@ -9,7 +9,29 @@ const notionVersion = "2026-03-11";
 const roomIdPattern =
   /^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-type NotionRichText = Array<{ plain_text: string; href?: string | null }>;
+type NotionRichText = Array<{
+  plain_text: string;
+  annotations?: {
+    code?: boolean;
+    bold?: boolean;
+    italic?: boolean;
+    strikethrough?: boolean;
+    underline?: boolean;
+    color?: string;
+  };
+  href?: string | null;
+}>;
+
+type NotionBlockValue = {
+  rich_text?: NotionRichText;
+  checked?: boolean;
+  icon?: { emoji?: string };
+  language?: string;
+  expression?: string;
+  url?: string;
+  title?: string;
+  has_column_header?: boolean;
+};
 
 export function normalizePageId(value: string) {
   return value.trim().replaceAll("-", "");
@@ -33,6 +55,42 @@ export function getRoomNotionClient() {
 
 function richTextToPlainText(richText?: NotionRichText) {
   return richText?.map((part) => part.plain_text).join("") ?? "";
+}
+
+function richTextToMarkdown(
+  richText?: Array<{
+    plain_text: string;
+    annotations?: {
+      code?: boolean;
+      bold?: boolean;
+      italic?: boolean;
+      strikethrough?: boolean;
+      underline?: boolean;
+      color?: string;
+    };
+    href?: string | null;
+  }>,
+) {
+  if (!richText) return "";
+  return richText
+    .map((part) => {
+      let text = part.plain_text;
+      if (part.annotations) {
+        if (part.annotations.code) text = `\`${text}\``;
+        if (part.annotations.bold) text = `**${text}**`;
+        if (part.annotations.italic) text = `*${text}*`;
+        if (part.annotations.strikethrough) text = `~~${text}~~`;
+        if (part.annotations.underline) text = `<u>${text}</u>`;
+        if (part.annotations.color && part.annotations.color !== "default") {
+          text = `<span style="color: ${part.annotations.color}">${text}</span>`;
+        }
+      }
+      if (part.href) {
+        text = `[${text}](${part.href})`;
+      }
+      return text;
+    })
+    .join("");
 }
 
 function parseNumber(title: string) {
@@ -101,10 +159,16 @@ async function listBlocksRecursive(
 
     for (const block of response.results) {
       if (!("type" in block)) continue;
-      const line = blockToMarkdown(block, depth);
+
+      const line = await blockToMarkdown(notion, block, depth);
       if (line) lines.push(line);
 
-      if ("has_children" in block && block.has_children) {
+      // recursion is handled within blockToMarkdown for specific types like tables/columns
+      if (
+        "has_children" in block &&
+        block.has_children &&
+        !["table", "column_list", "column"].includes(block.type)
+      ) {
         lines.push(...(await listBlocksRecursive(notion, block.id, depth + 1)));
       }
     }
@@ -117,20 +181,17 @@ async function listBlocksRecursive(
   return lines;
 }
 
-function blockToMarkdown(
-  block: { type: string; id: string } & Record<string, unknown>,
+async function blockToMarkdown(
+  notion: Client,
+  block: { type: string; id: string; [key: string]: unknown },
   depth: number,
-) {
+): Promise<string> {
   const indent = "  ".repeat(depth);
-  const value =
-    block[block.type] && typeof block[block.type] === "object"
-      ? (block[block.type] as Record<string, unknown>)
-      : {};
-  const text = richTextToPlainText(
-    value.rich_text as NotionRichText | undefined,
-  );
+  const type = block.type;
+  const value = block[type] as NotionBlockValue | undefined;
+  const text = richTextToMarkdown(value?.rich_text);
 
-  switch (block.type) {
+  switch (type) {
     case "paragraph":
       return text ? `${indent}${text}` : "";
     case "heading_1":
@@ -139,6 +200,8 @@ function blockToMarkdown(
       return `${indent}## ${text}`;
     case "heading_3":
       return `${indent}### ${text}`;
+    case "heading_4":
+      return `${indent}#### ${text}`;
     case "bulleted_list_item":
       return `${indent}- ${text}`;
     case "numbered_list_item":
@@ -150,21 +213,72 @@ function blockToMarkdown(
     case "quote":
       return `${indent}> ${text}`;
     case "callout":
-      return `${indent}> ${text}`;
+      const emoji = value?.icon?.emoji ? `${value.icon.emoji} ` : "";
+      return `${indent}> ${emoji}${text}`;
     case "code":
-      return `${indent}\`\`\`${value?.language ?? ""}\n${text}\n${indent}\`\`\``;
+      return `${indent}\`\`\`${value?.language ?? ""}\n${indent}${richTextToMarkdown(value?.rich_text)}\n${indent}\`\`\``;
+    case "equation":
+      return `${indent}$$ ${value?.expression ?? ""} $$`;
     case "divider":
       return `${indent}---`;
-    case "child_page":
-      return `${indent}# ${value?.title ?? "Untitled"}`;
-    case "image":
-    case "file":
-    case "pdf":
-      return `${indent}[${block.type}: ${getBlockAssetLabel(value) ?? block.id}]`;
+    case "breadcrumb":
+      return ""; // Skip breadcrumbs in MD
+    case "table_of_contents":
+      return `${indent}[[TOC]]`;
     case "bookmark":
     case "embed":
     case "link_preview":
-      return `${indent}${value?.url ?? ""}`;
+    case "video":
+    case "audio":
+      return `${indent}[${type}: ${value?.url ?? block.id}]`;
+    case "image":
+    case "file":
+    case "pdf":
+      const label =
+        getBlockAssetLabel(value as unknown as Record<string, unknown>) ??
+        block.id;
+      return `${indent}![${type}](${label})`;
+    case "child_page":
+      return `${indent}# ${value?.title ?? "Untitled"}`;
+    case "child_database":
+      return `${indent}### [Database: ${value?.title ?? "Untitled"}]`;
+    case "table":
+      const tableRows = await notion.blocks.children.list({
+        block_id: block.id,
+      });
+      const mdRows = tableRows.results.map((r) => {
+        const row = r as { table_row: { cells: NotionRichText[] } };
+        const cells = row.table_row.cells.map((cell) =>
+          richTextToMarkdown(cell),
+        );
+        return `| ${cells.join(" | ")} |`;
+      });
+      if (mdRows.length > 0) {
+        const firstRow = tableRows.results[0] as {
+          table_row: { cells: NotionRichText[] };
+        };
+        const firstRowCells = firstRow.table_row.cells;
+        const headerDivider = `| ${firstRowCells.map(() => "---").join(" | ")} |`;
+        if (value?.has_column_header) {
+          mdRows.splice(1, 0, headerDivider);
+        } else {
+          mdRows.unshift(headerDivider);
+          mdRows.unshift(
+            `| ${firstRowCells.map((_, i) => `Col ${i + 1}`).join(" | ")} |`,
+          );
+        }
+      }
+      return mdRows.map((r) => `${indent}${r}`).join("\n");
+    case "column_list":
+      return ""; // Containers
+    case "column":
+      return ""; // Containers
+    case "synced_block":
+      return ""; // Will recurse into children
+    case "template":
+      return "";
+    case "unsupported":
+      return `${indent}[Unsupported Block: ${block.id}]`;
     default:
       return text ? `${indent}${text}` : "";
   }

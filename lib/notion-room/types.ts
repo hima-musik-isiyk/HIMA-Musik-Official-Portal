@@ -9,6 +9,8 @@ export type NotionRoomPage = {
 export type NotionRoom = {
   id: string;
   name: string;
+  actualTitle?: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 };
