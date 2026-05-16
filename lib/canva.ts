@@ -42,7 +42,7 @@ const BUCKET_NAME =
   process.env.INSTAGRAM_SECRET_PAGE_BUCKET ?? "instagram-secret-page";
 const SESSION_PATH = "canva-session.json";
 
-async function saveSession(data: {
+export async function saveSession(data: {
   access_token: string;
   refresh_token?: string;
 }) {
