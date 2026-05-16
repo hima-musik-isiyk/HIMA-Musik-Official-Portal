@@ -763,7 +763,7 @@ export default function InstagramSecretPage() {
               ? Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
-                    className="aspect-square w-full animate-pulse bg-neutral-900"
+                    className="aspect-1080/1440 w-full animate-pulse bg-neutral-900"
                   />
                 ))
               : rows.flatMap((row) => {
@@ -1521,150 +1521,149 @@ function PreviewModal({
       aria-label="Instagram image preview"
     >
       <div
-        className="relative flex h-full w-full items-center justify-center"
-        style={{ maxWidth: "1080px" }}
+        className="relative flex w-full flex-col items-center justify-center gap-6"
+        style={{ maxWidth: "min(90vw, 500px)" }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          className="absolute top-3 right-3 z-20 grid size-10 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          aria-label="Close preview"
-        >
-          <X className="size-5" />
-        </button>
-
-        {item.frames.length > 1 && (
-          <>
-            <button
-              type="button"
-              className="absolute left-3 z-20 grid size-11 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-black/70 disabled:hover:text-white"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPrev();
-              }}
-              disabled={activeIndex === 0}
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="size-6" />
-            </button>
-            <button
-              type="button"
-              className="absolute right-3 z-20 grid size-11 place-items-center rounded-full bg-black/70 text-white transition hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-black/70 disabled:hover:text-white"
-              onClick={(e) => {
-                e.stopPropagation();
-                onNext();
-              }}
-              disabled={activeIndex === item.frames.length - 1}
-              aria-label="Next image"
-            >
-              <ChevronRight className="size-6" />
-            </button>
-          </>
-        )}
-
-        <div className="relative aspect-1080/1440 h-full max-h-[92vh] overflow-hidden bg-black">
-          <div
-            ref={scrollRef}
-            onClick={(e) => e.stopPropagation()}
-            className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {item.frames.map((frame) => (
-              <div
-                key={frame.id}
-                className="h-full w-full shrink-0 snap-center select-none"
+        <div className="relative w-full overflow-hidden bg-black shadow-2xl">
+          {item.frames.length > 1 && (
+            <>
+              <button
+                type="button"
+                className="absolute top-1/2 left-3 z-20 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white transition hover:bg-white hover:text-black disabled:opacity-30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPrev();
+                }}
+                disabled={activeIndex === 0}
+                aria-label="Previous image"
               >
-                <CellImage
-                  src={frame.url}
-                  alt={frame.originalName}
-                  objectContain
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+                <ChevronLeft className="size-5" />
+              </button>
+              <button
+                type="button"
+                className="absolute top-1/2 right-3 z-20 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white transition hover:bg-white hover:text-black disabled:opacity-30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNext();
+                }}
+                disabled={activeIndex === item.frames.length - 1}
+                aria-label="Next image"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </>
+          )}
 
-        {item.frames.length > 1 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5">
-              {item.frames.map((entry, index) => (
-                <span
-                  key={entry.id}
-                  className={`size-1.5 rounded-full transition-colors duration-150 ${
-                    index === visualIndex ? "bg-white" : "bg-white/35"
-                  }`}
-                />
+          <div className="aspect-1080/1440 w-full overflow-hidden">
+            <div
+              ref={scrollRef}
+              className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {item.frames.map((frame) => (
+                <div
+                  key={frame.id}
+                  className="h-full w-full shrink-0 snap-center select-none"
+                >
+                  <CellImage
+                    src={frame.url}
+                    alt={frame.originalName}
+                    objectContain
+                  />
+                </div>
               ))}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Action Buttons Floating Bar */}
-      <div className="absolute bottom-20 z-50 flex items-center justify-center gap-3">
-        <QuickTooltip text="Add carousel">
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddCarousel();
-            }}
-          >
-            <Layers className="size-5" />
-          </button>
-        </QuickTooltip>
-        <QuickTooltip text="Replace">
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-          >
-            <RefreshCw className="size-5" />
-          </button>
-        </QuickTooltip>
-        <QuickTooltip text="Download original">
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload();
-            }}
-          >
-            <FileDown className="size-5" />
-          </button>
-        </QuickTooltip>
-        <QuickTooltip text="Download chopped (zip)">
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-full bg-neutral-900/80 text-white shadow-xl backdrop-blur-md transition hover:bg-white hover:text-black"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload();
-            }}
-          >
-            <Package className="size-5" />
-          </button>
-        </QuickTooltip>
-        <QuickTooltip text="Delete">
-          <button
-            type="button"
-            className="grid size-11 place-items-center rounded-full bg-red-500/20 text-red-400 shadow-xl backdrop-blur-md transition hover:bg-red-500 hover:text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <Trash2 className="size-5" />
-          </button>
-        </QuickTooltip>
+          {item.frames.length > 1 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
+              <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-2 py-1 backdrop-blur-sm">
+                {item.frames.map((entry, index) => (
+                  <span
+                    key={entry.id}
+                    className={`size-1.5 rounded-full transition-colors duration-150 ${
+                      index === visualIndex ? "bg-white" : "bg-white/35"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons Bar */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <QuickTooltip text="Add carousel">
+            <button
+              type="button"
+              className="grid size-12 place-items-center rounded-full border border-white/10 bg-neutral-900 text-white shadow-xl transition hover:scale-110 hover:bg-white hover:text-black"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddCarousel();
+              }}
+            >
+              <Layers className="size-5" />
+            </button>
+          </QuickTooltip>
+          <QuickTooltip text="Replace">
+            <button
+              type="button"
+              className="grid size-12 place-items-center rounded-full border border-white/10 bg-neutral-900 text-white shadow-xl transition hover:scale-110 hover:bg-white hover:text-black"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              <RefreshCw className="size-5" />
+            </button>
+          </QuickTooltip>
+          <QuickTooltip text="Download original">
+            <button
+              type="button"
+              className="grid size-12 place-items-center rounded-full border border-white/10 bg-neutral-900 text-white shadow-xl transition hover:scale-110 hover:bg-white hover:text-black"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload();
+              }}
+            >
+              <FileDown className="size-5" />
+            </button>
+          </QuickTooltip>
+          <QuickTooltip text="Download chopped (zip)">
+            <button
+              type="button"
+              className="grid size-12 place-items-center rounded-full border border-white/10 bg-neutral-900 text-white shadow-xl transition hover:scale-110 hover:bg-white hover:text-black"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload();
+              }}
+            >
+              <Package className="size-5" />
+            </button>
+          </QuickTooltip>
+          <div className="mx-1 h-6 w-px bg-white/10" />
+          <QuickTooltip text="Delete">
+            <button
+              type="button"
+              className="grid size-12 place-items-center rounded-full border border-red-500/20 bg-red-500/10 text-red-400 shadow-xl transition hover:scale-110 hover:bg-red-500 hover:text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 className="size-5" />
+            </button>
+          </QuickTooltip>
+        </div>
+
+        <button
+          type="button"
+          className="mt-2 grid size-10 place-items-center rounded-full bg-white/10 text-white/50 transition hover:bg-white/20 hover:text-white"
+          onClick={onClose}
+        >
+          <X className="size-5" />
+        </button>
       </div>
     </div>
   );
