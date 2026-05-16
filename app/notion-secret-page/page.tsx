@@ -5,15 +5,20 @@ import {
   Bell,
   Check,
   Clipboard,
+  Copy,
+  Edit,
   Edit3,
+  ExternalLink,
   Flag,
   Handshake,
   Loader2,
   LogOut,
   MessageSquare,
+  MoreVertical,
   Paperclip,
   Plus,
   RefreshCw,
+  Trash,
   UserPlus,
   Users,
   X,
@@ -29,6 +34,7 @@ import {
 } from "react";
 import { create } from "zustand";
 
+import { gsap } from "@/lib/gsap";
 import {
   extractNotionPageId,
   NOTION_ROOM_PAGE_TYPES,
@@ -36,6 +42,8 @@ import {
   type NotionRoomPage,
   type NotionRoomPageType,
 } from "@/lib/notion-room/types";
+import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
+import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 type PeerState = {
   displayName: string;
@@ -159,6 +167,12 @@ export default function NotionSecretPage() {
   const [creatingType, setCreatingType] = useState<NotionRoomPageType | null>(
     null,
   );
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    room: NotionRoom;
+  } | null>(null);
+  const [editingRoom, setEditingRoom] = useState<NotionRoom | null>(null);
   const [peers, setPeers] = useState<Record<string, PeerState>>({});
   const channelRef = useRef<RealtimeChannel | null>(null);
   const roomsChannelRef = useRef<RealtimeChannel | null>(null);
@@ -444,6 +458,55 @@ export default function NotionSecretPage() {
     }
   }, [currentRoomId, currentRoom, resetRoom, routeSlug]);
 
+  useIsomorphicLayoutEffect(() => {
+    if (!roomsHydrated || isLoadingRooms || shouldShowRoom) return;
+    if (!shouldRunViewEntrance("/notion-secret-page")) return;
+
+    const ctx = gsap.context(() => {
+      const targets = "button.group.relative"; // Selector for room buttons
+      gsap.fromTo(
+        targets,
+        { autoAlpha: 0, y: 20 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.08,
+          ease: "power3.out",
+          clearProps: "all",
+        },
+      );
+    });
+    return () => ctx.revert();
+  }, [roomsHydrated, isLoadingRooms, shouldShowRoom]);
+
+  useIsomorphicLayoutEffect(() => {
+    if (!shouldShowRoom || isLoadingPages) return;
+
+    const ctx = gsap.context(() => {
+      // Target header, status/error, and page items
+      const targets = [
+        "h1",
+        ".flex.flex-wrap.items-center.gap-3",
+        ".border-gold-500/20",
+        ".mb-5.border.border-red-500/30",
+        ".grid.gap-4.border",
+      ];
+      gsap.fromTo(
+        targets,
+        { autoAlpha: 0, y: 15 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.6,
+          stagger: 0.05,
+          ease: "power2.out",
+        },
+      );
+    });
+    return () => ctx.revert();
+  }, [shouldShowRoom, isLoadingPages]);
+
   useEffect(() => {
     if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
 
@@ -469,6 +532,50 @@ export default function NotionSecretPage() {
     roomsHydrated,
     routeSlug,
   ]);
+
+  useEffect(() => {
+    const handleGlobalClick = () => setContextMenu(null);
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
+
+  const deleteRoom = async (roomId: string) => {
+    if (!window.confirm("Delete this room permanently?")) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/notion/rooms?id=${roomId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete room");
+      setRooms((current) => current.filter((r) => r.id !== roomId));
+      writeCachedRooms(rooms.filter((r) => r.id !== roomId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    }
+  };
+
+  const updateRoom = async (
+    roomId: string,
+    updates: { name?: string; id_override?: string },
+  ) => {
+    setError("");
+    try {
+      const response = await fetch("/api/notion/rooms", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: roomId, ...updates }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Update failed");
+      setRooms((current) =>
+        current.map((r) => (r.id === roomId ? data.room : r)),
+      );
+      writeCachedRooms(rooms.map((r) => (r.id === roomId ? data.room : r)));
+      setEditingRoom(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed");
+    }
+  };
 
   async function addRoom(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -640,6 +747,64 @@ export default function NotionSecretPage() {
             </div>
           </div>
 
+          {editingRoom && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm">
+              <div className="w-full max-w-md border border-stone-800 bg-stone-950 p-8 shadow-2xl">
+                <h3 className="mb-6 font-serif text-2xl text-white">
+                  Edit Room
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-[0.6rem] font-bold tracking-widest text-stone-500 uppercase">
+                      Room Label
+                    </label>
+                    <input
+                      defaultValue={editingRoom.name}
+                      id="edit-room-name"
+                      className="focus:border-gold-500/50 w-full border border-stone-800 bg-stone-900/50 px-4 py-3 text-sm text-white outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[0.6rem] font-bold tracking-widest text-stone-500 uppercase">
+                      Notion Page ID / URL
+                    </label>
+                    <input
+                      defaultValue={editingRoom.id}
+                      id="edit-room-id"
+                      className="focus:border-gold-500/50 w-full border border-stone-800 bg-stone-900/50 px-4 py-3 font-mono text-sm text-white outline-none"
+                    />
+                  </div>
+                  <div className="mt-8 flex gap-3">
+                    <button
+                      onClick={() => {
+                        const name = (
+                          document.getElementById(
+                            "edit-room-name",
+                          ) as HTMLInputElement
+                        ).value;
+                        const id_override = (
+                          document.getElementById(
+                            "edit-room-id",
+                          ) as HTMLInputElement
+                        ).value;
+                        void updateRoom(editingRoom.id, { name, id_override });
+                      }}
+                      className="hover:bg-gold-500 flex-1 bg-white py-3 text-sm font-bold text-stone-950 transition"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setEditingRoom(null)}
+                      className="flex-1 border border-stone-800 py-3 text-sm font-bold text-white transition hover:bg-stone-900"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error ? (
             <div className="mb-6 max-w-3xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-200">
               {error}
@@ -688,22 +853,98 @@ export default function NotionSecretPage() {
               <button
                 key={room.id}
                 onClick={() => void openRoom(room.id, room.name)}
-                className="group hover:border-gold-500/30 border border-white/5 bg-stone-950/20 p-6 text-left transition hover:bg-stone-900/30"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, room });
+                }}
+                className="group hover:border-gold-500/30 relative border border-white/5 bg-stone-950/20 p-6 text-left transition hover:bg-stone-900/30"
               >
-                <p className="mb-3 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
-                  Room
-                </p>
+                <div className="flex items-start justify-between">
+                  <p className="mb-3 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
+                    Room
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setContextMenu({ x: e.clientX, y: e.clientY, room });
+                    }}
+                    className="text-stone-700 hover:text-stone-400"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </div>
                 <h2 className="group-hover:text-gold-400 font-serif text-3xl text-white transition">
                   {room.name}
                 </h2>
-                <p className="mt-5 font-mono text-xs text-stone-600">
+                {room.actualTitle && room.actualTitle !== room.name && (
+                  <p className="mt-1 text-sm text-stone-500 italic">
+                    {room.actualTitle}
+                  </p>
+                )}
+                <p className="mt-5 font-mono text-[10px] break-all text-stone-700">
                   {room.id}
                 </p>
-                <p className="mt-3 text-xs text-stone-500">
+                <p className="mt-3 text-[10px] text-stone-600">
                   Updated {new Date(room.updatedAt).toLocaleString()}
                 </p>
               </button>
             ))}
+
+            {contextMenu && (
+              <div
+                className="fixed z-50 w-48 border border-stone-800 bg-stone-950 p-1 shadow-2xl backdrop-blur-md"
+                style={{
+                  top: contextMenu.y,
+                  left: contextMenu.x,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => {
+                    setEditingRoom(contextMenu.room);
+                    setContextMenu(null);
+                  }}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-stone-300 hover:bg-stone-900"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Room
+                </button>
+                <button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(contextMenu.room.id);
+                    setContextMenu(null);
+                  }}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-stone-300 hover:bg-stone-900"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy ID
+                </button>
+                <button
+                  onClick={() => {
+                    window.open(
+                      `https://notion.so/${contextMenu.room.id}`,
+                      "_blank",
+                    );
+                    setContextMenu(null);
+                  }}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-stone-300 hover:bg-stone-900"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open in Notion
+                </button>
+                <div className="my-1 border-t border-stone-900" />
+                <button
+                  onClick={() => {
+                    void deleteRoom(contextMenu.room.id);
+                    setContextMenu(null);
+                  }}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10"
+                >
+                  <Trash className="h-4 w-4" />
+                  Delete Room
+                </button>
+              </div>
+            )}
             <button
               onClick={() => setIsAddingRoom(true)}
               className="hover:border-gold-500/40 flex min-h-56 flex-col items-start justify-between border border-dashed border-stone-800 p-6 text-left transition hover:bg-stone-900/20"
