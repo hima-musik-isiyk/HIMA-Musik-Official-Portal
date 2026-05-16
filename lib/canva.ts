@@ -32,23 +32,157 @@ export function extractDesignId(url: string): string | null {
   }
 }
 
+import fs from "fs";
+import path from "path";
+
+import { supabaseAdmin } from "./supabase";
+
+const SESSION_FILE = path.join(process.cwd(), ".canva_session.json");
+const BUCKET_NAME =
+  process.env.INSTAGRAM_SECRET_PAGE_BUCKET ?? "instagram-secret-page";
+const SESSION_PATH = "canva-session.json";
+
+async function saveSession(data: {
+  access_token: string;
+  refresh_token?: string;
+}) {
+  try {
+    const current = (await loadSession()) || {};
+    const updated = { ...current, ...data };
+
+    // Save to local FS for dev convenience
+    if (process.env.NODE_ENV !== "production") {
+      fs.writeFileSync(SESSION_FILE, JSON.stringify(updated, null, 2));
+    }
+
+    // Save to Supabase Storage for Vercel persistence
+    if (supabaseAdmin) {
+      const { error } = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .upload(SESSION_PATH, JSON.stringify(updated), {
+          contentType: "application/json",
+          upsert: true,
+        });
+      if (error) console.error("[Canva] Supabase Save Error:", error);
+    }
+  } catch {
+    console.error("[Canva] Failed to save session:");
+  }
+}
+
+async function loadSession(): Promise<{
+  access_token: string;
+  refresh_token: string;
+} | null> {
+  // 1. Try Supabase first (source of truth for production)
+  if (supabaseAdmin) {
+    try {
+      const { data, error } = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .download(SESSION_PATH);
+      if (!error && data) {
+        return JSON.parse(await data.text());
+      }
+    } catch {
+      console.warn("[Canva] Supabase load skipped/failed.");
+    }
+  }
+
+  // 2. Fallback to local FS
+  try {
+    if (fs.existsSync(SESSION_FILE)) {
+      return JSON.parse(fs.readFileSync(SESSION_FILE, "utf-8"));
+    }
+  } catch (e) {
+    console.error("[Canva] Failed to load local session:", e);
+  }
+  return null;
+}
+
+let cachedToken: string | null = null;
+
+async function refreshCanvaToken(): Promise<string> {
+  const session = await loadSession();
+  const clientId = process.env.CANVA_CLIENT_ID;
+  const clientSecret = process.env.CANVA_CLIENT_SECRET;
+  const refreshToken =
+    session?.refresh_token || process.env.CANVA_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "Missing CANVA_CLIENT_ID, CANVA_CLIENT_SECRET, or CANVA_REFRESH_TOKEN.",
+    );
+  }
+
+  console.warn("[Canva] Refreshing access token...");
+
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const response = await fetch("https://api.canva.com/rest/v1/oauth/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    console.error("[Canva] Refresh Error:", error);
+    throw new Error(
+      `Failed to refresh Canva token: ${error.error_description || response.statusText}`,
+    );
+  }
+
+  const data = await response.json();
+  cachedToken = data.access_token;
+
+  await saveSession({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || refreshToken,
+  });
+
+  console.warn("[Canva] Token refreshed and saved successfully.");
+  return data.access_token;
+}
+
 async function canvaFetch(endpoint: string, options: RequestInit = {}) {
-  const token = process.env.CANVA_ACCESS_TOKEN;
+  const session = await loadSession();
+  let token =
+    cachedToken || session?.access_token || process.env.CANVA_ACCESS_TOKEN;
+
   if (!token) {
     throw new Error("Missing CANVA_ACCESS_TOKEN environment variable.");
   }
 
-  console.warn(`[Canva] Fetching: ${endpoint}`, {
-    method: options.method || "GET",
-  });
-  const response = await fetch(`${CANVA_API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const makeRequest = async (authToken: string) => {
+    return fetch(`${CANVA_API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+  };
+
+  let response = await makeRequest(token);
+
+  if (response.status === 401) {
+    console.warn("[Canva] 401 Unauthorized. Attempting refresh...");
+    try {
+      token = await refreshCanvaToken();
+      response = await makeRequest(token);
+    } catch (e) {
+      console.error("[Canva] Token refresh failed:", e);
+      throw new Error(
+        "Canva session expired and auto-refresh failed. Please re-authenticate.",
+      );
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
