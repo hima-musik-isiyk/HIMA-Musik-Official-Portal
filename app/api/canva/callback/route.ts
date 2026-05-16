@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { saveSession } from "../../../lib/canva";
+import { saveSession } from "@/lib/canva";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
