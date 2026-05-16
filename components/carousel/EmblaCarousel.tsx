@@ -3,7 +3,6 @@
 import "./EmblaCarousel.css";
 
 import useEmblaCarousel from "embla-carousel-react";
-import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import React, { useCallback, useEffect, useState } from "react";
@@ -26,31 +25,52 @@ export const EmblaCarousel: React.FC<EmblaCarouselProps> = ({
   className,
   aspectRatio = "aspect-square",
 }) => {
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    {
-      loop: false,
-      align: "start",
-      dragFree: false,
-      containScroll: "trimSnaps",
-    },
-    [WheelGesturesPlugin()],
-  );
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: false,
+    align: "start",
+    watchDrag: false, // browser owns drag/scroll; Embla just tracks state
+    containScroll: "trimSnaps",
+  });
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
 
-  const scrollPrev = useCallback(
-    () => emblaApi && emblaApi.scrollPrev(),
-    [emblaApi],
-  );
-  const scrollNext = useCallback(
-    () => emblaApi && emblaApi.scrollNext(),
-    [emblaApi],
-  );
+  const scrollPrev = useCallback(() => {
+    if (!emblaApi) return;
+    const viewport = emblaApi.rootNode();
+    if (!viewport) return;
+    const slideWidth = viewport.offsetWidth;
+    const index = Math.max(0, selectedIndex - 1);
+    viewport.scrollTo({
+      left: index * slideWidth,
+      behavior: "smooth",
+    });
+  }, [emblaApi, selectedIndex]);
+
+  const scrollNext = useCallback(() => {
+    if (!emblaApi) return;
+    const viewport = emblaApi.rootNode();
+    if (!viewport) return;
+    const slideWidth = viewport.offsetWidth;
+    const index = Math.min(slides.length - 1, selectedIndex + 1);
+    viewport.scrollTo({
+      left: index * slideWidth,
+      behavior: "smooth",
+    });
+  }, [emblaApi, selectedIndex, slides.length]);
+
   const scrollTo = useCallback(
-    (index: number) => emblaApi && emblaApi.scrollTo(index),
+    (index: number) => {
+      if (!emblaApi) return;
+      const viewport = emblaApi.rootNode();
+      if (!viewport) return;
+      viewport.scrollTo({
+        left: index * viewport.offsetWidth,
+        behavior: "smooth",
+      });
+    },
     [emblaApi],
   );
 
@@ -77,6 +97,26 @@ export const EmblaCarousel: React.FC<EmblaCarouselProps> = ({
       emblaApi.off("select", onSelect);
     };
   }, [emblaApi, onInit, onSelect]);
+
+  // Sync Embla state to native scroll position
+  useEffect(() => {
+    if (!emblaApi) return;
+    const viewport = emblaApi.rootNode();
+    if (!viewport) return;
+
+    const onScroll = () => {
+      const slideWidth = viewport.offsetWidth;
+      const index = Math.round(viewport.scrollLeft / slideWidth);
+
+      // Only call scrollTo if it's a different slide to avoid loops
+      if (index !== emblaApi.selectedScrollSnap()) {
+        emblaApi.scrollTo(index, true); // true = jump without animation
+      }
+    };
+
+    viewport.addEventListener("scroll", onScroll, { passive: true });
+    return () => viewport.removeEventListener("scroll", onScroll);
+  }, [emblaApi]);
 
   return (
     <div
