@@ -7,6 +7,7 @@ import {
   extractDesignId,
   filterPagesForColumn,
   getDesignPages,
+  resolveCanvaLink,
 } from "@/lib/canva";
 
 export const dynamic = "force-dynamic";
@@ -219,7 +220,8 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
 
     if (canvaLink) {
-      const designId = extractDesignId(canvaLink);
+      const fullUrl = await resolveCanvaLink(canvaLink);
+      const designId = extractDesignId(fullUrl);
       if (!designId) {
         return jsonError(new Error("Invalid Canva link."), 400);
       }
