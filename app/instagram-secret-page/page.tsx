@@ -1134,6 +1134,42 @@ function RowCanvaButton({
   );
 }
 
+function CellImage({
+  src,
+  alt,
+  className = "",
+  objectContain = false,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  objectContain?: boolean;
+}) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div
+      className={`relative h-full w-full overflow-hidden bg-neutral-900 ${className}`}
+    >
+      {!isLoaded && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center">
+          <div className="h-full w-full animate-pulse bg-neutral-800/60" />
+        </div>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className={`h-full w-full transition-all duration-700 ease-out ${
+          objectContain ? "object-contain" : "object-cover"
+        } ${isLoaded ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
+        onLoad={() => setIsLoaded(true)}
+        draggable={false}
+      />
+    </div>
+  );
+}
+
 function PostCell({
   item,
   activeIndex,
@@ -1209,13 +1245,7 @@ function PostCell({
             key={frame.id}
             className="h-full w-full shrink-0 snap-center select-none"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={frame.url}
-              alt={frame.originalName}
-              className="h-full w-full object-cover"
-              draggable={false}
-            />
+            <CellImage src={frame.url} alt={frame.originalName} />
           </div>
         ))}
       </div>
@@ -1435,12 +1465,10 @@ function PreviewModal({
                 key={frame.id}
                 className="h-full w-full shrink-0 snap-center select-none"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <CellImage
                   src={frame.url}
                   alt={frame.originalName}
-                  className="h-full w-full object-contain"
-                  draggable={false}
+                  objectContain
                 />
               </div>
             ))}
