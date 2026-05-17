@@ -13,20 +13,6 @@ function readString(value: unknown) {
   return typeof value === "string" ? value : null;
 }
 
-function getPayloadRoomId(payload: unknown) {
-  const root = readRecord(payload);
-  const parent = readRecord(root.parent);
-  const data = readRecord(root.data);
-  const dataParent = readRecord(data.parent);
-  return (
-    readString(root.roomId) ??
-    readString(root.page_id) ??
-    readString(parent.page_id) ??
-    readString(dataParent.id) ??
-    null
-  );
-}
-
 function getEntityId(payload: unknown) {
   const entity = readRecord(readRecord(payload).entity);
   return readString(entity.id);
@@ -56,20 +42,98 @@ function getChangedPageTitle(payload: unknown) {
   return null;
 }
 
-async function resolveRoomId(payload: unknown) {
-  const payloadRoomId = getPayloadRoomId(payload);
-  if (payloadRoomId) return normalizePageId(payloadRoomId);
+async function resolveRoomId(
+  payload: unknown,
+  supabaseUrl?: string,
+  supabaseKey?: string,
+) {
+  const root = readRecord(payload);
+  const data = readRecord(root.data);
+  const dataParent = readRecord(data.parent);
+  const entity = readRecord(root.entity);
 
-  const entityId = getEntityId(payload);
-  if (!entityId) return null;
+  const candidates: string[] = [];
+  if (root.roomId) candidates.push(readString(root.roomId) || "");
+  if (root.page_id) candidates.push(readString(root.page_id) || "");
+  if (dataParent.id) candidates.push(readString(dataParent.id) || "");
+  if (entity.id) candidates.push(readString(entity.id) || "");
+  if (data.id) candidates.push(readString(data.id) || "");
+
+  const uniqueCandidates = Array.from(
+    new Set(candidates.filter(Boolean).map(normalizePageId)),
+  );
+
+  let registeredRooms: string[] = [];
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data: rooms } = await supabase.from("notion_rooms").select("id");
+      if (rooms) {
+        registeredRooms = rooms.map((r) => normalizePageId(r.id));
+      }
+    } catch (e) {
+      console.error("Failed to fetch registered rooms from Supabase:", e);
+    }
+  }
 
   const notion = getRoomNotionClient();
-  const page = await notion.pages.retrieve({ page_id: entityId });
-  if (!("parent" in page)) return normalizePageId(entityId);
-  const parent = page.parent;
 
-  if (parent.type === "page_id") return normalizePageId(parent.page_id);
-  return normalizePageId(entityId);
+  for (const candidateId of uniqueCandidates) {
+    let currentId = candidateId;
+    for (let depth = 0; depth < 4; depth++) {
+      if (registeredRooms.includes(currentId)) {
+        return currentId;
+      }
+
+      try {
+        const page = await notion.pages.retrieve({ page_id: currentId });
+        if ("parent" in page && page.parent) {
+          const parent = page.parent;
+          if (parent.type === "page_id" && parent.page_id) {
+            currentId = normalizePageId(parent.page_id);
+            continue;
+          } else if (parent.type === "database_id" && parent.database_id) {
+            currentId = normalizePageId(parent.database_id);
+            continue;
+          }
+        }
+      } catch {
+        try {
+          const block = await notion.blocks.retrieve({ block_id: currentId });
+          if ("parent" in block && block.parent) {
+            const parent = block.parent;
+            if (parent.type === "page_id" && parent.page_id) {
+              currentId = normalizePageId(parent.page_id);
+              continue;
+            } else if (parent.type === "block_id" && parent.block_id) {
+              currentId = normalizePageId(parent.block_id);
+              continue;
+            }
+          }
+        } catch {
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  // Fallback
+  for (const id of uniqueCandidates) {
+    try {
+      const page = await notion.pages.retrieve({ page_id: id });
+      if ("parent" in page && page.parent) {
+        const parent = page.parent;
+        if (parent.type === "page_id" && parent.page_id) {
+          return normalizePageId(parent.page_id);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return uniqueCandidates[0] || null;
 }
 
 export function handleNotionRoomWebhookHealthcheck() {
@@ -90,11 +154,12 @@ export async function handleNotionRoomWebhook(request: Request) {
     });
   }
 
-  const roomId = await resolveRoomId(payload).catch(() => null);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  const roomId = await resolveRoomId(payload, url, key).catch(() => null);
 
   if (!roomId || !url || !key) {
     return NextResponse.json({
