@@ -6,11 +6,14 @@ import {
   Check,
   Clipboard,
   Copy,
+  Database,
   Edit,
   Edit3,
   ExternalLink,
+  FileText,
   Flag,
   Handshake,
+  Layers,
   Loader2,
   LogOut,
   MessageSquare,
@@ -182,6 +185,12 @@ export default function NotionSecretPage() {
     Array<{
       pageTitle?: string | null;
       entityId?: string | null;
+      entityType?: string | null;
+      eventType?: string | null;
+      actionLabel?: string | null;
+      rawTitle?: string | null;
+      snippet?: string | null;
+      parentTitle?: string | null;
       timestamp: string;
     }>
   >([]);
@@ -193,6 +202,9 @@ export default function NotionSecretPage() {
   const isNavigatingToRoomRef = useRef(false);
   const presenceKeyRef = useRef(crypto.randomUUID());
   const lastTrackedPayloadRef = useRef<string>("");
+  const isDraggingRef = useRef(false);
+  const dragSelectModeRef = useRef<boolean>(true);
+  const mouseDownHandledRef = useRef(false);
 
   const selectedPages = useMemo(
     () =>
@@ -424,6 +436,12 @@ export default function NotionSecretPage() {
         const newAlert = {
           pageTitle: payload?.pageTitle || null,
           entityId: payload?.entityId || null,
+          entityType: payload?.entityType || null,
+          eventType: payload?.eventType || null,
+          actionLabel: payload?.actionLabel || null,
+          rawTitle: payload?.rawTitle || null,
+          snippet: payload?.snippet || null,
+          parentTitle: payload?.parentTitle || null,
           timestamp: payload?.timestamp || new Date().toISOString(),
         };
         setWebhookAlerts((prev) => [newAlert, ...prev].slice(0, 10));
@@ -651,8 +669,16 @@ export default function NotionSecretPage() {
       setContextMenu(null);
       setShowWebhookHistory(false);
     };
+    const handleGlobalMouseUp = () => {
+      isDraggingRef.current = false;
+      mouseDownHandledRef.current = false;
+    };
     window.addEventListener("click", handleGlobalClick);
-    return () => window.removeEventListener("click", handleGlobalClick);
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener("click", handleGlobalClick);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
   }, []);
 
   const deleteRoom = async (roomId: string) => {
@@ -713,6 +739,58 @@ export default function NotionSecretPage() {
         : [...selectedPageIds, pageId],
     );
   }
+
+  const handlePageMouseDown = (
+    e: React.MouseEvent,
+    pageId: string,
+    isChecked: boolean,
+    isTemp: boolean,
+  ) => {
+    if (isTemp) return;
+    if (e.button !== 0) return; // Only left click
+
+    isDraggingRef.current = true;
+    mouseDownHandledRef.current = true;
+
+    const newMode = !isChecked;
+    dragSelectModeRef.current = newMode;
+
+    setSelectedPageIds(
+      newMode
+        ? [...selectedPageIdsRef.current, pageId]
+        : selectedPageIdsRef.current.filter((id) => id !== pageId),
+    );
+
+    // Prevent text selection while dragging
+    e.preventDefault();
+  };
+
+  const handlePageMouseEnter = (pageId: string, isTemp: boolean) => {
+    if (!isDraggingRef.current || isTemp) return;
+
+    const currentSelected = selectedPageIdsRef.current;
+    const newMode = dragSelectModeRef.current;
+    const isAlreadySelected = currentSelected.includes(pageId);
+
+    if (newMode && !isAlreadySelected) {
+      setSelectedPageIds([...currentSelected, pageId]);
+    } else if (!newMode && isAlreadySelected) {
+      setSelectedPageIds(currentSelected.filter((id) => id !== pageId));
+    }
+  };
+
+  const handlePageClick = (
+    e: React.MouseEvent,
+    pageId: string,
+    isTemp: boolean,
+  ) => {
+    if (isTemp) return;
+    if (mouseDownHandledRef.current) {
+      mouseDownHandledRef.current = false;
+      return;
+    }
+    togglePage(pageId);
+  };
 
   function selectAll() {
     setSelectedPageIds(chronologicalPages.map((page) => page.id));
@@ -1216,34 +1294,108 @@ export default function NotionSecretPage() {
                       </button>
                     </div>
                     <div className="scrollbar-thin max-h-60 space-y-3 overflow-y-auto pr-1">
-                      {webhookAlerts.map((alert, index) => (
-                        <div
-                          key={index}
-                          className="border-b border-stone-900/50 pb-2.5 last:border-0 last:pb-0"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p
-                              className="max-w-[12rem] truncate text-xs font-medium text-white"
-                              title={alert.pageTitle || undefined}
-                            >
-                              {alert.pageTitle || "Unnamed Notion Page"}
-                            </p>
-                            <span className="shrink-0 text-[9px] text-stone-600">
-                              {new Date(alert.timestamp).toLocaleTimeString(
-                                [],
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  second: "2-digit",
-                                },
-                              )}
-                            </span>
+                      {webhookAlerts.map((alert, index) => {
+                        // Resolve icon
+                        let Icon = Bell;
+                        if (alert.entityType === "page") Icon = FileText;
+                        else if (alert.entityType === "block") Icon = Layers;
+                        else if (alert.entityType === "database")
+                          Icon = Database;
+                        else if (alert.entityType === "comment")
+                          Icon = MessageSquare;
+
+                        // Resolve color theme based on event action
+                        const evType = alert.eventType?.toLowerCase() || "";
+                        let badgeClass =
+                          "bg-stone-500/10 text-stone-400 border-stone-800";
+                        if (evType.includes("create")) {
+                          badgeClass =
+                            "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                        } else if (
+                          evType.includes("delete") ||
+                          evType.includes("archive")
+                        ) {
+                          badgeClass =
+                            "bg-red-500/10 text-red-400 border-red-500/20";
+                        } else if (
+                          evType.includes("update") ||
+                          evType.includes("change")
+                        ) {
+                          badgeClass =
+                            "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                        }
+
+                        // Notion Link
+                        const notionUrl = alert.entityId
+                          ? `https://notion.so/${alert.entityId.replaceAll("-", "")}`
+                          : null;
+
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => {
+                              if (notionUrl) window.open(notionUrl, "_blank");
+                            }}
+                            className={`group/item hover:border-gold-500/30 border border-white/5 bg-stone-950/40 p-3 transition-all duration-200 hover:bg-stone-900/30 ${
+                              notionUrl ? "cursor-pointer" : ""
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span className="group-hover/item:border-gold-500/30 group-hover/item:text-gold-400 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-800 bg-stone-900/50 text-stone-400 transition-colors">
+                                <Icon className="h-3.5 w-3.5" />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p
+                                    className="group-hover/item:text-gold-200 truncate text-xs font-semibold text-white transition-colors"
+                                    title={alert.pageTitle || undefined}
+                                  >
+                                    {alert.rawTitle ||
+                                      alert.pageTitle ||
+                                      "Unnamed Notion Page"}
+                                  </p>
+                                  <span className="shrink-0 text-[8px] font-medium text-stone-600">
+                                    {new Date(
+                                      alert.timestamp,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      second: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+
+                                {alert.parentTitle && (
+                                  <p className="mt-0.5 truncate text-[10px] text-stone-500 italic">
+                                    inside &quot;{alert.parentTitle}&quot;
+                                  </p>
+                                )}
+
+                                {alert.snippet && (
+                                  <div className="border-gold-500/30 bg-gold-500/5 mt-1.5 line-clamp-2 border-l px-2 py-1 font-mono text-[9px] text-stone-300">
+                                    &quot;{alert.snippet}&quot;
+                                  </div>
+                                )}
+
+                                <div className="mt-2 flex items-center justify-between gap-2">
+                                  <span
+                                    className={`inline-block rounded-md border px-1.5 py-0.5 text-[8px] font-bold tracking-wider uppercase ${badgeClass}`}
+                                  >
+                                    {alert.actionLabel ||
+                                      alert.eventType ||
+                                      "Activity"}
+                                  </span>
+                                  {notionUrl && (
+                                    <span className="text-gold-500 flex items-center gap-1 text-[8px] font-semibold opacity-0 transition-opacity duration-200 group-hover/item:opacity-100">
+                                      View <ExternalLink className="h-2 w-2" />
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <p className="mt-1 font-mono text-[9px] break-all text-stone-500">
-                            ID: {alert.entityId || "Unknown"}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {webhookAlerts.length === 0 ? (
                         <p className="py-4 text-center text-xs text-stone-600">
                           No webhook activities received yet.
@@ -1334,8 +1486,12 @@ export default function NotionSecretPage() {
                   key={page.id}
                   disabled={isTemp}
                   data-animate="up"
-                  onClick={() => togglePage(page.id)}
-                  className={`group grid w-full grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-3 border px-4 py-1.5 text-left transition ${
+                  onMouseDown={(e) =>
+                    handlePageMouseDown(e, page.id, checked, isTemp)
+                  }
+                  onMouseEnter={() => handlePageMouseEnter(page.id, isTemp)}
+                  onClick={(e) => handlePageClick(e, page.id, isTemp)}
+                  className={`group grid w-full grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-3 border px-4 py-1.5 text-left transition select-none ${
                     checked
                       ? "border-gold-500/40 bg-gold-500/10"
                       : "hover:border-gold-500/20 border-white/5 bg-stone-950/10 hover:bg-stone-900/20"

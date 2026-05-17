@@ -142,18 +142,21 @@ export default function useViewEntrance(
       if (!shouldAnimate) {
         // If animations are suppressed (e.g. reload), ensure elements are visible
         gsap.set(Array.from(all), { clearProps: "all" });
+        all.forEach((el) => el.setAttribute("data-animated", "true"));
         return;
       }
 
       /* ── Prevent FOUC ── */
       // Immediately set all elements to their starting state
       standalone.forEach((el) => {
+        if (el.getAttribute("data-animated") === "true") return;
         const variant = el.getAttribute("data-animate") || "up";
         const from = VARIANTS[variant] || VARIANTS.up;
         gsap.set(el, from);
       });
 
-      groups.forEach(({ children }) => {
+      groups.forEach(({ container, children }) => {
+        if (container.getAttribute("data-animated") === "true") return;
         const variant = children[0].getAttribute("data-animate") || "up";
         const from = VARIANTS[variant] || VARIANTS.up;
         gsap.set(children, from);
@@ -165,6 +168,9 @@ export default function useViewEntrance(
           let immediateBaseDelay = 0;
 
           standalone.forEach((el) => {
+            if (el.getAttribute("data-animated") === "true") return;
+            el.setAttribute("data-animated", "true");
+
             const variant = el.getAttribute("data-animate") || "up";
             const from = VARIANTS[variant] || VARIANTS.up;
             const delay = parseFloat(
@@ -203,6 +209,9 @@ export default function useViewEntrance(
           });
 
           groups.forEach(({ container, children, stagger }) => {
+            if (container.getAttribute("data-animated") === "true") return;
+            container.setAttribute("data-animated", "true");
+
             const variant = children[0].getAttribute("data-animate") || "up";
             const from = VARIANTS[variant] || VARIANTS.up;
             const duration = parseFloat(
