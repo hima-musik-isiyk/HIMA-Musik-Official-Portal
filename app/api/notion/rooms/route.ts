@@ -30,7 +30,7 @@ function toRoom(row: SupabaseRoom): NotionRoom {
 export async function GET() {
   try {
     const response = await supabaseRestFetch(
-      "/rest/v1/notion_rooms?select=id,name,created_at,updated_at&order=updated_at.desc",
+      "/rest/v1/notion_rooms?select=id,name,actual_title,description,created_at,updated_at&order=updated_at.desc",
     );
     const data = await response.json();
 
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           id,
           name,
+          actual_title: actualTitle,
           updated_at: now,
         }),
       },
@@ -139,7 +140,31 @@ export async function PATCH(request: Request) {
     if (body.id_override) {
       const rawId = extractNotionPageId(body.id_override);
       if (pageIdPattern.test(rawId)) {
-        updates.id = normalizePageId(rawId);
+        const nextId = normalizePageId(rawId);
+        updates.id = nextId;
+
+        try {
+          const { getRoomNotionClient } =
+            await import("@/lib/notion-room/server");
+          const notion = getRoomNotionClient();
+          const page = await notion.pages.retrieve({ page_id: nextId });
+          if ("properties" in page) {
+            for (const prop of Object.values(page.properties)) {
+              if (prop.type === "title") {
+                const actualTitle = prop.title
+                  .map((t) => t.plain_text)
+                  .join("");
+                updates.actual_title = actualTitle;
+                if (!body.name?.trim()) {
+                  updates.name = actualTitle;
+                }
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch Notion title on ID change:", e);
+        }
       }
     }
 
