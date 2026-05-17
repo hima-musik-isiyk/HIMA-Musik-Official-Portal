@@ -177,6 +177,15 @@ export default function NotionSecretPage() {
   } | null>(null);
   const [editingRoom, setEditingRoom] = useState<NotionRoom | null>(null);
   const [peers, setPeers] = useState<Record<string, PeerState>>({});
+  const [realtimeActive, setRealtimeActive] = useState(false);
+  const [webhookAlerts, setWebhookAlerts] = useState<
+    Array<{
+      pageTitle?: string | null;
+      entityId?: string | null;
+      timestamp: string;
+    }>
+  >([]);
+  const [showWebhookHistory, setShowWebhookHistory] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const roomsChannelRef = useRef<RealtimeChannel | null>(null);
   const selectedPageIdsRef = useRef<string[]>([]);
@@ -371,8 +380,6 @@ export default function NotionSecretPage() {
         } catch (e) {
           console.error("Failed to write page cache:", e);
         }
-
-        if (!isQuiet) setStatus("Synced with Notion.");
       } catch (caught) {
         if (!isQuiet) {
           setError(caught instanceof Error ? caught.message : "Failed to load");
@@ -390,7 +397,8 @@ export default function NotionSecretPage() {
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      setStatus("Realtime off: set Supabase env.");
+      console.warn("Realtime off: set Supabase env.");
+      setRealtimeActive(false);
       return;
     }
 
@@ -415,8 +423,20 @@ export default function NotionSecretPage() {
           [payload.clientId ?? payload.displayName]: payload,
         }));
       })
-      .on("broadcast", { event: "notion-room-refresh" }, () => {
-        setStatus("Notion changed. Refreshing room.");
+      .on("broadcast", { event: "notion-room-refresh" }, ({ payload }) => {
+        console.log("Notion changed. Refreshing room.", payload);
+        const newAlert = {
+          pageTitle: payload?.pageTitle || null,
+          entityId: payload?.entityId || null,
+          timestamp: payload?.timestamp || new Date().toISOString(),
+        };
+        setWebhookAlerts((prev) => [newAlert, ...prev].slice(0, 10));
+
+        const changeDesc = newAlert.pageTitle
+          ? `"${newAlert.pageTitle}" updated in Notion`
+          : "Notion page updated";
+        setStatus(`Live Update: ${changeDesc}. Syncing...`);
+
         void loadPages(currentRoomId, false, true);
       })
       .subscribe(async (state) => {
@@ -426,7 +446,9 @@ export default function NotionSecretPage() {
             selectedPageIds: selectedPageIdsRef.current,
             onlineAt: new Date().toISOString(),
           });
-          setStatus("Realtime active.");
+          setRealtimeActive(true);
+        } else {
+          setRealtimeActive(false);
         }
       });
 
@@ -434,6 +456,7 @@ export default function NotionSecretPage() {
     return () => {
       void supabase.removeChannel(channel);
       channelRef.current = null;
+      setRealtimeActive(false);
     };
   }, [currentRoomId, displayName, loadPages]);
 
@@ -534,6 +557,7 @@ export default function NotionSecretPage() {
         setPeers({});
         setStatus("");
         setError("");
+        setRealtimeActive(false);
         hasOpenedRouteRoomRef.current = false;
       }
       return;
@@ -557,6 +581,7 @@ export default function NotionSecretPage() {
       setPeers({});
       setStatus("");
       setError("");
+      setRealtimeActive(false);
       hasOpenedRouteRoomRef.current = false;
     }
   }, [currentRoomId, currentRoom, resetRoom, routeSlug]);
@@ -623,7 +648,10 @@ export default function NotionSecretPage() {
   ]);
 
   useEffect(() => {
-    const handleGlobalClick = () => setContextMenu(null);
+    const handleGlobalClick = () => {
+      setContextMenu(null);
+      setShowWebhookHistory(false);
+    };
     window.addEventListener("click", handleGlobalClick);
     return () => window.removeEventListener("click", handleGlobalClick);
   }, []);
@@ -764,6 +792,8 @@ export default function NotionSecretPage() {
     setPeers({});
     setStatus("");
     setError("");
+    setRealtimeActive(false);
+    setWebhookAlerts([]);
     hasOpenedRouteRoomRef.current = false;
     router.push("/notion-secret-page");
     window.scrollTo({ top: 0 });
@@ -1138,13 +1168,98 @@ export default function NotionSecretPage() {
                 )}
                 Sync
               </button>
-              <button
-                onClick={() => setStatus("Notion webhook must broadcast here.")}
-                className="hover:border-gold-500/40 hover:text-gold-500 rounded-xl border border-stone-800 bg-stone-900/30 p-3 text-stone-400 transition"
-                aria-label="Realtime status"
-              >
-                <Bell className="h-4 w-4" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowWebhookHistory((prev) => !prev);
+                  }}
+                  className={`relative rounded-xl border p-3 transition ${
+                    realtimeActive
+                      ? "border-gold-500/30 text-gold-500 bg-gold-500/5 hover:bg-gold-500/10"
+                      : "border-stone-800 bg-stone-900/30 text-stone-400 hover:border-stone-700 hover:text-stone-300"
+                  }`}
+                  aria-label="Realtime status"
+                  title={
+                    realtimeActive
+                      ? "Realtime connected"
+                      : "Realtime disconnected"
+                  }
+                >
+                  <Bell className="h-4 w-4" />
+                  {realtimeActive && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="bg-gold-400 absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+                      <span className="bg-gold-500 relative inline-flex h-2 w-2 rounded-full"></span>
+                    </span>
+                  )}
+                  {webhookAlerts.length > 0 && (
+                    <span className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] leading-none font-bold text-white">
+                      {webhookAlerts.length}
+                    </span>
+                  )}
+                </button>
+
+                {showWebhookHistory && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 z-50 mt-2 w-80 border border-stone-800 bg-stone-950 p-4 text-left shadow-2xl backdrop-blur-md"
+                  >
+                    <div className="mb-3 flex items-center justify-between border-b border-stone-900 pb-2">
+                      <span className="text-xs font-bold tracking-wider text-stone-400 uppercase">
+                        Webhook Activity Log
+                      </span>
+                      <button
+                        onClick={() => setWebhookAlerts([])}
+                        className="text-[10px] text-stone-500 transition hover:text-stone-300"
+                      >
+                        Clear Log
+                      </button>
+                    </div>
+                    <div className="scrollbar-thin max-h-60 space-y-3 overflow-y-auto pr-1">
+                      {webhookAlerts.map((alert, index) => (
+                        <div
+                          key={index}
+                          className="border-b border-stone-900/50 pb-2.5 last:border-0 last:pb-0"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className="max-w-[12rem] truncate text-xs font-medium text-white"
+                              title={alert.pageTitle || undefined}
+                            >
+                              {alert.pageTitle || "Unnamed Notion Page"}
+                            </p>
+                            <span className="shrink-0 text-[9px] text-stone-600">
+                              {new Date(alert.timestamp).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                },
+                              )}
+                            </span>
+                          </div>
+                          <p className="mt-1 font-mono text-[9px] break-all text-stone-500">
+                            ID: {alert.entityId || "Unknown"}
+                          </p>
+                        </div>
+                      ))}
+                      {webhookAlerts.length === 0 ? (
+                        <p className="py-4 text-center text-xs text-stone-600">
+                          No webhook activities received yet.
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-stone-900 pt-2 text-[10px] text-stone-500">
+                      <span>
+                        Realtime: {realtimeActive ? "Connected" : "Offline"}
+                      </span>
+                      <span>Logs: {webhookAlerts.length}/10</span>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={leaveRoom}
                 className="hover:bg-gold-500 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-stone-950 transition"
