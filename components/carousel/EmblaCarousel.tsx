@@ -2,6 +2,7 @@
 
 import "./EmblaCarousel.css";
 
+import type { UseEmblaCarouselType } from "embla-carousel-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -25,6 +26,8 @@ export const EmblaCarousel: React.FC<EmblaCarouselProps> = ({
   className,
   aspectRatio = "aspect-square",
 }) => {
+  type EmblaApi = UseEmblaCarouselType[1];
+
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
     align: "start",
@@ -74,14 +77,14 @@ export const EmblaCarousel: React.FC<EmblaCarouselProps> = ({
     [emblaApi],
   );
 
-  const onInit = useCallback((emblaApi: any) => {
-    setScrollSnaps(emblaApi.scrollSnapList());
+  const onInit = useCallback((api: NonNullable<EmblaApi>) => {
+    setScrollSnaps(api.scrollSnapList());
   }, []);
 
-  const onSelect = useCallback((emblaApi: any) => {
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
+  const onSelect = useCallback((api: NonNullable<EmblaApi>) => {
+    setSelectedIndex(api.selectedScrollSnap());
+    setCanScrollPrev(api.canScrollPrev());
+    setCanScrollNext(api.canScrollNext());
   }, []);
 
   useEffect(() => {

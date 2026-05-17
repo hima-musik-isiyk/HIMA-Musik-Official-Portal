@@ -1,3 +1,4 @@
+import type { Client as NotionClient } from "@notionhq/client";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -65,7 +66,7 @@ function getSnippetFromPayload(payload: unknown): string | null {
       const typeObj = readRecord(obj[type]);
       if (Array.isArray(typeObj.rich_text)) {
         const text = typeObj.rich_text
-          .map((part: any) => {
+          .map((part: unknown) => {
             const p = readRecord(part);
             return typeof p.plain_text === "string" ? p.plain_text : "";
           })
@@ -80,17 +81,15 @@ function getSnippetFromPayload(payload: unknown): string | null {
   return null;
 }
 
-function getBlockSnippet(block: any): string | null {
-  if (!block || !block.type) return null;
-  const value = block[block.type];
-  if (
-    value &&
-    typeof value === "object" &&
-    "rich_text" in value &&
-    Array.isArray(value.rich_text)
-  ) {
+function getBlockSnippet(block: unknown): string | null {
+  const b = readRecord(block);
+  const type = readString(b.type);
+  if (!type) return null;
+
+  const value = readRecord(b[type]);
+  if (value && "rich_text" in value && Array.isArray(value.rich_text)) {
     const text = value.rich_text
-      .map((part: any) => {
+      .map((part: unknown) => {
         const p = readRecord(part);
         return typeof p.plain_text === "string" ? p.plain_text : "";
       })
@@ -100,11 +99,12 @@ function getBlockSnippet(block: any): string | null {
       return text.length > 60 ? text.slice(0, 57) + "..." : text;
     }
   }
+
   return null;
 }
 
 async function getParentPageTitle(
-  notion: any,
+  notion: NotionClient,
   parentId: string,
   parentType: string,
   depth = 0,
