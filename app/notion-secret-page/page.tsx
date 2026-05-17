@@ -1184,7 +1184,7 @@ export default function NotionSecretPage() {
             </button>
           </div>
           {/* Toast Notifications */}
-          <div className="pointer-events-none fixed bottom-6 left-6 z-[100] flex flex-col justify-end gap-3">
+          <div className="pointer-events-none fixed bottom-6 left-6 z-100 flex flex-col justify-end gap-3">
             <AnimatePresence>
               {status && (
                 <motion.div
@@ -1678,7 +1678,7 @@ export default function NotionSecretPage() {
       </div>
 
       {/* Toast Notifications */}
-      <div className="pointer-events-none fixed bottom-6 left-6 z-[100] flex flex-col justify-end gap-3">
+      <div className="pointer-events-none fixed bottom-6 left-6 z-100 flex flex-col justify-end gap-3">
         <AnimatePresence>
           {status && (
             <motion.div

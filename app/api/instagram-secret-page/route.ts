@@ -269,7 +269,7 @@ export async function POST(request: Request) {
         for (const [index, url] of imageUrls.entries()) {
           const res = await fetch(url);
           const arrayBuf = await res.arrayBuffer();
-          const buffer = Buffer.from(arrayBuf);
+          const buffer = Buffer.from(arrayBuf as ArrayBuffer);
 
           const metadata = await sharp(buffer).metadata();
           const width = metadata.width || 1080;
@@ -282,7 +282,7 @@ export async function POST(request: Request) {
             const extension = "png";
             const path = `items/${subItemId}/${String(index + 1).padStart(2, "0")}-split-${splitIdx + 1}.${extension}`;
 
-            let uploadBuffer = buffer;
+            let uploadBuffer: ArrayBufferView = buffer;
             if (numSplits > 1) {
               const sliceWidth = Math.floor(width / numSplits);
               uploadBuffer = await sharp(buffer)
@@ -386,7 +386,7 @@ export async function POST(request: Request) {
 
         const { error: uploadError } = await supabase.storage
           .from(bucketName)
-          .upload(path, bytes, {
+          .upload(path, bytes as unknown as Buffer, {
             contentType: file.type || meta.type || "application/octet-stream",
             upsert: true,
           });

@@ -1162,7 +1162,7 @@ function RowCanvaButton({
                               : "Right"}
                         </label>
 
-                        <div className="flex min-h-[120px] flex-col gap-2 rounded-xl border border-white/5 bg-black/30 p-1.5">
+                        <div className="flex min-h-30 flex-col gap-2 rounded-xl border border-white/5 bg-black/30 p-1.5">
                           <div className="flex flex-1 flex-col gap-1.5">
                             {parts.length === 0 && (
                               <div className="flex flex-1 items-center justify-center px-1 text-center">
