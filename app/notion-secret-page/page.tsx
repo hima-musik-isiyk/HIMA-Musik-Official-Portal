@@ -252,6 +252,15 @@ export default function NotionSecretPage() {
     return () => clearTimeout(timer);
   }, [status]);
 
+  // Auto-clear error messages
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => {
+      setError("");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   useEffect(() => {
     if (currentRoom?.name) setCurrentRoomName(currentRoom.name);
   }, [currentRoom?.name]);
@@ -1012,21 +1021,6 @@ export default function NotionSecretPage() {
             </div>
           )}
 
-          <AnimatePresence initial={false}>
-            {error && (
-              <motion.div
-                layout
-                initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                animate={{ opacity: 1, height: "auto", scale: 1 }}
-                exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="mb-6 max-w-3xl overflow-hidden border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-200"
-              >
-                {error}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {isAddingRoom ? (
             <form
               onSubmit={addRoom}
@@ -1188,6 +1182,37 @@ export default function NotionSecretPage() {
                 </span>
               </span>
             </button>
+          </div>
+          {/* Toast Notifications */}
+          <div className="pointer-events-none fixed bottom-6 left-6 z-[100] flex flex-col justify-end gap-3">
+            <AnimatePresence>
+              {status && (
+                <motion.div
+                  key="status-toast"
+                  layout
+                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="border-gold-500/30 text-gold-100 pointer-events-auto max-w-sm border bg-stone-950/90 px-5 py-3.5 text-sm shadow-2xl backdrop-blur-md"
+                >
+                  {status}
+                </motion.div>
+              )}
+              {error && (
+                <motion.div
+                  key="error-toast"
+                  layout
+                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="pointer-events-auto max-w-sm border border-red-500/40 bg-stone-950/90 px-5 py-3.5 text-sm text-red-200 shadow-2xl backdrop-blur-md"
+                >
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </section>
@@ -1421,24 +1446,6 @@ export default function NotionSecretPage() {
             </div>
           </div>
 
-          {status && (
-            <div
-              data-animate="fade"
-              className="border-gold-500/20 bg-gold-500/10 text-gold-100 mb-5 border px-5 py-3 text-sm"
-            >
-              {status}
-            </div>
-          )}
-
-          {error && (
-            <div
-              data-animate="fade"
-              className="mb-5 border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-200"
-            >
-              {error}
-            </div>
-          )}
-
           <div
             data-animate="up"
             data-animate-delay="0.2"
@@ -1668,6 +1675,38 @@ export default function NotionSecretPage() {
             </div>
           </div>
         </aside>
+      </div>
+
+      {/* Toast Notifications */}
+      <div className="pointer-events-none fixed bottom-6 left-6 z-[100] flex flex-col justify-end gap-3">
+        <AnimatePresence>
+          {status && (
+            <motion.div
+              key="status-toast"
+              layout
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="border-gold-500/30 text-gold-100 pointer-events-auto max-w-sm border bg-stone-950/90 px-5 py-3.5 text-sm shadow-2xl backdrop-blur-md"
+            >
+              {status}
+            </motion.div>
+          )}
+          {error && (
+            <motion.div
+              key="error-toast"
+              layout
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="pointer-events-auto max-w-sm border border-red-500/40 bg-stone-950/90 px-5 py-3.5 text-sm text-red-200 shadow-2xl backdrop-blur-md"
+            >
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
