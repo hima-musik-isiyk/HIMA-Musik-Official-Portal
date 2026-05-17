@@ -20,8 +20,8 @@ function toRoom(row: SupabaseRoom): NotionRoom {
   return {
     id: row.id,
     name: row.name,
-    actualTitle: row.actual_title,
-    description: row.description,
+    actualTitle: row.actual_title ?? "",
+    description: row.description ?? "",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -30,7 +30,7 @@ function toRoom(row: SupabaseRoom): NotionRoom {
 export async function GET() {
   try {
     const response = await supabaseRestFetch(
-      "/rest/v1/notion_rooms?select=id,name,actual_title,description,created_at,updated_at&order=updated_at.desc",
+      "/rest/v1/notion_rooms?select=id,name,created_at,updated_at&order=updated_at.desc",
     );
     const data = await response.json();
 
@@ -98,7 +98,6 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           id,
           name,
-          actual_title: actualTitle,
           updated_at: now,
         }),
       },
