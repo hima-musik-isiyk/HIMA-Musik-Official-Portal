@@ -674,19 +674,23 @@ export default function NotionSecretPage() {
   ]);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
     const handleGlobalClick = () => {
       setContextMenu(null);
       setShowWebhookHistory(false);
     };
     const handleGlobalMouseUp = () => {
       isDraggingRef.current = false;
-      mouseDownHandledRef.current = false;
+      timeoutId = setTimeout(() => {
+        mouseDownHandledRef.current = false;
+      }, 0);
     };
     window.addEventListener("click", handleGlobalClick);
     window.addEventListener("mouseup", handleGlobalMouseUp);
     return () => {
       window.removeEventListener("click", handleGlobalClick);
       window.removeEventListener("mouseup", handleGlobalMouseUp);
+      clearTimeout(timeoutId);
     };
   }, []);
 
