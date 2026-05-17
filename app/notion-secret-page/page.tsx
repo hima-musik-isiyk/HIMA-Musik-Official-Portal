@@ -152,6 +152,10 @@ export default function NotionSecretPage() {
   const [roomSkeletonCount, setRoomSkeletonCount] = useState(3);
   const [currentRoomName, setCurrentRoomName] = useState("");
   const [isAddingRoom, setIsAddingRoom] = useState(false);
+  const [listEntranceRun, setListEntranceRun] = useState(false);
+  const [entranceAnimatedRoomId, setEntranceAnimatedRoomId] = useState<
+    string | null
+  >(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [error, setError] = useState("");
@@ -471,12 +475,40 @@ export default function NotionSecretPage() {
     }
   }, [currentRoomId, currentRoom, resetRoom, routeSlug]);
 
+  // Manage list view entrance sequence state
+  useEffect(() => {
+    if (shouldShowRoom) {
+      if (listEntranceRun) setListEntranceRun(false);
+      return;
+    }
+    if (roomsHydrated && !isLoadingRooms && !listEntranceRun) {
+      setListEntranceRun(true);
+    }
+  }, [shouldShowRoom, roomsHydrated, isLoadingRooms, listEntranceRun]);
+
+  // Manage room view entrance sequence state
+  useEffect(() => {
+    if (!shouldShowRoom) {
+      if (entranceAnimatedRoomId !== null) {
+        setEntranceAnimatedRoomId(null);
+      }
+      return;
+    }
+    if (
+      !isLoadingPages &&
+      currentRoomId &&
+      entranceAnimatedRoomId !== currentRoomId
+    ) {
+      setEntranceAnimatedRoomId(currentRoomId);
+    }
+  }, [shouldShowRoom, isLoadingPages, currentRoomId, entranceAnimatedRoomId]);
+
+  // Decoupled Room List Entrance Animation: Executes exactly once
   useIsomorphicLayoutEffect(() => {
-    if (!roomsHydrated || isLoadingRooms || shouldShowRoom) return;
+    if (!listEntranceRun) return;
     if (!shouldRunViewEntrance("/notion-secret-page")) return;
 
     const ctx = gsap.context(() => {
-      // Targets set by unique data attributes to avoid querySelectorAll syntax errors with Tailwind classes (ISSUE 3)
       const targets = '[data-gsap="room-card"]';
       gsap.fromTo(
         targets,
@@ -492,13 +524,13 @@ export default function NotionSecretPage() {
       );
     });
     return () => ctx.revert();
-  }, [roomsHydrated, isLoadingRooms, shouldShowRoom]);
+  }, [listEntranceRun]);
 
+  // Decoupled Room Entrance Animation: Executes exactly once when pages are loaded
   useIsomorphicLayoutEffect(() => {
-    if (!shouldShowRoom || isLoadingPages) return;
+    if (!entranceAnimatedRoomId) return;
 
     const ctx = gsap.context(() => {
-      // Targets set by unique data attributes to decouple GSAP from Tailwind opacity slashes (ISSUE 3)
       const targets = [
         '[data-gsap="room-title"]',
         '[data-gsap="action-bar"]',
@@ -519,7 +551,7 @@ export default function NotionSecretPage() {
       );
     });
     return () => ctx.revert();
-  }, [shouldShowRoom, isLoadingPages]);
+  }, [entranceAnimatedRoomId]);
 
   useEffect(() => {
     if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
