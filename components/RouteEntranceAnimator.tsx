@@ -23,6 +23,7 @@ const shouldSkipAutoRouteAnimation = (pathname: string) => {
     "/kkm",
     "/pendaftaran",
     "/sekretariat",
+    "/notion-secret-page",
   ];
   return manualPrefixes.some((prefix) => pathname.startsWith(prefix));
 };

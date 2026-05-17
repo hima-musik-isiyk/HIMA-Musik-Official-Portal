@@ -23,7 +23,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   type ComponentType,
   useCallback,
@@ -34,7 +35,6 @@ import {
 } from "react";
 import { create } from "zustand";
 
-import { gsap } from "@/lib/gsap";
 import {
   extractNotionPageId,
   NOTION_ROOM_PAGE_TYPES,
@@ -44,7 +44,7 @@ import {
 } from "@/lib/notion-room/types";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import useViewEntrance from "@/lib/useViewEntrance";
 
 type PeerState = {
   displayName: string;
@@ -130,6 +130,7 @@ function writeCachedRooms(rooms: NotionRoom[]) {
 
 export default function NotionSecretPage() {
   const params = useParams<{ slug?: string }>();
+  const pathname = usePathname() || "/notion-secret-page";
   const router = useRouter();
   const {
     displayName,
@@ -152,7 +153,6 @@ export default function NotionSecretPage() {
   const [roomSkeletonCount, setRoomSkeletonCount] = useState(3);
   const [currentRoomName, setCurrentRoomName] = useState("");
   const [isAddingRoom, setIsAddingRoom] = useState(false);
-  const [listEntranceRun, setListEntranceRun] = useState(false);
   const [roomStructureAnimatedId, setRoomStructureAnimatedId] = useState<
     string | null
   >(null);
@@ -216,9 +216,24 @@ export default function NotionSecretPage() {
     Boolean(routeSlug) ||
     (Boolean(currentRoomId) && isNavigatingToRoomRef.current);
 
+  const scopeRef = useViewEntrance(pathname, [
+    shouldShowRoom,
+    hasLoadedCurrentRoomPages,
+    displayPages.length,
+  ]);
+
   useEffect(() => {
     selectedPageIdsRef.current = selectedPageIds;
   }, [selectedPageIds]);
+
+  // Auto-clear status messages after 4 seconds to prevent sustained alert visibility
+  useEffect(() => {
+    if (!status) return;
+    const timer = setTimeout(() => {
+      setStatus("");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   useEffect(() => {
     if (currentRoom?.name) setCurrentRoomName(currentRoom.name);
@@ -308,25 +323,63 @@ export default function NotionSecretPage() {
   }, [loadRooms]);
 
   const loadPages = useCallback(
-    async (roomId: string, quiet = false) => {
-      if (!quiet) setIsLoadingPages(true);
-      if (!quiet) setHasLoadedCurrentRoomPages(false);
-      if (!quiet) setError("");
+    async (roomId: string, quiet = false, ignoreCache = false) => {
+      let isQuiet = quiet;
+      let cached: NotionRoomPage[] = [];
+
+      if (!ignoreCache) {
+        try {
+          const raw = localStorage.getItem(
+            `notion-secret-page.pages.${roomId}`,
+          );
+          if (raw) {
+            cached = JSON.parse(raw) as NotionRoomPage[];
+          }
+        } catch (e) {
+          console.error("Failed to read page cache:", e);
+        }
+      }
+
+      if (cached.length > 0 && !quiet) {
+        setChronologicalPages(cached);
+        setHasLoadedCurrentRoomPages(true);
+        isQuiet = true;
+      }
+
+      if (!isQuiet) {
+        setIsLoadingPages(true);
+        setHasLoadedCurrentRoomPages(false);
+        setError("");
+        setChronologicalPages([]);
+      }
+
       try {
         const response = await fetch(
           `/api/notion/pages?roomId=${encodeURIComponent(roomId)}`,
         );
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Failed to load pages");
-        setChronologicalPages(data.pages ?? []);
-        if (!quiet) setStatus("Synced with Notion.");
+
+        const nextPages = data.pages ?? [];
+        setChronologicalPages(nextPages);
+
+        try {
+          localStorage.setItem(
+            `notion-secret-page.pages.${roomId}`,
+            JSON.stringify(nextPages),
+          );
+        } catch (e) {
+          console.error("Failed to write page cache:", e);
+        }
+
+        if (!isQuiet) setStatus("Synced with Notion.");
       } catch (caught) {
-        if (!quiet) {
+        if (!isQuiet) {
           setError(caught instanceof Error ? caught.message : "Failed to load");
         }
       } finally {
         setHasLoadedCurrentRoomPages(true);
-        if (!quiet) setIsLoadingPages(false);
+        if (!isQuiet) setIsLoadingPages(false);
       }
     },
     [setChronologicalPages],
@@ -364,7 +417,7 @@ export default function NotionSecretPage() {
       })
       .on("broadcast", { event: "notion-room-refresh" }, () => {
         setStatus("Notion changed. Refreshing room.");
-        void loadPages(currentRoomId);
+        void loadPages(currentRoomId, false, true);
       })
       .subscribe(async (state) => {
         if (state === "SUBSCRIBED") {
@@ -417,14 +470,33 @@ export default function NotionSecretPage() {
       }
 
       isNavigatingToRoomRef.current = updateUrl;
+
+      // Look up if room already exists in rooms list to prevent redundant Notion API and Supabase network requests
+      const existingRoom = rooms.find((r) => r.id === normalizedRoomId);
+
       setCurrentRoomName(
-        name?.trim() || `Room ${normalizedRoomId.slice(0, 6)}`,
+        name?.trim() ||
+          existingRoom?.name ||
+          `Room ${normalizedRoomId.slice(0, 6)}`,
       );
       setHasLoadedCurrentRoomPages(false);
+      setChronologicalPages([]);
       setCurrentRoomId(normalizedRoomId);
       setSelectedPageIds([]);
-      try {
-        const room = await saveRoom(normalizedRoomId, name);
+
+      let room = existingRoom;
+      if (!existingRoom) {
+        try {
+          room = await saveRoom(normalizedRoomId, name);
+        } catch (caught) {
+          setError(
+            caught instanceof Error ? caught.message : "Failed to save room",
+          );
+          return;
+        }
+      }
+
+      if (room) {
         setCurrentRoomName(room.name);
         if (updateUrl) {
           router.push(`/notion-secret-page/${getRoomSlug(room)}`);
@@ -437,16 +509,20 @@ export default function NotionSecretPage() {
             payload: { roomId: normalizedRoomId },
           });
         }
-      } catch (caught) {
-        setError(
-          caught instanceof Error ? caught.message : "Failed to save room",
-        );
-        return;
       }
+
       window.scrollTo({ top: 0 });
       await loadPages(normalizedRoomId);
     },
-    [loadPages, router, saveRoom, setCurrentRoomId, setSelectedPageIds],
+    [
+      loadPages,
+      router,
+      saveRoom,
+      setCurrentRoomId,
+      setSelectedPageIds,
+      setChronologicalPages,
+      rooms,
+    ],
   );
 
   useEffect(() => {
@@ -463,9 +539,16 @@ export default function NotionSecretPage() {
       return;
     }
 
-    isNavigatingToRoomRef.current = false;
     const currentSlug = currentRoom ? getRoomSlug(currentRoom) : null;
     const isMatch = currentRoomId === routeSlug || currentSlug === routeSlug;
+
+    if (isMatch) {
+      isNavigatingToRoomRef.current = false;
+      return;
+    }
+
+    // While actively navigating to a room, don't reset on transient mismatches
+    if (isNavigatingToRoomRef.current) return;
 
     if (currentRoomId && !isMatch) {
       resetRoom();
@@ -478,19 +561,8 @@ export default function NotionSecretPage() {
     }
   }, [currentRoomId, currentRoom, resetRoom, routeSlug]);
 
-  // Manage list view entrance sequence state
-  useEffect(() => {
-    if (shouldShowRoom) {
-      if (listEntranceRun) setListEntranceRun(false);
-      return;
-    }
-    if (roomsHydrated && !isLoadingRooms && !listEntranceRun) {
-      setListEntranceRun(true);
-    }
-  }, [shouldShowRoom, roomsHydrated, isLoadingRooms, listEntranceRun]);
-
   // Manage room structure view entrance sequence state
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!shouldShowRoom) {
       if (roomStructureAnimatedId !== null) {
         setRoomStructureAnimatedId(null);
@@ -503,7 +575,7 @@ export default function NotionSecretPage() {
   }, [shouldShowRoom, currentRoomId, roomStructureAnimatedId]);
 
   // Manage room pages view entrance sequence state
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!shouldShowRoom) {
       if (roomPagesAnimatedId !== null) {
         setRoomPagesAnimatedId(null);
@@ -523,76 +595,6 @@ export default function NotionSecretPage() {
     currentRoomId,
     roomPagesAnimatedId,
   ]);
-
-  // Decoupled Room List Entrance Animation: Executes exactly once
-  useIsomorphicLayoutEffect(() => {
-    if (!listEntranceRun) return;
-    if (!shouldRunViewEntrance("/notion-secret-page")) return;
-
-    const ctx = gsap.context(() => {
-      const targets = '[data-gsap="room-card"]';
-      gsap.fromTo(
-        targets,
-        { autoAlpha: 0, y: 20 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.08,
-          ease: "power3.out",
-          clearProps: "all",
-        },
-      );
-    });
-    return () => ctx.revert();
-  }, [listEntranceRun]);
-
-  // Decoupled Room Structure Entrance Animation: Executes instantly on entrance
-  useIsomorphicLayoutEffect(() => {
-    if (!roomStructureAnimatedId) return;
-
-    const ctx = gsap.context(() => {
-      const targets = [
-        '[data-gsap="room-title"]',
-        '[data-gsap="action-bar"]',
-        '[data-gsap="status-box"]',
-        '[data-gsap="error-box"]',
-      ];
-      gsap.fromTo(
-        targets,
-        { autoAlpha: 0, y: 15 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.6,
-          stagger: 0.05,
-          ease: "power2.out",
-        },
-      );
-    });
-    return () => ctx.revert();
-  }, [roomStructureAnimatedId]);
-
-  // Decoupled Room Pages Entrance Animation: Executes exactly once when pages are loaded
-  useIsomorphicLayoutEffect(() => {
-    if (!roomPagesAnimatedId) return;
-
-    const ctx = gsap.context(() => {
-      const targets = '[data-gsap="page-item"]';
-      gsap.fromTo(
-        targets,
-        { autoAlpha: 0, y: 12 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.5,
-          stagger: 0.04,
-          ease: "power2.out",
-        },
-      );
-    });
-    return () => ctx.revert();
-  }, [roomPagesAnimatedId]);
 
   useEffect(() => {
     if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
@@ -739,7 +741,7 @@ export default function NotionSecretPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Failed to create page");
       setStatus(`Created ${data.page.title}.`);
-      await loadPages(currentRoomId);
+      await loadPages(currentRoomId, false, true);
       void channelRef.current?.send({
         type: "broadcast",
         event: "notion-room-refresh",
@@ -769,21 +771,32 @@ export default function NotionSecretPage() {
 
   if (!shouldShowRoom) {
     return (
-      <section className="relative min-h-[calc(100svh-5rem)] overflow-hidden border-b border-white/5 px-6 py-16 md:px-10 lg:px-16">
+      <section
+        ref={scopeRef}
+        className="relative min-h-[calc(100svh-5rem)] overflow-hidden border-b border-white/5 px-6 py-16 md:px-10 lg:px-16"
+      >
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_10%,rgba(255,101,1,0.12),transparent_32%),radial-gradient(circle_at_20%_80%,rgba(120,113,108,0.18),transparent_30%)]" />
         <div className="mx-auto max-w-7xl">
           <div className="mb-14 max-w-4xl">
-            <div className="mb-4 flex items-center gap-4">
+            <div data-animate="up" className="mb-4 flex items-center gap-4">
               <span className="bg-gold-500/40 block h-px w-12" />
               <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
                 Notion Sync
               </span>
             </div>
-            <h1 className="font-serif text-5xl leading-tight font-normal text-white md:text-7xl">
+            <h1
+              data-animate="up"
+              data-animate-delay="0.1"
+              className="font-serif text-5xl leading-tight font-normal text-white md:text-7xl"
+            >
               Context <br />
               <span className="font-light text-stone-500 italic">Rooms</span>
             </h1>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div
+              data-animate="up"
+              data-animate-delay="0.2"
+              className="mt-8 flex flex-wrap items-center gap-3"
+            >
               {isEditingName ? (
                 <div className="flex items-center gap-2 rounded-xl border border-stone-800/80 bg-stone-900/30 p-2">
                   <input
@@ -892,11 +905,20 @@ export default function NotionSecretPage() {
             </div>
           )}
 
-          {error ? (
-            <div className="mb-6 max-w-3xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-200">
-              {error}
-            </div>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {error && (
+              <motion.div
+                layout
+                initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                animate={{ opacity: 1, height: "auto", scale: 1 }}
+                exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="mb-6 max-w-3xl overflow-hidden border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-200"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {isAddingRoom ? (
             <form
@@ -922,7 +944,10 @@ export default function NotionSecretPage() {
             </form>
           ) : null}
 
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            data-animate-stagger="0.08"
+            className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+          >
             {showRoomSkeletons
               ? Array.from({ length: roomSkeletonCount }).map((_, index) => (
                   <div
@@ -937,15 +962,23 @@ export default function NotionSecretPage() {
                 ))
               : null}
             {rooms.map((room) => (
-              <button
+              <div
                 key={room.id}
-                data-gsap="room-card"
+                data-animate="up"
                 onClick={() => void openRoom(room.id, room.name)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    void openRoom(room.id, room.name);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setContextMenu({ x: e.clientX, y: e.clientY, room });
                 }}
-                className="group hover:border-gold-500/30 relative border border-white/5 bg-stone-950/20 p-6 text-left transition hover:bg-stone-900/30"
+                className="group hover:border-gold-500/30 focus:border-gold-500/30 relative block w-full cursor-pointer border border-white/5 bg-stone-950/20 p-6 text-left transition hover:bg-stone-900/30 focus:outline-none"
               >
                 <div className="flex items-start justify-between">
                   <p className="mb-3 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
@@ -975,7 +1008,7 @@ export default function NotionSecretPage() {
                 <p className="mt-3 text-[10px] text-stone-600">
                   Updated {new Date(room.updatedAt).toLocaleString()}
                 </p>
-              </button>
+              </div>
             ))}
 
             {contextMenu && (
@@ -1055,32 +1088,47 @@ export default function NotionSecretPage() {
   }
 
   return (
-    <section className="relative min-h-[calc(100svh-5rem)] border-b border-white/5 px-6 py-10 md:px-10 lg:px-16">
+    <section
+      ref={scopeRef}
+      className="relative min-h-[calc(100svh-5rem)] border-b border-white/5 px-6 py-10 md:px-10 lg:px-16"
+    >
       <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0">
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6">
             <div>
-              <div className="mb-3 flex items-center gap-4">
+              <div data-animate="up" className="mb-3 flex items-center gap-4">
                 <span className="bg-gold-500/40 block h-px w-10" />
                 <span className="text-[0.65rem] font-medium tracking-[0.35em] text-stone-600 uppercase">
                   Live Room
                 </span>
               </div>
               <h1
-                data-gsap="room-title"
+                data-animate="up"
+                data-animate-delay="0.05"
                 className="font-serif text-4xl text-white md:text-6xl"
               >
                 {displayRoomName || (
                   <span className="inline-block h-10 w-64 animate-pulse rounded-md bg-stone-800/50 md:h-14" />
                 )}
               </h1>
+              {currentRoom?.actualTitle &&
+                currentRoom.actualTitle !== displayRoomName && (
+                  <p
+                    data-animate="up"
+                    data-animate-delay="0.1"
+                    className="mt-2 text-sm text-stone-500 italic md:text-base"
+                  >
+                    {currentRoom.actualTitle}
+                  </p>
+                )}
             </div>
             <div
-              data-gsap="action-bar"
+              data-animate="up"
+              data-animate-delay="0.15"
               className="flex flex-wrap items-center gap-3"
             >
               <button
-                onClick={() => void loadPages(currentRoomId)}
+                onClick={() => void loadPages(currentRoomId, false, true)}
                 className="hover:border-gold-500/40 inline-flex items-center gap-2 rounded-xl border border-stone-800 bg-stone-900/30 px-4 py-3 text-sm text-stone-300 transition"
               >
                 {isLoadingPages ? (
@@ -1107,24 +1155,29 @@ export default function NotionSecretPage() {
             </div>
           </div>
 
-          {status ? (
+          {status && (
             <div
-              data-gsap="status-box"
+              data-animate="fade"
               className="border-gold-500/20 bg-gold-500/10 text-gold-100 mb-5 border px-5 py-3 text-sm"
             >
               {status}
             </div>
-          ) : null}
-          {error ? (
+          )}
+
+          {error && (
             <div
-              data-gsap="error-box"
+              data-animate="fade"
               className="mb-5 border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-200"
             >
               {error}
             </div>
-          ) : null}
+          )}
 
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div
+            data-animate="up"
+            data-animate-delay="0.2"
+            className="mb-4 flex flex-wrap items-center justify-between gap-3"
+          >
             <p className="font-mono text-xs tracking-[0.25em] text-stone-600 uppercase">
               {selectedPageIds.length} selected / {displayPages.length} pages
             </p>
@@ -1144,17 +1197,17 @@ export default function NotionSecretPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div data-animate-stagger="0.04" className="space-y-1">
             {showPageSkeletons
-              ? Array.from({ length: 3 }).map((_, index) => (
+              ? Array.from({ length: 6 }).map((_, index) => (
                   <div
                     key={`page-skeleton-${index}`}
-                    className="grid animate-pulse grid-cols-[2rem_minmax(0,1fr)] gap-4 border border-white/5 bg-stone-950/20 p-5"
+                    data-animate="up"
+                    className="grid animate-pulse grid-cols-[1.5rem_minmax(0,1fr)] gap-3 border border-white/5 bg-stone-950/10 px-4 py-2"
                   >
-                    <div className="mt-1 h-5 w-5 border border-stone-800 bg-stone-900/70" />
+                    <div className="mt-0.5 h-4 w-4 border border-stone-800 bg-stone-900/70" />
                     <div className="min-w-0">
-                      <div className="h-6 w-2/3 bg-stone-800/80" />
-                      <div className="mt-3 h-4 w-1/2 bg-stone-900" />
+                      <div className="h-4 w-2/3 bg-stone-800/80" />
                     </div>
                   </div>
                 ))
@@ -1166,37 +1219,40 @@ export default function NotionSecretPage() {
                 <button
                   key={page.id}
                   disabled={isTemp}
-                  data-gsap="page-item"
+                  data-animate="up"
                   onClick={() => togglePage(page.id)}
-                  className={`group grid w-full grid-cols-[2rem_minmax(0,1fr)] gap-4 border p-5 text-left transition ${
+                  className={`group grid w-full grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-3 border px-4 py-1.5 text-left transition ${
                     checked
-                      ? "border-gold-500/50 bg-gold-500/10"
-                      : "hover:border-gold-500/30 border-white/5 bg-stone-950/20 hover:bg-stone-900/30"
+                      ? "border-gold-500/40 bg-gold-500/10"
+                      : "hover:border-gold-500/20 border-white/5 bg-stone-950/10 hover:bg-stone-900/20"
                   }`}
                 >
                   <span
-                    className={`mt-1 flex h-5 w-5 items-center justify-center border ${
+                    className={`flex h-4 w-4 items-center justify-center border transition-colors ${
                       checked
                         ? "border-gold-500 bg-gold-500 text-stone-950"
-                        : "border-stone-700"
+                        : "border-stone-700 group-hover:border-stone-500"
                     }`}
                   >
-                    {checked ? <Check className="h-3.5 w-3.5" /> : null}
+                    {checked ? <Check className="h-3 w-3" /> : null}
                   </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-xl font-semibold text-white">
-                      <span className="text-gold-500 mr-3 font-mono text-sm">
-                        {page.number
-                          ? String(page.number).padStart(2, "0")
-                          : "--"}
-                      </span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="text-gold-500/50 shrink-0 font-mono text-[10px]">
+                      {page.number
+                        ? String(page.number).padStart(2, "0")
+                        : "--"}
+                    </span>
+                    <span className="group-hover:text-gold-200 truncate text-sm font-medium text-white">
                       {page.title.replace(/^\d{1,4}\s*/, "")}
                     </span>
-                    <span className="mt-2 block truncate text-sm text-stone-500">
-                      {isTemp
-                        ? "Creating in Notion..."
-                        : `Created ${new Date(page.createdTime).toLocaleString()}`}
-                    </span>
+                  </span>
+                  <span className="shrink-0 text-[10px] text-stone-600">
+                    {isTemp
+                      ? "Creating..."
+                      : new Date(page.createdTime).toLocaleDateString([], {
+                          month: "short",
+                          day: "numeric",
+                        })}
                   </span>
                 </button>
               );
@@ -1211,8 +1267,11 @@ export default function NotionSecretPage() {
           </div>
         </div>
 
-        <aside className="space-y-6">
-          <div className="border border-white/5 bg-stone-950/20 p-6">
+        <aside data-animate-stagger="0.06" className="space-y-6">
+          <div
+            data-animate="up"
+            className="border border-white/5 bg-stone-950/20 p-6"
+          >
             <p className="mb-4 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
               Operator
             </p>
@@ -1241,7 +1300,10 @@ export default function NotionSecretPage() {
             )}
           </div>
 
-          <div className="border border-white/5 bg-stone-950/20 p-6">
+          <div
+            data-animate="up"
+            className="border border-white/5 bg-stone-950/20 p-6"
+          >
             <p className="mb-4 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
               Add Blocks
             </p>
@@ -1270,6 +1332,7 @@ export default function NotionSecretPage() {
           <button
             disabled={selectedPageIds.length === 0 || isCompiling}
             onClick={() => void compileContext()}
+            data-animate="up"
             className="hover:bg-gold-500 flex min-h-28 w-full flex-col items-center justify-center gap-3 bg-white px-5 py-5 font-semibold text-stone-950 transition disabled:bg-stone-800 disabled:text-stone-500"
           >
             {isCompiling ? (
@@ -1280,7 +1343,10 @@ export default function NotionSecretPage() {
             Compile & Copy Context
           </button>
 
-          <div className="border border-white/5 bg-stone-950/20 p-6">
+          <div
+            data-animate="up"
+            className="border border-white/5 bg-stone-950/20 p-6"
+          >
             <p className="mb-4 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
               Who&apos;s Here
             </p>
@@ -1313,7 +1379,10 @@ export default function NotionSecretPage() {
             </div>
           </div>
 
-          <div className="border border-white/5 bg-stone-950/20 p-6">
+          <div
+            data-animate="up"
+            className="border border-white/5 bg-stone-950/20 p-6"
+          >
             <p className="mb-3 text-[0.65rem] font-medium tracking-[0.25em] text-stone-600 uppercase">
               Selected
             </p>
