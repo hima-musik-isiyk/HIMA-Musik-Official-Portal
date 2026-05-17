@@ -153,9 +153,12 @@ export default function NotionSecretPage() {
   const [currentRoomName, setCurrentRoomName] = useState("");
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [listEntranceRun, setListEntranceRun] = useState(false);
-  const [entranceAnimatedRoomId, setEntranceAnimatedRoomId] = useState<
+  const [roomStructureAnimatedId, setRoomStructureAnimatedId] = useState<
     string | null
   >(null);
+  const [roomPagesAnimatedId, setRoomPagesAnimatedId] = useState<string | null>(
+    null,
+  );
   const [isEditingName, setIsEditingName] = useState(false);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [error, setError] = useState("");
@@ -486,26 +489,39 @@ export default function NotionSecretPage() {
     }
   }, [shouldShowRoom, roomsHydrated, isLoadingRooms, listEntranceRun]);
 
-  // Manage room view entrance sequence state
+  // Manage room structure view entrance sequence state
   useEffect(() => {
     if (!shouldShowRoom) {
-      if (entranceAnimatedRoomId !== null) {
-        setEntranceAnimatedRoomId(null);
+      if (roomStructureAnimatedId !== null) {
+        setRoomStructureAnimatedId(null);
+      }
+      return;
+    }
+    if (currentRoomId && roomStructureAnimatedId !== currentRoomId) {
+      setRoomStructureAnimatedId(currentRoomId);
+    }
+  }, [shouldShowRoom, currentRoomId, roomStructureAnimatedId]);
+
+  // Manage room pages view entrance sequence state
+  useEffect(() => {
+    if (!shouldShowRoom) {
+      if (roomPagesAnimatedId !== null) {
+        setRoomPagesAnimatedId(null);
       }
       return;
     }
     if (
       hasLoadedCurrentRoomPages &&
       currentRoomId &&
-      entranceAnimatedRoomId !== currentRoomId
+      roomPagesAnimatedId !== currentRoomId
     ) {
-      setEntranceAnimatedRoomId(currentRoomId);
+      setRoomPagesAnimatedId(currentRoomId);
     }
   }, [
     shouldShowRoom,
     hasLoadedCurrentRoomPages,
     currentRoomId,
-    entranceAnimatedRoomId,
+    roomPagesAnimatedId,
   ]);
 
   // Decoupled Room List Entrance Animation: Executes exactly once
@@ -531,9 +547,9 @@ export default function NotionSecretPage() {
     return () => ctx.revert();
   }, [listEntranceRun]);
 
-  // Decoupled Room Entrance Animation: Executes exactly once when pages are loaded
+  // Decoupled Room Structure Entrance Animation: Executes instantly on entrance
   useIsomorphicLayoutEffect(() => {
-    if (!entranceAnimatedRoomId) return;
+    if (!roomStructureAnimatedId) return;
 
     const ctx = gsap.context(() => {
       const targets = [
@@ -541,7 +557,6 @@ export default function NotionSecretPage() {
         '[data-gsap="action-bar"]',
         '[data-gsap="status-box"]',
         '[data-gsap="error-box"]',
-        '[data-gsap="page-item"]',
       ];
       gsap.fromTo(
         targets,
@@ -556,7 +571,28 @@ export default function NotionSecretPage() {
       );
     });
     return () => ctx.revert();
-  }, [entranceAnimatedRoomId]);
+  }, [roomStructureAnimatedId]);
+
+  // Decoupled Room Pages Entrance Animation: Executes exactly once when pages are loaded
+  useIsomorphicLayoutEffect(() => {
+    if (!roomPagesAnimatedId) return;
+
+    const ctx = gsap.context(() => {
+      const targets = '[data-gsap="page-item"]';
+      gsap.fromTo(
+        targets,
+        { autoAlpha: 0, y: 12 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.5,
+          stagger: 0.04,
+          ease: "power2.out",
+        },
+      );
+    });
+    return () => ctx.revert();
+  }, [roomPagesAnimatedId]);
 
   useEffect(() => {
     if (!routeSlug || currentRoomId || hasOpenedRouteRoomRef.current) return;
