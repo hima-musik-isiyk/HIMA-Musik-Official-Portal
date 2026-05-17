@@ -225,11 +225,7 @@ export default function NotionSecretPage() {
     Boolean(routeSlug) ||
     (Boolean(currentRoomId) && isNavigatingToRoomRef.current);
 
-  const scopeRef = useViewEntrance(pathname, [
-    shouldShowRoom,
-    hasLoadedCurrentRoomPages,
-    displayPages.length,
-  ]);
+  const scopeRef = useViewEntrance(pathname, [shouldShowRoom]);
 
   useEffect(() => {
     selectedPageIdsRef.current = selectedPageIds;
@@ -424,7 +420,7 @@ export default function NotionSecretPage() {
         }));
       })
       .on("broadcast", { event: "notion-room-refresh" }, ({ payload }) => {
-        console.log("Notion changed. Refreshing room.", payload);
+        console.warn("Notion changed. Refreshing room.", payload);
         const newAlert = {
           pageTitle: payload?.pageTitle || null,
           entityId: payload?.entityId || null,
@@ -479,7 +475,7 @@ export default function NotionSecretPage() {
 
     // Safeguard channel state: only send via websocket if the connection is fully joined
     // This resolves the send() falling back to REST API warning (ISSUE 2)
-    if ((channel as any).state === "joined") {
+    if ((channel as unknown as { state: string }).state === "joined") {
       void channel.send({ type: "broadcast", event: "selection", payload });
     }
   }, [displayName, selectedPageIds]);
@@ -525,7 +521,10 @@ export default function NotionSecretPage() {
           router.push(`/notion-secret-page/${getRoomSlug(room)}`);
         }
         const roomsChannel = roomsChannelRef.current;
-        if (roomsChannel && (roomsChannel as any).state === "joined") {
+        if (
+          roomsChannel &&
+          (roomsChannel as unknown as { state: string }).state === "joined"
+        ) {
           void roomsChannel.send({
             type: "broadcast",
             event: "rooms-refresh",
