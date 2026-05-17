@@ -495,13 +495,18 @@ export default function NotionSecretPage() {
       return;
     }
     if (
-      !isLoadingPages &&
+      hasLoadedCurrentRoomPages &&
       currentRoomId &&
       entranceAnimatedRoomId !== currentRoomId
     ) {
       setEntranceAnimatedRoomId(currentRoomId);
     }
-  }, [shouldShowRoom, isLoadingPages, currentRoomId, entranceAnimatedRoomId]);
+  }, [
+    shouldShowRoom,
+    hasLoadedCurrentRoomPages,
+    currentRoomId,
+    entranceAnimatedRoomId,
+  ]);
 
   // Decoupled Room List Entrance Animation: Executes exactly once
   useIsomorphicLayoutEffect(() => {
