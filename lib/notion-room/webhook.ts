@@ -32,6 +32,30 @@ function getEntityId(payload: unknown) {
   return readString(entity.id);
 }
 
+function getChangedPageTitle(payload: unknown) {
+  const root = readRecord(payload);
+  const data = readRecord(root.data);
+  const properties = readRecord(data.properties);
+  // Notion uses "Name" or "title" or similar for the page title property
+  for (const propValue of Object.values(properties)) {
+    const propRecord = readRecord(propValue);
+    if (propRecord.type === "title" && Array.isArray(propRecord.title)) {
+      const firstTitle = readRecord(propRecord.title[0]);
+      if (typeof firstTitle.plain_text === "string") {
+        return firstTitle.plain_text;
+      }
+    }
+  }
+
+  // Also try common fields
+  const entity = readRecord(root.entity);
+  if (typeof entity.title === "string") return entity.title;
+  if (typeof root.title === "string") return root.title;
+  if (typeof data.title === "string") return data.title;
+
+  return null;
+}
+
 async function resolveRoomId(payload: unknown) {
   const payloadRoomId = getPayloadRoomId(payload);
   if (payloadRoomId) return normalizePageId(payloadRoomId);
@@ -80,12 +104,21 @@ export async function handleNotionRoomWebhook(request: Request) {
     });
   }
 
+  const entityId =
+    getEntityId(payload) ?? readString(readRecord(readRecord(payload).data).id);
+  const pageTitle = getChangedPageTitle(payload);
+
   const supabase = createClient(url, key);
   const channel = supabase.channel(`room-${roomId}`);
   await channel.send({
     type: "broadcast",
     event: "notion-room-refresh",
-    payload: { roomId },
+    payload: {
+      roomId,
+      entityId,
+      pageTitle,
+      timestamp: new Date().toISOString(),
+    },
   });
   await supabase.removeChannel(channel);
 
