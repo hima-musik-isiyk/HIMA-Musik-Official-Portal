@@ -315,7 +315,7 @@ export async function compilePages(pageIds: string[]) {
   return chunks.join("\n\n---\n\n");
 }
 
-function extractPageTitle(properties: Record<string, unknown>) {
+export function extractPageTitle(properties: Record<string, unknown>) {
   for (const property of Object.values(properties)) {
     if (
       property &&
@@ -345,6 +345,29 @@ export async function createRoomPage({
   referenceIds.forEach(assertValidPageId);
 
   const notion = getRoomNotionClient();
+
+  // Cleanup any block that is not a child_page to avoid empty block gaps
+  let hasMore = true;
+  let startCursor: string | undefined = undefined;
+  while (hasMore) {
+    const listResponse = await notion.blocks.children.list({
+      block_id: roomId,
+      start_cursor: startCursor,
+      page_size: 100,
+    });
+    for (const block of listResponse.results) {
+      if ("type" in block && block.type !== "child_page") {
+        try {
+          await notion.blocks.delete({ block_id: block.id });
+        } catch (err) {
+          console.error(`Failed to delete non-page block ${block.id}:`, err);
+        }
+      }
+    }
+    hasMore = listResponse.has_more;
+    startCursor = listResponse.next_cursor ?? undefined;
+  }
+
   const pages = await listRoomPages(roomId);
   const highest = pages.reduce(
     (max, page) => Math.max(max, page.number ?? 0),
