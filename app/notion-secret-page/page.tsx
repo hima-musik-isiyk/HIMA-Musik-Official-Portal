@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   Bell,
   Check,
@@ -42,6 +42,7 @@ import {
   type NotionRoomPage,
   type NotionRoomPageType,
 } from "@/lib/notion-room/types";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
 import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
@@ -100,12 +101,7 @@ function isValidPageId(value: string) {
   return pageIdPattern.test(extractNotionPageId(value));
 }
 
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
-}
+// Supabase client instance is acquired via getSupabaseBrowserClient() singleton helper in effects.
 
 function getRoomSlug(room: Pick<NotionRoom, "id" | "name">) {
   const slug = room.name
@@ -179,6 +175,8 @@ export default function NotionSecretPage() {
   const selectedPageIdsRef = useRef<string[]>([]);
   const hasOpenedRouteRoomRef = useRef(false);
   const isNavigatingToRoomRef = useRef(false);
+  const presenceKeyRef = useRef(crypto.randomUUID());
+  const lastTrackedPayloadRef = useRef<string>("");
 
   const selectedPages = useMemo(
     () =>
@@ -278,7 +276,7 @@ export default function NotionSecretPage() {
   }, [loadRooms]);
 
   useEffect(() => {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
     const channel = supabase
@@ -330,14 +328,14 @@ export default function NotionSecretPage() {
   useEffect(() => {
     if (!currentRoomId || !displayName) return;
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setStatus("Realtime off: set Supabase env.");
       return;
     }
 
     const channel = supabase.channel(`room-${currentRoomId}`, {
-      config: { presence: { key: crypto.randomUUID() } },
+      config: { presence: { key: presenceKeyRef.current } },
     });
 
     channel
@@ -345,7 +343,8 @@ export default function NotionSecretPage() {
         const state = channel.presenceState<PeerState>();
         const nextPeers: Record<string, PeerState> = {};
         for (const [key, values] of Object.entries(state)) {
-          const first = values[0];
+          const typedValues = values as unknown as PeerState[];
+          const first = typedValues[0];
           if (first?.displayName) nextPeers[key] = first;
         }
         setPeers(nextPeers);
@@ -382,13 +381,24 @@ export default function NotionSecretPage() {
     const channel = channelRef.current;
     if (!channel || !displayName) return;
 
+    // Skip redundant updates to avoid infinite sync/render loops (ISSUE 4)
+    const stateIdentifier = JSON.stringify({ displayName, selectedPageIds });
+    if (stateIdentifier === lastTrackedPayloadRef.current) return;
+    lastTrackedPayloadRef.current = stateIdentifier;
+
     const payload = {
       displayName,
       selectedPageIds,
       onlineAt: new Date().toISOString(),
     };
+
     void channel.track(payload);
-    void channel.send({ type: "broadcast", event: "selection", payload });
+
+    // Safeguard channel state: only send via websocket if the connection is fully joined
+    // This resolves the send() falling back to REST API warning (ISSUE 2)
+    if ((channel as any).state === "joined") {
+      void channel.send({ type: "broadcast", event: "selection", payload });
+    }
   }, [displayName, selectedPageIds]);
 
   const openRoom = useCallback(
@@ -412,11 +422,14 @@ export default function NotionSecretPage() {
         if (updateUrl) {
           router.push(`/notion-secret-page/${getRoomSlug(room)}`);
         }
-        void roomsChannelRef.current?.send({
-          type: "broadcast",
-          event: "rooms-refresh",
-          payload: { roomId: normalizedRoomId },
-        });
+        const roomsChannel = roomsChannelRef.current;
+        if (roomsChannel && (roomsChannel as any).state === "joined") {
+          void roomsChannel.send({
+            type: "broadcast",
+            event: "rooms-refresh",
+            payload: { roomId: normalizedRoomId },
+          });
+        }
       } catch (caught) {
         setError(
           caught instanceof Error ? caught.message : "Failed to save room",
@@ -463,7 +476,8 @@ export default function NotionSecretPage() {
     if (!shouldRunViewEntrance("/notion-secret-page")) return;
 
     const ctx = gsap.context(() => {
-      const targets = "button.group.relative"; // Selector for room buttons
+      // Targets set by unique data attributes to avoid querySelectorAll syntax errors with Tailwind classes (ISSUE 3)
+      const targets = '[data-gsap="room-card"]';
       gsap.fromTo(
         targets,
         { autoAlpha: 0, y: 20 },
@@ -484,13 +498,13 @@ export default function NotionSecretPage() {
     if (!shouldShowRoom || isLoadingPages) return;
 
     const ctx = gsap.context(() => {
-      // Target header, status/error, and page items
+      // Targets set by unique data attributes to decouple GSAP from Tailwind opacity slashes (ISSUE 3)
       const targets = [
-        "h1",
-        ".flex.flex-wrap.items-center.gap-3",
-        ".border-gold-500/20",
-        ".mb-5.border.border-red-500/30",
-        ".grid.gap-4.border",
+        '[data-gsap="room-title"]',
+        '[data-gsap="action-bar"]',
+        '[data-gsap="status-box"]',
+        '[data-gsap="error-box"]',
+        '[data-gsap="page-item"]',
       ];
       gsap.fromTo(
         targets,
@@ -852,6 +866,7 @@ export default function NotionSecretPage() {
             {rooms.map((room) => (
               <button
                 key={room.id}
+                data-gsap="room-card"
                 onClick={() => void openRoom(room.id, room.name)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -978,13 +993,19 @@ export default function NotionSecretPage() {
                   Live Room
                 </span>
               </div>
-              <h1 className="font-serif text-4xl text-white md:text-6xl">
+              <h1
+                data-gsap="room-title"
+                className="font-serif text-4xl text-white md:text-6xl"
+              >
                 {displayRoomName || (
                   <span className="inline-block h-10 w-64 animate-pulse rounded-md bg-stone-800/50 md:h-14" />
                 )}
               </h1>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div
+              data-gsap="action-bar"
+              className="flex flex-wrap items-center gap-3"
+            >
               <button
                 onClick={() => void loadPages(currentRoomId)}
                 className="hover:border-gold-500/40 inline-flex items-center gap-2 rounded-xl border border-stone-800 bg-stone-900/30 px-4 py-3 text-sm text-stone-300 transition"
@@ -1014,12 +1035,18 @@ export default function NotionSecretPage() {
           </div>
 
           {status ? (
-            <div className="border-gold-500/20 bg-gold-500/10 text-gold-100 mb-5 border px-5 py-3 text-sm">
+            <div
+              data-gsap="status-box"
+              className="border-gold-500/20 bg-gold-500/10 text-gold-100 mb-5 border px-5 py-3 text-sm"
+            >
               {status}
             </div>
           ) : null}
           {error ? (
-            <div className="mb-5 border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-200">
+            <div
+              data-gsap="error-box"
+              className="mb-5 border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-200"
+            >
               {error}
             </div>
           ) : null}
@@ -1066,6 +1093,7 @@ export default function NotionSecretPage() {
                 <button
                   key={page.id}
                   disabled={isTemp}
+                  data-gsap="page-item"
                   onClick={() => togglePage(page.id)}
                   className={`group grid w-full grid-cols-[2rem_minmax(0,1fr)] gap-4 border p-5 text-left transition ${
                     checked
