@@ -1,183 +1,269 @@
-# HIMA Musik Official Portal Codebase Knowledge
+# Codebase Knowledge — HIMA Musik Official Portal
 
-This document serves as a comprehensive, agent-oriented map of the project. It describes architecture, tech stack, integrations, workflows, and operational caveats, allowing new developers or AI agents to get productive quickly without reverse-engineering the entire repository.
+> Generated: May 27, 2026
+> Framework: Next.js 16.1.6 (App Router)
+> Language: TypeScript
+
+---
 
 ## 1. Project Identity & Purpose
 
-- **Project name:** `hima-musik---official-portal`
-- **Framework:** Next.js App Router
-- **Language:** TypeScript (with some isolated JS files like `api/webhook.js`)
-- **Main Purpose:**
-  - Present HIMA MUSIK public information (Profile, Events, KKM).
-  - Serve as a transparent Secretariat portal (Docs, SOPs, Archives).
-  - Collect student aspirations (`aduan`) and recruitment registrations (`pendaftaran`).
-  - **Internal Tooling:** Real-time Notion collaboration rooms, automated attendance (Presensi) syncing, Instagram DM/Comment routing to Discord, and Canva-to-Instagram grid planning.
+- **What this project is:** The definitive digital presence of **HIMA MUSIK ISI JOGJA**. It serves as a public-facing portal and a private operational hub.
+- **Audience:**
+  - **Public:** Students, prospective members, and external partners (agenda, profile, KKM).
+  - **Internal Admins:** Secretariat staff, PR (Humas), and Content teams (Secretariat Portal, Instagram Grid Planner, Real-time Rooms).
+- **Core Problems Solved:** Centralizing organization documents (Notion-to-Web), automating student complaints (Aduan) via AI refinement, managing recruitment intakes, and coordinating social media content workflows.
 
-## 2. High-Level Architecture
+---
 
-- `app/`: Next.js routes, layouts, and API endpoints.
-- `views/`: Page-level React UI components, keeping route files clean.
-- `components/`: Reusable UI building blocks, interactive elements, and GSAP-animated components.
-- `lib/`: Shared utilities, Notion API wrappers, Supabase clients, static data, animation hooks.
-- `services/`: AI text refinement parsers and integrations.
-- `public/`: Static assets (SVG logos).
+## 2. Repository Structure
 
-**Architectural Pattern:** Server Components fetch data (e.g., from Notion) and pass it to Client Components located in `views/` or `components/` for interactivity and GSAP animations.
+```
+.
+├── app/                  # Next.js routes, layouts, and API handlers.
+├── components/           # Reusable UI building blocks and animated elements.
+├── lib/                  # Shared utilities, Notion/Supabase clients, and static data.
+├── services/             # External service wrappers and AI-specific parsers.
+├── views/                # Page-level UI orchestration (Server Comps call these).
+├── public/               # Static assets (logos, icons).
+└── prisma/               # Database schema (if applicable).
+```
+
+- `app/`: Contains the routing structure using the App Router convention.
+- `lib/`: Houses the core business logic, including complex Notion block parsing.
+- `components/`: Purely UI/UX components, many using GSAP for sophisticated entries.
+- `views/`: The "glue" components that define layout patterns for specific routes.
+
+---
 
 ## 3. Tech Stack
 
-- **Core:** Next.js 14/15, React 18, TypeScript, Tailwind CSS v4.
-- **Database:** Prisma ORM connecting to PostgreSQL (e.g., Neon).
-- **Storage & Realtime:** Supabase (Postgres, Realtime Channels, Storage Buckets).
-- **CMS / Data Source:** Notion API (for docs, events, KKM, attendance, and realtime rooms).
-- **Animations:** GSAP (ScrollTrigger) and Framer Motion / Motion.
-- **Integrations:**
-  - **Canva API:** Direct export and image slicing for Instagram grid planning.
-  - **Instagram Graph API:** Webhook processing for DMs/Comments.
-  - **Discord Webhooks:** Notification routing and error logging.
-  - **Brevo SMTP:** Transactional emails (recruitment receipts).
-  - **Groq API:** LLM text refinement (Llama 3).
-  - **Telegram Bot API:** Admin notifications for form submissions.
-  - **Sharp:** Image processing and slicing in Node.js.
+### Core Framework & Runtime
 
-## 4. Current Route Map
+- `next@16.1.6` — App Router, Server Components, and stable caching.
+- `react@18.2.0` — UI framework.
+- `typescript@5.8.2` — Type safety.
 
-### Public & Secretariat Routes
+### UI & Styling
 
-- `/` -> Home (Hero, About summary, Quick Links).
-- `/about` -> Organization profile, vision, and cabinet structure.
-- `/events` -> Event listing grouped by lifecycle (Upcoming, Ongoing, Past, Announcement).
-- `/events/[slug]` -> Event detail page sourced from Notion.
-- `/kkm` -> Kelompok Kegiatan Mahasiswa (KKM) portal.
-- `/kkm/[slug]` -> KKM detail page.
-- `/aduan` -> Student complaint and aspiration form with AI text refinement.
-- `/pendaftaran` -> Open Recruitment landing page.
-- `/pendaftaran/form` -> Multi-step recruitment registration form.
-- `/sekretariat` -> Docs portal landing (Guidelines, SOPs, FAQ, Monthly Reports).
-- `/sekretariat/[slug]` -> Sourced Notion document rendering with Table of Contents.
-- `/sekretariat/archives` -> Transparency archives listing.
-- `/sekretariat/archives/[id]` -> Archive detail view.
-- `/sekretariat/forms/surat-aktif` & `/peminjaman-alat` -> Admin request forms.
-- `/privacy-policy`, `/terms-of-service`, `/data-deletion` -> Legal pages.
+- `tailwindcss@4.1.18` — Utility-first styling with v4 features.
+- `@tailwindcss/postcss@4.2.0` — CSS processing.
+- `lucide-react@0.575.0` — Icon library.
+- `class-variance-authority@0.7.1` — Type-safe component variants.
 
-### Internal Secret Tooling Routes
+### Animation
 
-- `/notion-secret-page` & `/notion-secret-page/[slug]` -> Real-time collaborative context rooms to compile Notion blocks into Markdown for AI/Admin usage.
-- `/instagram-secret-page` -> Internal Instagram grid planner. Supports manual image uploads or direct Canva fetching & auto-splicing.
+- `gsap@3.14.2` — Primary engine for complex scroll-triggered and stagger animations.
+- `motion@12.34.3` — Framer Motion for simple physics-based transitions.
 
-## 5. Content Model (Databases & CMS)
+### Storage & Realtime
 
-The project heavily utilizes external CMS databases.
+- `@supabase/supabase-js@2.105.4` — Client for Storage (Canva assets) and Realtime (Collaboration rooms).
 
-### Notion Databases
+### CMS & Content
 
-Managed via `lib/notion.ts` and `lib/notion-room/server.ts`.
+- `@notionhq/client@5.20.0` — Official Notion SDK for data fetching.
+- `notion-to-md@3.1.9` — Utility to convert Notion blocks to Markdown for internal processing.
 
-- **Sekretariat / Projects:** SOPs, Guidelines, Archives. Uses custom Markdown tags (`cite://`, `block://`, `[#anchor]`) for cross-linking.
-- **Events:** Calendar events containing date ranges, locations, registration links, and lifecycles.
-- **KKM:** Profiles of student communities.
-- **Rapat & Keputusan:** Meeting records.
-- **Rekam Presensi & SDM:** Automated attendance tracking.
+### External APIs & Integrations
 
-### Supabase Storage
+- `Groq API` — Llama 3.1 models for text refinement in the Aduan form.
+- `Canva API` — Design asset export and integration for social media planning.
+- `Discord Webhooks` — Multi-channel notification routing (Error, Aduan, Pendaftaran).
+- `Brevo` — Transactional email delivery (recruitment receipts).
 
-- **`instagram-secret-page` Bucket:** Stores Canva session tokens (`canva-session.json`), Grid manifest (`manifest.json`), and spliced image assets.
+### Dev Tooling
 
-## 6. Important Integrations and Workflows
+- `@locator/runtime` — Development tool for clicking elements to jump to source code.
+- `eslint` & `prettier` — Code quality and formatting.
+- `husky` — Git hooks for linting.
 
-### A. Aduan & Pendaftaran (Intake Flows)
+---
 
-- **Aduan:** Users submit complaints. They can optionally use Groq AI (`/api/refine-aduan`) to refine text politely. On submit, notifications are sent via Discord.
-- **Pendaftaran:** Multi-step form with auto-save (Local Storage). Validates criteria (e.g., Angkatan restrictions). Upon submission, it sends an HTML receipt via Brevo SMTP and notifies admins via Discord.
+## 4. Configuration & Build
 
-### B. Secretariat & Notion Docs Portal
+### `next.config.mjs`
 
-- Uses `unstable_cache` with revalidation for fetching Notion docs.
-- **Citation Resolution:** API (`/api/citation`) fetches specific blocks using anchors (`[#anchor-id]`) and renders them dynamically in tooltips or quote blocks.
-- **Image Proxying:** `/api/notion-image` proxies AWS S3 Notion images to bypass URL expiration, caching them locally or passing them through on Vercel.
+- **Redirects:**
+  - `/events` → `/agenda` (Permanent: true)
+  - `/events/:slug` → `/agenda/:slug` (Permanent: true)
+  - `/about` → `/profil` (Permanent: true)
+- **Image Domains:** Proxies images via `/api/notion-image` to prevent S3 link expiration.
+- **Webpack:** Injects `@locator/webpack-loader` in development for source mapping.
 
-### C. Instagram Secret Page & Canva Integration
+### TypeScript Path Aliases
 
-- **Frontend:** `/instagram-secret-page` shows a 3-column Instagram grid.
-- **Canva Integration:** Allows admins to paste a Canva link. The API (`/api/instagram-secret-page`) resolves the design, exports specific pages to PNG via Canva API, and uses `sharp` to slice the image based on its aspect ratio (e.g., splitting a 3240x1080 image into three 1080x1080 segments).
-- **Persistence:** Metadata is saved in a JSON manifest in Supabase Storage.
+- `@/*` → `./*` (Mapped to the root for clean imports).
 
-### D. Notion Context Rooms (Secret Page)
+---
 
-- **Frontend:** `/notion-secret-page`. A realtime dashboard where multiple admins can select Notion blocks/pages to compile context.
-- **Realtime:** Uses Supabase Channels (`room-[id]`) for presence tracking (who is online, what blocks they selected).
-- **Webhooks:** Listens to Notion updates (`/api/webhooks/notion`) and broadcasts changes to the UI via Supabase to trigger auto-refreshes.
+## 5. Environment Variables
 
-### E. Automated Attendance (Sync Presensi)
+| Variable                         | Required | Used In                         | Description                              |
+| -------------------------------- | -------- | ------------------------------- | ---------------------------------------- |
+| `NOTION_INTEGRATION_TOKEN`       | Yes      | `lib/notion.ts`                 | Secret token for Notion API.             |
+| `NOTION_SEKRETARIAT_DATABASE_ID` | Yes      | `lib/notion.ts`                 | ID for the Docs/Guidelines database.     |
+| `NOTION_EVENTS_DATABASE_ID`      | Yes      | `lib/notion.ts`                 | ID for the Events/Agenda database.       |
+| `GROQ_API_KEY`                   | Yes      | `app/api/refine-aduan/route.ts` | API Key for Llama-3 text refinement.     |
+| `DISCORD_ADUAN_WEBHOOK_URL`      | Yes      | `app/api/submit/route.ts`       | Webhook for student complaints.          |
+| `NEXT_PUBLIC_SUPABASE_URL`       | Yes      | `lib/supabase.ts`               | Supabase endpoint.                       |
+| `CRON_SECRET`                    | No       | `api/cron/supabase-keepalive`   | Auth for external cron pings.            |
+| `CANVA_CLIENT_ID/SECRET`         | No       | `lib/canva.ts`                  | OAuth credentials for Canva integration. |
 
-- **API:** `/api/notion/sync-presensi`.
-- **Flow:** Triggered by Notion webhooks when a Meeting (Rapat) is created/updated. It looks at the invited members, cross-references the SDM database to verify active status, and automatically creates entries in the Presensi (Attendance) database with "Belum Hadir" status. Uses locking to prevent race conditions.
+---
 
-### F. Instagram Webhooks to Discord
+## 6. Route Map
 
-- **API:** `/api/webhook.js` (Node.js runtime).
-- **Flow:** Receives Instagram webhooks (DMs, comments, mentions, story replies). Formats them into rich Discord Embeds, handling identity matching (showing real usernames if cached/fetched), and forwards them to specific Discord channels. Includes raw JSON chunking for debugging.
+### 6a. Page Routes
 
-## 7. Major API Endpoints
+| Route                 | File Path                                    | Type   | Data Source          | Description                             |
+| --------------------- | -------------------------------------------- | ------ | -------------------- | --------------------------------------- |
+| `/`                   | `app/page.tsx`                               | Mixed  | Static               | Landing page with Hero and Quick Links. |
+| `/profil`             | `app/(public)/profil/page.tsx`               | Server | Static               | Organization profile and vision.        |
+| `/agenda`             | `app/(public)/agenda/page.tsx`               | Server | Notion (Events)      | List of upcoming and past events.       |
+| `/agenda/[slug]`      | `app/(public)/agenda/[slug]/page.tsx`        | Server | Notion (Events)      | Event detail with rich content.         |
+| `/faq`                | `app/(public)/faq/page.tsx`                  | Server | Notion (FAQ)         | Frequently Asked Questions.             |
+| `/aduan`              | `app/(public)/aduan/page.tsx`                | Client | Mixed                | AI-powered complaint form.              |
+| `/sekretariat`        | `app/(public)/sekretariat/page.tsx`          | Server | Notion (Sekretariat) | Secretariat portal landing.             |
+| `/notion-secret-page` | `app/(internal)/notion-secret-page/page.tsx` | Client | Supabase             | Collaborative room selection.           |
 
-- **`/api/submit`**: Handles Aduan creation.
-- **`/api/pendaftaran`**: Handles Open Recruitment creation and emails.
-- **`/api/refine-aduan`**: Proxies requests to Groq LLM.
-- **`/api/citation`**: Resolves custom Notion `cite://` anchor blocks.
-- **`/api/sekretariat/forms`**: Processes admin requests (e.g., Surat Aktif, Peminjam Alat) to Telegram.
-- **`/api/canva/auth` & `/callback`**: Handles Canva OAuth 2.0 flow.
-- **`/api/instagram-secret-page`**: GET/POST/DELETE for Instagram Grid manifest and image slicing.
-- **`/api/notion-image`**: Notion S3 image caching and proxying.
-- **`/api/events/[slug]/cover`**: Proxies event cover images.
-- **`/api/notion/*`**: Suite of endpoints for Notion Rooms (`/rooms`, `/pages`, `/create`, `/compile`).
-- **`/api/notion/sync-presensi`**: Trigger for Rapat attendance synchronization.
-- **`/api/webhooks/notion`**: Generic listener for Notion database changes, bridging into Supabase Realtime.
-- **`/api/cron/supabase-keepalive`**: Pings the Supabase database to prevent auto-pausing on free tiers.
+### 6b. API Routes
 
-## 8. UI, UX, and Animation Patterns
+**`/api/refine-aduan`**
 
-- **Styling:** Tailwind CSS with extensive custom configuration (see `DESIGN_LANGUAGE.md`). Dark background (`#0a0a0a`), warm gold accents (`#D4A64D`).
-- **Typography:** Fraunces (Serif) for headings, standard sans for body. Heavy use of tracking (letter-spacing) for uppercase labels.
-- **GSAP Animations:** Controlled primarily via `lib/useViewEntrance.ts`.
-  - Elements use `data-animate="up|fade|scale|scale-x"` to trigger scroll-bound or immediate entrance animations.
-  - Staggering is supported via `data-animate-stagger`.
-- **TextPressure & BlurText:** Custom React components for kinetic, typography-heavy hero sections based on mouse/pointer proximity.
-- **Shortcuts:** Global command palette (`Cmd/Ctrl+K`) for fast documentation search.
+- **Method:** POST
+- **Input:** `{ message: string }`
+- **Output:** `{ enhanced: string, error?: string }`
+- **Side effects:** Calls Groq API for text refinement.
+- **Auth:** Rate-limited by IP (15s cooldown).
 
-## 9. Feature Flags & Operational Caveats
+**`/api/submit`**
 
-- **Feature Flags:** `lib/feature-flags.ts`.
-  - `ALLOW_PENDAFTARAN`: Currently set to `process.env.NODE_ENV === "development"`. In production, the `/pendaftaran` routes will redirect to `/` unless toggled.
-  - `SHOW_DOCS_SIDEBAR`: Toggles the advanced sidebar on the Secretariat portal.
-- **Notion Structure Coupling:** Code relies heavily on specific property names in Notion (e.g., `Slug`, `Category`, `Publish`, `(AUT) Daftar Undangan`, `Status Keaktifan`). Changing property names in Notion _will_ break parsers.
-- **Supabase Realtime:** Requires RLS policies or Anon Key access configured correctly for `notion_rooms` table and Storage buckets.
-- **Gemini Service:** `services/geminiService.ts` is a misnomer; it actually uses Groq (Llama 3) identical to `aiTextService.ts`.
+- **Method:** POST
+- **Input:** `{ intent: "submit-aduan", name, nim, message, ... }`
+- **Output:** `{ success: boolean }`
+- **Side effects:** Sends payload to Discord Webhook.
 
-## 10. Environment Variables
+**`/api/notion-image`**
 
-_(Ensure these are set in Vercel / `.env`)_
+- **Method:** GET
+- **Input:** `?url=[notion_s3_url]`
+- **Output:** Binary Image
+- **Side effects:** Caches images in `.next/cache/notion-images` for 14 days.
 
-- **Notion:** `NOTION_INTEGRATION_TOKEN`, `NOTION_SEKRETARIAT_DATABASE_ID`, `NOTION_EVENTS_DATABASE_ID`, `NOTION_KKM_DATABASE_ID`, `NOTION_DATABASE_ID_RAPAT`, `NOTION_DATABASE_ID_PRESENSI`, `NOTION_DATABASE_ID_SDM`.
-- **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-- **Canva:** `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET`.
-- **Discord:** `DISCORD_WEBHOOK_URL`, `DISCORD_PARSED_WEBHOOK_URL`, `DISCORD_RAW_WEBHOOK_URL`, `DISCORD_ADUAN_WEBHOOK_URL`, `DISCORD_PENDAFTARAN_WEBHOOK_URL`.
-- **Instagram:** `VERIFY_TOKEN`, `INSTAGRAM_ACCESS_TOKEN`, `HIMA_INSTAGRAM_ID`.
-- **AI/SMTP/Telegram:** `GROQ_API_KEY`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+---
 
-## 11. Most Important Files for Orientation
+## 7. Content Model
 
-If you only have a few minutes, read these:
+### 7a. Notion Databases
 
-1. `app/layout.tsx` & `lib/useViewEntrance.ts` (App shell and animation engine).
-2. `lib/notion.ts` & `lib/notion-shared.ts` (Core content parsers and citation logic).
-3. `components/NotionRenderer.tsx` (How Notion blocks map to UI).
-4. `app/api/pendaftaran/route.ts` & `app/api/submit/route.ts` (Main intake mutations).
-5. `app/api/instagram-secret-page/route.ts` (Complex Sharp/Canva splicing logic).
-6. `app/notion-secret-page/page.tsx` (Realtime Supabase/Notion collaboration).
-7. `api/notion/sync-presensi/route.ts` (Advanced automated Notion linking workflow).
+- **Events Database:**
+  - Env: `NOTION_EVENTS_DATABASE_ID`
+  - Properties: `Name` (Title), `Slug` (Formula), `Date` (Date), `Publish` (Checkbox), `Cover Image` (Files).
+  - Logic: Filtered by `Publish` = true. Sorted by `Date` descending.
+- **Sekretariat Database:**
+  - Env: `NOTION_SEKRETARIAT_DATABASE_ID`
+  - Properties: `Name` (Title), `Slug` (Formula), `Category` (Select), `Order` (Number).
 
-## 12. Recommended Tasks for Future Agents
+---
 
-- **Cleanup Debt:** Rename `geminiService.ts` or consolidate it into `aiTextService.ts`. Convert `api/webhook.js` to TypeScript.
-- **Testing:** Introduce Playwright or Cypress for E2E testing of the Pendaftaran multi-step form.
-- **Gallery Implementation:** Replace the `/gallery` placeholder with an actual Notion gallery parser utilizing `NOTION_GALLERY_DATABASE_ID`.
+## 8. Integrations & Data Flows
+
+**AI Text Refinement (Aduan)**
+
+- **Trigger:** User types in `Aduan` form and clicks "Bantu Perbaiki".
+- **Flow:** `Aduan.tsx` (Client) → `/api/refine-aduan` → `refineParser.ts` → Groq API.
+- **Payload:** Raw text content.
+- **Response:** XML-wrapped enhanced text `<enhanced>...`.
+
+**Canva-to-Instagram Planner**
+
+- **Trigger:** Admin initiates "Fetch from Canva" in `/instagram-secret-page`.
+- **Flow:** `canva.ts` (OAuth) → Canva API → S3 Storage (Supabase) → Image Slicing (Sharp).
+- **Env Vars:** `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET`.
+
+---
+
+## 9. Key Library Files
+
+**`lib/notion.ts`**
+
+- **Purpose:** Central Hub for Notion API interactions and ID resolution.
+- **Exports:** `getNotionClient`, `resolveDataSourceIdSafe`, `fetchAllDocs`.
+- **Caveats:** Uses a local cache for Data Source IDs to avoid repeated API calls.
+
+**`lib/gsap.ts`**
+
+- **Purpose:** Initializes GSAP with ScrollTrigger and exports global instances.
+
+**`lib/discord.ts`**
+
+- **Purpose:** Centralized Discord webhook forwarder.
+
+---
+
+## 10. Component Catalog
+
+**`LocationInitializer`** (`components/LocatorInitializer.tsx`)
+
+- Type: Client Component
+- Responsibility: Injects LocatorJS in dev mode for UI-to-Code mapping.
+
+**`NotionRenderer`** (`components/NotionRenderer.tsx`)
+
+- Type: Client Component (renders Blocks)
+- Responsibility: Maps Notion block types to Tailwind-styled React components.
+
+**`SelectionTimelineCalendar`** (`components/SelectionTimelineCalendar.tsx`)
+
+- Responsibility: Renders the OPREC timeline with GSAP staggers.
+
+---
+
+## 11. UI, Styling & Animation System
+
+- **Colors:** Primary brand color is `gold-500` (`#D4A64D`). Secondary is `black`.
+- **GSAP Logic:** Most views use `useViewEntrance` to coordinate stagger animations using `data-animate` attributes.
+- **Typography:** `Inter` for body, `Playfair Display` for headings.
+
+---
+
+## 12. Feature Flags & Operational Caveats
+
+- **`SHOW_DOCS_SIDEBAR`:** Hardcoded to `false` in `lib/feature-flags.ts`.
+- **Hardcoded Strings:** Notion property names like `"Publish"`, `"Slug"`, and `"Order"` must exist in Notion databases for the portal to function.
+
+---
+
+## 13. Internal Tooling Routes
+
+- **`/instagram-secret-page`**: Internal planner for Instagram grids. Uses Canva OAuth.
+- **`/notion-secret-page`**: Real-time collaborative editor using Supabase postgres changes.
+
+---
+
+## 14. Most Critical Files
+
+1. `lib/notion.ts`: The backbone of all CMS content fetching.
+2. `lib/notion-shared.ts`: Contains the logic for parsing Notion's complex JSON blocks into clean Markdown/HTML.
+3. `app/api/notion-image/route.ts`: Prevents broken images by proxying and caching.
+4. `views/Home.tsx`: The primary entryway and showcase for the site's animation system.
+5. `tailwind.config.mjs`: Defines the visual identity.
+
+---
+
+## 15. What Does NOT Exist
+
+- **Public Authentication:** There are no user accounts for public users; everything is either public or "secret" by URL obscurity/env-token.
+- **On-site Image Uploads:** Images for content are managed exclusively in Notion.
+
+---
+
+## 16. Recommended Entry Points
+
+| Task Type             | Start Here                                               |
+| --------------------- | -------------------------------------------------------- |
+| Add a new public page | Create folder in `app/(public)/` and view in `views/`.   |
+| Modify Notion sync    | Edit `lib/notion.ts` or `app/api/notion/sync-presensi/`. |
+| Change brand colors   | Edit `tailwind.config.mjs`.                              |
+| Update OPREC data     | Edit `lib/pendaftaran-data.ts`.                          |
