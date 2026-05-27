@@ -68,9 +68,11 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Notion Database IDs
-   NOTION_EVENTS_DATABASE_ID=your_events_database_id
+   # Notion Database IDs (6 Database CMS Final)
+   NOTION_BERANDA_DATABASE_ID=your_beranda_database_id
+   NOTION_PROFIL_DATABASE_ID=your_profil_database_id
    NOTION_KKM_DATABASE_ID=your_kkm_database_id
+   NOTION_EVENTS_DATABASE_ID=your_events_database_id
    NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
 
@@ -130,3 +132,80 @@ The navbar uses a flat 7-item structure (desktop & mobile):
 | Kontak      | —              | Smooth-scrolls to footer `#kontak` |
 
 Old URLs `/about` and `/events` redirect permanently to `/profil` and `/agenda` respectively.
+
+## Content Model (Notion CMS Redesign)
+
+The HIMA Musik portal features a dynamic Content Management System backed by **6 Notion Databases** managed exclusively by the Ketua. Below is the exact schema and property types defined in the Notion Teamspace:
+
+### 1. Database Beranda (`NOTION_BERANDA_DATABASE_ID`)
+
+Konten dinamis untuk banner, pengumuman, dan hero sections.
+
+- `Judul Tayangan` (Title)
+- `ID Konten` (Unique ID)
+- `Slug` (Rich Text)
+- `Tipe Blok` (Select: `Hero`, `Banner Pengumuman`, `CTA Rekrutmen`, `Highlight Acara`)
+- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Dijadwalkan` → `Live` → `Arsip`)
+- `Integritas Riwayat` (Date)
+
+### 2. Database Profil (`NOTION_PROFIL_DATABASE_ID`)
+
+Konten statis organisasi publik seperti sejarah dan struktur kabinet.
+
+- `Judul Tayangan` (Title)
+- `ID Konten` (Unique ID)
+- `Slug` (Rich Text)
+- `Urutan Tampil` (Number)
+- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
+- `Integritas Riwayat` (Date)
+
+### 3. Database KKM (`NOTION_KKM_DATABASE_ID`)
+
+Direktori Kelompok Kegiatan Mahasiswa di bawah prodi musik.
+
+- `Nama Unit KKM` (Title)
+- `ID Konten` (Unique ID)
+- `Slug` (Rich Text)
+- `Genre / Fokus Musik` (Multi-select: `Klasik`, `Jazz`, `Pop`, `Rock`, `Folk`, `Elektronik`, `Eksperimental`, `Lainnya`)
+- `Kontak Unit` (Rich Text - Instagram / WhatsApp)
+- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
+- `Integritas Riwayat` (Date)
+
+### 4. Database Agenda (`NOTION_EVENTS_DATABASE_ID`)
+
+Kalender kegiatan, program kerja, dan agenda kolaboratif.
+
+- `Judul Tayangan` (Title)
+- `ID Konten` (Unique ID)
+- `Slug` (Rich Text)
+- `Tanggal Acara` (Date)
+- `Lokasi` (Rich Text)
+- `Tipe Acara` (Select: `Internal`, `Publik`, `Kolaborasi`)
+- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Dijadwalkan` → `Live` → `Arsip`)
+- `Integritas Riwayat` (Date)
+
+### 5. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
+
+Pusat bantuan Tanya Jawab publik dan internal HIMA.
+
+- `Judul Pertanyaan` (Title)
+- `Nama Penanya` (Rich Text)
+- `Sumber` (Select: `Publik`, `Hima`)
+- `Jawaban` (Rich Text)
+- `URL Referensi` (URL)
+- `Status` (Status: `Masuk` → `Ditinjau` → `Dijawab` / `Dialihkan` / `Disembunyikan`)
+- `Visibilitas` (Checkbox - Override manual)
+- `Last Edited Time` (Last Edited Time - Native)
+  _Aturan Tampil: `Visibilitas = true` AND `Status = Dijawab OR Dialihkan`._
+
+### 6. Database Sekretariat (`NOTION_SEKRETARIAT_DATABASE_ID`)
+
+Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
+
+- `Nama Dokumen` (Title)
+- `ID Konten` (Unique ID)
+- `Slug` (Rich Text)
+- `Kategori` (Select: `SOP`, `Surat Edaran`, `Pengumuman`, `Panduan`)
+- `Urutan Tampil` (Number)
+- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
+- `Integritas Riwayat` (Date)

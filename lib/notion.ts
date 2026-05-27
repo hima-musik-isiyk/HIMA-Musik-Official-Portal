@@ -1,24 +1,27 @@
 import { Client } from "@notionhq/client";
-import type {} from // BlockObjectResponse,
-// QueryDataSourceResponse,
-"@notionhq/client/build/src/api-endpoints";
+import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import {} from /* classifyEventLifecycle, getEventDateSortValue */ "./event-dates";
-import { /* KKM_ENTRY_ORDER, */ type KKMGroup } from "./kkm-data";
+import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
+import { KKM_ENTRY_ORDER, type KKMGroup } from "./kkm-data";
 import {
   ArchiveEntry,
   buildAnchorMap,
   DocMeta,
   NotionBlock,
-  // NotionPage,
-  // stripCustomTags,
+  NotionPage,
+  stripCustomTags,
 } from "./notion-shared";
 
 export * from "./notion-shared";
 
-export type NotionContentScope = "sekretariat" | "kkm" | "events";
+export type NotionContentScope =
+  | "sekretariat"
+  | "kkm"
+  | "events"
+  | "beranda"
+  | "profil";
 
 export type EventLifecycle =
   | "upcoming"
@@ -47,6 +50,26 @@ export interface EventsCollection {
   ongoing: EventEntryMeta[];
   past: EventEntryMeta[];
   announcements: EventEntryMeta[];
+}
+
+export interface BerandaEntry {
+  id: string;
+  title: string;
+  slug: string;
+  blockType: "Hero" | "Banner Pengumuman" | "CTA Rekrutmen" | "Highlight Acara";
+  status: string;
+  lastModified: string;
+  blocks: NotionBlock[];
+}
+
+export interface ProfilEntry {
+  id: string;
+  title: string;
+  slug: string;
+  order: number;
+  status: string;
+  lastModified: string;
+  blocks: NotionBlock[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -78,6 +101,10 @@ export function getNotionClient(): Client {
   }
 
   return client as Client;
+}
+
+function getNotionClientAny(): any {
+  return getNotionClient() as any;
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,7 +142,6 @@ export async function resolveCitation(
 /* ------------------------------------------------------------------ */
 /*  Notion property helpers                                            */
 /* ------------------------------------------------------------------ */
-/*
 const propertyNameMapCache = new WeakMap<
   NotionPage["properties"],
   Map<string, keyof NotionPage["properties"]>
@@ -144,9 +170,7 @@ function getProperty(
   const matchedKey = propertyNameMap.get(normalizedName);
   return matchedKey ? properties[matchedKey] : undefined;
 }
-*/
 
-/*
 function getTitle(page: NotionPage): string {
   for (const prop of Object.values(page.properties)) {
     if (prop.type === "title" && prop.title.length > 0) {
@@ -155,9 +179,7 @@ function getTitle(page: NotionPage): string {
   }
   return "Untitled";
 }
-*/
 
-/*
 function getTitleProperty(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "title" && prop.title.length > 0) {
@@ -165,9 +187,7 @@ function getTitleProperty(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getRichText(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "rich_text") {
@@ -175,9 +195,7 @@ function getRichText(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getSelect(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "select" && prop.select) {
@@ -185,9 +203,15 @@ function getSelect(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
+function getStatus(page: NotionPage, name: string): string {
+  const prop = getProperty(page, name);
+  if (prop?.type === "status" && prop.status) {
+    return prop.status.name;
+  }
+  return "";
+}
+
 function getMultiSelect(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
   if (prop?.type === "multi_select") {
@@ -195,9 +219,7 @@ function getMultiSelect(page: NotionPage, name: string): string[] {
   }
   return [];
 }
-*/
 
-/*
 function getNumber(page: NotionPage, name: string): number {
   const prop = getProperty(page, name);
   if (prop?.type === "number" && prop.number !== null) {
@@ -205,9 +227,7 @@ function getNumber(page: NotionPage, name: string): number {
   }
   return 999;
 }
-*/
 
-/*
 function getCheckbox(
   page: NotionPage,
   name: string,
@@ -219,9 +239,7 @@ function getCheckbox(
   }
   return defaultValue;
 }
-*/
 
-/*
 function getDate(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date) {
@@ -229,9 +247,7 @@ function getDate(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getDateEnd(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date?.end) {
@@ -239,9 +255,7 @@ function getDateEnd(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getUrl(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "url" && prop.url) {
@@ -249,9 +263,7 @@ function getUrl(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getFormulaString(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "formula") {
@@ -264,9 +276,7 @@ function getFormulaString(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getFiles(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
   if (prop?.type !== "files") return [];
@@ -278,32 +288,24 @@ function getFiles(page: NotionPage, name: string): string[] {
     })
     .filter(Boolean);
 }
-*/
 
-/*
 function getCoverUrl(page: NotionPage, name = "Cover Image"): string | null {
   return getFiles(page, name)[0] ?? null;
 }
-*/
 
-/*
 function getChildPageTitle(block: NotionBlock): string {
   if (block.type !== "child_page") return "";
   const typed = block.child_page as { title?: string } | undefined;
   return (typed?.title ?? "").trim();
 }
-*/
 
-/*
 function isPreferredEventChildPage(title: string): boolean {
   const normalized = title.trim().toLowerCase();
   return /shared|share|draft|publish|published|konten|content|public|umum/.test(
     normalized,
   );
 }
-*/
 
-/*
 function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
   let firstChildPage: NotionBlock | null = null;
 
@@ -328,9 +330,7 @@ function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
 
   return firstChildPage;
 }
-*/
 
-/*
 function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
   const dropUntilAfterFirstTopLevelTable = (
     items: NotionBlock[],
@@ -350,9 +350,7 @@ function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
 
   return blocks;
 }
-*/
 
-/*
 function getSlugValue(page: NotionPage, fallbackText: string): string {
   return (
     getRichText(page, "Slug") ||
@@ -360,9 +358,7 @@ function getSlugValue(page: NotionPage, fallbackText: string): string {
     slugify(fallbackText)
   );
 }
-*/
 
-/*
 function getTodayInJakarta(): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Jakarta",
@@ -371,16 +367,15 @@ function getTodayInJakarta(): string {
     day: "2-digit",
   }).format(new Date());
 }
-*/
 
-/*
 function isEventPublished(page: NotionPage): boolean {
-  if (!getCheckbox(page, "Publish", true)) return false;
-  return true;
+  const status = getStatus(page, "Status Konten CMS");
+  if (status) {
+    return status === "Live";
+  }
+  return getCheckbox(page, "Publish", true);
 }
-*/
 
-/*
 function slugify(text: string): string {
   return text
     .normalize("NFKD")
@@ -389,7 +384,6 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
-*/
 
 /* ------------------------------------------------------------------ */
 /*  Docs database queries                                              */
@@ -461,51 +455,77 @@ export async function resolveDataSourceIdSafe(
   }
 }
 
+const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
+const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
+const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
+const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
+const DOCS_DB_ID =
+  process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
+  process.env.NOTION_PROJECT_DATABASE_ID ??
+  "";
+
 export const fetchAllDocs = unstable_cache(
   async (): Promise<DocMeta[]> => {
-    /*
     if (!DOCS_DB_ID) return [];
 
-    const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
-    if (!docsDataSourceId) return [];
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response: QueryDataSourceResponse =
-        await getNotionClient().dataSources.query({
-          data_source_id: docsDataSourceId,
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(DOCS_DB_ID),
           start_cursor: cursor,
         });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchAllDocs] Query failed:", error);
+      return [];
+    }
 
     return results
-      .map((page) => ({
-        id: page.id,
-        slug: getRichText(page, "Slug") || page.id,
-        title: getTitle(page),
-        category: getSelect(page, "Category"),
-        icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
-        order: getNumber(page, "Order"),
-        createdAt: page.created_time,
-        lastEdited: page.last_edited_time,
-        published: getCheckbox(page, "Publish", true),
-      }))
+      .map((page) => {
+        const title =
+          getTitleProperty(page, "Nama Dokumen") ||
+          getTitleProperty(page, "Name") ||
+          getTitle(page);
+        const category =
+          getSelect(page, "Kategori") || getSelect(page, "Category");
+        const status = getStatus(page, "Status Konten CMS");
+        const isPublished = status
+          ? status === "Live"
+          : getCheckbox(page, "Publish", true);
+
+        return {
+          id: page.id,
+          slug: getRichText(page, "Slug") || page.id,
+          title,
+          category,
+          icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
+          order:
+            getNumber(page, "Urutan Tampil") ?? getNumber(page, "Order") ?? 999,
+          createdAt: page.created_time,
+          lastEdited: page.last_edited_time,
+          published: isPublished,
+        };
+      })
       .filter((doc) => doc.published)
       .sort((a, b) => {
         if (a.order !== b.order) return a.order - b.order;
-        const categoryCompare = a.category.localeCompare(b.category, "id", {
-          sensitivity: "base",
-        });
+        const categoryCompare = (a.category || "").localeCompare(
+          b.category || "",
+          "id",
+          {
+            sensitivity: "base",
+          },
+        );
         if (categoryCompare !== 0) return categoryCompare;
         return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
       });
-    */
-    return [];
   },
   ["notion-all-docs"],
   { revalidate: 60, tags: ["notion-docs"] },
@@ -515,44 +535,56 @@ export const fetchAllDocs = unstable_cache(
 /*  KKM database queries                                               */
 /* ------------------------------------------------------------------ */
 
-/*
-const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
-*/
-
 export const fetchKKMGroups = unstable_cache(
   async (): Promise<KKMGroup[]> => {
-    /*
     if (!KKM_DB_ID) return [];
 
-    const kkmDataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
-    if (!kkmDataSourceId) return [];
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: kkmDataSourceId,
-        start_cursor: cursor,
-      });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(KKM_DB_ID),
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchKKMGroups] Query failed:", error);
+      return [];
+    }
 
     const kkmMap = new Map<string, KKMGroup>();
     const extraGroups: KKMGroup[] = [];
 
     for (const page of results) {
-      const name = (getTitleProperty(page, "Name") || getTitle(page)).trim();
+      const name = (
+        getTitleProperty(page, "Nama Unit KKM") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page)
+      ).trim();
       if (!name) {
         continue;
       }
 
-      const richTextLinks = getRichText(page, "Link Sosmed");
-      const urlLink = getUrl(page, "Link Sosmed");
-      const socialLinks = (richTextLinks || urlLink)
+      const status = getStatus(page, "Status Konten CMS");
+      if (status && status !== "Live") continue;
+
+      const genres = getMultiSelect(page, "Genre / Fokus Musik");
+      const tagline = getRichText(page, "Jargon") || genres.join(", ");
+      const description =
+        getRichText(page, "Deskripsi Singkat") ||
+        `${name} adalah KKM HIMA Musik dengan fokus genre: ${genres.join(", ")}.`;
+
+      const contacts =
+        getRichText(page, "Kontak Unit") ||
+        getRichText(page, "Link Sosmed") ||
+        getUrl(page, "Link Sosmed");
+      const socialLinks = contacts
         .split(/\r?\n/)
         .map((item) => item.trim())
         .filter(Boolean);
@@ -560,8 +592,8 @@ export const fetchKKMGroups = unstable_cache(
       const group = {
         slug: getRichText(page, "Slug") || slugify(name),
         name,
-        tagline: getRichText(page, "Jargon"),
-        description: getRichText(page, "Deskripsi Singkat"),
+        tagline,
+        description,
         socialLinks,
       };
 
@@ -581,8 +613,6 @@ export const fetchKKMGroups = unstable_cache(
     );
 
     return [...orderedGroups, ...extraGroups];
-    */
-    return [];
   },
   ["notion-kkm-groups"],
   { revalidate: 60, tags: ["notion-kkm"] },
@@ -590,48 +620,53 @@ export const fetchKKMGroups = unstable_cache(
 
 export const fetchKKMEntryBySlug = cache(
   async (
-    _slug: string,
+    slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    /*
     if (!KKM_DB_ID) return null;
 
-    const kkmDataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
-    if (!kkmDataSourceId) return null;
     const normalizedSlug = slug.trim().toLowerCase();
-
     let matchedPage: NotionPage | undefined;
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: kkmDataSourceId,
-        start_cursor: cursor,
-      });
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(KKM_DB_ID),
+          start_cursor: cursor,
+        });
 
-      const page = (response.results as NotionPage[]).find((entry) => {
-        const name = (
-          getTitleProperty(entry, "Name") || getTitle(entry)
-        ).trim();
-        const entrySlug = (getRichText(entry, "Slug") || slugify(name))
-          .trim()
-          .toLowerCase();
-        return entrySlug === normalizedSlug;
-      });
+        const page = (response.results as NotionPage[]).find((entry) => {
+          const name = (
+            getTitleProperty(entry, "Nama Unit KKM") ||
+            getTitleProperty(entry, "Name") ||
+            getTitle(entry)
+          ).trim();
+          const entrySlug = (getRichText(entry, "Slug") || slugify(name))
+            .trim()
+            .toLowerCase();
+          return entrySlug === normalizedSlug;
+        });
 
-      if (page) {
-        matchedPage = page;
-        break;
-      }
+        if (page) {
+          matchedPage = page;
+          break;
+        }
 
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchKKMEntryBySlug] Query failed:", error);
+      return null;
+    }
 
     if (!matchedPage) return null;
 
     const name = (
-      getTitleProperty(matchedPage, "Name") || getTitle(matchedPage)
+      getTitleProperty(matchedPage, "Nama Unit KKM") ||
+      getTitleProperty(matchedPage, "Name") ||
+      getTitle(matchedPage)
     ).trim();
     const entrySlug = (
       getRichText(matchedPage, "Slug") || slugify(name)
@@ -653,22 +688,30 @@ export const fetchKKMEntryBySlug = cache(
       },
       blocks,
     };
-    */
-    return null;
   },
 );
 
-/*
 function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
-  const title = getTitleProperty(page, "Name") || getTitle(page);
+  const title =
+    getTitleProperty(page, "Judul Tayangan") ||
+    getTitleProperty(page, "Name") ||
+    getTitle(page);
   const slug = getSlugValue(page, title);
-  const eventDate = getDate(page, "Event Date");
-  const eventDateEnd = getDateEnd(page, "Event Date");
+  const eventDate =
+    getDate(page, "Tanggal Acara") ||
+    getDate(page, "Event Date") ||
+    getDate(page, "Date");
+  const eventDateEnd =
+    getDateEnd(page, "Tanggal Acara") ||
+    getDateEnd(page, "Event Date") ||
+    getDateEnd(page, "Date");
   const sourceLink = getUrl(page, "Source Link");
   const sourceName = getRichText(page, "Source Name");
   const isRepost = getCheckbox(page, "Repost", false);
   const entryKind =
-    getSelect(page, "Entry Kind") || (eventDate ? "Event" : "Announcement");
+    getSelect(page, "Tipe Acara") ||
+    getSelect(page, "Entry Kind") ||
+    (eventDate ? "Event" : "Announcement");
   const lifecycle = classifyEventLifecycle(
     entryKind,
     { start: eventDate, end: eventDateEnd },
@@ -685,13 +728,13 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     order: 999,
     createdAt: page.created_time,
     lastEdited: page.last_edited_time,
-    published: getCheckbox(page, "Publish", true),
+    published: isEventPublished(page),
     summary: getRichText(page, "Summary"),
     ownerUnit,
     entryKind,
     eventDate,
     eventDateEnd,
-    location: getRichText(page, "Location"),
+    location: getRichText(page, "Lokasi") || getRichText(page, "Location"),
     registrationLink: getUrl(page, "Registration Link"),
     sourceLink,
     sourceName,
@@ -700,9 +743,7 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     lifecycle,
   };
 }
-*/
 
-/*
 function sortEventEntries(
   entries: EventEntryMeta[],
   lifecycle: EventLifecycle,
@@ -732,7 +773,6 @@ function sortEventEntries(
     return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
   });
 }
-*/
 
 export const fetchEventsCollection = unstable_cache(
   async (): Promise<EventsCollection> => {
@@ -743,25 +783,27 @@ export const fetchEventsCollection = unstable_cache(
       announcements: [],
     };
 
-    /*
     if (!EVENTS_DB_ID) return emptyCollection;
 
     const today = getTodayInJakarta();
-    const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
-    if (!eventsDataSourceId) return emptyCollection;
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: eventsDataSourceId,
-        start_cursor: cursor,
-      });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(EVENTS_DB_ID),
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchEventsCollection] Query failed:", error);
+      return emptyCollection;
+    }
 
     const entries = results
       .filter((page) => isEventPublished(page))
@@ -785,8 +827,6 @@ export const fetchEventsCollection = unstable_cache(
         "announcement",
       ),
     };
-    */
-    return emptyCollection;
   },
   ["notion-events-collection"],
   { revalidate: 60, tags: ["notion-events"] },
@@ -808,40 +848,45 @@ export const fetchAllEventEntries = unstable_cache(
 
 export const fetchEventBySlug = cache(
   async (
-    _slug: string,
+    slug: string,
   ): Promise<{ meta: EventEntryMeta; blocks: NotionBlock[] } | null> => {
-    /*
     if (!EVENTS_DB_ID) return null;
 
-    const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
-    if (!eventsDataSourceId) return null;
     const normalizedSlug = slug.trim().toLowerCase();
     const today = getTodayInJakarta();
 
     let matchedPage: NotionPage | undefined;
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: eventsDataSourceId,
-        start_cursor: cursor,
-      });
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(EVENTS_DB_ID),
+          start_cursor: cursor,
+        });
 
-      const page = (response.results as NotionPage[]).find((entry) => {
-        const title = getTitleProperty(entry, "Name") || getTitle(entry);
-        const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
-        return entrySlug === normalizedSlug && isEventPublished(entry);
-      });
+        const page = (response.results as NotionPage[]).find((entry) => {
+          const title =
+            getTitleProperty(entry, "Judul Tayangan") ||
+            getTitleProperty(entry, "Name") ||
+            getTitle(entry);
+          const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
+          return entrySlug === normalizedSlug && isEventPublished(entry);
+        });
 
-      if (page) {
-        matchedPage = page;
-        break;
-      }
+        if (page) {
+          matchedPage = page;
+          break;
+        }
 
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchEventBySlug] Query failed:", error);
+      return null;
+    }
 
     if (!matchedPage) return null;
 
@@ -852,106 +897,119 @@ export const fetchEventBySlug = cache(
       meta: mapEventPage(matchedPage, today),
       blocks,
     };
-    */
-    return null;
   },
 );
 
 export async function fetchEventCoverUrlBySlug(
-  _slug: string,
+  slug: string,
 ): Promise<string | null> {
-  /*
   if (!EVENTS_DB_ID) return null;
 
-  const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
-  if (!eventsDataSourceId) return null;
   const normalizedSlug = slug.trim().toLowerCase();
   let cursor: string | undefined;
 
-  do {
-    const response = await getNotionClient().dataSources.query({
-      data_source_id: eventsDataSourceId,
-      start_cursor: cursor,
-    });
-
-    const page = (response.results as NotionPage[]).find((entry) => {
-      const title = getTitleProperty(entry, "Name") || getTitle(entry);
-      const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
-      return entrySlug === normalizedSlug && isEventPublished(entry);
-    });
-
-    if (page) {
-      return getCoverUrl(page);
-    }
-
-    cursor = response.has_more
-      ? (response.next_cursor ?? undefined)
-      : undefined;
-  } while (cursor);
-  */
-
-  return null;
-}
-
-export const fetchDocBySlug = cache(
-  async (
-    _slug: string,
-  ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    /*
-    if (!DOCS_DB_ID) return null;
-
-    const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
-    if (!docsDataSourceId) return null;
-    const normalizedSlug = slug.trim().toLowerCase();
-
-    let matchedPage: NotionPage | undefined;
-    let cursor: string | undefined;
-
+  try {
     do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: docsDataSourceId,
+      const response = await getNotionClientAny().databases.query({
+        database_id: normalizeNotionId(EVENTS_DB_ID),
         start_cursor: cursor,
       });
 
       const page = (response.results as NotionPage[]).find((entry) => {
-        const entrySlug = (getRichText(entry, "Slug") || entry.id)
-          .trim()
-          .toLowerCase();
-        const published = getCheckbox(entry, "Publish", true);
-        return entrySlug === normalizedSlug && published;
+        const title =
+          getTitleProperty(entry, "Judul Tayangan") ||
+          getTitleProperty(entry, "Name") ||
+          getTitle(entry);
+        const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
+        return entrySlug === normalizedSlug && isEventPublished(entry);
       });
 
       if (page) {
-        matchedPage = page;
-        break;
+        return getCoverUrl(page);
       }
 
       cursor = response.has_more
         ? (response.next_cursor ?? undefined)
         : undefined;
     } while (cursor);
+  } catch (error) {
+    console.error("[Notion fetchEventCoverUrlBySlug] Query failed:", error);
+  }
+
+  return null;
+}
+
+export const fetchDocBySlug = cache(
+  async (
+    slug: string,
+  ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
+    if (!DOCS_DB_ID) return null;
+
+    const normalizedSlug = slug.trim().toLowerCase();
+    let matchedPage: NotionPage | undefined;
+    let cursor: string | undefined;
+
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(DOCS_DB_ID),
+          start_cursor: cursor,
+        });
+
+        const page = (response.results as NotionPage[]).find((entry) => {
+          const entrySlug = (getRichText(entry, "Slug") || entry.id)
+            .trim()
+            .toLowerCase();
+          const status = getStatus(entry, "Status Konten CMS");
+          const published = status
+            ? status === "Live"
+            : getCheckbox(entry, "Publish", true);
+          return entrySlug === normalizedSlug && published;
+        });
+
+        if (page) {
+          matchedPage = page;
+          break;
+        }
+
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchDocBySlug] Query failed:", error);
+      return null;
+    }
 
     const page = matchedPage;
     if (!page) return null;
 
     const blocks = await fetchAllBlocks(page.id);
+    const title =
+      getTitleProperty(page, "Nama Dokumen") ||
+      getTitleProperty(page, "Name") ||
+      getTitle(page);
+    const category = getSelect(page, "Kategori") || getSelect(page, "Category");
+    const status = getStatus(page, "Status Konten CMS");
+    const isPublished = status
+      ? status === "Live"
+      : getCheckbox(page, "Publish", true);
 
     return {
       meta: {
         id: page.id,
         slug: getRichText(page, "Slug") || page.id,
-        title: getTitle(page),
-        category: getSelect(page, "Category"),
+        title,
+        category,
         icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
-        order: getNumber(page, "Order"),
+        order:
+          getNumber(page, "Urutan Tampil") ?? getNumber(page, "Order") ?? 999,
         createdAt: page.created_time,
         lastEdited: page.last_edited_time,
-        published: getCheckbox(page, "Publish", true),
+        published: isPublished,
       },
       blocks,
     };
-    */
-    return null;
   },
 );
 
@@ -960,42 +1018,56 @@ export const fetchDocBySlug = cache(
 /* ------------------------------------------------------------------ */
 
 export const fetchArchives = unstable_cache(
-  async (_tag?: string): Promise<ArchiveEntry[]> => {
-    /*
+  async (tag?: string): Promise<ArchiveEntry[]> => {
     if (!DOCS_DB_ID) return [];
 
-    const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
-    if (!docsDataSourceId) return [];
     const normalizedTag = tag?.trim().toLowerCase();
-
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: docsDataSourceId,
-        start_cursor: cursor,
-      });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(DOCS_DB_ID),
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchArchives] Query failed:", error);
+      return [];
+    }
 
     return results
-      .map((page) => ({
-        id: page.id,
-        title: getTitle(page),
-        summary:
-          getRichText(page, "Summary") || getRichText(page, "Slug") || "", // Fallback or summary
-        date: getDate(page, "Date") || page.created_time.split("T")[0],
-        tags: getMultiSelect(page, "Tags"),
-        category: getSelect(page, "Category"),
-        published: getCheckbox(page, "Publish", true),
-      }))
+      .map((page) => {
+        const title =
+          getTitleProperty(page, "Nama Dokumen") ||
+          getTitleProperty(page, "Name") ||
+          getTitle(page);
+        const category =
+          getSelect(page, "Kategori") || getSelect(page, "Category");
+        const status = getStatus(page, "Status Konten CMS");
+        const published = status
+          ? status === "Live"
+          : getCheckbox(page, "Publish", true);
+
+        return {
+          id: page.id,
+          title,
+          summary:
+            getRichText(page, "Summary") || getRichText(page, "Slug") || "",
+          date: getDate(page, "Date") || page.created_time.split("T")[0],
+          tags: getMultiSelect(page, "Tags"),
+          category,
+          published,
+        };
+      })
       .filter((entry) => {
         if (!entry.published) return false;
-        if (entry.category !== "Arsip") return false; // Only archives
+        if (entry.category !== "Arsip") return false;
         if (!normalizedTag) return true;
         return entry.tags.some((entryTag) =>
           entryTag.toLowerCase().includes(normalizedTag),
@@ -1007,17 +1079,14 @@ export const fetchArchives = unstable_cache(
         if (!b.date) return -1;
         return b.date.localeCompare(a.date);
       });
-    */
-    return [];
   },
   ["notion-archives"],
   { revalidate: 60, tags: ["notion-archives"] },
 );
 
 export async function fetchArchiveById(
-  _id: string,
+  id: string,
 ): Promise<{ entry: ArchiveEntry; blocks: NotionBlock[] } | null> {
-  /*
   if (!DOCS_DB_ID) return null;
 
   try {
@@ -1025,17 +1094,24 @@ export async function fetchArchiveById(
       page_id: id,
     })) as NotionPage;
 
-    const published = getCheckbox(page, "Publish", true);
-    const category = getSelect(page, "Category");
+    const status = getStatus(page, "Status Konten CMS");
+    const published = status
+      ? status === "Live"
+      : getCheckbox(page, "Publish", true);
+    const category = getSelect(page, "Kategori") || getSelect(page, "Category");
 
     if (!published || category !== "Arsip") return null;
 
     const blocks = await fetchAllBlocks(page.id);
+    const title =
+      getTitleProperty(page, "Nama Dokumen") ||
+      getTitleProperty(page, "Name") ||
+      getTitle(page);
 
     return {
       entry: {
         id: page.id,
-        title: getTitle(page),
+        title,
         summary:
           getRichText(page, "Summary") || getRichText(page, "Slug") || "",
         date: getDate(page, "Date") || page.created_time.split("T")[0],
@@ -1044,11 +1120,10 @@ export async function fetchArchiveById(
       },
       blocks,
     };
-  } catch {
+  } catch (error) {
+    console.error("[Notion fetchArchiveById] Query failed:", error);
     return null;
   }
-  */
-  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1056,34 +1131,35 @@ export async function fetchArchiveById(
 /* ------------------------------------------------------------------ */
 
 export const fetchAllBlocks = cache(
-  async (_blockId: string): Promise<NotionBlock[]> => {
-    /*
+  async (blockId: string): Promise<NotionBlock[]> => {
     const blocks: NotionBlock[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().blocks.children.list({
-        block_id: blockId,
-        start_cursor: cursor,
-        page_size: 100,
-      });
+    try {
+      do {
+        const response = await getNotionClient().blocks.children.list({
+          block_id: blockId,
+          start_cursor: cursor,
+          page_size: 100,
+        });
 
-      for (const rawBlock of response.results as BlockObjectResponse[]) {
-        const block: NotionBlock = { ...rawBlock };
-        if (block.has_children) {
-          block.children = await fetchAllBlocks(block.id);
+        for (const rawBlock of response.results as BlockObjectResponse[]) {
+          const block: NotionBlock = { ...rawBlock };
+          if (block.has_children) {
+            block.children = await fetchAllBlocks(block.id);
+          }
+          blocks.push(block);
         }
-        blocks.push(block);
-      }
 
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchAllBlocks] Query failed:", error);
+    }
 
     return blocks;
-    */
-    return [];
   },
 );
 
@@ -1091,7 +1167,7 @@ export const fetchAllBlocks = cache(
 /*  Search across all docs                                             */
 /* ------------------------------------------------------------------ */
 
-export async function searchDocs(_query: string): Promise<
+export async function searchDocs(query: string): Promise<
   Array<{
     id: string;
     title: string;
@@ -1100,38 +1176,155 @@ export async function searchDocs(_query: string): Promise<
     highlight: string;
   }>
 > {
-  /*
   if (!query.trim()) return [];
 
-  const response = await getNotionClient().search({
-    query,
-    filter: { value: "page", property: "object" },
-    page_size: 10,
-  });
-
-  const results: Array<{
-    id: string;
-    title: string;
-    slug: string;
-    category: string;
-    highlight: string;
-  }> = [];
-
-  for (const page of response.results as NotionPage[]) {
-    const title = getTitle(page);
-    const slug = getRichText(page, "Slug") || page.id;
-    const category = getSelect(page, "Category");
-
-    results.push({
-      id: page.id,
-      title,
-      slug,
-      category,
-      highlight: title,
+  try {
+    const response = await getNotionClient().search({
+      query,
+      filter: { value: "page", property: "object" },
+      page_size: 10,
     });
-  }
 
-  return results;
-  */
-  return [];
+    const results: Array<{
+      id: string;
+      title: string;
+      slug: string;
+      category: string;
+      highlight: string;
+    }> = [];
+
+    for (const page of response.results as NotionPage[]) {
+      const title =
+        getTitleProperty(page, "Nama Dokumen") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const slug = getRichText(page, "Slug") || page.id;
+      const category =
+        getSelect(page, "Kategori") || getSelect(page, "Category");
+
+      results.push({
+        id: page.id,
+        title,
+        slug,
+        category,
+        highlight: title,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error("[Notion searchDocs] Search failed:", error);
+    return [];
+  }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Beranda & Profil database helpers                                  */
+/* ------------------------------------------------------------------ */
+
+export const fetchBerandaEntries = unstable_cache(
+  async (): Promise<BerandaEntry[]> => {
+    if (!BERANDA_DB_ID) return [];
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(BERANDA_DB_ID),
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchBerandaEntries] Query failed:", error);
+      return [];
+    }
+
+    const entries: BerandaEntry[] = [];
+    for (const page of results) {
+      const status = getStatus(page, "Status Konten CMS");
+      if (status && status !== "Live") continue;
+
+      const title =
+        getTitleProperty(page, "Judul Tayangan") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const slug = getRichText(page, "Slug") || slugify(title);
+      const blockType = (getSelect(page, "Tipe Blok") ||
+        "Hero") as BerandaEntry["blockType"];
+      const blocks = await fetchAllBlocks(page.id);
+
+      entries.push({
+        id: page.id,
+        title,
+        slug,
+        blockType,
+        status,
+        lastModified: page.last_edited_time,
+        blocks,
+      });
+    }
+
+    return entries;
+  },
+  ["notion-beranda-entries"],
+  { revalidate: 60, tags: ["notion-beranda"] },
+);
+
+export const fetchProfilEntries = unstable_cache(
+  async (): Promise<ProfilEntry[]> => {
+    if (!PROFIL_DB_ID) return [];
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      do {
+        const response = await getNotionClientAny().databases.query({
+          database_id: normalizeNotionId(PROFIL_DB_ID),
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchProfilEntries] Query failed:", error);
+      return [];
+    }
+
+    const entries: ProfilEntry[] = [];
+    for (const page of results) {
+      const status = getStatus(page, "Status Konten CMS");
+      if (status && status !== "Live") continue;
+
+      const title =
+        getTitleProperty(page, "Judul Tayangan") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const slug = getRichText(page, "Slug") || slugify(title);
+      const order = getNumber(page, "Urutan Tampil") || 999;
+      const blocks = await fetchAllBlocks(page.id);
+
+      entries.push({
+        id: page.id,
+        title,
+        slug,
+        order,
+        status,
+        lastModified: page.last_edited_time,
+        blocks,
+      });
+    }
+
+    return entries.sort((a, b) => a.order - b.order);
+  },
+  ["notion-profil-entries"],
+  { revalidate: 60, tags: ["notion-profil"] },
+);

@@ -28,14 +28,17 @@ type NotionWebhookPayload = {
   };
 };
 
-type ContentScope = "docs" | "events" | "kkm";
+type ContentScope = "docs" | "events" | "kkm" | "faq" | "profil" | "beranda";
 
+const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
+const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
 const DOCS_DB_ID =
   process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
   process.env.NOTION_PROJECT_DATABASE_ID ??
   "";
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
 const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
+const FAQ_DB_ID = process.env.NOTION_FAQ_DATABASE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
 const parentChainCache = new Map<
@@ -81,12 +84,21 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
-  const [docsDataSourceId, eventsDataSourceId, kkmDataSourceId] =
-    await Promise.all([
-      resolvePrimaryDataSourceId(DOCS_DB_ID),
-      resolvePrimaryDataSourceId(EVENTS_DB_ID),
-      resolvePrimaryDataSourceId(KKM_DB_ID),
-    ]);
+  const [
+    docsDataSourceId,
+    eventsDataSourceId,
+    kkmDataSourceId,
+    faqDataSourceId,
+    profilDataSourceId,
+    berandaDataSourceId,
+  ] = await Promise.all([
+    resolvePrimaryDataSourceId(DOCS_DB_ID),
+    resolvePrimaryDataSourceId(EVENTS_DB_ID),
+    resolvePrimaryDataSourceId(KKM_DB_ID),
+    resolvePrimaryDataSourceId(FAQ_DB_ID),
+    resolvePrimaryDataSourceId(PROFIL_DB_ID),
+    resolvePrimaryDataSourceId(BERANDA_DB_ID),
+  ]);
 
   return {
     docs: {
@@ -100,6 +112,18 @@ async function buildScopeMatchers() {
     kkm: {
       databaseId: KKM_DB_ID ? normalizeNotionId(KKM_DB_ID) : null,
       dataSourceId: kkmDataSourceId,
+    },
+    faq: {
+      databaseId: FAQ_DB_ID ? normalizeNotionId(FAQ_DB_ID) : null,
+      dataSourceId: faqDataSourceId,
+    },
+    profil: {
+      databaseId: PROFIL_DB_ID ? normalizeNotionId(PROFIL_DB_ID) : null,
+      dataSourceId: profilDataSourceId,
+    },
+    beranda: {
+      databaseId: BERANDA_DB_ID ? normalizeNotionId(BERANDA_DB_ID) : null,
+      dataSourceId: berandaDataSourceId,
     },
   };
 }
@@ -246,10 +270,31 @@ function revalidateScope(scope: ContentScope) {
     return;
   }
 
-  revalidateTag("notion-kkm", { expire: 0 });
-  revalidatePath("/kkm");
-  revalidatePath("/kkm/[slug]", "page");
-  revalidatePath("/agenda");
+  if (scope === "kkm") {
+    revalidateTag("notion-kkm", { expire: 0 });
+    revalidatePath("/kkm");
+    revalidatePath("/kkm/[slug]", "page");
+    revalidatePath("/agenda");
+    return;
+  }
+
+  if (scope === "faq") {
+    revalidateTag("notion-faq", { expire: 0 });
+    revalidatePath("/faq");
+    return;
+  }
+
+  if (scope === "profil") {
+    revalidateTag("notion-profil", { expire: 0 });
+    revalidatePath("/profil");
+    return;
+  }
+
+  if (scope === "beranda") {
+    revalidateTag("notion-beranda", { expire: 0 });
+    revalidatePath("/");
+    return;
+  }
 }
 
 async function inferScopes(
@@ -269,7 +314,14 @@ async function inferScopes(
   const entityScopeHints = await resolveEntityScopeHints(payload.entity);
   const parentScopeHints = await resolveParentScopeHints(payload.data?.parent);
 
-  for (const scope of ["docs", "events", "kkm"] as const) {
+  for (const scope of [
+    "docs",
+    "events",
+    "kkm",
+    "faq",
+    "profil",
+    "beranda",
+  ] as const) {
     const matcher = matches[scope];
 
     if (
