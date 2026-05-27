@@ -408,7 +408,6 @@ export default function InstagramSecretPage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [loadingCells, setLoadingCells] = useState<Set<string>>(new Set());
-  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const itemMap = useMemo(() => {
     const map = new Map<string, InstagramGridItem>();
@@ -463,10 +462,10 @@ export default function InstagramSecretPage() {
     };
   }, [preview]);
 
-  function openImporter(nextTarget: GridTarget) {
+  const openImporter = useCallback((nextTarget: GridTarget) => {
     setTarget(nextTarget);
-    inputRef.current?.click();
-  }
+    document.getElementById("instagram-secret-file-input")?.click();
+  }, []);
 
   async function handleCanvaLink(
     url: string,
@@ -560,50 +559,56 @@ export default function InstagramSecretPage() {
     }
   }
 
-  async function handleUpload(files: FileList | null) {
-    if (!files || !target) return;
+  const handleUpload = useCallback(
+    async (files: FileList | null) => {
+      if (!files || !target) return;
 
-    setBusy("Processing");
-    setError("");
+      setBusy("Processing");
+      setError("");
 
-    try {
-      const frames = await processFiles(Array.from(files));
+      try {
+        const frames = await processFiles(Array.from(files));
 
-      if (frames.length === 0) throw new Error("No image found.");
+        if (frames.length === 0) throw new Error("No image found.");
 
-      setBusy(`Uploading ${frames.length}`);
-      const formData = new FormData();
-      formData.set(
-        "payload",
-        JSON.stringify({
-          id: target.itemId,
-          row: target.row,
-          column: target.column,
-          frameMetas: frames.map((frame) => frame.meta),
-        }),
-      );
-      frames.forEach((frame) => formData.append("frames", frame.file));
+        setBusy(`Uploading ${frames.length}`);
+        const formData = new FormData();
+        formData.set(
+          "payload",
+          JSON.stringify({
+            id: target.itemId,
+            row: target.row,
+            column: target.column,
+            frameMetas: frames.map((frame) => frame.meta),
+          }),
+        );
+        frames.forEach((frame) => formData.append("frames", frame.file));
 
-      const response = await fetch(apiPath, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
+        const response = await fetch(apiPath, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
 
-      if (!response.ok) throw new Error(data.error ?? "Upload failed.");
-      setManifest(normalizeManifest(data.manifest));
-      if (data.item?.id)
-        setActiveFrame((state) => ({ ...state, [data.item.id]: 0 }));
-    } catch (uploadError) {
-      setError(
-        uploadError instanceof Error ? uploadError.message : "Upload failed.",
-      );
-    } finally {
-      setBusy("");
-      setTarget(null);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }
+        if (!response.ok) throw new Error(data.error ?? "Upload failed.");
+        setManifest(normalizeManifest(data.manifest));
+        if (data.item?.id)
+          setActiveFrame((state) => ({ ...state, [data.item.id]: 0 }));
+      } catch (uploadError) {
+        setError(
+          uploadError instanceof Error ? uploadError.message : "Upload failed.",
+        );
+      } finally {
+        setBusy("");
+        setTarget(null);
+        const fileInput = document.getElementById(
+          "instagram-secret-file-input",
+        ) as HTMLInputElement | null;
+        if (fileInput) fileInput.value = "";
+      }
+    },
+    [target],
+  );
 
   async function handleDelete(item: InstagramGridItem) {
     if (!window.confirm("Are you sure you want to delete this cell?")) return;
@@ -689,7 +694,7 @@ export default function InstagramSecretPage() {
   return (
     <section className="min-h-screen bg-[#050505] px-4 pt-8 pb-14 text-neutral-50 sm:px-6 lg:px-8">
       <input
-        ref={inputRef}
+        id="instagram-secret-file-input"
         className="hidden"
         type="file"
         accept="image/*,.zip,application/zip"
@@ -1340,7 +1345,7 @@ function PostCell({
     <article className="group relative aspect-3/4 overflow-hidden bg-[#0f0f0f]">
       <div
         ref={scrollRef}
-        className="scrollbar-none absolute inset-0 flex cursor-pointer snap-x snap-mandatory overflow-x-auto"
+        className="absolute inset-0 flex cursor-pointer snap-x snap-mandatory scrollbar-none overflow-x-auto"
         style={{ scrollbarWidth: "none" }}
         onClick={() => onOpenPreview()}
       >
@@ -1558,7 +1563,7 @@ function PreviewModal({
           <div className="aspect-1080/1440 w-full overflow-hidden">
             <div
               ref={scrollRef}
-              className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto"
+              className="flex h-full snap-x snap-mandatory scrollbar-none overflow-x-auto"
               style={{ scrollbarWidth: "none" }}
             >
               {item.frames.map((frame) => (

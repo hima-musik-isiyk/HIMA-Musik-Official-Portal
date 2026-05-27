@@ -32,6 +32,7 @@ The portal focuses on:
 ## Tech Stack
 
 - **Framework:** Next.js (App Router), React, TypeScript
+- **Package Manager:** PNPM
 - **Styling:** Tailwind CSS v4, Vanilla CSS
 - **Animations:** GSAP (ScrollTrigger) & Framer Motion
 - **CMS / Data Source:** Notion API
@@ -47,14 +48,14 @@ The portal focuses on:
 ### Prerequisites
 
 - Node.js (LTS recommended)
-- npm
+- pnpm (v10+ recommended)
 
 ### Installation
 
 1. Install dependencies:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. Create a `.env.local` file in the project root and configure the necessary environment variables:
@@ -74,16 +75,16 @@ The portal focuses on:
 
 3. Run the development server:
    ```bash
-   npm run dev
+   pnpm dev
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
 ## Available Scripts
 
-- `npm run dev` – Start the local development server with hot-reloading
-- `npm run build` – Compile the application for production deployment
-- `npm run start` – Run the built production server locally
-- `npm run lint` – Audit the codebase for styling and type safety rules
+- `pnpm dev` – Start the local development server with hot-reloading
+- `pnpm build` – Compile the application for production deployment
+- `pnpm start` – Run the built production server locally
+- `pnpm lint` – Audit the codebase for styling and type safety rules
 
 ## Project Structure
 
