@@ -20,6 +20,10 @@ The portal focuses on:
 - **FAQ & Tanya Jawab:** Public question-and-answer board backed by a Notion database (route: `/faq`).
   - Browse visible entries filtered by category and visibility status
   - Submit new questions with name and category; entries flow into Notion and trigger a Discord notification
+  - Compact and highly-efficient layout for answered FAQ accordions and real-time public questions
+  - Date and author metadata displayed on closed card previews (before expansion)
+  - Custom Minecraft Standard Galactic character scrambler obfuscation for hidden content
+  - Dynamic page-by-page rendering with custom retro-themed `PaginationControl` for both lists
 - **Ruang Advokasi (Aduan):**
   - Category-based submission of complaints (Akademik, Fasilitas, Organisasi, Lainnya)
   - AI-assisted message refinement utilizing Groq (Llama 3)
