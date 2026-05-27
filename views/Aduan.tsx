@@ -333,9 +333,9 @@ const Aduan: React.FC = () => {
         setSubmitError(
           "Sistem belum dikonfigurasi dengan benar. Hubungi administrator.",
         );
-      } else if (errorMsg.includes("Telegram")) {
+      } else if (errorMsg.includes("Discord")) {
         setSubmitError(
-          "Gagal mengirim ke Telegram. Coba lagi dalam beberapa saat.",
+          "Gagal mengirim notifikasi. Coba lagi dalam beberapa saat.",
         );
       } else if (errorMsg.includes("Message is required")) {
         setSubmitError("Pesan tidak boleh kosong.");

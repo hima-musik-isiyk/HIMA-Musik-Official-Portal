@@ -10,6 +10,13 @@ const enableLocator =
 
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      { source: "/events", destination: "/agenda", permanent: true },
+      { source: "/events/:slug", destination: "/agenda/:slug", permanent: true },
+      { source: "/about", destination: "/profil", permanent: true },
+    ];
+  },
   images: {
     localPatterns: [
       {
