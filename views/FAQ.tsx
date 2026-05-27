@@ -115,6 +115,38 @@ const FAQStatusBadge: React.FC<{ status: FAQEntry["status"] }> = ({
   }
 };
 
+const PaginationControl: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="mt-4 flex items-center justify-center gap-3">
+      <button
+        disabled={currentPage === 1}
+        onClick={() => onPageChange(currentPage - 1)}
+        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-2.5 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+        style={{ borderRadius: "var(--radius-action)" }}
+      >
+        Prev
+      </button>
+      <span className="font-mono text-[9px] tracking-widest text-stone-600 uppercase">
+        {currentPage} / {totalPages}
+      </span>
+      <button
+        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-2.5 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+        style={{ borderRadius: "var(--radius-action)" }}
+      >
+        Next
+      </button>
+    </div>
+  );
+};
+
 const FAQView: React.FC = () => {
   const scopeRef = useViewEntrance("/faq");
 
@@ -127,6 +159,16 @@ const FAQView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null);
+
+  // Pagination States
+  const [answeredPage, setAnsweredPage] = useState(1);
+  const [unansweredPage, setUnansweredPage] = useState(1);
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setAnsweredPage(1);
+    setUnansweredPage(1);
+  }, [searchQuery, activeCategory]);
 
   // Form State
   const [formData, setFormData] = useState<FAQFormData>({
@@ -289,6 +331,19 @@ const FAQView: React.FC = () => {
     return { answeredFaqs: answered, unansweredFaqs: unanswered };
   }, [filteredFaqs]);
 
+  const totalAnsweredPages = Math.ceil(answeredFaqs.length / 5);
+  const totalUnansweredPages = Math.ceil(unansweredFaqs.length / 4);
+
+  const paginatedAnswered = useMemo(() => {
+    const start = (answeredPage - 1) * 5;
+    return answeredFaqs.slice(start, start + 5);
+  }, [answeredFaqs, answeredPage]);
+
+  const paginatedUnanswered = useMemo(() => {
+    const start = (unansweredPage - 1) * 4;
+    return unansweredFaqs.slice(start, start + 4);
+  }, [unansweredFaqs, unansweredPage]);
+
   return (
     <div
       ref={scopeRef}
@@ -448,7 +503,7 @@ const FAQView: React.FC = () => {
 
                 {answeredFaqs.length > 0 ? (
                   <div className="space-y-4">
-                    {answeredFaqs.map((faq) => {
+                    {paginatedAnswered.map((faq) => {
                       const isExpanded = expandedFaqId === faq.id;
                       return (
                         <div
@@ -465,10 +520,21 @@ const FAQView: React.FC = () => {
                             onClick={() =>
                               setExpandedFaqId(isExpanded ? null : faq.id)
                             }
-                            className="flex w-full items-start justify-between gap-4 p-5 text-left"
+                            className="flex w-full items-start justify-between gap-4 p-4 text-left"
                           >
                             <div className="space-y-2">
                               <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono text-[9px] text-stone-500">
+                                  {new Date(faq.createdAt).toLocaleDateString(
+                                    "id-ID",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    },
+                                  )}
+                                </span>
+                                <span className="text-stone-700">·</span>
                                 {faq.categories.map((c) => (
                                   <span
                                     key={c}
@@ -492,7 +558,7 @@ const FAQView: React.FC = () => {
                               </h3>
                               <p className="text-[10px] text-stone-600">
                                 Ditanyakan oleh{" "}
-                                <span className="text-stone-400">
+                                <span className="font-medium text-stone-400">
                                   {faq.askerName}
                                 </span>
                               </p>
@@ -508,7 +574,7 @@ const FAQView: React.FC = () => {
 
                           {/* Accordion Content */}
                           {isExpanded && (
-                            <div className="space-y-4 border-t border-white/5 bg-stone-950/20 px-5 py-5">
+                            <div className="space-y-4 border-t border-white/5 bg-stone-950/20 px-4 py-4">
                               {faq.status === "Dialihkan" ? (
                                 <div className="space-y-3">
                                   <p className="text-sm leading-relaxed font-light text-stone-400">
@@ -543,25 +609,17 @@ const FAQView: React.FC = () => {
                                   />
                                 </p>
                               )}
-
-                              {/* Version Metadata */}
-                              <div className="flex items-center gap-2 border-t border-white/5 pt-3 text-[9px] text-stone-600">
-                                <span>Terakhir diperbarui:</span>
-                                <span className="text-stone-500">
-                                  {new Date(
-                                    faq.lastEditedAt,
-                                  ).toLocaleDateString("id-ID", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                              </div>
                             </div>
                           )}
                         </div>
                       );
                     })}
+
+                    <PaginationControl
+                      currentPage={answeredPage}
+                      totalPages={totalAnsweredPages}
+                      onPageChange={setAnsweredPage}
+                    />
                   </div>
                 ) : (
                   <div className="border-stone-850 rounded-xl border border-dashed py-12 text-center text-stone-600">
@@ -586,45 +644,59 @@ const FAQView: React.FC = () => {
                 </div>
 
                 {unansweredFaqs.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {unansweredFaqs.map((faq) => (
-                      <div
-                        key={faq.id}
-                        className="hover:border-stone-850 space-y-4 border border-white/5 bg-[#111]/30 p-5 transition-all duration-300 hover:bg-[#111]/50"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-500 uppercase">
-                            {faq.categories[0]}
-                          </span>
-                          <FAQStatusBadge status={faq.status} />
-                        </div>
-                        <p className="text-sm leading-relaxed font-medium text-stone-300">
-                          &ldquo;
-                          <ObfuscatedMinecraftText
-                            text={faq.question}
-                            enabled={faq.status === "Disembunyikan"}
-                          />
-                          &rdquo;
-                        </p>
-                        <div className="flex items-center justify-between border-t border-white/5 pt-3 text-[10px] text-stone-600">
-                          <span>
-                            Oleh:{" "}
-                            <span className="text-stone-400">
-                              {faq.askerName}
+                  <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {paginatedUnanswered.map((faq) => (
+                        <div
+                          key={faq.id}
+                          className="hover:border-stone-850 flex flex-col justify-between border border-white/5 bg-[#111]/30 p-4 transition-all duration-300 hover:bg-[#111]/50"
+                          style={{ borderRadius: "var(--radius-action)" }}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-mono text-[9px] text-stone-500">
+                                  {new Date(faq.createdAt).toLocaleDateString(
+                                    "id-ID",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                    },
+                                  )}
+                                </span>
+                                <span className="text-stone-700">·</span>
+                                <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-500 uppercase">
+                                  {faq.categories[0]}
+                                </span>
+                              </div>
+                              <FAQStatusBadge status={faq.status} />
+                            </div>
+                            <p className="text-sm leading-relaxed font-medium text-stone-300">
+                              &ldquo;
+                              <ObfuscatedMinecraftText
+                                text={faq.question}
+                                enabled={faq.status === "Disembunyikan"}
+                              />
+                              &rdquo;
+                            </p>
+                          </div>
+                          <div className="mt-3 border-t border-white/5 pt-2 text-[10px] text-stone-600">
+                            <span>
+                              Oleh:{" "}
+                              <span className="text-stone-400">
+                                {faq.askerName}
+                              </span>
                             </span>
-                          </span>
-                          <span>
-                            {new Date(faq.createdAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "short",
-                              },
-                            )}
-                          </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    <PaginationControl
+                      currentPage={unansweredPage}
+                      totalPages={totalUnansweredPages}
+                      onPageChange={setUnansweredPage}
+                    />
                   </div>
                 ) : (
                   <div className="border-stone-850 rounded-xl border border-dashed py-12 text-center text-stone-600">
