@@ -103,4 +103,4 @@ The project routes have been organized into semantic **Next.js Route Groups** ma
 - `components/` – Reusable layout shells and shared UI blocks (Navigation, Footer, Command Palette)
 - `lib/` – Notion helper integrations, Supabase connectors, and custom hooks
 - `services/` – Serverless parsing helpers and Groq AI text parsers
-- `migration/` – Historical scraping scripts, session files, python environments, and scraped JSONL data dumps
+- `migration/` – Historical scraping and sync scripts used for Telegram and WhatsApp archive integrations.
