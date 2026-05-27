@@ -1,4 +1,5 @@
- 
+import { NextRequest } from "next/server";
+
 const DISCORD_EMBED_LIMIT = 4096;
 const DISCORD_FIELD_LIMIT = 1024;
 const DISCORD_CODE_BLOCK_LIMIT = 4084;
@@ -115,7 +116,7 @@ const IDENTIFIER_NOUNS = [
   "zine",
 ];
 
-const FIELD_TITLES = {
+const FIELD_TITLES: Record<string, string> = {
   comments: "Instagram Comment",
   live_comments: "Instagram Live Comment",
   mentions: "Instagram Mention",
@@ -131,7 +132,7 @@ const FIELD_TITLES = {
   story_insights: "Instagram Story Insights",
 };
 
-const FIELD_COLORS = {
+const FIELD_COLORS: Record<string, number> = {
   comments: 0x833ab4,
   live_comments: 0xc13584,
   mentions: 0xf56040,
@@ -147,24 +148,45 @@ const FIELD_COLORS = {
   story_insights: 0xfd1d1d,
 };
 
-export default async function handler(req, res) {
-  if (req.method === "GET") {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
+interface InstagramProfile {
+  id: string;
+  username?: string;
+  name?: string;
+  profile_pic?: string;
+}
 
-    if (mode === "subscribe" && token === process.env.VERIFY_TOKEN) {
-      return res.status(200).send(challenge);
-    }
+interface DiscordIdentity {
+  username: string;
+  avatarUrl: string;
+}
 
-    return res.status(403).send("Forbidden");
+interface WebhookContext {
+  eventType: string;
+  identifier: string;
+  senderId?: string;
+  senderProfile?: InstagramProfile | null;
+  discordIdentity: DiscordIdentity;
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const mode = searchParams.get("hub.mode");
+  const token = searchParams.get("hub.verify_token");
+  const challenge = searchParams.get("hub.challenge");
+
+  if (mode === "subscribe" && token === process.env.VERIFY_TOKEN) {
+    return new Response(challenge, { status: 200 });
   }
 
-  if (req.method === "POST") {
-    const body = req.body;
+  return new Response("Forbidden", { status: 403 });
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
 
     if (!isInstagramWebhookPayload(body)) {
-      return res.status(200).send("EVENT_RECEIVED");
+      return new Response("EVENT_RECEIVED", { status: 200 });
     }
 
     try {
@@ -173,14 +195,14 @@ export default async function handler(req, res) {
       console.error("Failed to process Instagram webhook:", error);
     }
 
-    return res.status(200).send("EVENT_RECEIVED");
+    return new Response("EVENT_RECEIVED", { status: 200 });
+  } catch (error) {
+    console.error("Error parsing request body:", error);
+    return new Response("EVENT_RECEIVED", { status: 200 });
   }
-
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).send("Method Not Allowed");
 }
 
-async function processInstagramWebhook(body) {
+async function processInstagramWebhook(body: any) {
   const entries = Array.isArray(body.entry) ? body.entry : [];
 
   for (const entry of entries) {
@@ -204,7 +226,7 @@ async function processInstagramWebhook(body) {
   }
 }
 
-function isInstagramWebhookPayload(body) {
+function isInstagramWebhookPayload(body: any) {
   if (body?.object === "instagram") return true;
 
   const entries = Array.isArray(body?.entry) ? body.entry : [];
@@ -216,7 +238,7 @@ function isInstagramWebhookPayload(body) {
   );
 }
 
-async function buildEmbedsForEntry(entry, context) {
+async function buildEmbedsForEntry(entry: any, context: WebhookContext) {
   return [
     ...(await buildMessagingEmbeds(entry, context)),
     ...buildChangeEmbeds(entry, context),
@@ -224,31 +246,36 @@ async function buildEmbedsForEntry(entry, context) {
   ];
 }
 
-async function buildMessagingEmbeds(entry, context) {
+async function buildMessagingEmbeds(entry: any, context: WebhookContext) {
   const messagingEvents = Array.isArray(entry.messaging) ? entry.messaging : [];
-  const embeds = [];
+  const embeds: any[] = [];
 
   for (const event of messagingEvents) {
     const eventType = getMessagingEventType(event);
     const identifier = context.identifier;
     const himaSender = isHimaSender(entry, event);
+
     const senderProfile =
       context.senderId === event.sender?.id
         ? context.senderProfile
         : await fetchInstagramProfile(event.sender?.id);
+
     const discordIdentity = getDiscordIdentity({
       profile: senderProfile,
       fallback: identifier,
       isHima: himaSender,
     });
+
     const attachments = getMessageAttachments(event.message);
     const storyReply = getStoryReply(event.message);
     const imageAttachment = storyReply?.url
       ? { url: storyReply.url }
       : attachments.find(isDiscordImageAttachment);
+
     const title = himaSender
       ? formatHimaDiscordUsername(senderProfile)
       : identifier;
+
     const fields = [
       formatField(
         "From",
@@ -267,7 +294,11 @@ async function buildMessagingEmbeds(entry, context) {
         imageAttachment ? null : formatAttachments(attachments),
         false,
       ),
-    ].filter(Boolean);
+    ].filter(Boolean) as Array<{
+      name: string;
+      value: string;
+      inline?: boolean;
+    }>;
 
     embeds.push({
       title,
@@ -289,7 +320,7 @@ async function buildMessagingEmbeds(entry, context) {
   return embeds;
 }
 
-function buildChangeEmbeds(entry, context) {
+function buildChangeEmbeds(entry: any, context: WebhookContext) {
   const changes = Array.isArray(entry.changes) ? entry.changes : [];
 
   return changes.map((change) => {
@@ -305,7 +336,11 @@ function buildChangeEmbeds(entry, context) {
       fields: [
         formatField("Event", formatEventLabel(fieldName), true),
         ...buildChangeDetailFields(fieldName, value),
-      ].filter(Boolean),
+      ].filter(Boolean) as Array<{
+        name: string;
+        value: string;
+        inline?: boolean;
+      }>,
       footer: {
         text: "Instagram webhook",
       },
@@ -313,7 +348,7 @@ function buildChangeEmbeds(entry, context) {
   });
 }
 
-function buildStandbyEmbeds(entry, context) {
+function buildStandbyEmbeds(entry: any, context: WebhookContext) {
   const standbyEvents = Array.isArray(entry.standby) ? entry.standby : [];
 
   return standbyEvents.map((event) => {
@@ -327,7 +362,11 @@ function buildStandbyEmbeds(entry, context) {
       fields: [
         formatField("Event", "Standby", true),
         formatField("Time", formatDisplayTime(event.timestamp), true),
-      ].filter(Boolean),
+      ].filter(Boolean) as Array<{
+        name: string;
+        value: string;
+        inline?: boolean;
+      }>,
       footer: {
         text: "Instagram webhook",
       },
@@ -335,7 +374,7 @@ function buildStandbyEmbeds(entry, context) {
   });
 }
 
-function getMessagingEventType(event) {
+function getMessagingEventType(event: any) {
   if (event.message?.is_deleted) return "message_edit";
   if (event.message?.reply_to?.story) return "story_replies";
   if (event.message) return "messages";
@@ -354,7 +393,7 @@ function getMessagingEventType(event) {
   return "messages";
 }
 
-function getMessagingDescription(event, eventType) {
+function getMessagingDescription(event: any, eventType: string) {
   if (eventType === "messages") {
     return truncate(
       event.message?.text ||
@@ -402,7 +441,7 @@ function getMessagingDescription(event, eventType) {
   return "Messaging event received.";
 }
 
-function getChangeDescription(fieldName, value) {
+function getChangeDescription(fieldName: string, value: any) {
   if (fieldName === "comments" || fieldName === "live_comments") {
     return truncate(
       value.text || "Comment event received.",
@@ -427,7 +466,7 @@ function getChangeDescription(fieldName, value) {
   return truncate(`${fieldName} event received.`, DISCORD_EMBED_LIMIT);
 }
 
-function buildChangeDetailFields(fieldName, value) {
+function buildChangeDetailFields(fieldName: string, value: any) {
   if (fieldName === "comments" || fieldName === "live_comments") {
     return [
       formatField("From", formatUser(value.from), true),
@@ -455,7 +494,7 @@ function buildChangeDetailFields(fieldName, value) {
   return [];
 }
 
-function formatField(name, value, inline = false) {
+function formatField(name: string, value: any, inline = false) {
   if (value === undefined || value === null || value === "") return null;
 
   return {
@@ -465,13 +504,17 @@ function formatField(name, value, inline = false) {
   };
 }
 
-function formatUser(user) {
+function formatUser(user: any) {
   if (!user) return null;
   const username = user.username ? `@${user.username}` : null;
   return [username, user.name].filter(Boolean).join(" | ");
 }
 
-function formatProfile(profile, fallbackId, options = {}) {
+function formatProfile(
+  profile: any,
+  fallbackId: string,
+  options: { includeId?: boolean } = {},
+) {
   const { includeId = true } = options;
   if (!profile) return includeId ? fallbackId : "Unknown Instagram user";
   const username = profile.username ? `@${profile.username}` : null;
@@ -480,7 +523,10 @@ function formatProfile(profile, fallbackId, options = {}) {
     .join(" | ");
 }
 
-function describeAttachments(message, options = {}) {
+function describeAttachments(
+  message: any,
+  options: { compact?: boolean } = {},
+) {
   const attachments = getMessageAttachments(message);
   if (!attachments.length) return null;
 
@@ -501,21 +547,21 @@ function describeAttachments(message, options = {}) {
     .join("\n");
 }
 
-function getMessageAttachments(message) {
+function getMessageAttachments(message: any) {
   const attachments = Array.isArray(message?.attachments)
     ? message.attachments
     : [];
 
   return attachments
-    .map((attachment) => ({
+    .map((attachment: any) => ({
       type: attachment.type ?? "attachment",
       url: attachment.payload?.url,
       postId: attachment.payload?.ig_post_media_id,
     }))
-    .filter((attachment) => attachment.url || attachment.postId);
+    .filter((attachment: any) => attachment.url || attachment.postId);
 }
 
-function formatAttachments(attachments) {
+function formatAttachments(attachments: any[]) {
   if (!attachments.length) return null;
 
   return attachments
@@ -531,7 +577,7 @@ function formatAttachments(attachments) {
     .join("\n");
 }
 
-function getStoryReply(message) {
+function getStoryReply(message: any) {
   const story = message?.reply_to?.story;
   if (!story) return null;
 
@@ -541,28 +587,28 @@ function getStoryReply(message) {
   };
 }
 
-function formatStoryReply(story) {
+function formatStoryReply(story: any) {
   if (!story) return null;
   return story.id ? `ID: ${story.id}` : "Story";
 }
 
-function isDiscordImageUrl(url) {
+function isDiscordImageUrl(url: string) {
   if (!url || typeof url !== "string") return false;
   return /\.(?:avif|gif|jpe?g|png|webp)(?:[?#].*)?$/i.test(url);
 }
 
-function isDiscordImageAttachment(attachment) {
+function isDiscordImageAttachment(attachment: any) {
   return (
     Boolean(attachment?.url) &&
     (attachment.type === "image" || isDiscordImageUrl(attachment.url))
   );
 }
 
-function stringifyRawPayload(value) {
+function stringifyRawPayload(value: any) {
   return JSON.stringify(value, null, 2);
 }
 
-function formatDisplayTime(timestamp) {
+function formatDisplayTime(timestamp: any) {
   if (!timestamp) return null;
   const date = new Date(Number(timestamp));
   if (Number.isNaN(date.getTime())) return String(timestamp);
@@ -574,17 +620,17 @@ function formatDisplayTime(timestamp) {
   }).format(date);
 }
 
-function formatEventLabel(eventType) {
+function formatEventLabel(eventType: string) {
   return FIELD_TITLES[eventType]?.replace("Instagram ", "") ?? eventType;
 }
 
-function truncate(value, maxLength) {
-  if (!value) return value;
+function truncate(value: string | null | undefined, maxLength: number) {
+  if (!value) return value ?? "";
   if (value.length <= maxLength) return value;
   return `${value.slice(0, maxLength - 1)}…`;
 }
 
-function createEventIdentifier(entry, event, eventType) {
+function createEventIdentifier(entry: any, event: any, eventType: string) {
   const basis = [
     entry?.id,
     eventType,
@@ -609,7 +655,7 @@ function createEventIdentifier(entry, event, eventType) {
   return `${adjective}-${noun}`;
 }
 
-function hashString(value) {
+function hashString(value: string) {
   let hash = 2166136261;
 
   for (let index = 0; index < value.length; index += 1) {
@@ -620,7 +666,7 @@ function hashString(value) {
   return hash >>> 0;
 }
 
-async function fetchInstagramProfile(id) {
+async function fetchInstagramProfile(id: string) {
   if (!id || !process.env.INSTAGRAM_ACCESS_TOKEN) return null;
 
   const url = new URL(`https://graph.instagram.com/v25.0/${id}`);
@@ -637,7 +683,7 @@ async function fetchInstagramProfile(id) {
   }
 }
 
-async function getEntryContext(entry) {
+async function getEntryContext(entry: any): Promise<WebhookContext> {
   const primaryEvent = getPrimaryEvent(entry);
   const eventType = primaryEvent
     ? getEventType(primaryEvent)
@@ -666,7 +712,7 @@ async function getEntryContext(entry) {
   };
 }
 
-function getPrimaryEvent(entry) {
+function getPrimaryEvent(entry: any) {
   if (Array.isArray(entry.messaging) && entry.messaging[0]) {
     return entry.messaging[0];
   }
@@ -682,12 +728,12 @@ function getPrimaryEvent(entry) {
   return null;
 }
 
-function getEventType(event) {
+function getEventType(event: any) {
   if (event?.field) return event.field;
   return getMessagingEventType(event);
 }
 
-function isHimaSender(entry, event) {
+function isHimaSender(entry: any, event: any) {
   const senderId = event?.sender?.id;
   if (!senderId) return false;
 
@@ -696,7 +742,7 @@ function isHimaSender(entry, event) {
     .includes(senderId);
 }
 
-async function sendRawToDiscord(entry, context) {
+async function sendRawToDiscord(entry: any, context: WebhookContext) {
   const webhookUrl =
     process.env.DISCORD_RAW_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_RAW_URL;
 
@@ -718,7 +764,7 @@ async function sendRawToDiscord(entry, context) {
           color: FIELD_COLORS[context.eventType] ?? 0x5865f2,
           timestamp: new Date().toISOString(),
           footer: {
-            text: formatProfile(context.senderProfile, null, {
+            text: formatProfile(context.senderProfile, "", {
               includeId: false,
             }),
           },
@@ -728,7 +774,7 @@ async function sendRawToDiscord(entry, context) {
   }
 }
 
-async function sendParsedToDiscord(embed) {
+async function sendParsedToDiscord(embed: any) {
   const webhookUrl =
     process.env.DISCORD_PARSED_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL;
 
@@ -751,11 +797,19 @@ async function sendParsedToDiscord(embed) {
   });
 }
 
-function formatDiscordUsername(profile, fallback) {
+function formatDiscordUsername(profile: any, fallback: string) {
   return profile?.username ? `@${profile.username}` : fallback;
 }
 
-function getDiscordIdentity({ profile, fallback, isHima }) {
+function getDiscordIdentity({
+  profile,
+  fallback,
+  isHima,
+}: {
+  profile: any;
+  fallback: string;
+  isHima: boolean;
+}): DiscordIdentity {
   if (isHima) {
     return {
       username: formatHimaDiscordUsername(profile),
@@ -769,11 +823,11 @@ function getDiscordIdentity({ profile, fallback, isHima }) {
   };
 }
 
-function formatHimaDiscordUsername(profile) {
+function formatHimaDiscordUsername(profile: any) {
   return profile?.username ? `@${profile.username}` : "Instagram Account";
 }
 
-async function sendDiscordPayload(webhookUrl, payload) {
+async function sendDiscordPayload(webhookUrl: string, payload: any) {
   const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -788,10 +842,10 @@ async function sendDiscordPayload(webhookUrl, payload) {
   }
 }
 
-function chunkForDiscord(value, maxLength) {
+function chunkForDiscord(value: string, maxLength: number) {
   if (value.length <= maxLength) return [value];
 
-  const chunks = [];
+  const chunks: string[] = [];
   for (let index = 0; index < value.length; index += maxLength) {
     chunks.push(value.slice(index, index + maxLength));
   }

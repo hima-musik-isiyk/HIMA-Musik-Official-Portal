@@ -34,14 +34,16 @@ The portal focuses on:
 - **Framework:** Next.js (App Router), React, TypeScript
 - **Styling:** Tailwind CSS v4, Vanilla CSS
 - **Animations:** GSAP (ScrollTrigger) & Framer Motion
-- **Database & ORM:** Prisma ORM connecting to PostgreSQL
+- **Database & ORM:** Prisma ORM connecting to PostgreSQL (e.g. Neon, via `DATABASE_URL_POOLED`).
+  - **Aduan Storage:** Stores submitted complaints (`Aduan` table: `name`, `nim`, `category`, `message`, `createdAt`).
+  - **Pendaftaran Storage:** Stores recruitment registrations (`Pendaftaran` table: personal details, division choice, motivation, availability, portfolio).
 - **CMS / Data Source:** Notion API
 - **Realtime & Storage:** Supabase (Realtime Channels & Bucket Storage)
 - **Integrations & Services:**
   - **Groq API:** AI-assisted text processing
   - **Canva Graph API & Sharp:** Automation for grid slice exports
   - **Brevo SMTP & Telegram Bot API:** Transactional mailings and administrator logs
-  - **Discord Webhooks:** Unified notification and error channels
+  - **Discord Webhooks:** Unified notification and error channels (`DISCORD_ADUAN_WEBHOOK_URL` & `DISCORD_PENDAFTARAN_WEBHOOK_URL`)
 
 ## Getting Started
 
@@ -113,3 +115,4 @@ The project routes have been organized into semantic **Next.js Route Groups** ma
 - `lib/` – Prisma clients, Notion helper integrations, Supabase connectors, and custom hooks
 - `services/` – Serverless parsing helpers and Groq AI text parsers
 - `prisma/` – Relational database configurations, models, and migrations
+- `migration/` – Historical scraping scripts, session files, python environments, and scraped JSONL data dumps
