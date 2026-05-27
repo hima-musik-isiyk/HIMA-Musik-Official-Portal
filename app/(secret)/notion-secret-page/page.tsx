@@ -131,6 +131,19 @@ function writeCachedRooms(rooms: NotionRoom[]) {
   localStorage.setItem(roomsCacheKey, JSON.stringify(rooms));
 }
 
+function createTempPage(
+  pageType: NotionRoomPageType,
+  maxNumber: number,
+): NotionRoomPage {
+  return {
+    id: `temp-${Date.now()}`,
+    title: "... Creating",
+    createdTime: new Date().toISOString(),
+    number: maxNumber + 1,
+    type: pageType,
+  };
+}
+
 export default function NotionSecretPage() {
   const params = useParams<{ slug?: string }>();
   const pathname = usePathname() || "/notion-secret-page";
@@ -199,7 +212,7 @@ export default function NotionSecretPage() {
   const roomsChannelRef = useRef<RealtimeChannel | null>(null);
   const selectedPageIdsRef = useRef<string[]>([]);
   const hasOpenedRouteRoomRef = useRef(false);
-  const isNavigatingToRoomRef = useRef(false);
+  const [isNavigatingToRoom, setIsNavigatingToRoom] = useState(false);
   const presenceKeyRef = useRef(crypto.randomUUID());
   const lastTrackedPayloadRef = useRef<string>("");
   const isDraggingRef = useRef(false);
@@ -234,8 +247,7 @@ export default function NotionSecretPage() {
     (Boolean(routeSlug) && !isRouteMatchingStore) ||
     (isLoadingPages && !hasLoadedCurrentRoomPages && displayPages.length === 0);
   const shouldShowRoom =
-    Boolean(routeSlug) ||
-    (Boolean(currentRoomId) && isNavigatingToRoomRef.current);
+    Boolean(routeSlug) || (Boolean(currentRoomId) && isNavigatingToRoom);
 
   const scopeRef = useViewEntrance(pathname, [shouldShowRoom]);
 
@@ -515,7 +527,7 @@ export default function NotionSecretPage() {
         return;
       }
 
-      isNavigatingToRoomRef.current = updateUrl;
+      setIsNavigatingToRoom(updateUrl);
 
       // Look up if room already exists in rooms list to prevent redundant Notion API and Supabase network requests
       const existingRoom = rooms.find((r) => r.id === normalizedRoomId);
@@ -571,12 +583,13 @@ export default function NotionSecretPage() {
       setSelectedPageIds,
       setChronologicalPages,
       rooms,
+      setIsNavigatingToRoom,
     ],
   );
 
   useEffect(() => {
     if (!routeSlug) {
-      if (currentRoomId && !isNavigatingToRoomRef.current) {
+      if (currentRoomId && !isNavigatingToRoom) {
         resetRoom();
         setCurrentRoomName("");
         setHasLoadedCurrentRoomPages(false);
@@ -593,12 +606,12 @@ export default function NotionSecretPage() {
     const isMatch = currentRoomId === routeSlug || currentSlug === routeSlug;
 
     if (isMatch) {
-      isNavigatingToRoomRef.current = false;
+      setIsNavigatingToRoom(false);
       return;
     }
 
     // While actively navigating to a room, don't reset on transient mismatches
-    if (isNavigatingToRoomRef.current) return;
+    if (isNavigatingToRoom) return;
 
     if (currentRoomId && !isMatch) {
       resetRoom();
@@ -610,7 +623,7 @@ export default function NotionSecretPage() {
       setRealtimeActive(false);
       hasOpenedRouteRoomRef.current = false;
     }
-  }, [currentRoomId, currentRoom, resetRoom, routeSlug]);
+  }, [currentRoomId, currentRoom, resetRoom, routeSlug, isNavigatingToRoom]);
 
   // Manage room structure view entrance sequence state
   useIsomorphicLayoutEffect(() => {
@@ -836,14 +849,10 @@ export default function NotionSecretPage() {
     setCreatingType(pageType);
     setError("");
 
-    const tempPage: NotionRoomPage = {
-      id: `temp-${Date.now()}`,
-      title: "... Creating",
-      createdTime: new Date().toISOString(),
-      number:
-        Math.max(0, ...chronologicalPages.map((page) => page.number ?? 0)) + 1,
-      type: pageType,
-    };
+    const tempPage = createTempPage(
+      pageType,
+      Math.max(0, ...chronologicalPages.map((page) => page.number ?? 0)),
+    );
     appendPage(tempPage);
 
     try {
@@ -1322,7 +1331,7 @@ export default function NotionSecretPage() {
                         Clear Log
                       </button>
                     </div>
-                    <div className="scrollbar-thin max-h-60 space-y-3 overflow-y-auto pr-1">
+                    <div className="max-h-60 scrollbar-thin space-y-3 overflow-y-auto pr-1">
                       {webhookAlerts.map((alert, index) => {
                         // Resolve icon
                         let Icon = Bell;
