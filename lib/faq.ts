@@ -1,4 +1,4 @@
-import { getNotionClient, NotionPage } from "./notion";
+import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 
 export type FAQEntry = {
   id: string;
@@ -33,8 +33,16 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
   }
 
   try {
-    const response = await (notion as any).databases.query({
-      database_id: databaseId,
+    const dataSourceId = await resolveDataSourceIdSafe(databaseId);
+    if (!dataSourceId) {
+      console.error(
+        "[Notion FAQ] Could not resolve FAQ database to data source.",
+      );
+      return [];
+    }
+
+    const response = await (notion as any).dataSources.query({
+      data_source_id: dataSourceId,
     });
 
     const parsedEntries = (response.results as NotionPage[]).map((page) => {
@@ -156,16 +164,21 @@ export async function createFAQEntry(
     ? category
     : "Lainnya";
 
-  // Retrieve database to inspect available properties dynamically
+  // Retrieve database properties dynamically via its Data Source
   let dbProperties: Record<string, unknown> = {};
   try {
-    const db = await notion.databases.retrieve({ database_id: databaseId });
-    if (db && "properties" in db) {
-      dbProperties = db.properties as Record<string, unknown>;
+    const dataSourceId = await resolveDataSourceIdSafe(databaseId);
+    if (dataSourceId) {
+      const ds = await (notion as any).dataSources.retrieve({
+        data_source_id: dataSourceId,
+      });
+      if (ds && "properties" in ds) {
+        dbProperties = ds.properties as Record<string, unknown>;
+      }
     }
   } catch (err) {
     console.warn(
-      "[Notion FAQ] Could not retrieve database schema, writing with default properties:",
+      "[Notion FAQ] Could not retrieve database schema via data source, writing with default properties:",
       err,
     );
   }
@@ -244,6 +257,12 @@ export function filterFAQVisibility(entries: FAQEntry[]): FAQEntry[] {
   return entries.filter((entry) => {
     // 1. Override manual Visibilitas: Disembunyikan -> ❌ Tidak
     if (entry.visibility === "Disembunyikan") return false;
+
+    // New Minecraft Galactic Exception:
+    // If status is Disembunyikan but visibility is Tampil (on), we keep it!
+    if (entry.status === "Disembunyikan" && entry.visibility === "Tampil") {
+      return true;
+    }
 
     // 2. Tipe Status: Disembunyikan -> ❌ Tidak
     if (entry.status === "Disembunyikan") return false;

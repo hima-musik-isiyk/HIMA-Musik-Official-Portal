@@ -5,7 +5,7 @@ import type {
   NotionRoomPageType,
 } from "@/lib/notion-room/types";
 
-const notionVersion = "2026-03-11";
+const notionVersion = "2025-09-03";
 const roomIdPattern =
   /^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 

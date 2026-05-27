@@ -86,7 +86,7 @@ function createNotionClient() {
     console.warn("Missing NOTION_INTEGRATION_TOKEN environment variable");
     return null;
   }
-  return new Client({ auth: token, notionVersion: "2026-03-11" });
+  return new Client({ auth: token, notionVersion: "2025-09-03" });
 }
 
 export function getNotionClient(): Client {
@@ -472,9 +472,12 @@ export const fetchAllDocs = unstable_cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      if (!dataSourceId) return [];
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(DOCS_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
         results.push(...(response.results as NotionPage[]));
@@ -543,9 +546,12 @@ export const fetchKKMGroups = unstable_cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
+      if (!dataSourceId) return [];
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(KKM_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
         results.push(...(response.results as NotionPage[]));
@@ -629,9 +635,12 @@ export const fetchKKMEntryBySlug = cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
+      if (!dataSourceId) return null;
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(KKM_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
 
@@ -790,9 +799,12 @@ export const fetchEventsCollection = unstable_cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+      if (!dataSourceId) return emptyCollection;
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(EVENTS_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
         results.push(...(response.results as NotionPage[]));
@@ -859,9 +871,12 @@ export const fetchEventBySlug = cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+      if (!dataSourceId) return null;
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(EVENTS_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
 
@@ -909,9 +924,12 @@ export async function fetchEventCoverUrlBySlug(
   let cursor: string | undefined;
 
   try {
+    const dataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+    if (!dataSourceId) return null;
+
     do {
-      const response = await getNotionClientAny().databases.query({
-        database_id: normalizeNotionId(EVENTS_DB_ID),
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: dataSourceId,
         start_cursor: cursor,
       });
 
@@ -950,9 +968,12 @@ export const fetchDocBySlug = cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      if (!dataSourceId) return null;
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(DOCS_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
 
@@ -1026,9 +1047,12 @@ export const fetchArchives = unstable_cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      if (!dataSourceId) return [];
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(DOCS_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
         results.push(...(response.results as NotionPage[]));
@@ -1230,9 +1254,12 @@ export const fetchBerandaEntries = unstable_cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(BERANDA_DB_ID);
+      if (!dataSourceId) return [];
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(BERANDA_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
         results.push(...(response.results as NotionPage[]));
@@ -1284,9 +1311,12 @@ export const fetchProfilEntries = unstable_cache(
     let cursor: string | undefined;
 
     try {
+      const dataSourceId = await resolveDataSourceIdSafe(PROFIL_DB_ID);
+      if (!dataSourceId) return [];
+
       do {
-        const response = await getNotionClientAny().databases.query({
-          database_id: normalizeNotionId(PROFIL_DB_ID),
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
         results.push(...(response.results as NotionPage[]));

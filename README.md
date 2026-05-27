@@ -39,7 +39,7 @@ The portal focuses on:
 - **Package Manager:** PNPM
 - **Styling:** Tailwind CSS v4, Vanilla CSS
 - **Animations:** GSAP (ScrollTrigger) & Framer Motion
-- **CMS / Data Source:** Notion API
+- **CMS / Data Source:** Notion API (Data Sources paradigm, SDK v5.22.0)
 - **Realtime & Storage:** Supabase (Realtime Channels & Bucket Storage)
 - **Integrations & Services:**
   - **Groq API:** AI-assisted text processing
@@ -78,6 +78,7 @@ The portal focuses on:
 
    # Webhooks & Discord
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
+   DISCORD_FAQ_WEBHOOK_URL=your_faq_discord_webhook_url
    DISCORD_FORMS_WEBHOOK_URL=your_sekretariat_forms_discord_webhook_url
    ```
 
@@ -209,3 +210,11 @@ Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
 - `Urutan Tampil` (Number)
 - `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
 - `Integritas Riwayat` (Date)
+
+---
+
+### Notion Data Sources Alignment (SDK v5.22.0)
+
+To fully align with the modern Notion API paradigm implemented in `@notionhq/client` v5.22.0, the portal interacts with Notion databases through **Data Sources**.
+
+Legacy `.databases.query` is replaced with `.dataSources.query`. All database fetching routines automatically resolve database IDs to queryable Data Source IDs using `resolveDataSourceIdSafe()` before querying. Ensure the Notion Integration (e.g. "Fishing") has connection access shared to each database in the Notion UI.
