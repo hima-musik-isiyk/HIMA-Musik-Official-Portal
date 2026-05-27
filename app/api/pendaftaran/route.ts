@@ -1,6 +1,6 @@
- 
 import { NextResponse } from "next/server";
 
+import { sendDiscordWebhook } from "@/lib/discord";
 import { prisma } from "@/lib/prisma";
 
 type PendaftaranPayload = {
@@ -62,27 +62,6 @@ const DISCORD_FIELD_LIMIT = 1024;
 
 const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
   value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
-
-const sendDiscordWebhook = async (
-  webhookUrl: string,
-  payload: Record<string, unknown>,
-  context: string,
-) => {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const bodyText = await response.text();
-  if (!response.ok) {
-    throw new Error(
-      `${context} failed (${response.status}): ${bodyText || "No response body"}`,
-    );
-  }
-
-  return bodyText;
-};
 
 const pendaftaranCooldownMs = 5 * 60 * 1000;
 
@@ -578,7 +557,6 @@ export async function POST(request: Request) {
         }
       }
     } else {
-      /*
       const webhookUrl = process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
 
       if (webhookUrl) {
@@ -670,7 +648,6 @@ export async function POST(request: Request) {
           );
         }
       }
-      */
     }
 
     return NextResponse.json({ success: true });

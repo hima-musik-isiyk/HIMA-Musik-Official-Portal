@@ -1,31 +1,12 @@
-/* eslint-disable */
 import { NextResponse } from "next/server";
 
+import { sendDiscordWebhook } from "@/lib/discord";
 import { prisma } from "@/lib/prisma";
 
 const DISCORD_FIELD_LIMIT = 1024;
 
 const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
   value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
-
-const sendDiscordWebhook = async (
-  webhookUrl: string,
-  payload: Record<string, unknown>,
-  context: string,
-) => {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const responseText = await response.text();
-  if (!response.ok) {
-    throw new Error(
-      `${context} failed (${response.status}): ${responseText || "No response body"}`,
-    );
-  }
-};
 
 export async function POST(request: Request) {
   try {
@@ -54,9 +35,7 @@ export async function POST(request: Request) {
     const webhookUrl = process.env.DISCORD_ADUAN_WEBHOOK_URL;
 
     if (!webhookUrl) {
-      console.error("Missing environment variables:", {
-        hasDiscordAduanWebhookUrl: !!webhookUrl,
-      });
+      console.error("Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL");
       return NextResponse.json(
         { error: "Server misconfiguration: Missing env variables" },
         { status: 500 },
@@ -88,7 +67,6 @@ export async function POST(request: Request) {
       ],
     };
 
-    /*
     try {
       await sendDiscordWebhook(
         webhookUrl,
@@ -108,7 +86,6 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
-    */
 
     try {
       await prisma.aduan.create({
@@ -125,7 +102,6 @@ export async function POST(request: Request) {
     } catch (dbError) {
       console.error("DB write failed (aduan):", dbError);
 
-      /*
       const errorWebhookUrl =
         process.env.DISCORD_ERROR_WEBHOOK_URL ?? webhookUrl;
 
@@ -164,7 +140,6 @@ export async function POST(request: Request) {
           );
         }
       }
-      */
     }
 
     return NextResponse.json({ success: true });
