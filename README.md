@@ -34,9 +34,6 @@ The portal focuses on:
 - **Framework:** Next.js (App Router), React, TypeScript
 - **Styling:** Tailwind CSS v4, Vanilla CSS
 - **Animations:** GSAP (ScrollTrigger) & Framer Motion
-- **Database & ORM:** Prisma ORM connecting to PostgreSQL (e.g. Neon, via `DATABASE_URL_POOLED`).
-  - **Aduan Storage:** Stores submitted complaints (`Aduan` table: `name`, `nim`, `category`, `message`, `createdAt`).
-  - **Pendaftaran Storage:** Stores recruitment registrations (`Pendaftaran` table: personal details, division choice, motivation, availability, portfolio).
 - **CMS / Data Source:** Notion API
 - **Realtime & Storage:** Supabase (Realtime Channels & Bucket Storage)
 - **Integrations & Services:**
@@ -67,9 +64,6 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Databases
-   DATABASE_URL=your_postgresql_database_url
-
    # Webhooks & Slack/Discord
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
    DISCORD_PENDAFTARAN_WEBHOOK_URL=your_pendaftaran_discord_webhook_url
@@ -78,13 +72,7 @@ The portal focuses on:
 
    _(For full integration configurations including Canva, Supabase buckets, and Instagram webhooks, see `CODEBASE_KNOWLEDGE.md`)._
 
-3. Initialize your database schema:
-
-   ```bash
-   npx prisma generate
-   ```
-
-4. Run the development server:
+3. Run the development server:
    ```bash
    npm run dev
    ```
@@ -112,7 +100,6 @@ The project routes have been organized into semantic **Next.js Route Groups** ma
   - `layout.tsx` & `page.tsx` – Global app layout and home view entry point
 - `views/` – Page-level visual components, separating UI implementation from route declarations
 - `components/` – Reusable layout shells and shared UI blocks (Navigation, Footer, Command Palette)
-- `lib/` – Prisma clients, Notion helper integrations, Supabase connectors, and custom hooks
+- `lib/` – Notion helper integrations, Supabase connectors, and custom hooks
 - `services/` – Serverless parsing helpers and Groq AI text parsers
-- `prisma/` – Relational database configurations, models, and migrations
 - `migration/` – Historical scraping scripts, session files, python environments, and scraped JSONL data dumps
