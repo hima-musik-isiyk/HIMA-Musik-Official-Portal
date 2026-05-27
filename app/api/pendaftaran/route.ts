@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
-import { prisma } from "@/lib/prisma";
 
 type PendaftaranPayload = {
   intent?: string;
@@ -483,170 +482,94 @@ export async function POST(request: Request) {
       );
     }
 
-    let dbWriteError: unknown = null;
+    const webhookUrl = process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
 
-    try {
-      await prisma.pendaftaran.create({
-        data: {
-          firstChoice,
-          secondChoice: secondChoice || null,
-          angkatan,
-          pddSubfocus: isPddSelected && pddSubfocus ? pddSubfocus : null,
-          fullName: fullName || "",
-          nim: nim || null,
-          email,
-          phone: phone || null,
-          instagram: instagram || null,
-          motivation: motivation || null,
-          experience: experience || null,
-          availability,
-          portfolio: portfolio || null,
-          submittedAt,
-        },
-      });
-    } catch (dbError) {
-      dbWriteError = dbError;
-    }
-
-    if (dbWriteError) {
-      console.error("DB write failed (pendaftaran):", dbWriteError);
-
-      const errorWebhookUrl =
-        process.env.DISCORD_ERROR_WEBHOOK_URL ??
-        process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
-
-      if (errorWebhookUrl) {
-        try {
-          await sendDiscordWebhook(
-            errorWebhookUrl,
-            {
-              username: "HIMA Musik Alerts",
-              allowed_mentions: { parse: [] },
-              embeds: [
-                {
-                  title: "DB Write Failed - Pendaftaran",
-                  description:
-                    "Confirmation email sent, but pendaftaran data was not saved to database. Manual entry required.",
-                  color: 0xff4d4f,
-                  timestamp: new Date().toISOString(),
-                  fields: [
-                    { name: "Nama", value: truncate(fullName), inline: true },
-                    { name: "NIM", value: truncate(nim || "-"), inline: true },
-                    {
-                      name: "Email",
-                      value: truncate(email),
-                      inline: true,
-                    },
-                    {
-                      name: "Divisi 1",
-                      value: truncate(divisionLabel),
-                      inline: true,
-                    },
-                  ],
-                  footer: { text: "HIMA Musik Official Portal" },
-                },
-              ],
-            },
-            "DB error notification to Discord",
-          );
-        } catch (discordError) {
-          console.error(
-            "Failed to send DB error notification to Discord:",
-            discordError,
-          );
-        }
-      }
-    } else {
-      const webhookUrl = process.env.DISCORD_PENDAFTARAN_WEBHOOK_URL;
-
-      if (webhookUrl) {
-        try {
-          await sendDiscordWebhook(
-            webhookUrl,
-            {
-              username: "HIMA Musik Pendaftaran",
-              allowed_mentions: { parse: [] },
-              embeds: [
-                {
-                  title: "Pendaftaran Baru Masuk",
-                  description:
-                    "Email bukti pendaftaran sudah terkirim dan data berhasil tersimpan.",
-                  color: 0x57f287,
-                  timestamp: submittedAt.toISOString(),
-                  fields: [
-                    { name: "Nama", value: truncate(fullName), inline: true },
-                    { name: "NIM", value: truncate(nim || "-"), inline: true },
-                    {
-                      name: "Angkatan",
-                      value: truncate(angkatan),
-                      inline: true,
-                    },
-                    { name: "Email", value: truncate(email), inline: true },
-                    {
-                      name: "WhatsApp",
-                      value: truncate(phone || "-"),
-                      inline: true,
-                    },
-                    {
-                      name: "Instagram",
-                      value: truncate(instagram || "-"),
-                      inline: true,
-                    },
-                    {
-                      name: "Divisi 1",
-                      value: truncate(divisionLabel),
-                      inline: true,
-                    },
-                    ...(secondaryDivisionLabel
-                      ? [
-                          {
-                            name: "Divisi 2",
-                            value: truncate(secondaryDivisionLabel),
-                            inline: true,
-                          },
-                        ]
-                      : []),
-                    ...(subfocusLabel
-                      ? [
-                          {
-                            name: "Sub-fokus PDD",
-                            value: truncate(subfocusLabel),
-                            inline: true,
-                          },
-                        ]
-                      : []),
-                    {
-                      name: "Ketersediaan",
-                      value: truncate(availability.join(", ")),
-                      inline: false,
-                    },
-                    ...(portfolio
-                      ? [
-                          {
-                            name: "Portofolio / Lampiran",
-                            value: truncate(portfolio),
-                            inline: false,
-                          },
-                        ]
-                      : []),
-                    {
-                      name: "Waktu",
-                      value: submittedAtFormatted,
-                      inline: false,
-                    },
-                  ],
-                  footer: { text: "HIMA Musik Official Portal" },
-                },
-              ],
-            },
-            "Success notification to Discord",
-          );
-        } catch (discordError) {
-          console.error(
-            "Failed to send success notification to Discord:",
-            discordError,
-          );
-        }
+    if (webhookUrl) {
+      try {
+        await sendDiscordWebhook(
+          webhookUrl,
+          {
+            username: "HIMA Musik Pendaftaran",
+            allowed_mentions: { parse: [] },
+            embeds: [
+              {
+                title: "Pendaftaran Baru Masuk",
+                description: "Email bukti pendaftaran sudah terkirim.",
+                color: 0x57f287,
+                timestamp: submittedAt.toISOString(),
+                fields: [
+                  { name: "Nama", value: truncate(fullName), inline: true },
+                  { name: "NIM", value: truncate(nim || "-"), inline: true },
+                  {
+                    name: "Angkatan",
+                    value: truncate(angkatan),
+                    inline: true,
+                  },
+                  { name: "Email", value: truncate(email), inline: true },
+                  {
+                    name: "WhatsApp",
+                    value: truncate(phone || "-"),
+                    inline: true,
+                  },
+                  {
+                    name: "Instagram",
+                    value: truncate(instagram || "-"),
+                    inline: true,
+                  },
+                  {
+                    name: "Divisi 1",
+                    value: truncate(divisionLabel),
+                    inline: true,
+                  },
+                  ...(secondaryDivisionLabel
+                    ? [
+                        {
+                          name: "Divisi 2",
+                          value: truncate(secondaryDivisionLabel),
+                          inline: true,
+                        },
+                      ]
+                    : []),
+                  ...(subfocusLabel
+                    ? [
+                        {
+                          name: "Sub-fokus PDD",
+                          value: truncate(subfocusLabel),
+                          inline: true,
+                        },
+                      ]
+                    : []),
+                  {
+                    name: "Ketersediaan",
+                    value: truncate(availability.join(", ")),
+                    inline: false,
+                  },
+                  ...(portfolio
+                    ? [
+                        {
+                          name: "Portofolio / Lampiran",
+                          value: truncate(portfolio),
+                          inline: false,
+                        },
+                      ]
+                    : []),
+                  {
+                    name: "Waktu",
+                    value: submittedAtFormatted,
+                    inline: false,
+                  },
+                ],
+                footer: { text: "HIMA Musik Official Portal" },
+              },
+            ],
+          },
+          "Success notification to Discord",
+        );
+      } catch (discordError) {
+        console.error(
+          "Failed to send success notification to Discord:",
+          discordError,
+        );
       }
     }
 

@@ -18,12 +18,11 @@ This document serves as a comprehensive, agent-oriented map of the project. It d
 - `app/`: Next.js routes, layouts, and API endpoints.
 - `views/`: Page-level React UI components, keeping route files clean.
 - `components/`: Reusable UI building blocks, interactive elements, and GSAP-animated components.
-- `lib/`: Shared utilities, Notion API wrappers, Supabase clients, static data, animation hooks, and Prisma singletons.
+- `lib/`: Shared utilities, Notion API wrappers, Supabase clients, static data, animation hooks.
 - `services/`: AI text refinement parsers and integrations.
-- `prisma/`: Database schema and migration files.
 - `public/`: Static assets (SVG logos).
 
-**Architectural Pattern:** Server Components fetch data (e.g., from Notion or Prisma) and pass it to Client Components located in `views/` or `components/` for interactivity and GSAP animations.
+**Architectural Pattern:** Server Components fetch data (e.g., from Notion) and pass it to Client Components located in `views/` or `components/` for interactivity and GSAP animations.
 
 ## 3. Tech Stack
 
@@ -68,14 +67,7 @@ This document serves as a comprehensive, agent-oriented map of the project. It d
 
 ## 5. Content Model (Databases & CMS)
 
-The project heavily utilizes external CMS alongside a traditional relational database.
-
-### Prisma (PostgreSQL)
-
-Defined in `prisma/schema.prisma`.
-
-- **Aduan:** Stores complaints (`name`, `nim`, `category`, `message`).
-- **Pendaftaran:** Stores recruitment applications (`firstChoice`, `secondChoice`, `angkatan`, `pddSubfocus`, `fullName`, `nim`, `email`, `phone`, `motivation`, etc.).
+The project heavily utilizes external CMS databases.
 
 ### Notion Databases
 
@@ -95,8 +87,8 @@ Managed via `lib/notion.ts` and `lib/notion-room/server.ts`.
 
 ### A. Aduan & Pendaftaran (Intake Flows)
 
-- **Aduan:** Users submit complaints. They can optionally use Groq AI (`/api/refine-aduan`) to refine text politely. On submit, data is written to Postgres and notifications are sent via Discord/Telegram.
-- **Pendaftaran:** Multi-step form with auto-save (Local Storage). Validates criteria (e.g., Angkatan restrictions). Upon submission, it writes to Postgres, sends an HTML receipt via Brevo SMTP, and notifies admins.
+- **Aduan:** Users submit complaints. They can optionally use Groq AI (`/api/refine-aduan`) to refine text politely. On submit, notifications are sent via Discord.
+- **Pendaftaran:** Multi-step form with auto-save (Local Storage). Validates criteria (e.g., Angkatan restrictions). Upon submission, it sends an HTML receipt via Brevo SMTP and notifies admins via Discord.
 
 ### B. Secretariat & Notion Docs Portal
 
@@ -165,7 +157,6 @@ Managed via `lib/notion.ts` and `lib/notion-room/server.ts`.
 
 _(Ensure these are set in Vercel / `.env`)_
 
-- **Database:** `DATABASE_URL_POOLED`
 - **Notion:** `NOTION_INTEGRATION_TOKEN`, `NOTION_SEKRETARIAT_DATABASE_ID`, `NOTION_EVENTS_DATABASE_ID`, `NOTION_KKM_DATABASE_ID`, `NOTION_DATABASE_ID_RAPAT`, `NOTION_DATABASE_ID_PRESENSI`, `NOTION_DATABASE_ID_SDM`.
 - **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 - **Canva:** `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET`.
