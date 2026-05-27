@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// import { getNotionClient } from "@/lib/notion";
+import { sendDiscordWebhook } from "@/lib/discord";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,125 +43,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // const KANBAN_DB_ID = process.env.NOTION_KANBAN_DATABASE_ID;
-    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-    const TELEGRAM_FORMS_TOPIC_ID = process.env.TELEGRAM_FORMS_TOPIC_ID;
+    const webhookUrl = process.env.DISCORD_FORMS_WEBHOOK_URL;
 
-    /* ---- Create card in Notion Kanban ---- */
-    /*
-    if (KANBAN_DB_ID) {
-      try {
-        await getNotionClient().pages.create({
-          parent: { database_id: KANBAN_DB_ID },
-          properties: {
-            Name: {
-              title: [
-                {
-                  text: {
-                    content: `[${formType}] ${name}`,
-                  },
-                },
-              ],
-            },
-            Status: {
-              select: { name: "To Do" },
-            },
-            Type: {
-              select: { name: formType },
-            },
-            ...(nim
-              ? {
-                  NIM: {
-                    rich_text: [{ text: { content: nim } }],
-                  },
-                }
-              : {}),
-            ...(department
-              ? {
-                  Department: {
-                    rich_text: [{ text: { content: department } }],
-                  },
-                }
-              : {}),
-            ...(date
-              ? {
-                  Date: {
-                    date: { start: date },
-                  },
-                }
-              : {}),
-          },
-          children: [
-            {
-              object: "block",
-              type: "paragraph",
-              paragraph: {
-                rich_text: [
-                  {
-                    text: {
-                      content: [
-                        `Nama: ${name}`,
-                        nim ? `NIM: ${nim}` : "",
-                        department ? `Prodi: ${department}` : "",
-                        reason ? `Alasan: ${reason}` : "",
-                        date ? `Tanggal: ${date}` : "",
-                        items ? `Item: ${items}` : "",
-                        notes ? `Catatan: ${notes}` : "",
-                      ]
-                        .filter(Boolean)
-                        .join("\n"),
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        });
-      } catch (notionError) {
-        console.error("Notion Kanban creation failed:", notionError);
-      }
+    if (!webhookUrl) {
+      console.warn("DISCORD_FORMS_WEBHOOK_URL is not configured.");
     }
-    */
 
-    /* ---- Send Telegram notification ---- */
-    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const escapeMd = (text: string) =>
-        text.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
+    /* ---- Send Discord notification ---- */
+    if (webhookUrl) {
+      const fields = [
+        { name: "Tipe Form", value: formType, inline: true },
+        { name: "Nama", value: name, inline: true },
+        ...(nim ? [{ name: "NIM", value: nim, inline: true }] : []),
+        ...(department
+          ? [{ name: "Prodi", value: department, inline: true }]
+          : []),
+        ...(date ? [{ name: "Tanggal", value: date, inline: true }] : []),
+        ...(reason ? [{ name: "Alasan", value: reason, inline: false }] : []),
+        ...(items
+          ? [{ name: "Daftar Item", value: items, inline: false }]
+          : []),
+        ...(notes ? [{ name: "Catatan", value: notes, inline: false }] : []),
+      ];
 
-      const message = [
-        `*Notifikasi Form Baru*`,
-        ``,
-        `*Tipe:* ${escapeMd(formType)}`,
-        `*Nama:* ${escapeMd(name)}`,
-        nim ? `*NIM:* ${escapeMd(nim)}` : "",
-        department ? `*Prodi:* ${escapeMd(department)}` : "",
-        reason ? `*Alasan:* ${escapeMd(reason)}` : "",
-        date ? `*Tanggal:* ${escapeMd(date)}` : "",
-        items ? `*Item:* ${escapeMd(items)}` : "",
-        notes ? `*Catatan:* ${escapeMd(notes)}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const payload = {
+        username: "Sekretariat HIMA Musik",
+        avatar_url:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Discord_logo_svg.svg/1024px-Discord_logo_svg.svg.png",
+        embeds: [
+          {
+            title: `Layanan Mandiri: ${formType}`,
+            description: `Permintaan form baru saja dikirim oleh **${name}** melalui Portal Resmi HIMA Musik.`,
+            color: 0xd4a64d,
+            timestamp: new Date().toISOString(),
+            fields,
+            footer: { text: "HIMA Musik Official Portal" },
+          },
+        ],
+      };
 
       try {
-        await fetch(
-          `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: TELEGRAM_CHAT_ID,
-              text: message,
-              parse_mode: "MarkdownV2",
-              ...(TELEGRAM_FORMS_TOPIC_ID
-                ? { message_thread_id: Number(TELEGRAM_FORMS_TOPIC_ID) }
-                : {}),
-            }),
-          },
+        await sendDiscordWebhook(
+          webhookUrl,
+          payload,
+          "Sekretariat Form notification to Discord",
         );
-      } catch (telegramError) {
-        console.error("Telegram notification failed:", telegramError);
+      } catch (discordError) {
+        console.error("Discord notification failed:", discordError);
       }
     }
 
