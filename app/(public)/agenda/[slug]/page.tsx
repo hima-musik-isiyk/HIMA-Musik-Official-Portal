@@ -20,7 +20,7 @@ type EventEntryPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function EventEntryPage({ params }: EventEntryPageProps) {
+export default async function AgendaEntryPage({ params }: EventEntryPageProps) {
   const { slug } = await params;
   const [result, kkmGroups] = await Promise.all([
     fetchEventBySlug(slug),

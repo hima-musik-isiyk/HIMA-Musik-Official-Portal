@@ -199,7 +199,7 @@ const Home: React.FC = () => {
             />
             <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12">
               <Link
-                href="/about"
+                href="/profil"
                 className="btn-primary shrink-0"
                 data-animate="up"
                 data-animate-delay="1.05"
@@ -260,7 +260,7 @@ const Home: React.FC = () => {
             className="grid grid-cols-1 gap-0 divide-y divide-stone-800/60 border-t border-b border-stone-800/60 md:grid-cols-3 md:divide-x md:divide-y-0"
           >
             <Link
-              href="/about"
+              href="/profil"
               data-animate="up"
               className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >
@@ -289,7 +289,7 @@ const Home: React.FC = () => {
             </Link>
 
             <Link
-              href="/events"
+              href="/agenda"
               data-animate="up"
               className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
             >

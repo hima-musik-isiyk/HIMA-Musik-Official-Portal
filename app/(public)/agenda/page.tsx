@@ -3,7 +3,7 @@ import EventsView from "@/views/Events";
 
 export const revalidate = 60;
 
-export default async function EventsPage() {
+export default async function AgendaPage() {
   const [collection, kkmGroups] = await Promise.all([
     fetchEventsCollection(),
     fetchKKMGroups(),

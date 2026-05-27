@@ -28,7 +28,7 @@ type FAQFormData = {
 const STORAGE_KEY = "hima_faq_draft_v1";
 
 const FAQView: React.FC = () => {
-  const scopeRef = useViewEntrance("/sekretariat/faq");
+  const scopeRef = useViewEntrance("/faq");
 
   // State Management
   const [faqs, setFaqs] = useState<FAQEntry[]>([]);

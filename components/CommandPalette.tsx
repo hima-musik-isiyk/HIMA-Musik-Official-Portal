@@ -28,23 +28,16 @@ const STATIC_PAGES: SearchResult[] = [
   {
     id: "about",
     title: "Tentang Kami",
-    slug: "/about",
+    slug: "/profil",
     category: "Navigasi",
     highlight: "Profil organisasi & kabinet",
   },
   {
     id: "events",
     title: "Kalender Acara",
-    slug: "/events",
+    slug: "/agenda",
     category: "Navigasi",
     highlight: "Agenda & program kerja",
-  },
-  {
-    id: "gallery",
-    title: "Galeri Visual",
-    slug: "/gallery",
-    category: "Navigasi",
-    highlight: "Dokumentasi kegiatan",
   },
   {
     id: "aduan",

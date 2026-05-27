@@ -240,16 +240,16 @@ function revalidateScope(scope: ContentScope) {
 
   if (scope === "events") {
     revalidateTag("notion-events", { expire: 0 });
-    revalidatePath("/events");
-    revalidatePath("/events/[slug]", "page");
-    revalidatePath("/events/repost/[slug]", "page");
+    revalidatePath("/agenda");
+    revalidatePath("/agenda/[slug]", "page");
+    revalidatePath("/agenda/repost/[slug]", "page");
     return;
   }
 
   revalidateTag("notion-kkm", { expire: 0 });
   revalidatePath("/kkm");
   revalidatePath("/kkm/[slug]", "page");
-  revalidatePath("/events");
+  revalidatePath("/agenda");
 }
 
 async function inferScopes(

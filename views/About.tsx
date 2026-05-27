@@ -7,7 +7,7 @@ import { divisions as allDivisions } from "@/lib/pendaftaran-data";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 const About: React.FC = () => {
-  const scopeRef = useViewEntrance("/about");
+  const scopeRef = useViewEntrance("/profil");
   const executives = [
     { role: "Ketua Himpunan", name: "Vincent Nuridzati Adittama" },
     { role: "Wakil Ketua", name: "Nadia Fibriani" },

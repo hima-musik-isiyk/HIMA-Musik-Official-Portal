@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 // divisions data removed from footer since recruitment CTA is hidden
 import useViewEntrance from "@/lib/useViewEntrance";
@@ -32,12 +32,12 @@ const ArrowIcon = ({ className = "" }: { className?: string }) => (
 /* ─── data ─── */
 const NAV_LINKS = [
   { name: "Beranda", href: "/" },
-  { name: "Profil", href: "/about" },
-  { name: "Kalender Acara", href: "/events" },
-  { name: "Galeri Visual", href: "/gallery" },
+  { name: "Profil", href: "/profil" },
+  { name: "KKM", href: "/kkm" },
+  { name: "Kalender Agenda", href: "/agenda" },
+  { name: "FAQ & Tanya Jawab", href: "/faq" },
   { name: "Pusat Administrasi", href: "/sekretariat" },
   { name: "Ruang Advokasi", href: "/aduan" },
-  // Open Recruitment intentionally hidden
 ];
 
 const LEGAL_LINKS = [
@@ -50,6 +50,24 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname);
+
+  const kontakRingRef = useRef<HTMLDivElement>(null);
+
+  // Listen for the Kontak scroll event from the navbar and briefly flash a highlight ring
+  useEffect(() => {
+    const handler = () => {
+      const el = kontakRingRef.current;
+      if (!el) return;
+      el.style.transition = "opacity 0.3s ease";
+      el.style.opacity = "1";
+      setTimeout(() => {
+        el.style.transition = "opacity 1.2s ease";
+        el.style.opacity = "0";
+      }, 800);
+    };
+    window.addEventListener("hima:highlight-kontak", handler);
+    return () => window.removeEventListener("hima:highlight-kontak", handler);
+  }, []);
 
   // Don't render footer on sekretariat pages
   if (pathname?.startsWith("/sekretariat")) return null;
@@ -179,7 +197,22 @@ const Footer: React.FC = () => {
           </div>
 
           {/* Col 2 — Kontak */}
-          <div {...animAttrs("up", 0, false)} className="md:col-span-4">
+          <div
+            id="footer-kontak"
+            {...animAttrs("up", 0, false)}
+            className="relative md:col-span-4"
+            style={{ scrollMarginTop: "6rem" }}
+          >
+            {/* Kontak highlight ring — triggered by navbar Kontak click */}
+            <div
+              ref={kontakRingRef}
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-4 z-10 rounded-sm opacity-0"
+              style={{
+                boxShadow:
+                  "inset 0 0 0 1.5px rgba(212,166,77,0.7), inset 0 0 24px rgba(212,166,77,0.12)",
+              }}
+            />
             <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
               <span className="bg-gold-500/40 inline-block h-px w-6" />
               Kontak

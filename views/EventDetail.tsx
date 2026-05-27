@@ -57,7 +57,7 @@ export default function EventDetailView({
           data-animate="up"
         >
           <Link
-            href="/events"
+            href="/agenda"
             className="transition-colors hover:text-stone-300"
           >
             Events
@@ -158,7 +158,7 @@ export default function EventDetailView({
         <div data-animate="up" data-animate-delay="0.2" className="prose-docs">
           <NotionRenderer
             blocks={blocks}
-            basePath="/events"
+            basePath="/agenda"
             citationScope="events"
           />
         </div>
@@ -169,7 +169,7 @@ export default function EventDetailView({
           className="mt-16 border-t border-stone-800 pt-8"
         >
           <Link
-            href="/events"
+            href="/agenda"
             className="text-gold-400 hover:text-gold-300 text-sm transition-colors"
           >
             ← Kembali ke Events

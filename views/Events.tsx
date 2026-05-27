@@ -45,13 +45,13 @@ function getEventHref(
 ): string {
   const ownerUnit = normalizeUnitName(entry.ownerUnit);
   const kkmSlug = ownerUnit ? kkmSlugByUnitName.get(ownerUnit) : undefined;
-  return kkmSlug ? `/kkm/${kkmSlug}` : `/events/${entry.slug}`;
+  return kkmSlug ? `/kkm/${kkmSlug}` : `/agenda/${entry.slug}`;
 }
 
 function getEventDetailHref(entry: EventEntryMeta): string {
   return entry.isRepost
-    ? `/events/repost/${entry.slug}`
-    : `/events/${entry.slug}`;
+    ? `/agenda/repost/${entry.slug}`
+    : `/agenda/${entry.slug}`;
 }
 
 function formatDate(date: string): string {
@@ -781,7 +781,7 @@ export default function EventsView({
   collection: EventsCollection;
   kkmGroups: KKMGroup[];
 }) {
-  const scopeRef = useViewEntrance("/events");
+  const scopeRef = useViewEntrance("/agenda");
   const kkmSlugByUnitName = useMemo(() => {
     const map = new Map<string, string>();
 
