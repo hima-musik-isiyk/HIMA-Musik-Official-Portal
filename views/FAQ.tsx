@@ -358,7 +358,8 @@ const FAQView: React.FC = () => {
             placeholder="Cari pertanyaan, jawaban, atau nama..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="border-stone-850 focus:border-gold-500/50 focus:ring-gold-500/30 w-full rounded-xl border bg-stone-900/40 py-3.5 pr-4 pl-12 text-sm text-white placeholder-stone-500 transition-all duration-300 focus:bg-stone-900/80 focus:ring-1 focus:outline-none"
+            className="border-stone-850 focus:border-gold-500/50 focus:ring-gold-500/30 w-full border bg-stone-900/40 py-3.5 pr-4 pl-12 text-sm text-white placeholder-stone-500 transition-all duration-300 focus:bg-stone-900/80 focus:ring-1 focus:outline-none"
+            style={{ borderRadius: "var(--radius-action)" }}
           />
           {searchQuery && (
             <button
@@ -452,11 +453,12 @@ const FAQView: React.FC = () => {
                       return (
                         <div
                           key={faq.id}
-                          className={`group border transition-all duration-300 ${
+                          className={`group overflow-hidden border transition-all duration-300 ${
                             isExpanded
                               ? "border-gold-500/20 bg-stone-900/20"
                               : "border-white/5 hover:border-stone-800 hover:bg-stone-900/10"
                           }`}
+                          style={{ borderRadius: "var(--radius-action)" }}
                         >
                           {/* Accordion Trigger */}
                           <button
@@ -520,7 +522,10 @@ const FAQView: React.FC = () => {
                                       href={faq.refUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="border-stone-850 hover:border-gold-500/50 inline-flex items-center gap-2 rounded-xl border bg-stone-900 px-4 py-2.5 text-xs text-stone-300 transition-all hover:bg-stone-900/70 hover:text-white"
+                                      className="border-stone-850 hover:border-gold-500/50 inline-flex items-center gap-2 border bg-stone-900 px-4 py-2.5 text-xs text-stone-300 transition-all hover:bg-stone-900/70 hover:text-white"
+                                      style={{
+                                        borderRadius: "var(--radius-action)",
+                                      }}
                                     >
                                       <span>Lihat Jawaban Resmi</span>
                                       <ExternalLink className="text-gold-500 h-3 w-3" />
@@ -741,8 +746,11 @@ const FAQView: React.FC = () => {
                     !formData.question.trim() ||
                     !formData.askerName.trim()
                   }
-                  className="hover:bg-gold-400 disabled:border-stone-850 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-xs font-semibold text-black transition-all hover:text-white disabled:cursor-not-allowed disabled:bg-stone-900 disabled:text-stone-600"
-                  style={{ transitionDuration: "300ms" }}
+                  className="hover:bg-gold-400 disabled:border-stone-850 flex w-full items-center justify-center gap-2 bg-white px-5 py-3.5 text-xs font-semibold text-black transition-all hover:text-white disabled:cursor-not-allowed disabled:bg-stone-900 disabled:text-stone-600"
+                  style={{
+                    transitionDuration: "300ms",
+                    borderRadius: "var(--radius-action)",
+                  }}
                 >
                   {isSubmitting ? (
                     <>
