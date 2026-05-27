@@ -33,7 +33,7 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
   }
 
   try {
-    const response = await notion.databases.query({
+    const response = await (notion as any).databases.query({
       database_id: databaseId,
     });
 
