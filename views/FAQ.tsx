@@ -27,6 +27,94 @@ type FAQFormData = {
 
 const STORAGE_KEY = "hima_faq_draft_v1";
 
+const ObfuscatedMinecraftText: React.FC<{ text: string; enabled: boolean }> = ({
+  text,
+  enabled,
+}) => {
+  const [displayedText, setDisplayedText] = useState(text);
+
+  useEffect(() => {
+    if (!enabled) {
+      setDisplayedText(text);
+      return;
+    }
+
+    const chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789§!@#$%^&*()_+-=[]{}|;':\",./<>?";
+    const interval = setInterval(() => {
+      let scrambled = "";
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === " ") {
+          scrambled += " ";
+        } else {
+          scrambled += chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      setDisplayedText(scrambled);
+    }, 80);
+
+    return () => clearInterval(interval);
+  }, [text, enabled]);
+
+  if (enabled) {
+    return (
+      <span className="font-mono tracking-widest text-stone-500/80 blur-[1px] select-none">
+        {displayedText}
+      </span>
+    );
+  }
+  return <>{text}</>;
+};
+
+const FAQStatusBadge: React.FC<{ status: FAQEntry["status"] }> = ({
+  status,
+}) => {
+  switch (status) {
+    case "Masuk":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-blue-900/20 bg-blue-950/20 px-2.5 py-0.5 text-[9px] font-medium text-blue-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+          Masuk
+        </span>
+      );
+    case "Ditinjau":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-amber-900/20 bg-amber-950/20 px-2.5 py-0.5 text-[9px] font-medium text-amber-400">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+          Ditinjau
+        </span>
+      );
+    case "Disembunyikan":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-purple-900/20 bg-purple-950/20 px-2.5 py-0.5 text-[9px] font-medium text-purple-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+          Disembunyikan
+        </span>
+      );
+    case "Dialihkan":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-cyan-900/20 bg-cyan-950/20 px-2.5 py-0.5 text-[9px] font-medium text-cyan-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+          Dialihkan
+        </span>
+      );
+    case "Dijawab":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-emerald-900/20 bg-emerald-950/20 px-2.5 py-0.5 text-[9px] font-medium text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          Dijawab
+        </span>
+      );
+    default:
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-stone-900/20 bg-stone-950/20 px-2.5 py-0.5 text-[9px] font-medium text-stone-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-stone-400" />
+          {status}
+        </span>
+      );
+  }
+};
+
 const FAQView: React.FC = () => {
   const scopeRef = useViewEntrance("/faq");
 
@@ -187,10 +275,16 @@ const FAQView: React.FC = () => {
   // Separate Answered vs Unanswered
   const { answeredFaqs, unansweredFaqs } = useMemo(() => {
     const answered = filteredFaqs.filter(
-      (f) => f.status === "Dijawab" || f.status === "Dialihkan",
+      (f) =>
+        f.status === "Dijawab" ||
+        f.status === "Dialihkan" ||
+        (f.status === "Disembunyikan" && f.answer),
     );
     const unanswered = filteredFaqs.filter(
-      (f) => f.status === "Masuk" || f.status === "Ditinjau",
+      (f) =>
+        f.status === "Masuk" ||
+        f.status === "Ditinjau" ||
+        (f.status === "Disembunyikan" && !f.answer),
     );
     return { answeredFaqs: answered, unansweredFaqs: unanswered };
   }, [filteredFaqs]);
@@ -386,9 +480,13 @@ const FAQView: React.FC = () => {
                                     HIMA Official
                                   </span>
                                 )}
+                                <FAQStatusBadge status={faq.status} />
                               </div>
                               <h3 className="text-sm font-medium text-stone-200 transition-colors group-hover:text-white md:text-base">
-                                {faq.question}
+                                <ObfuscatedMinecraftText
+                                  text={faq.question}
+                                  enabled={faq.status === "Disembunyikan"}
+                                />
                               </h3>
                               <p className="text-[10px] text-stone-600">
                                 Ditanyakan oleh{" "}
@@ -431,8 +529,13 @@ const FAQView: React.FC = () => {
                                 </div>
                               ) : (
                                 <p className="text-sm leading-relaxed font-light whitespace-pre-line text-stone-300">
-                                  {faq.answer ||
-                                    "Belum ada teks jawaban resmi."}
+                                  <ObfuscatedMinecraftText
+                                    text={
+                                      faq.answer ||
+                                      "Belum ada teks jawaban resmi."
+                                    }
+                                    enabled={faq.status === "Disembunyikan"}
+                                  />
                                 </p>
                               )}
 
@@ -488,13 +591,15 @@ const FAQView: React.FC = () => {
                           <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-500 uppercase">
                             {faq.categories[0]}
                           </span>
-                          <span className="flex items-center gap-1.5 rounded-full border border-amber-900/20 bg-amber-950/20 px-2.5 py-0.5 text-[9px] font-medium text-amber-400">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                            Menunggu Jawaban
-                          </span>
+                          <FAQStatusBadge status={faq.status} />
                         </div>
                         <p className="text-sm leading-relaxed font-medium text-stone-300">
-                          &ldquo;{faq.question}&rdquo;
+                          &ldquo;
+                          <ObfuscatedMinecraftText
+                            text={faq.question}
+                            enabled={faq.status === "Disembunyikan"}
+                          />
+                          &rdquo;
                         </p>
                         <div className="flex items-center justify-between border-t border-white/5 pt-3 text-[10px] text-stone-600">
                           <span>
