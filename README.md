@@ -364,3 +364,19 @@ To achieve instantaneous data reflection without waiting for the 60-second polli
 - **Scope Resolution:** It resolves parent scopes dynamically based on page structure and Data Source ID matches.
 - **Cache Eviction:** Next.js on-demand caching tags (`notion-events`, `notion-kkm`, `notion-profil`, `notion-faq`, `notion-beranda`, `notion-docs`, `notion-karya`) are evicted instantly via `revalidateTag` and their corresponding page paths are purged via `revalidatePath`.
 - **Warning-Free Entity Resolution:** Webhook entities are processed via a type-safe resolver (`resolveRoomId` in `lib/notion-room/webhook.ts`) that preserves entity types (`page` | `database` | `block`) from the payload. This prevents retrieving database IDs using the page API, keeping the server logs completely clean of validation errors.
+
+---
+
+### Environment-Aware Caching Strategy & Manual Sync
+
+To maximize loading speeds while keeping content fresh, the portal uses a hybrid caching strategy built into `lib/notion.ts`:
+
+- **Development Mode (`NODE_ENV === "development"`):** Cache revalidation is set to **1 second**. When editing content in Notion, simply reload the browser tab locally to view the updated content instantly.
+- **Production Mode (`NODE_ENV === "production"`):** Cache revalidation is set to **`false` (never expire by time)**. Pages are served instantly from the serverless edge cache. The system relies 100% on the automatic Notion webhook payload parser to invalidate the cache only when an actual change occurs in Notion.
+
+#### Manual Force-Sync & Preview Action Bar
+
+For administrative preview scenarios or when automatic webhooks are not yet triggered:
+
+- **Secure Revalidation Controller (`/api/notion/revalidate`):** A public, rate-limited endpoint that securely clears and revalidates all CMS caches (`events`, `beranda`, `profil`, `kkm`, `faq`) without exposing integration keys. Includes an in-memory **10-second rate-limiting cooldown** to protect Notion API rates.
+- **Interactive Action Bar (`PreviewActionBar.tsx`):** A sleek glassmorphic floating controller rendered at the top of preview routes (e.g., `/agenda/preview/[slug]`). Admins can click a "Sync data" button to trigger manual Edge Cache invalidation, showing live edits instantly upon automatic reload.

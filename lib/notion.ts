@@ -3,8 +3,11 @@ import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoin
 import { unstable_cache as next_unstable_cache } from "next/cache";
 import { cache } from "react";
 
-// Custom wrapper to enforce a 1-second cache lifetime in development mode
-// so that reloading the page locally updates the CMS content instantly.
+// Custom cache wrapper with environment-aware revalidation strategy:
+// - Development: 1 second → instant page reloads when editing Notion locally.
+// - Production:  false (never expire by timer) → pages are served from cache
+//   indefinitely and rely 100% on Notion webhook on-demand revalidation for
+//   instant updates. This is the fastest possible architecture.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   cb: T,
@@ -12,9 +15,11 @@ function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   options?: { revalidate?: number | false; tags?: string[] },
 ): T {
   const isDev = process.env.NODE_ENV === "development";
-  const finalOptions = {
+  const finalOptions: { revalidate: number | false; tags?: string[] } = {
     ...options,
-    revalidate: isDev ? 1 : (options?.revalidate ?? 60),
+    // Dev: 1s so every reload fetches fresh Notion data instantly.
+    // Prod: false = cache forever until webhook triggers revalidateTag/revalidatePath.
+    revalidate: (isDev ? 1 : false) as number | false,
   };
   return next_unstable_cache(cb, keyParts, finalOptions) as unknown as T;
 }
