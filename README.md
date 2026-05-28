@@ -72,12 +72,13 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Notion Database & Page IDs (4 Database CMS Final + 3 Page IDs)
+   # Notion Database & Page IDs (4 Database CMS Final + 4 Page IDs)
    NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
    NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
    NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
    NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
-   NOTION_EVENTS_DATABASE_ID=your_events_database_id
+   NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
+   NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
    NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
 
@@ -85,6 +86,7 @@ The portal focuses on:
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
    DISCORD_FAQ_WEBHOOK_URL=your_faq_discord_webhook_url
    DISCORD_FORMS_WEBHOOK_URL=your_sekretariat_forms_discord_webhook_url
+   DISCORD_AGENDA_WEBHOOK_URL=your_agenda_discord_webhook_url
    ```
 
    _(For full integration configurations including Canva, Supabase, and Notion webhooks, see `CODEBASE_KNOWLEDGE.md`.)_
@@ -240,18 +242,29 @@ Daftar seluruh unit KKM dan informasi profilnya.
 - `TikTok` (URL) - Link TikTok.
 - `YouTube` (URL) - Link channel YouTube.
 
-### 4. Database Agenda (`NOTION_EVENTS_DATABASE_ID`)
+### 4. Halaman Agenda Modular (`NOTION_AGENDA_PAGE_ID`)
 
-Kalender kegiatan, program kerja, dan agenda kolaboratif.
+Halaman utama Agenda dikelola secara modular melalui satu parent Notion Page ID yang menampung child database `"Agenda: CMS dan Formulir"` di bawahnya (Indeks 0). Sistem mendeteksi database ini secara dinamis berdasarkan urutan letak (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
 
-- `Judul Tayangan` (Title)
-- `ID Konten` (Unique ID)
-- `Slug` (Rich Text)
-- `Tanggal Acara` (Date)
-- `Lokasi` (Rich Text)
-- `Tipe Acara` (Select: `Internal`, `Publik`, `Kolaborasi`)
-- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Dijadwalkan` → `Live` → `Arsip`)
-- `Integritas Riwayat` (Date)
+- **Database Pertama (Indeks 0)** bertindak sebagai **Agenda: CMS dan Formulir**
+
+#### A. Database Agenda: CMS dan Formulir (`t="Agenda: CMS dan Formulir"`)
+
+Daftar agenda kegiatan, program kerja, dan pengajuan acara KKM.
+
+- `Nama Acara` (Title) - Nama kegiatan/acara.
+- `Request Slug Khusus` (Rich Text) - Slug kustom untuk URL halaman detail.
+- `Gambar` (Files) - Foto pamflet atau cover utama acara.
+- `Tanggal Acara` (Date) - Rentang tanggal pelaksanaan acara.
+- `Deskripsi Singkat Acara` (Rich Text) - Ringkasan singkat informasi kegiatan.
+- `KKM Pengusul` (Rich Text) - Nama unit KKM yang mengajukan.
+- `Lokasi Acara` (Rich Text) - Lokasi fisik atau virtual acara.
+- `Submission time` (Created Time) - Waktu pengisian formulir.
+- `Respondent` (Created By) - Identitas pengisi formulir.
+- `Status` (Status: `Masuk` → `Diedit KKM` → `Published`)
+  - **Masuk**: Baru diajukan, tersembunyi sepenuhnya dari publik.
+  - **Diedit KKM**: Tersembunyi dari publik, namun dapat diulas oleh pengusul di `/agenda/preview/[slug]`.
+  - **Published**: Ditampilkan secara penuh di `/agenda` dan dapat diakses langsung via `/agenda/[slug]`.
 
 ### 5. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
 

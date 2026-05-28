@@ -44,15 +44,19 @@ export default async function AgendaEntryPage({ params }: EventEntryPageProps) {
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
 
-  const ownerUnit = normalizeUnitName(result.meta.ownerUnit);
-  const kkmHref = ownerUnit
-    ? (() => {
-        const match = kkmGroups.find(
-          (group) => normalizeUnitName(group.name) === ownerUnit,
-        );
-        return match ? `/kkm/${match.slug}` : undefined;
-      })()
+  const ownerUnitNormalized = normalizeUnitName(result.meta.ownerUnit);
+  const matchedGroup = ownerUnitNormalized
+    ? kkmGroups.find(
+        (group) =>
+          normalizeUnitName(group.name) === ownerUnitNormalized ||
+          normalizeUnitName(group.slug) === ownerUnitNormalized,
+      )
     : undefined;
+
+  if (matchedGroup) {
+    result.meta.ownerUnit = matchedGroup.name;
+  }
+  const kkmHref = matchedGroup ? `/kkm/${matchedGroup.slug}` : undefined;
 
   return (
     <EventDetailView
