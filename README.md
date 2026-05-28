@@ -120,7 +120,8 @@ Routes are organized into semantic **Next.js Route Groups** matching the portal'
   - `(legal)/` – Regulatory pages (`data-deletion/`, `privacy-policy/`, `terms-of-service/`)
   - `api/` – Next.js API route handlers:
     - `webhook/` – Instagram webhook receiver (`GET` for hub verification, `POST` to parse events and forward embeds to Discord)
-    - `webhooks/notion/` – Notion room webhook receiver (`GET` for healthcheck, `POST` to sync collaborative rooms)
+    - `notion/webhook/` – Generic Notion webhook endpoint. Performs real-time room sync and on-demand Next.js cache revalidation for CMS pages.
+    - `webhooks/notion/` – Primary Notion webhook receiver (`GET` for healthcheck, `POST` to intercept Agenda form submissions, forward to Discord, trigger instant revalidation, and fall back to room sync and CMS revalidation)
   - `layout.tsx` & `page.tsx` – Global app layout and home view entry point
 - `views/` – Page-level visual components, separating UI implementation from route declarations
 - `components/` – Reusable layout shells and shared UI blocks (Navigation, Footer, Command Palette)
@@ -299,3 +300,14 @@ Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
 To fully align with the modern Notion API paradigm implemented in `@notionhq/client` v5.22.0, the portal interacts with Notion databases through **Data Sources**.
 
 Legacy `.databases.query` is replaced with `.dataSources.query`. All database fetching routines automatically resolve database IDs to queryable Data Source IDs using `resolveDataSourceIdSafe()` before querying. Ensure the Notion Integration (e.g. "Fishing") has connection access shared to each database in the Notion UI.
+
+---
+
+### Notion Webhook & Instant Cache Revalidation
+
+To achieve instantaneous data reflection without waiting for the 60-second polling intervals, the portal utilizes standard **Notion Developer Webhooks** integrated with **Next.js On-Demand Revalidation**:
+
+- **Payload Parsing:** When a change is made to a Notion database or child block, the webhook payload is parsed by `inferScopes()` in `lib/notion-revalidate-helper.ts`.
+- **Scope Resolution:** It resolves parent scopes dynamically based on page structure and Data Source ID matches.
+- **Cache Eviction:** Next.js on-demand caching tags (`notion-events`, `notion-kkm`, `notion-profil`, `notion-faq`, `notion-beranda`, `notion-docs`, `notion-karya`) are evicted instantly via `revalidateTag` and their corresponding page paths are purged via `revalidatePath`.
+- **Warning-Free Entity Resolution:** Webhook entities are processed via a type-safe resolver (`resolveRoomId` in `lib/notion-room/webhook.ts`) that preserves entity types (`page` | `database` | `block`) from the payload. This prevents retrieving database IDs using the page API, keeping the server logs completely clean of validation errors.

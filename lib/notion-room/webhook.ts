@@ -267,16 +267,88 @@ async function resolveRoomId(
   const dataParent = readRecord(data.parent);
   const entity = readRecord(root.entity);
 
-  const candidates: string[] = [];
-  if (root.roomId) candidates.push(readString(root.roomId) || "");
-  if (root.page_id) candidates.push(readString(root.page_id) || "");
-  if (dataParent.id) candidates.push(readString(dataParent.id) || "");
-  if (entity.id) candidates.push(readString(entity.id) || "");
-  if (data.id) candidates.push(readString(data.id) || "");
+  const candidates: Array<{ id: string; type: "page" | "database" | "block" }> =
+    [];
 
-  const uniqueCandidates = Array.from(
-    new Set(candidates.filter(Boolean).map(normalizePageId)),
-  );
+  const addCandidate = (
+    idVal: unknown,
+    defaultType: "page" | "database" | "block",
+  ) => {
+    const id = readString(idVal);
+    if (!id) return;
+    const normalized = normalizePageId(id);
+
+    let inferredType = defaultType;
+    const entityId = readString(entity.id);
+    const entityType = readString(entity.type);
+    const dataId = readString(data.id);
+    const dataObject = readString(data.object);
+    const dataType = readString(data.type);
+    const parentId = readString(dataParent.id);
+    const parentType = readString(dataParent.type);
+
+    if (id === entityId && entityType === "database") {
+      inferredType = "database";
+    } else if (id === entityId && entityType === "page") {
+      inferredType = "page";
+    } else if (id === entityId && entityType === "block") {
+      inferredType = "block";
+    }
+
+    if (
+      id === dataId &&
+      (dataObject === "database" || dataType === "database")
+    ) {
+      inferredType = "database";
+    } else if (
+      id === dataId &&
+      (dataObject === "page" || dataType === "page")
+    ) {
+      inferredType = "page";
+    } else if (
+      id === dataId &&
+      (dataObject === "block" || dataType === "block")
+    ) {
+      inferredType = "block";
+    }
+
+    if (
+      id === parentId &&
+      (parentType === "database_id" || parentType === "database")
+    ) {
+      inferredType = "database";
+    } else if (
+      id === parentId &&
+      (parentType === "page_id" || parentType === "page")
+    ) {
+      inferredType = "page";
+    } else if (
+      id === parentId &&
+      (parentType === "block_id" || parentType === "block")
+    ) {
+      inferredType = "block";
+    }
+
+    candidates.push({ id: normalized, type: inferredType });
+  };
+
+  if (root.roomId) addCandidate(root.roomId, "page");
+  if (root.page_id) addCandidate(root.page_id, "page");
+  if (dataParent.id) addCandidate(dataParent.id, "page");
+  if (entity.id) addCandidate(entity.id, "page");
+  if (data.id) addCandidate(data.id, "page");
+
+  const seenIds = new Set<string>();
+  const uniqueCandidates: Array<{
+    id: string;
+    type: "page" | "database" | "block";
+  }> = [];
+  for (const c of candidates) {
+    if (!seenIds.has(c.id)) {
+      seenIds.add(c.id);
+      uniqueCandidates.push(c);
+    }
+  }
 
   let registeredRooms: string[] = [];
   if (supabaseUrl && supabaseKey) {
@@ -293,54 +365,87 @@ async function resolveRoomId(
 
   const notion = getRoomNotionClient();
 
-  for (const candidateId of uniqueCandidates) {
-    let currentId = candidateId;
+  for (const candidate of uniqueCandidates) {
+    let currentId = candidate.id;
+    let currentType = candidate.type;
     for (let depth = 0; depth < 4; depth++) {
       if (registeredRooms.includes(currentId)) {
         return currentId;
       }
 
       try {
-        const page = await notion.pages.retrieve({ page_id: currentId });
-        if ("parent" in page && page.parent) {
-          const parent = page.parent;
-          if (parent.type === "page_id" && parent.page_id) {
-            currentId = normalizePageId(parent.page_id);
-            continue;
-          } else if (parent.type === "database_id" && parent.database_id) {
-            currentId = normalizePageId(parent.database_id);
-            continue;
+        if (currentType === "page") {
+          const page = await notion.pages.retrieve({ page_id: currentId });
+          if ("parent" in page && page.parent) {
+            const parent = page.parent;
+            if (parent.type === "page_id" && parent.page_id) {
+              currentId = normalizePageId(parent.page_id);
+              currentType = "page";
+              continue;
+            } else if (parent.type === "database_id" && parent.database_id) {
+              currentId = normalizePageId(parent.database_id);
+              currentType = "database";
+              continue;
+            }
           }
-        }
-      } catch {
-        try {
+        } else if (currentType === "database") {
+          const db = await notion.databases.retrieve({
+            database_id: currentId,
+          });
+          if ("parent" in db && db.parent) {
+            const parent = db.parent;
+            if (parent.type === "page_id" && parent.page_id) {
+              currentId = normalizePageId(parent.page_id);
+              currentType = "page";
+              continue;
+            }
+          }
+        } else if (currentType === "block") {
           const block = await notion.blocks.retrieve({ block_id: currentId });
           if ("parent" in block && block.parent) {
             const parent = block.parent;
             if (parent.type === "page_id" && parent.page_id) {
               currentId = normalizePageId(parent.page_id);
+              currentType = "page";
               continue;
             } else if (parent.type === "block_id" && parent.block_id) {
               currentId = normalizePageId(parent.block_id);
+              currentType = "block";
               continue;
             }
           }
-        } catch {
-          break;
         }
+      } catch (err) {
+        console.warn(
+          `[resolveRoomId] Failed retrieving ${currentType} ${currentId}:`,
+          err,
+        );
+        break;
       }
       break;
     }
   }
 
   // Fallback
-  for (const id of uniqueCandidates) {
+  for (const candidate of uniqueCandidates) {
     try {
-      const page = await notion.pages.retrieve({ page_id: id });
-      if ("parent" in page && page.parent) {
-        const parent = page.parent;
-        if (parent.type === "page_id" && parent.page_id) {
-          return normalizePageId(parent.page_id);
+      if (candidate.type === "page") {
+        const page = await notion.pages.retrieve({ page_id: candidate.id });
+        if ("parent" in page && page.parent) {
+          const parent = page.parent;
+          if (parent.type === "page_id" && parent.page_id) {
+            return normalizePageId(parent.page_id);
+          }
+        }
+      } else if (candidate.type === "database") {
+        const db = await notion.databases.retrieve({
+          database_id: candidate.id,
+        });
+        if ("parent" in db && db.parent) {
+          const parent = db.parent;
+          if (parent.type === "page_id" && parent.page_id) {
+            return normalizePageId(parent.page_id);
+          }
         }
       }
     } catch {
@@ -348,7 +453,7 @@ async function resolveRoomId(
     }
   }
 
-  return uniqueCandidates[0] || null;
+  return uniqueCandidates[0]?.id || null;
 }
 
 export function handleNotionRoomWebhookHealthcheck() {
