@@ -246,12 +246,9 @@ export async function createFAQEntry(
 
 /**
  * Filter FAQ entries according to the visibility rules:
- * - Sumber: Publik, Status: Masuk/Ditinjau -> ✅ Ya -> Pertanyaan + label "Menunggu Jawaban"
- * - Sumber: Publik, Status: Dijawab -> ✅ Ya -> Pertanyaan + Jawaban
- * - Sumber: Publik, Status: Dialihkan -> ✅ Ya -> Pertanyaan + tombol link ke URL Referensi
- * - Sumber: Hima, Status: Dijawab -> ✅ Ya -> Tampil sebagai FAQ resmi (Q+A lengkap)
- * - Sumber: Hima, Status: Dialihkan -> ✅ Ya -> Pertanyaan + tombol link ke URL Referensi
  * - Visibilitas: Disembunyikan -> ❌ Tidak
+ * - Status: Disembunyikan -> ❌ Tidak (kecuali jika ada override Visibilitas Tampil)
+ * - Tampilkan semua entri dengan status Masuk, Ditinjau, Dijawab, atau Dialihkan
  */
 export function filterFAQVisibility(entries: FAQEntry[]): FAQEntry[] {
   return entries.filter((entry) => {
@@ -267,30 +264,7 @@ export function filterFAQVisibility(entries: FAQEntry[]): FAQEntry[] {
     // 2. Tipe Status: Disembunyikan -> ❌ Tidak
     if (entry.status === "Disembunyikan") return false;
 
-    // 3. Sumber Publik rules (allows displaying unanswered submissions in "Tanya Jawab Publik" queue)
-    if (entry.source === "Publik") {
-      if (entry.status === "Masuk" || entry.status === "Ditinjau") {
-        return true;
-      }
-      if (entry.status === "Dijawab") {
-        return true;
-      }
-      if (entry.status === "Dialihkan") {
-        return true;
-      }
-    }
-
-    // 4. Sumber HIMA rules (requires answered or redirected)
-    if (entry.source === "Hima") {
-      if (entry.status === "Dijawab") {
-        return true;
-      }
-      if (entry.status === "Dialihkan") {
-        return true;
-      }
-    }
-
-    // Anything else -> ❌ Tidak
-    return false;
+    // 3. Keep all standard entries (Masuk, Ditinjau, Dijawab, Dialihkan)
+    return ["Masuk", "Ditinjau", "Dijawab", "Dialihkan"].includes(entry.status);
   });
 }

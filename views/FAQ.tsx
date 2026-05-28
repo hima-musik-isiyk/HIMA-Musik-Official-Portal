@@ -1,25 +1,18 @@
 "use client";
 
-import {
-  AlertCircle,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  ExternalLink,
-  HelpCircle,
-  Layers,
-  RefreshCw,
-  Search,
-  Send,
-} from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
-import { IconChevronDown } from "@/components/Icons";
+import {
+  IconChevronDown,
+  IconExternalLink,
+  IconPlus,
+  IconSend,
+} from "@/components/Icons";
 import type { FAQEntry } from "@/lib/faq";
 import useViewEntrance from "@/lib/useViewEntrance";
 
+// Types
 type FAQFormData = {
   askerName: string;
   category: string;
@@ -27,6 +20,100 @@ type FAQFormData = {
 };
 
 const STORAGE_KEY = "hima_faq_draft_v1";
+
+// ------------------------------------------------------------------
+// Custom Inline Thin-Stroke SVGs (Aligning with DESIGN_LANGUAGE.md)
+// ------------------------------------------------------------------
+const IconSearch: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const IconAlertCircle: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const IconRefreshCw: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M23 4v6h-6M1 20v-6h6" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+const IconHelpCircle: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const IconChevronUp: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
+);
 
 const ObfuscatedMinecraftText: React.FC<{ text: string; enabled: boolean }> = ({
   text,
@@ -124,11 +211,11 @@ const PaginationControl: React.FC<{
   if (totalPages <= 1) return null;
 
   return (
-    <div className="mt-4 flex items-center justify-center gap-3">
+    <div className="mt-6 flex items-center justify-center gap-3">
       <button
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
-        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-2.5 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-3 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
         style={{ borderRadius: "var(--radius-action)" }}
       >
         Prev
@@ -139,7 +226,7 @@ const PaginationControl: React.FC<{
       <button
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(currentPage + 1)}
-        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-2.5 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-3 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
         style={{ borderRadius: "var(--radius-action)" }}
       >
         Next
@@ -154,22 +241,24 @@ const FAQView: React.FC = () => {
   // State Management
   const [faqs, setFaqs] = useState<FAQEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Search & Filter
+  // Search, Filters & Row Expansion
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
+  const [activeStatusFilter, setActiveStatusFilter] = useState("Semua"); // "Semua", "Sudah Dijawab", "Belum Dijawab"
   const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false); // Collapsible Ask Form
 
-  // Pagination States
-  const [answeredPage, setAnsweredPage] = useState(1);
-  const [unansweredPage, setUnansweredPage] = useState(1);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
-  // Reset pagination on filter change
+  // Reset page when queries change
   useEffect(() => {
-    setAnsweredPage(1);
-    setUnansweredPage(1);
-  }, [searchQuery, activeCategory]);
+    setCurrentPage(1);
+  }, [searchQuery, activeCategory, activeStatusFilter]);
 
   // Form State
   const [formData, setFormData] = useState<FAQFormData>({
@@ -183,8 +272,9 @@ const FAQView: React.FC = () => {
   const [hasTouchedForm, setHasTouchedForm] = useState(false);
 
   // Load FAQs from API
-  const fetchFAQs = async () => {
-    setIsLoading(true);
+  const fetchFAQs = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+    setIsSyncing(true);
     setError(null);
     try {
       const response = await fetch("/api/faq");
@@ -198,16 +288,26 @@ const FAQView: React.FC = () => {
         throw new Error(result.error || "Data tidak valid");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
-      );
+      if (showLoading) {
+        setError(
+          err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
+      setIsSyncing(false);
     }
   };
 
+  // Initial Fetch & Active Browser Polling (5 Seconds)
   useEffect(() => {
-    fetchFAQs();
+    fetchFAQs(true);
+
+    const interval = setInterval(() => {
+      fetchFAQs(false); // Background silent updates
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Form Auto-save
@@ -285,8 +385,8 @@ const FAQView: React.FC = () => {
         window.localStorage.removeItem(STORAGE_KEY);
       } catch {}
 
-      // Refresh list to show submitted question in real-time
-      fetchFAQs();
+      // Refresh list instantly
+      fetchFAQs(false);
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Terjadi kesalahan server",
@@ -296,14 +396,22 @@ const FAQView: React.FC = () => {
     }
   };
 
-  // Search and Category filtering logic
+  // Search and Filtering logic
   const filteredFaqs = useMemo(() => {
     return faqs.filter((faq) => {
-      // 1. Category check
+      // 1. Category Filter
       const matchesCategory =
         activeCategory === "Semua" || faq.categories.includes(activeCategory);
 
-      // 2. Search query check
+      // 2. Status Filter
+      let matchesStatus = true;
+      if (activeStatusFilter === "Sudah Dijawab") {
+        matchesStatus = faq.status === "Dijawab" || faq.status === "Dialihkan";
+      } else if (activeStatusFilter === "Belum Dijawab") {
+        matchesStatus = faq.status === "Masuk" || faq.status === "Ditinjau";
+      }
+
+      // 3. Search Query Check
       const cleanQuery = searchQuery.trim().toLowerCase();
       const matchesSearch =
         !cleanQuery ||
@@ -311,39 +419,16 @@ const FAQView: React.FC = () => {
         faq.answer.toLowerCase().includes(cleanQuery) ||
         faq.askerName.toLowerCase().includes(cleanQuery);
 
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesStatus && matchesSearch;
     });
-  }, [faqs, searchQuery, activeCategory]);
+  }, [faqs, searchQuery, activeCategory, activeStatusFilter]);
 
-  // Separate Answered vs Unanswered
-  const { answeredFaqs, unansweredFaqs } = useMemo(() => {
-    const answered = filteredFaqs.filter(
-      (f) =>
-        f.status === "Dijawab" ||
-        f.status === "Dialihkan" ||
-        (f.status === "Disembunyikan" && f.answer),
-    );
-    const unanswered = filteredFaqs.filter(
-      (f) =>
-        f.status === "Masuk" ||
-        f.status === "Ditinjau" ||
-        (f.status === "Disembunyikan" && !f.answer),
-    );
-    return { answeredFaqs: answered, unansweredFaqs: unanswered };
-  }, [filteredFaqs]);
-
-  const totalAnsweredPages = Math.ceil(answeredFaqs.length / 5);
-  const totalUnansweredPages = Math.ceil(unansweredFaqs.length / 4);
-
-  const paginatedAnswered = useMemo(() => {
-    const start = (answeredPage - 1) * 5;
-    return answeredFaqs.slice(start, start + 5);
-  }, [answeredFaqs, answeredPage]);
-
-  const paginatedUnanswered = useMemo(() => {
-    const start = (unansweredPage - 1) * 4;
-    return unansweredFaqs.slice(start, start + 4);
-  }, [unansweredFaqs, unansweredPage]);
+  // Paginated FAQ records
+  const totalPages = Math.ceil(filteredFaqs.length / itemsPerPage);
+  const paginatedFaqs = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredFaqs.slice(start, start + itemsPerPage);
+  }, [filteredFaqs, currentPage]);
 
   return (
     <div
@@ -351,21 +436,35 @@ const FAQView: React.FC = () => {
       className="relative flex-1 px-6 pt-24 pb-24 md:px-10 lg:px-16"
     >
       {/* Background Radial Glow */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.02)_0%,transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.015)_0%,transparent_60%)]" />
 
-      {/* Breadcrumb & Navigation */}
+      {/* Breadcrumb & Live Sync Badge */}
       <div
         data-animate="up"
-        className="mb-8 flex items-center gap-2 text-xs text-stone-500"
+        className="mb-8 flex items-center justify-between gap-4 text-xs text-stone-500"
       >
-        <Link
-          href="/sekretariat"
-          className="hover:text-gold-400 transition-colors"
-        >
-          Pusat Administrasi
-        </Link>
-        <span>/</span>
-        <span className="text-stone-300">FAQ & Tanya Jawab</span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sekretariat"
+            className="hover:text-gold-400 transition-colors"
+          >
+            Pusat Administrasi
+          </Link>
+          <span>/</span>
+          <span className="text-stone-300">FAQ & Tanya Jawab</span>
+        </div>
+
+        {/* Premium Pulsing Live Syncing Indicator */}
+        <div className="flex items-center gap-2 rounded-full border border-white/5 bg-stone-900/30 px-3 py-1 font-mono text-[9px] tracking-wider text-stone-400 uppercase">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          </span>
+          <span>Live Sync</span>
+          {isSyncing && (
+            <IconRefreshCw className="text-gold-500/60 h-2.5 w-2.5 animate-spin" />
+          )}
+        </div>
       </div>
 
       {/* Header section */}
@@ -376,7 +475,7 @@ const FAQView: React.FC = () => {
             aria-hidden="true"
           />
           <span className="text-[0.65rem] font-medium tracking-[0.4em] text-stone-600 uppercase">
-            Administrasi Transparan
+            Q&A Impromptu Portal
           </span>
         </div>
         <h1
@@ -392,9 +491,15 @@ const FAQView: React.FC = () => {
           data-animate-delay="0.2"
           className="mt-6 max-w-2xl text-base leading-relaxed text-stone-400"
         >
-          Temukan jawaban instan untuk pertanyaan umum seputar administrasi HIMA
-          Musik, atau tanyakan langsung hal baru. Pertanyaan publik akan tampil
-          secara real-time.
+          Temukan jawaban instan untuk pertanyaan umum, atau ajukan pertanyaan
+          baru secara real-time. Untuk FAQ Resmi HIMA, silakan kunjungi{" "}
+          <Link
+            href="/sekretariat/faq"
+            className="text-gold-400 hover:text-gold-300 underline"
+          >
+            sekretariat/faq
+          </Link>
+          .
         </p>
       </div>
 
@@ -402,33 +507,74 @@ const FAQView: React.FC = () => {
       <div
         data-animate="up"
         data-animate-delay="0.3"
-        className="mb-12 flex flex-col gap-6 border-b border-white/5 pb-8 lg:flex-row lg:items-center lg:justify-between"
+        className="mb-8 border-b border-white/5 pb-8"
       >
-        {/* Live Search */}
-        <div className="relative max-w-lg flex-1">
-          <span className="absolute inset-y-0 left-4 flex items-center text-stone-500">
-            <Search className="h-4 w-4" />
-          </span>
-          <input
-            type="text"
-            placeholder="Cari pertanyaan, jawaban, atau nama..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="border-stone-850 focus:border-gold-500/50 focus:ring-gold-500/30 w-full border bg-stone-900/40 py-3.5 pr-4 pl-12 text-sm text-white placeholder-stone-500 transition-all duration-300 focus:bg-stone-900/80 focus:ring-1 focus:outline-none"
-            style={{ borderRadius: "var(--radius-action)" }}
-          />
-          {searchQuery && (
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          {/* Live Search */}
+          <div className="relative max-w-lg flex-1">
+            <span className="absolute inset-y-0 left-4 flex items-center text-stone-500">
+              <IconSearch className="h-4 w-4" />
+            </span>
+            <input
+              type="text"
+              placeholder="Cari pertanyaan, jawaban, atau nama penanya..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="border-stone-850 focus:border-gold-500/50 focus:ring-gold-500/30 w-full border bg-stone-900/40 py-3.5 pr-4 pl-12 text-sm text-white placeholder-stone-500 transition-all duration-300 focus:bg-stone-900/80 focus:ring-1 focus:outline-none"
+              style={{ borderRadius: "var(--radius-action)" }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-4 flex items-center text-xs text-stone-500 hover:text-stone-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Collapsible Form Toggle & Status Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Status Filter Dropdown / Segment */}
+            <div className="flex items-center rounded-lg border border-white/5 bg-stone-900/20 p-1">
+              {["Semua", "Sudah Dijawab", "Belum Dijawab"].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setActiveStatusFilter(st)}
+                  className={`rounded-md px-3 py-1.5 text-[10px] font-medium tracking-wider uppercase transition-all duration-300 ${
+                    activeStatusFilter === st
+                      ? "bg-gold-500/20 text-gold-400 border-gold-500/30 border"
+                      : "border border-transparent text-stone-500 hover:text-stone-300"
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+
+            {/* Collapsible Toggle Action */}
             <button
-              onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-4 flex items-center text-xs text-stone-500 hover:text-stone-300"
+              onClick={() => {
+                setIsFormOpen(!isFormOpen);
+                setSubmitSuccess(false);
+              }}
+              className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold tracking-wider uppercase transition-all duration-300 ${
+                isFormOpen
+                  ? "bg-gold-500/20 text-gold-400 border-gold-500/30 border"
+                  : "hover:bg-gold-400 bg-white text-black hover:text-white"
+              }`}
+              style={{ borderRadius: "var(--radius-action)" }}
             >
-              Clear
+              <span>Ajukan Tanya</span>
+              <IconPlus
+                className={`h-3 w-3 transition-transform duration-300 ${isFormOpen ? "rotate-45" : ""}`}
+              />
             </button>
-          )}
+          </div>
         </div>
 
         {/* Category filtering tabs */}
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-2">
           {[
             "Semua",
             "Pendaftaran",
@@ -440,10 +586,10 @@ const FAQView: React.FC = () => {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`rounded-full px-5 py-2 text-xs tracking-wider transition-all duration-300 ${
+              className={`rounded-full px-4 py-1.5 text-[10px] tracking-wider transition-all duration-300 ${
                 activeCategory === cat
-                  ? "bg-gold-500/20 text-gold-400 border-gold-500/30 border"
-                  : "border border-white/5 bg-stone-900/30 text-stone-400 hover:border-stone-700 hover:text-white"
+                  ? "bg-gold-500/25 text-gold-400 border-gold-500/30 border"
+                  : "hover:border-stone-850 border border-white/5 bg-stone-900/10 text-stone-500 hover:text-white"
               }`}
             >
               {cat}
@@ -452,15 +598,19 @@ const FAQView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Grid: Left FAQs, Right Form */}
-      <div className="grid gap-12 lg:grid-cols-3">
-        {/* FAQ LISTS */}
-        <div className="space-y-12 lg:col-span-2">
+      {/* Main Layout Grid */}
+      <div
+        className={`grid gap-8 transition-all duration-500 ${isFormOpen ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1"}`}
+      >
+        {/* LEFT / MAIN COLUMN: SPREADSHEET TABLE GRID */}
+        <div
+          className={`space-y-6 transition-all duration-500 ${isFormOpen ? "lg:col-span-2" : "col-span-1"}`}
+        >
           {/* Loading state */}
           {isLoading && (
-            <div className="flex flex-col items-center justify-center border border-dashed border-stone-800 py-20">
-              <RefreshCw className="text-gold-500/60 mb-4 h-8 w-8 animate-spin" />
-              <p className="text-sm text-stone-500">
+            <div className="border-stone-850 flex flex-col items-center justify-center border border-dashed bg-stone-950/10 py-24">
+              <IconRefreshCw className="text-gold-500/60 mb-4 h-6 w-6 animate-spin" />
+              <p className="font-mono text-[10px] tracking-widest text-stone-500 uppercase">
                 Menghubungkan ke Notion...
               </p>
             </div>
@@ -468,17 +618,17 @@ const FAQView: React.FC = () => {
 
           {/* Error State */}
           {error && !isLoading && (
-            <div className="flex items-start gap-4 rounded-xl border border-red-500/20 bg-red-950/10 p-6">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+            <div className="flex items-start gap-4 border border-red-500/10 bg-red-950/5 p-6">
+              <IconAlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
               <div>
-                <h3 className="text-sm font-semibold text-red-200">
-                  Gagal Memuat FAQ
+                <h3 className="text-sm font-semibold text-red-300">
+                  Gagal Memuat Data
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-red-400">
                   {error}
                 </p>
                 <button
-                  onClick={fetchFAQs}
+                  onClick={() => fetchFAQs(true)}
                   className="text-gold-400 mt-4 text-xs font-semibold hover:underline"
                 >
                   Coba lagi
@@ -490,387 +640,505 @@ const FAQView: React.FC = () => {
           {/* List display when ready */}
           {!isLoading && !error && (
             <>
-              {/* Answered FAQ Accordions */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                  <CheckCircle2 className="text-gold-500/80 h-4 w-4" />
-                  <h2 className="font-serif text-xl font-normal text-white">
-                    FAQ Resmi & Jawaban
-                  </h2>
-                  <span className="rounded-full border border-white/5 bg-stone-900/80 px-2.5 py-0.5 text-[10px] text-stone-400">
-                    {answeredFaqs.length}
-                  </span>
-                </div>
+              {filteredFaqs.length > 0 ? (
+                <div>
+                  {/* Desktop Tabular View (Spreadsheet layout) */}
+                  <div className="hidden overflow-hidden border border-white/5 bg-black/20 backdrop-blur-md lg:block">
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-white/8 bg-white/2">
+                          <th className="w-12 px-4 py-3.5 text-center font-mono text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            No
+                          </th>
+                          <th className="px-4 py-3.5 text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            Pertanyaan
+                          </th>
+                          <th className="w-32 px-4 py-3.5 text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            Penanya
+                          </th>
+                          <th className="w-28 px-4 py-3.5 text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            Kategori
+                          </th>
+                          <th className="w-28 px-4 py-3.5 text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            Status
+                          </th>
+                          <th className="w-28 px-4 py-3.5 text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            Tanggal
+                          </th>
+                          <th className="w-16 px-4 py-3.5 text-center font-mono text-[10px] font-semibold tracking-wider text-stone-500 uppercase">
+                            Aksi
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {paginatedFaqs.map((faq, index) => {
+                          const isExpanded = expandedFaqId === faq.id;
+                          const itemNo =
+                            (currentPage - 1) * itemsPerPage + index + 1;
 
-                {answeredFaqs.length > 0 ? (
-                  <div className="space-y-4">
-                    {paginatedAnswered.map((faq) => {
-                      const isExpanded = expandedFaqId === faq.id;
-                      return (
-                        <div
-                          key={faq.id}
-                          className={`group overflow-hidden border transition-all duration-300 ${
-                            isExpanded
-                              ? "border-gold-500/20 bg-stone-900/20"
-                              : "border-white/5 hover:border-stone-800 hover:bg-stone-900/10"
-                          }`}
-                          style={{ borderRadius: "var(--radius-action)" }}
-                        >
-                          {/* Accordion Trigger */}
-                          <button
-                            onClick={() =>
-                              setExpandedFaqId(isExpanded ? null : faq.id)
-                            }
-                            className="flex w-full items-start justify-between gap-4 p-4 text-left"
-                          >
-                            <div className="space-y-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-[9px] text-stone-500">
+                          return (
+                            <React.Fragment key={faq.id}>
+                              {/* Spreadsheet Row */}
+                              <tr
+                                onClick={() =>
+                                  setExpandedFaqId(isExpanded ? null : faq.id)
+                                }
+                                className={`group hover:bg-gold-500/5 cursor-pointer transition-all duration-200 ${
+                                  isExpanded ? "bg-gold-500/5" : ""
+                                }`}
+                              >
+                                <td className="px-4 py-3.5 text-center font-mono text-xs text-stone-500">
+                                  {itemNo}
+                                </td>
+                                <td className="max-w-sm truncate px-4 py-3.5 font-medium text-stone-200 group-hover:text-white">
+                                  <ObfuscatedMinecraftText
+                                    text={faq.question}
+                                    enabled={faq.status === "Disembunyikan"}
+                                  />
+                                </td>
+                                <td className="max-w-[120px] truncate px-4 py-3.5 text-xs text-stone-400">
+                                  {faq.askerName}
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[9px] tracking-wider text-stone-500 uppercase">
+                                    {faq.categories[0]}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <FAQStatusBadge status={faq.status} />
+                                </td>
+                                <td className="px-4 py-3.5 font-mono text-[10px] text-stone-500">
                                   {new Date(faq.createdAt).toLocaleDateString(
                                     "id-ID",
                                     {
                                       day: "numeric",
                                       month: "short",
-                                      year: "numeric",
                                     },
                                   )}
-                                </span>
-                                <span className="text-stone-700">·</span>
-                                {faq.categories.map((c) => (
-                                  <span
-                                    key={c}
-                                    className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[9px] tracking-wider text-stone-500 uppercase"
+                                </td>
+                                <td className="px-4 py-3.5 text-center text-stone-500 group-hover:text-white">
+                                  {isExpanded ? (
+                                    <IconChevronUp className="mx-auto h-4 w-4" />
+                                  ) : (
+                                    <IconChevronDown className="mx-auto h-4 w-4" />
+                                  )}
+                                </td>
+                              </tr>
+
+                              {/* Spreadsheet Row Expansion Detail */}
+                              {isExpanded && (
+                                <tr className="bg-stone-900/10">
+                                  <td
+                                    colSpan={7}
+                                    className="bg-white/[0.01] px-6 py-5"
                                   >
-                                    {c}
-                                  </span>
-                                ))}
-                                {faq.source === "Hima" && (
-                                  <span className="bg-gold-950/40 text-gold-400 border-gold-900/20 rounded-md border px-2 py-0.5 text-[9px] font-medium tracking-wider uppercase">
-                                    HIMA Official
-                                  </span>
-                                )}
-                                <FAQStatusBadge status={faq.status} />
-                              </div>
-                              <h3 className="text-sm font-medium text-stone-200 transition-colors group-hover:text-white md:text-base">
-                                <ObfuscatedMinecraftText
-                                  text={faq.question}
-                                  enabled={faq.status === "Disembunyikan"}
-                                />
-                              </h3>
-                              <p className="text-[10px] text-stone-600">
-                                Ditanyakan oleh{" "}
-                                <span className="font-medium text-stone-400">
-                                  {faq.askerName}
-                                </span>
-                              </p>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <p className="text-[9px] font-semibold tracking-widest text-stone-500 uppercase">
+                                          Pertanyaan Lengkap
+                                        </p>
+                                        <p className="mt-1.5 text-sm leading-relaxed font-light text-stone-200">
+                                          <ObfuscatedMinecraftText
+                                            text={faq.question}
+                                            enabled={
+                                              faq.status === "Disembunyikan"
+                                            }
+                                          />
+                                        </p>
+                                      </div>
+
+                                      <div className="border-t border-white/5 pt-4">
+                                        <p className="text-[9px] font-semibold tracking-widest text-stone-500 uppercase">
+                                          Jawaban
+                                        </p>
+                                        {faq.status === "Dialihkan" ? (
+                                          <div className="mt-2 space-y-3">
+                                            <p className="text-xs leading-relaxed text-stone-400">
+                                              Jawaban dialihkan ke dokumen resmi
+                                              sekretariat. Silakan klik tombol
+                                              di bawah ini untuk membuka detail.
+                                            </p>
+                                            {faq.refUrl && (
+                                              <a
+                                                href={faq.refUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="border-stone-850 hover:border-gold-500/50 inline-flex items-center gap-2 border bg-stone-900 px-4 py-2 text-xs text-stone-300 transition-all hover:bg-stone-950 hover:text-white"
+                                                style={{
+                                                  borderRadius:
+                                                    "var(--radius-action)",
+                                                }}
+                                              >
+                                                <span>Buka Jawaban Resmi</span>
+                                                <IconExternalLink className="h-3 w-3" />
+                                              </a>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <p className="mt-1.5 text-sm leading-relaxed font-light whitespace-pre-line text-stone-300">
+                                            <ObfuscatedMinecraftText
+                                              text={
+                                                faq.answer ||
+                                                "Sedang diproses / Belum dijawab oleh admin."
+                                              }
+                                              enabled={
+                                                faq.status === "Disembunyikan"
+                                              }
+                                            />
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-white/5 pt-3.5 font-mono text-[9px] text-stone-500">
+                                        <span>
+                                          Oleh:{" "}
+                                          <span className="font-sans text-stone-400">
+                                            {faq.askerName}
+                                          </span>
+                                        </span>
+                                        <span>
+                                          Waktu Tanya:{" "}
+                                          <span className="text-stone-400">
+                                            {new Date(
+                                              faq.createdAt,
+                                            ).toLocaleDateString("id-ID", {
+                                              day: "numeric",
+                                              month: "long",
+                                              year: "numeric",
+                                            })}
+                                          </span>
+                                        </span>
+                                        {faq.lastEditedAt && (
+                                          <span>
+                                            Update:{" "}
+                                            <span className="text-stone-400">
+                                              {new Date(
+                                                faq.lastEditedAt,
+                                              ).toLocaleDateString("id-ID", {
+                                                day: "numeric",
+                                                month: "long",
+                                                year: "numeric",
+                                              })}
+                                            </span>
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Compact Cards View */}
+                  <div className="block space-y-4 lg:hidden">
+                    {paginatedFaqs.map((faq, index) => {
+                      const isExpanded = expandedFaqId === faq.id;
+                      const itemNo =
+                        (currentPage - 1) * itemsPerPage + index + 1;
+
+                      return (
+                        <div
+                          key={faq.id}
+                          onClick={() =>
+                            setExpandedFaqId(isExpanded ? null : faq.id)
+                          }
+                          className={`border bg-black/10 p-4 transition-all duration-300 ${
+                            isExpanded
+                              ? "border-gold-500/30 bg-stone-900/10"
+                              : "hover:border-stone-850 border-white/5"
+                          }`}
+                          style={{ borderRadius: "var(--radius-action)" }}
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] text-stone-500">
+                                #{itemNo}
+                              </span>
+                              <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-400 uppercase">
+                                {faq.categories[0]}
+                              </span>
                             </div>
-                            <span className="mt-1 text-stone-500">
-                              {isExpanded ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
+                            <FAQStatusBadge status={faq.status} />
+                          </div>
+
+                          <h4 className="line-clamp-2 text-sm font-medium text-stone-200">
+                            <ObfuscatedMinecraftText
+                              text={faq.question}
+                              enabled={faq.status === "Disembunyikan"}
+                            />
+                          </h4>
+
+                          <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2 font-mono text-[9px] text-stone-500">
+                            <span>
+                              Oleh:{" "}
+                              <span className="font-sans text-stone-400">
+                                {faq.askerName}
+                              </span>
+                            </span>
+                            <span>
+                              {new Date(faq.createdAt).toLocaleDateString(
+                                "id-ID",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                },
                               )}
                             </span>
-                          </button>
+                          </div>
 
-                          {/* Accordion Content */}
+                          {/* Mobile Expansion */}
                           {isExpanded && (
-                            <div className="space-y-4 border-t border-white/5 bg-stone-950/20 px-4 py-4">
-                              {faq.status === "Dialihkan" ? (
-                                <div className="space-y-3">
-                                  <p className="text-sm leading-relaxed font-light text-stone-400">
-                                    Jawaban untuk pertanyaan ini dialihkan ke
-                                    dokumen resmi sekretariat. Silakan klik
-                                    tombol di bawah untuk melihat jawaban
-                                    lengkap.
-                                  </p>
-                                  {faq.refUrl && (
-                                    <a
-                                      href={faq.refUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="border-stone-850 hover:border-gold-500/50 inline-flex items-center gap-2 border bg-stone-900 px-4 py-2.5 text-xs text-stone-300 transition-all hover:bg-stone-900/70 hover:text-white"
-                                      style={{
-                                        borderRadius: "var(--radius-action)",
-                                      }}
-                                    >
-                                      <span>Lihat Jawaban Resmi</span>
-                                      <ExternalLink className="text-gold-500 h-3 w-3" />
-                                    </a>
-                                  )}
-                                </div>
-                              ) : (
-                                <p className="text-sm leading-relaxed font-light whitespace-pre-line text-stone-300">
+                            <div className="mt-4 space-y-4 border-t border-white/5 pt-3 text-left">
+                              <div>
+                                <p className="text-[8px] font-semibold tracking-widest text-stone-500 uppercase">
+                                  Pertanyaan Lengkap
+                                </p>
+                                <p className="mt-1 text-xs leading-relaxed font-light text-stone-200">
                                   <ObfuscatedMinecraftText
-                                    text={
-                                      faq.answer ||
-                                      "Belum ada teks jawaban resmi."
-                                    }
+                                    text={faq.question}
                                     enabled={faq.status === "Disembunyikan"}
                                   />
                                 </p>
-                              )}
+                              </div>
+
+                              <div>
+                                <p className="text-[8px] font-semibold tracking-widest text-stone-500 uppercase">
+                                  Jawaban
+                                </p>
+                                {faq.status === "Dialihkan" ? (
+                                  <div className="mt-2 space-y-2">
+                                    <p className="text-[11px] leading-relaxed font-light text-stone-400">
+                                      Jawaban dialihkan ke dokumen resmi.
+                                    </p>
+                                    {faq.refUrl && (
+                                      <a
+                                        href={faq.refUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 border border-white/10 bg-stone-900 px-3 py-1.5 text-[10px] text-stone-300 transition-all hover:bg-stone-950 hover:text-white"
+                                        style={{
+                                          borderRadius: "var(--radius-action)",
+                                        }}
+                                      >
+                                        <span>Buka Jawaban</span>
+                                        <IconExternalLink className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="mt-1 text-xs leading-relaxed font-light whitespace-pre-line text-stone-300">
+                                    <ObfuscatedMinecraftText
+                                      text={
+                                        faq.answer ||
+                                        "Sedang diproses / Belum dijawab."
+                                      }
+                                      enabled={faq.status === "Disembunyikan"}
+                                    />
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
                       );
                     })}
-
-                    <PaginationControl
-                      currentPage={answeredPage}
-                      totalPages={totalAnsweredPages}
-                      onPageChange={setAnsweredPage}
-                    />
                   </div>
-                ) : (
-                  <div className="border-stone-850 rounded-xl border border-dashed py-12 text-center text-stone-600">
-                    <HelpCircle className="mx-auto mb-3 h-8 w-8 opacity-30" />
-                    <p className="text-xs italic">
-                      Tidak ada FAQ resmi yang cocok dengan filter Anda.
-                    </p>
-                  </div>
-                )}
-              </div>
 
-              {/* Real-time Public Questions (Unanswered / In-Progress) */}
-              <div className="space-y-6 pt-4">
-                <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-                  <Clock className="h-4 w-4 animate-pulse text-amber-500/70" />
-                  <h2 className="font-serif text-xl font-normal text-white">
-                    Tanya Jawab Publik
-                  </h2>
-                  <span className="rounded-full border border-white/5 bg-stone-900/80 px-2.5 py-0.5 text-[10px] text-stone-400">
-                    {unansweredFaqs.length}
-                  </span>
+                  <PaginationControl
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
                 </div>
-
-                {unansweredFaqs.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {paginatedUnanswered.map((faq) => (
-                        <div
-                          key={faq.id}
-                          className="hover:border-stone-850 flex flex-col justify-between border border-white/5 bg-[#111]/30 p-4 transition-all duration-300 hover:bg-[#111]/50"
-                          style={{ borderRadius: "var(--radius-action)" }}
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="font-mono text-[9px] text-stone-500">
-                                  {new Date(faq.createdAt).toLocaleDateString(
-                                    "id-ID",
-                                    {
-                                      day: "numeric",
-                                      month: "short",
-                                    },
-                                  )}
-                                </span>
-                                <span className="text-stone-700">·</span>
-                                <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-500 uppercase">
-                                  {faq.categories[0]}
-                                </span>
-                              </div>
-                              <FAQStatusBadge status={faq.status} />
-                            </div>
-                            <p className="text-sm leading-relaxed font-medium text-stone-300">
-                              &ldquo;
-                              <ObfuscatedMinecraftText
-                                text={faq.question}
-                                enabled={faq.status === "Disembunyikan"}
-                              />
-                              &rdquo;
-                            </p>
-                          </div>
-                          <div className="mt-3 border-t border-white/5 pt-2 text-[10px] text-stone-600">
-                            <span>
-                              Oleh:{" "}
-                              <span className="text-stone-400">
-                                {faq.askerName}
-                              </span>
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <PaginationControl
-                      currentPage={unansweredPage}
-                      totalPages={totalUnansweredPages}
-                      onPageChange={setUnansweredPage}
-                    />
-                  </div>
-                ) : (
-                  <div className="border-stone-850 rounded-xl border border-dashed py-12 text-center text-stone-600">
-                    <Layers className="mx-auto mb-3 h-8 w-8 opacity-30" />
-                    <p className="text-xs italic">
-                      Semua pertanyaan publik telah dijawab atau disinkronkan.
-                    </p>
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div className="border-stone-850 border border-dashed py-16 text-center text-stone-600">
+                  <IconHelpCircle className="mx-auto mb-3 h-8 w-8 opacity-30" />
+                  <p className="text-xs italic">
+                    Tidak ada FAQ yang cocok dengan filter Anda.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        {/* RIGHT SIDE: QUESTION FORM */}
-        <div className="space-y-6">
-          <div className="sticky top-24 border border-white/5 bg-[#111]/50 p-6 md:p-8">
-            <div className="via-gold-500/20 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
-            <h3 className="mb-2 font-serif text-xl text-white">
-              Ajukan Pertanyaan
-            </h3>
-            <p className="mb-6 text-xs leading-relaxed text-stone-400">
-              Punya pertanyaan seputar sekretariat, recruitment, atau program
-              HIMA? Tulis di bawah ini.
-            </p>
+        {/* RIGHT COLUMN: COLLAPSIBLE QUESTION FORM */}
+        {isFormOpen && (
+          <div className="animate-fade col-span-1 space-y-6">
+            <div className="border border-white/5 bg-stone-950/20 p-6 backdrop-blur-md md:p-8">
+              <div className="via-gold-500/20 absolute top-0 left-0 h-px w-full bg-linear-to-r from-transparent to-transparent"></div>
+              <h3 className="mb-2 font-serif text-xl text-white">
+                Ajukan Pertanyaan
+              </h3>
+              <p className="mb-6 text-xs leading-relaxed text-stone-400">
+                Punya pertanyaan seputar akademik, event, atau birokrasi HIMA?
+                Tulis di bawah ini untuk respon cepat.
+              </p>
 
-            {submitSuccess ? (
-              <div className="space-y-4 py-6 text-center">
-                <div className="bg-gold-500/10 border-gold-500/30 text-gold-400 mb-2 inline-flex h-12 w-12 items-center justify-center rounded-full border">
-                  <CheckCircle2 className="h-6 w-6" />
-                </div>
-                <h4 className="text-sm font-medium text-white">
-                  Pertanyaan Terkirim!
-                </h4>
-                <p className="mx-auto max-w-xs text-xs leading-relaxed text-stone-400">
-                  Pertanyaan Anda akan langsung tampil di menu &quot;Tanya Jawab
-                  Publik&quot; secara real-time. Admin kami akan menjawabnya
-                  segera.
-                </p>
-                <button
-                  onClick={() => setSubmitSuccess(false)}
-                  className="text-gold-400 mt-6 text-xs font-semibold hover:underline"
-                >
-                  Ajukan pertanyaan lagi
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="space-y-5">
-                {/* Nama Input */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold tracking-wider text-stone-400 uppercase">
-                    Nama Penanya
-                  </label>
-                  <input
-                    type="text"
-                    name="askerName"
-                    required
-                    disabled={isSubmitting}
-                    value={formData.askerName}
-                    onChange={handleFormChange}
-                    placeholder="Contoh: Budi Santoso"
-                    className="focus:border-gold-500/50 w-full border border-white/10 bg-stone-900/50 px-4 py-3 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none"
-                    style={{ borderRadius: "var(--radius-action)" }}
-                  />
-                </div>
-
-                {/* Kategori Input */}
-                <div className="group relative space-y-2">
-                  <label className="group-focus-within:text-gold-300 block text-xs font-semibold tracking-wider text-stone-400 uppercase transition-colors duration-300">
-                    Kategori Pertanyaan
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="category"
-                      disabled={isSubmitting}
-                      value={formData.category}
-                      onChange={handleFormChange}
-                      className="focus:border-gold-500/50 w-full appearance-none border border-white/10 bg-stone-900/50 px-4 py-3 pr-10 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                      style={{ borderRadius: "var(--radius-action)" }}
+              {submitSuccess ? (
+                <div className="space-y-4 py-6 text-center">
+                  <div className="bg-gold-500/10 border-gold-500/30 text-gold-400 mb-2 inline-flex h-12 w-12 items-center justify-center rounded-full border">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="Pendaftaran"
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <h4 className="text-sm font-medium text-white">
+                    Pertanyaan Terkirim!
+                  </h4>
+                  <p className="mx-auto max-w-xs text-xs leading-relaxed text-stone-400">
+                    Pertanyaan Anda akan segera diproses oleh pengurus HIMA dan
+                    tampil di queue spreadsheet secara real-time.
+                  </p>
+                  <button
+                    onClick={() => setSubmitSuccess(false)}
+                    className="text-gold-400 mt-6 text-xs font-semibold hover:underline"
+                  >
+                    Ajukan pertanyaan lagi
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleFormSubmit} className="space-y-5">
+                  {/* Nama Input */}
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-semibold tracking-wider text-stone-400 uppercase">
+                      Nama Penanya
+                    </label>
+                    <input
+                      type="text"
+                      name="askerName"
+                      required
+                      disabled={isSubmitting}
+                      value={formData.askerName}
+                      onChange={handleFormChange}
+                      placeholder="Contoh: Budi Santoso"
+                      className="focus:border-gold-500 focus:ring-gold-500 w-full border-white/10 bg-stone-900/50 px-4 py-3 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:ring-1 focus:outline-none"
+                      style={{ borderRadius: "var(--radius-action)" }}
+                    />
+                  </div>
+
+                  {/* Kategori Input */}
+                  <div className="group relative space-y-2">
+                    <label className="group-focus-within:text-gold-300 block text-[10px] font-semibold tracking-wider text-stone-400 uppercase transition-colors duration-300">
+                      Kategori Pertanyaan
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="category"
+                        disabled={isSubmitting}
+                        value={formData.category}
+                        onChange={handleFormChange}
+                        className="focus:border-gold-500 w-full appearance-none border border-white/10 bg-stone-900/50 px-4 py-3 pr-10 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{ borderRadius: "var(--radius-action)" }}
                       >
-                        Pendaftaran (Oprec)
-                      </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="Kegiatan"
-                      >
-                        Kegiatan / Event
-                      </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="Organisasi"
-                      >
-                        Organisasi (HIMA)
-                      </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="Akademik"
-                      >
-                        Akademik
-                      </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="Lainnya"
-                      >
-                        Lainnya
-                      </option>
-                    </select>
-                    <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
-                      <IconChevronDown />
+                        <option
+                          className="bg-[#111] text-neutral-300"
+                          value="Pendaftaran"
+                        >
+                          Pendaftaran (Oprec)
+                        </option>
+                        <option
+                          className="bg-[#111] text-neutral-300"
+                          value="Kegiatan"
+                        >
+                          Kegiatan / Event
+                        </option>
+                        <option
+                          className="bg-[#111] text-neutral-300"
+                          value="Organisasi"
+                        >
+                          Organisasi (HIMA)
+                        </option>
+                        <option
+                          className="bg-[#111] text-neutral-300"
+                          value="Akademik"
+                        >
+                          Akademik
+                        </option>
+                        <option
+                          className="bg-[#111] text-neutral-300"
+                          value="Lainnya"
+                        >
+                          Lainnya
+                        </option>
+                      </select>
+                      <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
+                        <IconChevronDown />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Pertanyaan Input */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold tracking-wider text-stone-400 uppercase">
-                    Isi Pertanyaan
-                  </label>
-                  <textarea
-                    name="question"
-                    required
-                    disabled={isSubmitting}
-                    value={formData.question}
-                    onChange={handleFormChange}
-                    rows={4}
-                    placeholder="Contoh: Bagaimana cara meminjam alat musik di sekretariat?"
-                    className="focus:border-gold-500/50 w-full resize-none border border-white/10 bg-stone-900/50 px-4 py-3 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none"
-                    style={{ borderRadius: "var(--radius-action)" }}
-                  />
-                </div>
-
-                {/* Submit Error */}
-                {submitError && (
-                  <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-950/10 p-3 text-[11px] leading-relaxed text-red-400">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <span>{submitError}</span>
+                  {/* Pertanyaan Input */}
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-semibold tracking-wider text-stone-400 uppercase">
+                      Isi Pertanyaan
+                    </label>
+                    <textarea
+                      name="question"
+                      required
+                      disabled={isSubmitting}
+                      value={formData.question}
+                      onChange={handleFormChange}
+                      rows={4}
+                      placeholder="Bagaimana prosedur peminjaman studio musik?"
+                      className="focus:border-gold-500 focus:ring-gold-500 w-full resize-none border-white/10 bg-stone-900/50 px-4 py-3 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:ring-1 focus:outline-none"
+                      style={{ borderRadius: "var(--radius-action)" }}
+                    />
                   </div>
-                )}
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={
-                    isSubmitting ||
-                    !formData.question.trim() ||
-                    !formData.askerName.trim()
-                  }
-                  className="hover:bg-gold-400 disabled:border-stone-850 flex w-full items-center justify-center gap-2 bg-white px-5 py-3.5 text-xs font-semibold text-black transition-all hover:text-white disabled:cursor-not-allowed disabled:bg-stone-900 disabled:text-stone-600"
-                  style={{
-                    transitionDuration: "300ms",
-                    borderRadius: "var(--radius-action)",
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span>Mengirim...</span>
-                      <RefreshCw className="h-3 w-3 animate-spin" />
-                    </>
-                  ) : (
-                    <>
-                      <span>Kirim Pertanyaan</span>
-                      <Send className="h-3 w-3" />
-                    </>
+                  {/* Submit Error */}
+                  {submitError && (
+                    <div className="flex items-start gap-2 border border-red-500/10 bg-red-950/5 p-3 text-[11px] leading-relaxed text-red-400">
+                      <IconAlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      <span>{submitError}</span>
+                    </div>
                   )}
-                </button>
-              </form>
-            )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={
+                      isSubmitting ||
+                      !formData.question.trim() ||
+                      !formData.askerName.trim()
+                    }
+                    className="hover:bg-gold-400 disabled:border-stone-850 flex w-full items-center justify-center gap-2 bg-white px-5 py-3.5 text-xs font-semibold text-black transition-all hover:text-white disabled:cursor-not-allowed disabled:bg-stone-900 disabled:text-stone-600"
+                    style={{
+                      transitionDuration: "300ms",
+                      borderRadius: "var(--radius-action)",
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span>Mengirim...</span>
+                        <IconRefreshCw className="h-3 w-3 animate-spin" />
+                      </>
+                    ) : (
+                      <>
+                        <span>Kirim Pertanyaan</span>
+                        <IconSend className="h-3 w-3" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

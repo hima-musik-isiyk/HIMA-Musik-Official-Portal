@@ -17,14 +17,17 @@ The portal focuses on:
 - **Dynamic Landing Page:** Sleek homepage featuring responsive layouts, kinetic typography, and fluid entrance animations.
 - **Cabinet Profile & KKM:** Sourced directly from Notion, organizing divisions, cabinet hierarchies, and student interest groups.
 - **Kalender Agenda:** Live tracking of academic schedules, projects, and repost schedules categorized by lifecycle (route: `/agenda`).
-- **FAQ & Tanya Jawab:** Public question-and-answer board backed by a Notion database (route: `/faq`).
-  - Browse visible entries filtered by category and visibility status
-  - Submit new questions with name and category; entries flow into Notion and trigger a Discord notification
-  - Compact and highly-efficient layout for answered FAQ accordions and real-time public questions
-  - Date and author metadata displayed on closed card previews (before expansion)
-  - Custom Minecraft Standard Galactic character scrambler obfuscation for hidden content
-  - Dynamic page-by-page rendering with custom retro-themed `PaginationControl` for both lists
-  - Customized dropdown selection standard utilizing absolute custom chevrons matching design tokens
+- **FAQ & Tanya Jawab:** Impromptu, quick-response Q&A board backed by a Notion database (route: `/faq`).
+  - Merged spreadsheet-inspired board showing both answered and unanswered questions clearly in a unified, high-density interactive grid table.
+  - Submit new impromptu questions via a collapsible glassmorphic drawer panel that maximizes table visibility.
+  - Active real-time background polling (every 5 seconds) paired with a pulsing live sync indicator.
+  - Hand-crafted inline thin-stroke SVG icons matching the unified design system.
+  - Search query filters across questions, askers, and answers, alongside category and status lifecycle filters.
+  - Custom Minecraft Standard Galactic character scrambler obfuscation for hidden content.
+  - Dynamic page-by-page rendering with custom retro-themed `PaginationControl` for the board.
+- **FAQ Resmi HIMA:** Curated official help documentation managed by the cabinet (route: `/sekretariat/faq`).
+  - Dynamic rendering as a structured document page directly compiled from the Notion Sekretariat database using `NotionRenderer`.
+  - Supports rich-block styling, toggle lists, side table of contents, and responsive layouts.
 - **Ruang Advokasi (Aduan):**
   - Category-based submission of complaints (Akademik, Fasilitas, Organisasi, Lainnya)
   - AI-assisted message refinement utilizing Groq (Llama 3)
@@ -308,17 +311,16 @@ Daftar karya mahasiswa, genre, dan tautan embed video/audio.
 
 ### 6. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
 
-Pusat bantuan Tanya Jawab publik dan internal HIMA.
+Pusat bantuan Tanya Jawab impromptu.
 
 - `Judul Pertanyaan` (Title)
 - `Nama Penanya` (Rich Text)
-- `Sumber` (Select: `Publik`, `Hima`)
 - `Jawaban` (Rich Text)
 - `URL Referensi` (URL)
 - `Status` (Status: `Masuk` → `Ditinjau` → `Dijawab` / `Dialihkan` / `Disembunyikan`)
 - `Visibilitas` (Checkbox - Override manual)
 - `Last Edited Time` (Last Edited Time - Native)
-  _Aturan Tampil: `Visibilitas = true` AND `Status = Dijawab OR Dialihkan`._
+  _Aturan Tampil: `Visibilitas = true` AND `Status = Masuk OR Ditinjau OR Dijawab OR Dialihkan`._
 
 ### 7. Database Sekretariat (`NOTION_SEKRETARIAT_DATABASE_ID`)
 
