@@ -1164,7 +1164,7 @@ export default function EventsView({
             className="mt-6 md:mt-0"
           >
             <Link
-              href="https://pengajuan-agenda-himamusik.notion.site/36e3b26dc3be80a8955bcbf8933c8cdb?pvs=105"
+              href="/agenda/submit"
               target="_blank"
               rel="noopener noreferrer"
               className="border-gold-500/30 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 inline-flex items-center gap-2 border px-5 py-2.5 text-xs font-semibold tracking-widest uppercase transition duration-300 hover:text-white"
