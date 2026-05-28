@@ -28,7 +28,14 @@ type NotionWebhookPayload = {
   };
 };
 
-type ContentScope = "docs" | "events" | "kkm" | "faq" | "profil" | "beranda";
+type ContentScope =
+  | "docs"
+  | "events"
+  | "kkm"
+  | "karya"
+  | "faq"
+  | "profil"
+  | "beranda";
 
 const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
 const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
@@ -37,7 +44,11 @@ const DOCS_DB_ID =
   process.env.NOTION_PROJECT_DATABASE_ID ??
   "";
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
+const AGENDA_DB_ID =
+  process.env.NOTION_AGENDA_DATABASE_ID ??
+  process.env.NOTION_EVENTS_DATABASE_ID ??
+  "";
+const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID ?? "";
 const FAQ_DB_ID = process.env.NOTION_FAQ_DATABASE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
@@ -88,13 +99,15 @@ async function buildScopeMatchers() {
     docsDataSourceId,
     eventsDataSourceId,
     kkmDataSourceId,
+    karyaDataSourceId,
     faqDataSourceId,
     profilDataSourceId,
     berandaDataSourceId,
   ] = await Promise.all([
     resolvePrimaryDataSourceId(DOCS_DB_ID),
-    resolvePrimaryDataSourceId(EVENTS_DB_ID),
+    resolvePrimaryDataSourceId(AGENDA_DB_ID),
     resolvePrimaryDataSourceId(KKM_DB_ID),
+    resolvePrimaryDataSourceId(KARYA_DB_ID),
     resolvePrimaryDataSourceId(FAQ_DB_ID),
     resolvePrimaryDataSourceId(PROFIL_DB_ID),
     resolvePrimaryDataSourceId(BERANDA_DB_ID),
@@ -106,12 +119,16 @@ async function buildScopeMatchers() {
       dataSourceId: docsDataSourceId,
     },
     events: {
-      databaseId: EVENTS_DB_ID ? normalizeNotionId(EVENTS_DB_ID) : null,
+      databaseId: AGENDA_DB_ID ? normalizeNotionId(AGENDA_DB_ID) : null,
       dataSourceId: eventsDataSourceId,
     },
     kkm: {
       databaseId: KKM_DB_ID ? normalizeNotionId(KKM_DB_ID) : null,
       dataSourceId: kkmDataSourceId,
+    },
+    karya: {
+      databaseId: KARYA_DB_ID ? normalizeNotionId(KARYA_DB_ID) : null,
+      dataSourceId: karyaDataSourceId,
     },
     faq: {
       databaseId: FAQ_DB_ID ? normalizeNotionId(FAQ_DB_ID) : null,
@@ -278,6 +295,12 @@ function revalidateScope(scope: ContentScope) {
     return;
   }
 
+  if (scope === "karya") {
+    revalidateTag("notion-karya", { expire: 0 });
+    revalidatePath("/karya");
+    return;
+  }
+
   if (scope === "faq") {
     revalidateTag("notion-faq", { expire: 0 });
     revalidatePath("/faq");
@@ -318,6 +341,7 @@ async function inferScopes(
     "docs",
     "events",
     "kkm",
+    "karya",
     "faq",
     "profil",
     "beranda",
