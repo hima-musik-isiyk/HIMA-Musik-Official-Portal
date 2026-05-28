@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { generateKaryaEmailTemplate, sendBrevoEmail } from "@/lib/brevo";
 import { sendDiscordWebhook } from "@/lib/discord";
 import { fetchKaryaDatabaseIdCached, getNotionClient } from "@/lib/notion";
 
@@ -104,6 +105,38 @@ export async function POST(request: Request) {
         );
       } catch (discordError) {
         console.error("Failed to send Discord notification:", discordError);
+      }
+    }
+
+    // 3. Send confirmation email to respondent via Brevo
+    if (email && email.trim() !== "" && email.includes("@")) {
+      try {
+        const htmlContent = generateKaryaEmailTemplate({
+          title,
+          creator,
+          nim,
+          platform,
+          genres: Array.isArray(genres) ? genres.join(", ") : genres || "—",
+          embedLink,
+          status: "Masuk",
+          submissionTime: new Date().toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+            dateStyle: "long",
+            timeStyle: "short",
+          }),
+        });
+
+        await sendBrevoEmail({
+          to: email,
+          subject: `Salinan Pengajuan Karya HIMA: ${title}`,
+          htmlContent,
+        });
+      } catch (emailError) {
+        console.error(
+          "[submit-karya] Failed to send confirmation email via Brevo:",
+          emailError,
+        );
+        // Non-fatal: submission is still considered successful
       }
     }
 

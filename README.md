@@ -53,6 +53,7 @@ The portal focuses on:
 - **Realtime & Storage:** Supabase (Realtime Channels & Bucket Storage)
 - **Integrations & Services:**
   - **Groq API:** AI-assisted text processing
+  - **Brevo (Sendinblue) Transactional Email:** Automatic submission receipt emails sent to respondents after Karya form submission (`BREVO_API_KEY`, `BREVO_SENDER_EMAIL`)
   - **Canva Graph API & Sharp:** Automation for grid slice exports
   - **Discord Webhooks:** Unified notification and error channels (`DISCORD_ADUAN_WEBHOOK_URL`, `DISCORD_FORMS_WEBHOOK_URL`)
 
@@ -96,9 +97,14 @@ The portal focuses on:
    DISCORD_FORMS_WEBHOOK_URL=your_sekretariat_forms_discord_webhook_url
    DISCORD_AGENDA_WEBHOOK_URL=your_agenda_discord_webhook_url
    DISCORD_KARYA_WEBHOOK_URL=your_karya_discord_webhook_url
-   ```
+
+   # Brevo Transactional Email (for Karya submission receipts)
+   BREVO_API_KEY=your_brevo_api_key
+   BREVO_SENDER_EMAIL=your_verified_sender@yourdomain.com
 
    _(For full integration configurations including Canva, Supabase, and Notion webhooks, see `CODEBASE_KNOWLEDGE.md`.)_
+
+   ```
 
 3. Run the development server:
    ```bash
@@ -298,6 +304,7 @@ Daftar karya mahasiswa, genre, dan tautan embed video/audio.
   - **Masuk**: Data baru disubmit, tersembunyi sepenuhnya dari publik.
   - **Di-review**: Sedang ditinjau oleh pengurus HIMA, belum ditampilkan.
   - **Published**: Karyamu terverifikasi dan muncul secara live di `/karya` dengan pemutar embed interaktif dan artwork oEmbed.
+- **Email Konfirmasi Otomatis:** Setelah form Karya berhasil disubmit via `/api/submit-karya`, sistem secara otomatis mengirimkan salinan pengajuan (submission receipt) ke alamat email yang diisi oleh mahasiswa via layanan Brevo Transactional Email. Email ini mencakup detail karya, status awal (`Masuk`), dan waktu pengajuan dalam format WIB.
 
 ### 6. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
 
