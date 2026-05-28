@@ -382,11 +382,23 @@ function getTodayInJakarta(): string {
 }
 
 function isEventPublished(page: NotionPage): boolean {
-  const status = getStatus(page, "Status Konten CMS");
+  const status = getStatus(page, "Status");
   if (status) {
-    return status === "Live";
+    return status === "Published";
+  }
+  const statusCms = getStatus(page, "Status Konten CMS");
+  if (statusCms) {
+    return statusCms === "Live";
   }
   return getCheckbox(page, "Publish", true);
+}
+
+function isEventPreviewable(page: NotionPage): boolean {
+  const status = getStatus(page, "Status");
+  if (status) {
+    return status === "Diedit KKM";
+  }
+  return false;
 }
 
 function slugify(text: string): string {
@@ -516,7 +528,7 @@ const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
 const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
 const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const AGENDA_DB_ID =
+const _AGENDA_DB_ID =
   process.env.NOTION_AGENDA_DATABASE_ID ??
   process.env.NOTION_EVENTS_DATABASE_ID ??
   "";
@@ -900,10 +912,12 @@ export const fetchKKMEntryBySlug = cache(
 
 function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
   const title =
+    getTitleProperty(page, "Nama Acara") ||
     getTitleProperty(page, "Judul Tayangan") ||
     getTitleProperty(page, "Name") ||
     getTitle(page);
-  const slug = getSlugValue(page, title);
+  const slug =
+    getRichText(page, "Request Slug Khusus") || getSlugValue(page, title);
   const eventDate =
     getDate(page, "Tanggal Acara") ||
     getDate(page, "Event Date") ||
@@ -924,7 +938,13 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     { start: eventDate, end: eventDateEnd },
     today,
   );
-  const ownerUnit = getSelect(page, "Owner Unit");
+  const ownerUnit =
+    getRichText(page, "KKM Pengusul") || getSelect(page, "Owner Unit");
+
+  const createdAt =
+    page.properties["Submission time"]?.type === "created_time"
+      ? page.properties["Submission time"].created_time
+      : page.created_time;
 
   return {
     id: page.id,
@@ -933,20 +953,25 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     category: "Events",
     icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
     order: 999,
-    createdAt: page.created_time,
+    createdAt: createdAt,
     lastEdited: page.last_edited_time,
     published: isEventPublished(page),
-    summary: getRichText(page, "Summary"),
+    summary:
+      getRichText(page, "Deskripsi Singkat Acara") ||
+      getRichText(page, "Summary"),
     ownerUnit,
     entryKind,
     eventDate,
     eventDateEnd,
-    location: getRichText(page, "Lokasi") || getRichText(page, "Location"),
+    location:
+      getRichText(page, "Lokasi Acara") ||
+      getRichText(page, "Lokasi") ||
+      getRichText(page, "Location"),
     registrationLink: getUrl(page, "Registration Link"),
     sourceLink,
     sourceName,
     isRepost,
-    coverImageUrl: getCoverUrl(page),
+    coverImageUrl: getFiles(page, "Gambar")[0] || getCoverUrl(page),
     lifecycle,
   };
 }
@@ -1042,6 +1067,51 @@ export const fetchKaryaEntries = unstable_cache(
   { revalidate: 60, tags: ["notion-karya"] },
 );
 
+export async function fetchAgendaDatabaseId(pageId: string): Promise<string> {
+  if (!pageId)
+    return (
+      process.env.NOTION_AGENDA_DATABASE_ID ??
+      process.env.NOTION_EVENTS_DATABASE_ID ??
+      "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
+    );
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchAgendaDatabaseId] Failed to fetch page child databases",
+      error,
+    );
+  }
+  return (
+    process.env.NOTION_AGENDA_DATABASE_ID ??
+    process.env.NOTION_EVENTS_DATABASE_ID ??
+    "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
+  );
+}
+
+export const fetchAgendaDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchAgendaDatabaseId(pageId);
+  },
+  ["notion-agenda-database-id"],
+  { revalidate: 60, tags: ["notion-agenda"] },
+);
+
+async function getActiveAgendaDbId(): Promise<string> {
+  const pageId = process.env.NOTION_AGENDA_PAGE_ID;
+  if (pageId) {
+    return await fetchAgendaDatabaseIdCached(pageId);
+  }
+  return (
+    process.env.NOTION_AGENDA_DATABASE_ID ??
+    process.env.NOTION_EVENTS_DATABASE_ID ??
+    "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
+  );
+}
+
 export const fetchEventsCollection = unstable_cache(
   async (): Promise<EventsCollection> => {
     const emptyCollection: EventsCollection = {
@@ -1051,14 +1121,15 @@ export const fetchEventsCollection = unstable_cache(
       announcements: [],
     };
 
-    if (!AGENDA_DB_ID) return emptyCollection;
+    const activeDbId = await getActiveAgendaDbId();
+    if (!activeDbId) return emptyCollection;
 
     const today = getTodayInJakarta();
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(AGENDA_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
       if (!dataSourceId) return emptyCollection;
 
       do {
@@ -1120,8 +1191,10 @@ export const fetchAllEventEntries = unstable_cache(
 export const fetchEventBySlug = cache(
   async (
     slug: string,
+    options?: { allowPreview?: boolean },
   ): Promise<{ meta: EventEntryMeta; blocks: NotionBlock[] } | null> => {
-    if (!AGENDA_DB_ID) return null;
+    const activeDbId = await getActiveAgendaDbId();
+    if (!activeDbId) return null;
 
     const normalizedSlug = slug.trim().toLowerCase();
     const today = getTodayInJakarta();
@@ -1130,7 +1203,7 @@ export const fetchEventBySlug = cache(
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(AGENDA_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
       if (!dataSourceId) return null;
 
       do {
@@ -1141,11 +1214,23 @@ export const fetchEventBySlug = cache(
 
         const page = (response.results as NotionPage[]).find((entry) => {
           const title =
+            getTitleProperty(entry, "Nama Acara") ||
             getTitleProperty(entry, "Judul Tayangan") ||
             getTitleProperty(entry, "Name") ||
             getTitle(entry);
-          const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
-          return entrySlug === normalizedSlug && isEventPublished(entry);
+          const entrySlug = (
+            getRichText(entry, "Request Slug Khusus") ||
+            getSlugValue(entry, title)
+          )
+            .trim()
+            .toLowerCase();
+
+          const isPublished = isEventPublished(entry);
+          const isPreviewable = options?.allowPreview
+            ? isEventPreviewable(entry)
+            : false;
+
+          return entrySlug === normalizedSlug && (isPublished || isPreviewable);
         });
 
         if (page) {
@@ -1177,13 +1262,14 @@ export const fetchEventBySlug = cache(
 export async function fetchEventCoverUrlBySlug(
   slug: string,
 ): Promise<string | null> {
-  if (!AGENDA_DB_ID) return null;
+  const activeDbId = await getActiveAgendaDbId();
+  if (!activeDbId) return null;
 
   const normalizedSlug = slug.trim().toLowerCase();
   let cursor: string | undefined;
 
   try {
-    const dataSourceId = await resolveDataSourceIdSafe(AGENDA_DB_ID);
+    const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
     if (!dataSourceId) return null;
 
     do {
@@ -1194,15 +1280,21 @@ export async function fetchEventCoverUrlBySlug(
 
       const page = (response.results as NotionPage[]).find((entry) => {
         const title =
+          getTitleProperty(entry, "Nama Acara") ||
           getTitleProperty(entry, "Judul Tayangan") ||
           getTitleProperty(entry, "Name") ||
           getTitle(entry);
-        const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
+        const entrySlug = (
+          getRichText(entry, "Request Slug Khusus") ||
+          getSlugValue(entry, title)
+        )
+          .trim()
+          .toLowerCase();
         return entrySlug === normalizedSlug && isEventPublished(entry);
       });
 
       if (page) {
-        return getCoverUrl(page);
+        return getFiles(page, "Gambar")[0] || getCoverUrl(page);
       }
 
       cursor = response.has_more

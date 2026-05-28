@@ -1,35 +1,29 @@
 import { notFound } from "next/navigation";
 
-import {
-  fetchAllEventEntries,
-  fetchEventBySlug,
-  fetchKKMGroups,
-} from "@/lib/notion";
+import { fetchEventBySlug, fetchKKMGroups } from "@/lib/notion";
 import EventDetailView from "@/views/EventDetail";
 
-export const revalidate = 60;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function generateStaticParams() {
-  const entries = await fetchAllEventEntries();
-  return entries
-    .filter((entry) => entry.isRepost)
-    .map((entry) => ({ slug: entry.slug }));
-}
-
-type RepostEntryPageProps = {
+type EventPreviewPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function RepostEntryPage({
+export default async function AgendaPreviewPage({
   params,
-}: RepostEntryPageProps) {
+}: EventPreviewPageProps) {
   const { slug } = await params;
   const [result, kkmGroups] = await Promise.all([
-    fetchEventBySlug(slug),
+    fetchEventBySlug(slug, { allowPreview: true }),
     fetchKKMGroups(),
   ]);
 
-  if (!result || !result.meta.isRepost) {
+  if (!result) {
+    notFound();
+  }
+
+  if (result.meta.isRepost) {
     notFound();
   }
 
@@ -57,10 +51,17 @@ export default async function RepostEntryPage({
   const kkmHref = matchedGroup ? `/kkm/${matchedGroup.slug}` : undefined;
 
   return (
-    <EventDetailView
-      meta={result.meta}
-      blocks={result.blocks}
-      kkmHref={kkmHref}
-    />
+    <div className="relative">
+      {/* Premium Preview Alert Banner */}
+      <div className="border-gold-500/20 text-gold-300 sticky top-0 z-50 border-b bg-black/80 py-3 text-center text-xs font-semibold tracking-[0.2em] uppercase backdrop-blur-md">
+        ⚠️ Mode Preview: Halaman ini hanya untuk tinjauan internal KKM /
+        Pengurus HIMA
+      </div>
+      <EventDetailView
+        meta={result.meta}
+        blocks={result.blocks}
+        kkmHref={kkmHref}
+      />
+    </div>
   );
 }
