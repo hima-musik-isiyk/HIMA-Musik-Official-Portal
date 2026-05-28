@@ -101,6 +101,7 @@ export interface KaryaEntryMeta {
   embedUrl: string;
   artworkUrl: string | null;
   nim: number;
+  email: string;
   submissionDate: string;
   lastEdited: string;
 }
@@ -1191,13 +1192,19 @@ export const fetchKaryaEntries = unstable_cache(
     const parsedEntries = await Promise.all(
       filteredPages.map(async (page) => {
         const title =
-          getTitleProperty(page, "Judul Karya / Tayangan") || getTitle(page);
+          getTitleProperty(page, "Band/Artist dan Judul Karya / Tayangan") ||
+          getTitleProperty(page, "Judul Karya / Tayangan") ||
+          getTitle(page);
         const slug = getSlugValue(page, title);
         const creator = getRichText(page, "Pencipta / Penampil");
         const genres = getMultiSelect(page, "Genre / Jenis Karya");
         const platforms = getMultiSelect(page, "Platform Utama");
         const embedLink = getUrl(page, "Link Embed Utama (Full URL)");
         const nim = getNumber(page, "NIM Penanggung Jawab");
+
+        const emailProp = page.properties["Email"];
+        const email =
+          emailProp?.type === "email" && emailProp.email ? emailProp.email : "";
 
         const submissionTimeProp = page.properties["Submission time"];
         const submissionDate =
@@ -1220,6 +1227,7 @@ export const fetchKaryaEntries = unstable_cache(
           embedUrl: media.embedUrl,
           artworkUrl: media.artworkUrl,
           nim,
+          email,
           submissionDate,
           lastEdited: page.last_edited_time,
         };

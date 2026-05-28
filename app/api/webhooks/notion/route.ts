@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { generateKaryaEmailTemplate, sendBrevoEmail } from "@/lib/brevo";
 import { inferScopes, revalidateScope } from "@/lib/notion-revalidate-helper";
 import {
   handleNotionRoomWebhook,
@@ -68,7 +69,7 @@ function extractPropertyValue(prop: any): any {
 export async function POST(request: Request) {
   const clonedRequest = request.clone();
 
-  // Read request body to determine if this is an Agenda database webhook submission
+  // Read request body to determine if this is a database webhook submission
   let body: any;
   try {
     body = await clonedRequest.json();
@@ -80,10 +81,162 @@ export async function POST(request: Request) {
     );
   }
 
-  // Intercept the request if it is an Agenda database submission.
-  // We can look for common properties of the Agenda form database inside page properties
   const props = body.data?.properties || body.properties || body;
 
+  // Intercept if it is a Karya database submission
+  const hasKaryaProps =
+    props &&
+    (props["Band/Artist dan Judul Karya / Tayangan"] ||
+      props.BandArtistDanJudulKaryaTayangan ||
+      props["Pencipta / Penampil"] ||
+      props.PenciptaPenampil ||
+      props["Link Embed Utama (Full URL)"] ||
+      props.LinkEmbedUtamaFullURL);
+
+  if (hasKaryaProps) {
+    console.warn(
+      "Karya form webhook submission detected. Processing notification and email...",
+    );
+
+    const title = extractPropertyValue(
+      props["Band/Artist dan Judul Karya / Tayangan"] ||
+        props.BandArtistDanJudulKaryaTayangan ||
+        "—",
+    );
+    const creator = extractPropertyValue(
+      props["Pencipta / Penampil"] || props.PenciptaPenampil || "—",
+    );
+    const nim = extractPropertyValue(
+      props["NIM Penanggung Jawab"] || props.NIMPenanggungJawab || "—",
+    );
+    const rawPlatforms = extractPropertyValue(
+      props["Platform Utama"] || props.PlatformUtama || [],
+    );
+    const platform = Array.isArray(rawPlatforms)
+      ? rawPlatforms.join(", ")
+      : rawPlatforms || "—";
+    const rawGenres = extractPropertyValue(
+      props["Genre / Jenis Karya"] || props.GenreJenisKarya || [],
+    );
+    const genres = Array.isArray(rawGenres)
+      ? rawGenres.join(", ")
+      : rawGenres || "—";
+    const embedLink = extractPropertyValue(
+      props["Link Embed Utama (Full URL)"] ||
+        props.LinkEmbedUtamaFullURL ||
+        "—",
+    );
+    const email = extractPropertyValue(props["Email"] || props.Email || "");
+    const status = extractPropertyValue(props["Status"] || "—");
+    const respondent = extractPropertyValue(props["Respondent"] || "—");
+
+    const submissionTimeProp =
+      props["Submission time"] || props.SubmissionTime || props.submission_time;
+    const submissionTime = submissionTimeProp
+      ? extractPropertyValue(submissionTimeProp)
+      : new Date().toISOString();
+
+    // 1. Send Discord Notification if configured
+    const discordWebhookUrl = process.env.DISCORD_KARYA_WEBHOOK_URL;
+    if (discordWebhookUrl) {
+      const embed: any = {
+        title: `🎨 Karya Baru Diajukan: ${title}`,
+        color: 0x3b82f6,
+        fields: [
+          {
+            name: "👤 Pencipta / Penampil",
+            value: creator || "—",
+            inline: true,
+          },
+          {
+            name: "🎓 NIM Penanggung Jawab",
+            value: String(nim) || "—",
+            inline: true,
+          },
+          { name: "📧 Email", value: email || "—", inline: true },
+          { name: "🎵 Platform Utama", value: platform || "—", inline: true },
+          {
+            name: "🎨 Genre / Jenis Karya",
+            value: genres || "—",
+            inline: true,
+          },
+          { name: "🔗 Tautan Embed", value: embedLink || "—", inline: false },
+          { name: "📌 Status", value: status || "—", inline: true },
+          {
+            name: "🕒 Submission Time",
+            value: submissionTime || "—",
+            inline: true,
+          },
+          { name: "Respondent", value: respondent || "—", inline: true },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: "HIMA Musik Official Portal Webhook Handler",
+        },
+      };
+
+      try {
+        await fetch(discordWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            embeds: [embed],
+          }),
+        });
+        console.warn("Karya Discord notification sent successfully!");
+      } catch (discordError) {
+        console.error(
+          "Failed to send Karya notification to Discord:",
+          discordError,
+        );
+      }
+    }
+
+    // 2. Send Respondent Email Copy via Brevo
+    if (email && email.trim() !== "" && email.includes("@")) {
+      try {
+        const htmlContent = generateKaryaEmailTemplate({
+          title,
+          creator,
+          nim,
+          platform,
+          genres,
+          embedLink,
+          status,
+          submissionTime,
+        });
+
+        await sendBrevoEmail({
+          to: email,
+          subject: `Salinan Pengajuan Karya HIMA: ${title}`,
+          htmlContent,
+        });
+      } catch (emailError) {
+        console.error(
+          "Failed to send submission email copy via Brevo:",
+          emailError,
+        );
+      }
+    }
+
+    // 3. Revalidate karya cache
+    try {
+      revalidateScope("karya");
+      console.warn("[Notion Webhook] Revalidated karya for form submission.");
+    } catch (revalErr) {
+      console.error(
+        "[Notion Webhook] Failed to revalidate karya scope:",
+        revalErr,
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: "Karya submission processed successfully (Discord + Email)",
+    });
+  }
+
+  // Intercept the request if it is an Agenda database submission.
   const hasAgendaProps =
     props &&
     (props["Nama Acara"] ||

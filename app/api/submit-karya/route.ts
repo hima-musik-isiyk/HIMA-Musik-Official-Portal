@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, creator, nim, genres, platform, embedLink } = body;
+    const { title, creator, nim, genres, platform, embedLink, email } = body;
 
     // Simple validation
     if (!title || !creator || !nim || !platform || !embedLink) {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     const response = await notion.pages.create({
       parent: { database_id: activeDbId },
       properties: {
-        "Judul Karya / Tayangan": {
+        "Band/Artist dan Judul Karya / Tayangan": {
           title: [{ text: { content: title } }],
         } as any,
         Status: { status: { name: "Masuk" } } as any,
@@ -54,6 +54,9 @@ export async function POST(request: Request) {
         } as any,
         "NIM Penanggung Jawab": {
           number: parseInt(nim, 10),
+        } as any,
+        Email: {
+          email: email || "",
         } as any,
         "Genre / Jenis Karya": {
           multi_select: (genres || []).map((g: string) => ({ name: g })),

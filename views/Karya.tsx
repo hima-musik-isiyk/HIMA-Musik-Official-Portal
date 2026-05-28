@@ -271,7 +271,8 @@ export default function KaryaView({ entries }: KaryaViewProps) {
                       {entry.title}
                     </h3>
                     <p className="mb-4 text-xs font-light text-neutral-400">
-                      Oleh {entry.creator}
+                      Oleh {entry.creator}{" "}
+                      {entry.nim && entry.nim !== 999 && `(NIM: ${entry.nim})`}
                     </p>
 
                     {/* Genres list */}
