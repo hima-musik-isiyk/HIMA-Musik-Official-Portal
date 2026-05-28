@@ -5,6 +5,8 @@ import type { KKMGroup } from "@/lib/kkm-data";
 import { SEKRETARIAT_FOOTER_COPY } from "@/lib/site-copy";
 import useViewEntrance from "@/lib/useViewEntrance";
 
+const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
+
 /* ------------------------------------------------------------------ */
 /*  KKM Card                                                           */
 /* ------------------------------------------------------------------ */
@@ -12,7 +14,7 @@ import useViewEntrance from "@/lib/useViewEntrance";
 type SocialMeta = {
   href: string;
   label: string;
-  platform: "instagram" | "tiktok" | "link";
+  platform: "instagram" | "tiktok" | "youtube" | "link";
 };
 
 function getHostname(link: string): string {
@@ -51,6 +53,14 @@ function getSocialMeta(link: string): SocialMeta {
     };
   }
 
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
+    return {
+      href: link,
+      label: getPathLabel(link),
+      platform: "youtube",
+    };
+  }
+
   return {
     href: link,
     label: hostname || "External Link",
@@ -61,16 +71,35 @@ function getSocialMeta(link: string): SocialMeta {
 function SocialIcon({ platform }: { platform: SocialMeta["platform"] }) {
   if (platform === "instagram") {
     return (
-      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
+        <path
+          fill="currentColor"
+          fillRule="evenodd"
+          d="M7.465 1.066C8.638 1.012 9.012 1 12 1s3.362.013 4.534.066s1.972.24 2.672.511c.733.277 1.398.71 1.948 1.27c.56.549.992 1.213 1.268 1.947c.272.7.458 1.5.512 2.67C22.988 8.639 23 9.013 23 12s-.013 3.362-.066 4.535c-.053 1.17-.24 1.97-.512 2.67a5.4 5.4 0 0 1-1.268 1.949c-.55.56-1.215.992-1.948 1.268c-.7.272-1.5.458-2.67.512c-1.174.054-1.548.066-4.536.066s-3.362-.013-4.535-.066c-1.17-.053-1.97-.24-2.67-.512a5.4 5.4 0 0 1-1.949-1.268a5.4 5.4 0 0 1-1.269-1.948c-.271-.7-.457-1.5-.511-2.67C1.012 15.361 1 14.987 1 12s.013-3.362.066-4.534s.24-1.972.511-2.672a5.4 5.4 0 0 1 1.27-1.948a5.4 5.4 0 0 1 1.947-1.269c.7-.271 1.5-.457 2.67-.511m8.98 1.98c-1.16-.053-1.508-.064-4.445-.064s-3.285.011-4.445.064c-1.073.049-1.655.228-2.043.379c-.513.2-.88.437-1.265.822a3.4 3.4 0 0 0-.822 1.265c-.151.388-.33.97-.379 2.043c-.053 1.16-.064 1.508-.064 4.445s.011 3.285.064 4.445c.049 1.073.228 1.655.379 2.043c.176.477.457.91.822 1.265c.355.365.788.646 1.265.822c.388.151.97.33 2.043.379c1.16.053 1.507.064 4.445.064s3.285-.011 4.445-.064c1.073-.049 1.655-.228 2.043-.379c.513-.2.88-.437 1.265-.822c.365-.355.646-.788.822-1.265c.151-.388.33-.97.379-2.043c.053-1.16.064-1.508.064-4.445s-.011-3.285-.064-4.445c-.049-1.073-.228-1.655-.379-2.043c-.2-.513-.437-.88-.822-1.265a3.4 3.4 0 0 0-1.265-.822c-.388-.151-.97-.33-2.043-.379m-5.85 12.345a3.669 3.669 0 0 0 4-5.986a3.67 3.67 0 1 0-4 5.986M8.002 8.002a5.654 5.654 0 1 1 7.996 7.996a5.654 5.654 0 0 1-7.996-7.996m10.906-.814a1.337 1.337 0 1 0-1.89-1.89a1.337 1.337 0 0 0 1.89 1.89"
+          clipRule="evenodd"
+        />
       </svg>
     );
   }
 
   if (platform === "tiktok") {
     return (
-      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M16.6 5.82A4.83 4.83 0 0 0 19.43 7v3.12a7.94 7.94 0 0 1-2.83-.52v6.18a5.78 5.78 0 1 1-5.78-5.78c.2 0 .39.01.58.03v3.2a2.6 2.6 0 1 0 2.02 2.55V2h3.18c.03 1.42.58 2.78 1.6 3.82Z" />
+      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
+        <path
+          fill="currentColor"
+          d="M19.321 5.562a5 5 0 0 1-.443-.258a6.2 6.2 0 0 1-1.137-.966c-.849-.971-1.166-1.956-1.282-2.645h.004c-.097-.573-.057-.943-.05-.943h-3.865v14.943q.002.3-.008.595l-.004.073q0 .016-.003.033v.009a3.28 3.28 0 0 1-1.65 2.604a3.2 3.2 0 0 1-1.6.422c-1.8 0-3.26-1.468-3.26-3.281s1.46-3.282 3.26-3.282c.341 0 .68.054 1.004.16l.005-3.936a7.18 7.18 0 0 0-5.532 1.62a7.6 7.6 0 0 0-1.655 2.04c-.163.281-.779 1.412-.853 3.246c-.047 1.04.266 2.12.415 2.565v.01c.093.262.457 1.158 1.049 1.913a7.9 7.9 0 0 0 1.674 1.58v-.01l.009.01c1.87 1.27 3.945 1.187 3.945 1.187c.359-.015 1.562 0 2.928-.647c1.515-.718 2.377-1.787 2.377-1.787a7.4 7.4 0 0 0 1.296-2.153c.35-.92.466-2.022.466-2.462V8.273c.047.028.672.441.672.441s.9.577 2.303.952c1.006.267 2.363.324 2.363.324V6.153c-.475.052-1.44-.098-2.429-.59"
+        />
+      </svg>
+    );
+  }
+
+  if (platform === "youtube") {
+    return (
+      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
+        <path
+          fill="currentColor"
+          d="M12.006 19.012h-.02c-.062 0-6.265-.012-7.83-.437a2.5 2.5 0 0 1-1.764-1.765A26.494 26.494 0 0 1 1.986 12a26.646 26.646 0 0 1 .417-4.817A2.564 2.564 0 0 1 4.169 5.4c1.522-.4 7.554-.4 7.81-.4H12c.063 0 6.282.012 7.831.437c.859.233 1.53.904 1.762 1.763c.29 1.594.427 3.211.407 4.831a26.568 26.568 0 0 1-.418 4.811a2.51 2.51 0 0 1-1.767 1.763c-1.52.403-7.553.407-7.809.407Zm-2-10.007l-.005 6l5.212-3l-5.207-3Z"
+        />
       </svg>
     );
   }
@@ -91,32 +120,46 @@ function SocialIcon({ platform }: { platform: SocialMeta["platform"] }) {
 function KKMCard({ group }: { group: KKMGroup }) {
   return (
     <div
-      className="group relative flex flex-col border border-white/5 p-7 transition-colors duration-500 hover:bg-stone-900/10"
+      className="group relative flex flex-col overflow-hidden rounded-[var(--radius-action)] border border-white/5 p-7 transition-colors duration-500 hover:bg-stone-900/10"
+      style={ACTION_RADIUS}
       data-animate="up"
       data-animate-duration="0.82"
     >
       <Link
         href={`/kkm/${group.slug}`}
         aria-label={`Buka ${group.name}`}
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-10"
       />
 
-      <div className="relative z-10 mb-6">
-        <h2 className="group-hover:text-gold-400 font-serif text-xl text-white transition-colors md:text-2xl">
-          {group.name}
-        </h2>
+      <div className="relative z-0 mb-8 flex flex-1 items-start gap-5">
+        {group.logoUrl && (
+          <div className="shrink-0">
+            <img
+              src={group.logoUrl}
+              alt={`${group.name} logo`}
+              className="h-14 w-14 rounded-lg border border-white/10 object-cover"
+            />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="mb-4">
+            <h2 className="group-hover:text-gold-400 font-serif text-xl text-white transition-colors md:text-2xl">
+              {group.name}
+            </h2>
+          </div>
+
+          {group.tagline && (
+            <p className="text-gold-500/80 mb-3 text-xs font-medium tracking-wide italic">
+              &ldquo;{group.tagline}&rdquo;
+            </p>
+          )}
+
+          {/* Description */}
+          <p className="text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
+            {group.description}
+          </p>
+        </div>
       </div>
-
-      {group.tagline && (
-        <p className="text-gold-500/80 relative z-10 mb-4 text-xs font-medium tracking-wide italic">
-          &ldquo;{group.tagline}&rdquo;
-        </p>
-      )}
-
-      {/* Description */}
-      <p className="relative z-10 mb-8 flex-1 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
-        {group.description}
-      </p>
 
       {/* Footer: Social + Established */}
       <div className="relative z-10 mt-auto border-t border-white/5 pt-5">
@@ -153,8 +196,36 @@ function KKMCard({ group }: { group: KKMGroup }) {
 /*  Main View                                                          */
 /* ------------------------------------------------------------------ */
 
-export default function KKMPortalView({ groups }: { groups: KKMGroup[] }) {
+export default function KKMPortalView({
+  hero,
+  groups,
+}: {
+  hero?: { title: string; description: string };
+  groups: KKMGroup[];
+}) {
   const scopeRef = useViewEntrance("/kkm");
+
+  const displayTitle = hero?.title || "KKM HIMA MUSIK";
+  const displayDesc =
+    hero?.description ||
+    "Delapan komunitas kreatif di bawah naungan HIMA MUSIK ISI Yogyakarta. Temukan keluarga bermusikmu, kembangkan potensi, dan ciptakan karya bersama.";
+
+  let mainTitle = "KKM";
+  let lastTitle = "HIMA MUSIK";
+
+  if (displayTitle.toLowerCase().includes("hima musik")) {
+    mainTitle = displayTitle.replace(/hima musik/i, "").trim() || "KKM";
+    lastTitle = "HIMA MUSIK";
+  } else {
+    const titleParts = displayTitle.split(" ");
+    if (titleParts.length > 1) {
+      mainTitle = titleParts.slice(0, -1).join(" ");
+      lastTitle = titleParts[titleParts.length - 1];
+    } else {
+      mainTitle = displayTitle;
+      lastTitle = "";
+    }
+  }
 
   return (
     <div
@@ -176,17 +247,19 @@ export default function KKMPortalView({ groups }: { groups: KKMGroup[] }) {
           data-animate="up"
           className="font-serif text-5xl leading-tight font-normal text-white md:text-7xl"
         >
-          KKM{" "}
-          <span className="font-light text-stone-500 italic">HIMA MUSIK</span>
+          {mainTitle}{" "}
+          {lastTitle && (
+            <span className="font-light text-stone-500 italic">
+              {lastTitle}
+            </span>
+          )}
         </h1>
         <p
           data-animate="up"
           data-animate-delay="0.08"
           className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-400"
         >
-          Delapan komunitas kreatif di bawah naungan HIMA MUSIK ISI Yogyakarta.
-          Temukan keluarga bermusikmu, kembangkan potensi, dan ciptakan karya
-          bersama.
+          {displayDesc}
         </p>
       </div>
 

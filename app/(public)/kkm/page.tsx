@@ -1,10 +1,11 @@
 import React from "react";
 
-import { fetchKKMGroups } from "@/lib/notion";
+import { fetchKKMModularDataCached } from "@/lib/notion";
 import KKMPortalView from "@/views/KKMPortal";
 
 export default async function KKMPage() {
-  const groups = await fetchKKMGroups();
+  const pageId = process.env.NOTION_KKM_PAGE_ID || "";
+  const data = await fetchKKMModularDataCached(pageId);
 
-  return <KKMPortalView groups={groups} />;
+  return <KKMPortalView hero={data.hero} groups={data.groups} />;
 }

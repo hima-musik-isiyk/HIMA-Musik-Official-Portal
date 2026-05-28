@@ -468,8 +468,53 @@ export async function resolveDataSourceIdSafe(
   }
 }
 
+interface PageDatabases {
+  childDatabases: string[];
+  mentionedDatabases: string[];
+}
+
+export async function fetchPageDatabases(
+  pageId: string,
+): Promise<PageDatabases> {
+  const result: PageDatabases = {
+    childDatabases: [],
+    mentionedDatabases: [],
+  };
+
+  if (!pageId) return result;
+
+  try {
+    const response = await getNotionClient().blocks.children.list({
+      block_id: normalizeNotionId(pageId),
+    });
+
+    for (const block of response.results as any[]) {
+      if (block.type === "child_database") {
+        result.childDatabases.push(block.id);
+      } else {
+        const blockContent = (block as any)[block.type];
+        if (blockContent && Array.isArray(blockContent.rich_text)) {
+          for (const rt of blockContent.rich_text) {
+            if (rt.type === "mention" && rt.mention?.type === "database") {
+              result.mentionedDatabases.push(rt.mention.database.id);
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[Notion fetchPageDatabases] Failed for page ${pageId}:`,
+      error,
+    );
+  }
+
+  return result;
+}
+
 const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
 const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
+const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
 const AGENDA_DB_ID =
   process.env.NOTION_AGENDA_DATABASE_ID ??
@@ -555,15 +600,45 @@ export const fetchAllDocs = unstable_cache(
 /*  KKM database queries                                               */
 /* ------------------------------------------------------------------ */
 
+export async function fetchKKMDatabaseId(pageId: string): Promise<string> {
+  if (!pageId) return KKM_DB_ID;
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 2) {
+      return dbs.childDatabases[1];
+    } else if (dbs.childDatabases.length > 0) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchKKMDatabaseId] Could not fetch page children blocks, falling back to KKM_DB_ID",
+      error,
+    );
+  }
+  return KKM_DB_ID;
+}
+
+export const fetchKKMDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchKKMDatabaseId(pageId);
+  },
+  ["notion-kkm-database-id"],
+  { revalidate: 60, tags: ["notion-kkm"] },
+);
+
 export const fetchKKMGroups = unstable_cache(
   async (): Promise<KKMGroup[]> => {
-    if (!KKM_DB_ID) return [];
+    const activeDbId = KKM_PAGE_ID
+      ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
+      : KKM_DB_ID;
+
+    if (!activeDbId) return [];
 
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
       if (!dataSourceId) return [];
 
       do {
@@ -586,8 +661,8 @@ export const fetchKKMGroups = unstable_cache(
 
     for (const page of results) {
       const name = (
-        getTitleProperty(page, "Nama Unit KKM") ||
         getTitleProperty(page, "Name") ||
+        getTitleProperty(page, "Nama Unit KKM") ||
         getTitle(page)
       ).trim();
       if (!name) {
@@ -597,26 +672,36 @@ export const fetchKKMGroups = unstable_cache(
       const status = getStatus(page, "Status Konten CMS");
       if (status && status !== "Live") continue;
 
-      const genres = getMultiSelect(page, "Genre / Fokus Musik");
-      const tagline = getRichText(page, "Jargon") || genres.join(", ");
-      const description =
-        getRichText(page, "Deskripsi Singkat") ||
-        `${name} adalah KKM HIMA Musik dengan fokus genre: ${genres.join(", ")}.`;
+      const tagline = getRichText(page, "Jargon") || "";
+      const description = getRichText(page, "Deskripsi Singkat") || "";
 
-      const contacts =
-        getRichText(page, "Kontak Unit") ||
-        getRichText(page, "Link Sosmed") ||
-        getUrl(page, "Link Sosmed");
-      const socialLinks = contacts
-        .split(/\r?\n/)
-        .map((item) => item.trim())
-        .filter(Boolean);
+      const logoUrl = getFiles(page, "Logo")[0] || null;
+      const instagram = getUrl(page, "Instagram") || "";
+      const tiktok = getUrl(page, "TikTok") || "";
+      const youtube = getUrl(page, "YouTube") || "";
+
+      let socialLinks = [instagram, tiktok, youtube].filter(Boolean);
+      if (socialLinks.length === 0) {
+        const contacts =
+          getRichText(page, "Kontak Unit") ||
+          getRichText(page, "Link Sosmed") ||
+          getUrl(page, "Link Sosmed");
+        socialLinks = contacts
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
 
       const group = {
+        id: page.id,
         slug: getRichText(page, "Slug") || slugify(name),
         name,
         tagline,
         description,
+        logoUrl,
+        instagram,
+        tiktok,
+        youtube,
         socialLinks,
       };
 
@@ -641,18 +726,106 @@ export const fetchKKMGroups = unstable_cache(
   { revalidate: 60, tags: ["notion-kkm"] },
 );
 
+export interface KKMHeroData {
+  title: string;
+  description: string;
+}
+
+export interface KKMModularData {
+  hero: KKMHeroData;
+  groups: KKMGroup[];
+}
+
+export async function fetchKKMModularData(
+  pageId: string,
+): Promise<KKMModularData> {
+  const data: KKMModularData = {
+    hero: {
+      title: "KKM HIMA MUSIK",
+      description:
+        "Delapan komunitas kreatif di bawah naungan HIMA MUSIK ISI Yogyakarta. Temukan keluarga bermusikmu, kembangkan potensi, dan ciptakan karya bersama.",
+    },
+    groups: [],
+  };
+
+  if (!pageId) {
+    data.groups = await fetchKKMGroups();
+    return data;
+  }
+
+  let foundHeroDbId = "";
+
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 2) {
+      foundHeroDbId = dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchKKMModularData] Could not fetch page children blocks",
+      error,
+    );
+  }
+
+  // 1. Fetch KKM: Hero Section if found
+  if (foundHeroDbId) {
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(foundHeroDbId);
+      if (dataSourceId) {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+        });
+
+        for (const page of response.results) {
+          const name = (getTitleProperty(page, "Name") || getTitle(page))
+            .trim()
+            .toLowerCase();
+          const value = getRichText(page, "Value");
+          if (name.includes("title")) {
+            data.hero.title = value;
+          } else if (name.includes("desc")) {
+            data.hero.description = value;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "[Notion fetchKKMModularData] Failed to fetch KKM Hero Section, using default",
+        error,
+      );
+    }
+  }
+
+  // 2. Fetch KKM Groups
+  data.groups = await fetchKKMGroups();
+
+  return data;
+}
+
+export const fetchKKMModularDataCached = unstable_cache(
+  async (pageId: string): Promise<KKMModularData> => {
+    return fetchKKMModularData(pageId);
+  },
+  ["notion-kkm-modular-data"],
+  { revalidate: 60, tags: ["notion-kkm"] },
+);
+
 export const fetchKKMEntryBySlug = cache(
   async (
     slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    if (!KKM_DB_ID) return null;
+    const activeDbId = KKM_PAGE_ID
+      ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
+      : KKM_DB_ID;
+
+    if (!activeDbId) return null;
 
     const normalizedSlug = slug.trim().toLowerCase();
     let matchedPage: NotionPage | undefined;
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
       if (!dataSourceId) return null;
 
       do {
@@ -663,8 +836,8 @@ export const fetchKKMEntryBySlug = cache(
 
         const page = (response.results as NotionPage[]).find((entry) => {
           const name = (
-            getTitleProperty(entry, "Nama Unit KKM") ||
             getTitleProperty(entry, "Name") ||
+            getTitleProperty(entry, "Nama Unit KKM") ||
             getTitle(entry)
           ).trim();
           const entrySlug = (getRichText(entry, "Slug") || slugify(name))
@@ -690,8 +863,8 @@ export const fetchKKMEntryBySlug = cache(
     if (!matchedPage) return null;
 
     const name = (
-      getTitleProperty(matchedPage, "Nama Unit KKM") ||
       getTitleProperty(matchedPage, "Name") ||
+      getTitleProperty(matchedPage, "Nama Unit KKM") ||
       getTitle(matchedPage)
     ).trim();
     const entrySlug = (
@@ -1526,19 +1699,12 @@ export async function fetchBerandaModularData(
   let foundJelajahiDbId = "36e3b26d-c3be-802c-91ac-e5ed573d89f6";
 
   try {
-    const response = await getNotionClient().blocks.children.list({
-      block_id: normalizeNotionId(pageId),
-    });
-
-    for (const block of response.results as any[]) {
-      if (block.type === "child_database") {
-        const title = block.child_database?.title || "";
-        if (title.toLowerCase().includes("hero")) {
-          foundHeroDbId = block.id;
-        } else if (title.toLowerCase().includes("jelajahi")) {
-          foundJelajahiDbId = block.id;
-        }
-      }
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      foundHeroDbId = dbs.childDatabases[0];
+    }
+    if (dbs.childDatabases.length >= 2) {
+      foundJelajahiDbId = dbs.childDatabases[1];
     }
   } catch (error) {
     console.warn(
@@ -1606,33 +1772,15 @@ export async function fetchProfilModularData(
   let foundSdmDbId = "";
 
   try {
-    const response = await getNotionClient().blocks.children.list({
-      block_id: normalizeNotionId(pageId),
-    });
-
-    for (const block of response.results as any[]) {
-      if (block.type === "child_database") {
-        const title = block.child_database?.title || "";
-        if (
-          title.toLowerCase().includes("profil") ||
-          title.toLowerCase().includes("organisasi")
-        ) {
-          foundSectionDbId = block.id;
-        } else if (
-          title.toLowerCase().includes("struktur") ||
-          title.toLowerCase().includes("kabinet")
-        ) {
-          foundKabinetDbId = block.id;
-        }
-      } else if (block.type === "paragraph") {
-        const richText = block.paragraph?.rich_text || [];
-        for (const rt of richText) {
-          if (rt.type === "mention" && rt.mention?.type === "database") {
-            foundSdmDbId = rt.mention.database.id;
-            break;
-          }
-        }
-      }
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      foundSectionDbId = dbs.childDatabases[0];
+    }
+    if (dbs.childDatabases.length >= 2) {
+      foundKabinetDbId = dbs.childDatabases[1];
+    }
+    if (dbs.mentionedDatabases.length >= 1) {
+      foundSdmDbId = dbs.mentionedDatabases[0];
     }
   } catch (error) {
     console.warn(

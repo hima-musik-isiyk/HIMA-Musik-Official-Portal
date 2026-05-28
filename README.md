@@ -72,10 +72,11 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-    # Notion Database & Page IDs (5 Database CMS Final + 2 Page IDs)
-    NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
-    NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
-    NOTION_KKM_DATABASE_ID=your_kkm_database_id
+   # Notion Database & Page IDs (4 Database CMS Final + 3 Page IDs)
+   NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
+   NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
+   NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
+   NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
    NOTION_EVENTS_DATABASE_ID=your_events_database_id
    NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
@@ -144,7 +145,10 @@ The HIMA Musik portal features a dynamic Content Management System backed by **6
 
 ### 1. Halaman Beranda Modular (`NOTION_BERANDA_PAGE_ID`)
 
-Halaman utama Beranda dikelola secara modular melalui satu parent Notion Page ID yang menampung beberapa child databases di bawahnya. Sistem mendeteksi database-database ini secara dinamis melalui block children API dan memproses kontennya:
+Halaman utama Beranda dikelola secara modular melalui satu parent Notion Page ID yang menampung beberapa child databases di bawahnya. Sistem mendeteksi database-database ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
+
+- **Database Pertama (Indeks 0)** bertindak sebagai **Hero Section**
+- **Database Kedua (Indeks 1)** bertindak sebagai **Jelajahi**
 
 #### A. Database Hero Section (`t="Hero Section"`)
 
@@ -168,7 +172,11 @@ Pintasan navigasi cepat menuju fitur-fitur portal HIMA Musik dengan grid respons
 
 ### 2. Halaman Profil Modular (`NOTION_PROFIL_PAGE_ID`)
 
-Halaman Profil diakses melalui satu parent Notion Page ID yang menampung sub-databases dan mention database. Sistem mendeteksi elemen-elemen ini secara dinamis melalui block children API:
+Halaman Profil diakses melalui satu parent Notion Page ID yang menampung sub-databases dan mention database. Sistem mendeteksi elemen-elemen ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
+
+- **Database Pertama (Indeks 0)** bertindak sebagai **Profil Organisasi Section**
+- **Database Kedua (Indeks 1)** bertindak sebagai **Struktur Kabinet**
+- **Database Mention Pertama** bertindak sebagai **SDM & Evaluasi**
 
 #### A. Database Profil Organisasi Section (`t="Profil Organisasi Section"`)
 
@@ -202,17 +210,32 @@ Untuk menghadirkan pengalaman visual yang premium dan interaktif pada bagian Div
 - **Anchor "Terbuka" & Animasi Teks Berputar:** Ketika kursor diarahkan ke kartu divisi (hover), tulisan status lowongan berubah secara dinamis dengan efek transisi mewah. Kata `"Terbuka"` bertindak sebagai anchor statis di sebelah kiri, diikuti oleh badge/pill berwarna emas premium (`bg-gold-500/20`) yang memutar daftar posisi secara bergantian (misal: `Terbuka [Staf Acara]`, `Terbuka [Koordinator Event]`). Ketika idle (tidak dihover), badge tersebut kembali ke tulisan statis `"{slots} posisi terbuka"`.
 - **Symmetric OrgChart & Smart Layout Control:** Menampilkan struktur BPH secara proporsional. BPH Batch 2 (seperti Co-Sekretaris atau Co-Bendahara) disembunyikan secara dinamis beserta garis penghubungnya jika melebihi batas batch maksimum yang dikonfigurasi di Notion, tanpa membuat kartu BPH utama meregang secara vertikal.
 
-### 3. Database KKM (`NOTION_KKM_DATABASE_ID`)
+### 3. Halaman KKM Modular (`NOTION_KKM_PAGE_ID`)
 
-Direktori Kelompok Kegiatan Mahasiswa di bawah prodi musik.
+Halaman utama KKM dikelola secara modular melalui satu parent Notion Page ID yang menampung sub-databases di bawahnya. Sistem mendeteksi database-database ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
 
-- `Nama Unit KKM` (Title)
-- `ID Konten` (Unique ID)
-- `Slug` (Rich Text)
-- `Genre / Fokus Musik` (Multi-select: `Klasik`, `Jazz`, `Pop`, `Rock`, `Folk`, `Elektronik`, `Eksperimental`, `Lainnya`)
-- `Kontak Unit` (Rich Text - Instagram / WhatsApp)
-- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
-- `Integritas Riwayat` (Date)
+- **Database Pertama (Indeks 0)** bertindak sebagai **KKM: Hero Section**
+- **Database Kedua (Indeks 1)** bertindak sebagai **KKM: Page Section**
+
+#### A. Database KKM: Hero Section
+
+Konten dinamis untuk judul dan deskripsi utama halaman KKM.
+
+- `Name` (Title) - Nama elemen konfigurasi (misal: "Title", "Desc").
+- `Value` (Rich Text) - Nilai teks dari konfigurasi terkait.
+
+#### B. Database KKM: Page Section
+
+Daftar seluruh unit KKM dan informasi profilnya.
+
+- `Name` (Title) - Nama unit KKM.
+- `Slug` (Rich Text) - Slug tautan halaman (misal: "orkes-mahasiswa").
+- `Jargon` (Rich Text) - Jargon atau tagline singkat.
+- `Deskripsi Singkat` (Rich Text) - Deskripsi lengkap KKM.
+- `Logo` (Files) - Logo atau avatar resmi KKM.
+- `Instagram` (URL) - Link Instagram.
+- `TikTok` (URL) - Link TikTok.
+- `YouTube` (URL) - Link channel YouTube.
 
 ### 4. Database Agenda (`NOTION_EVENTS_DATABASE_ID`)
 
