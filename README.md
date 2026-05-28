@@ -116,7 +116,9 @@ Routes are organized into semantic **Next.js Route Groups** matching the portal'
     - `sekretariat/` – Documents, SOPs, archives, and self-service forms
   - `(internal)/` – Restricted administrator utilities (`instagram-secret-page/`, `notion-secret-page/`)
   - `(legal)/` – Regulatory pages (`data-deletion/`, `privacy-policy/`, `terms-of-service/`)
-  - `api/` – Next.js API route handlers
+  - `api/` – Next.js API route handlers:
+    - `webhook/` – Instagram webhook receiver (`GET` for hub verification, `POST` to parse events and forward embeds to Discord)
+    - `webhooks/notion/` – Notion room webhook receiver (`GET` for healthcheck, `POST` to sync collaborative rooms)
   - `layout.tsx` & `page.tsx` – Global app layout and home view entry point
 - `views/` – Page-level visual components, separating UI implementation from route declarations
 - `components/` – Reusable layout shells and shared UI blocks (Navigation, Footer, Command Palette)
