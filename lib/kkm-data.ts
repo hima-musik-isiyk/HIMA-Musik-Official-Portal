@@ -25,15 +25,6 @@ export interface KKMGroup {
    * Kept for backward-compat with KKMPortal.tsx card rendering.
    */
   socialLinks: string[];
+  /** Optional sort order from Notion */
+  order?: number;
 }
-
-export const KKM_ENTRY_ORDER = [
-  "Orkes Mahasiswa",
-  "Student Symphonic Band",
-  "Kelompok Studi Perkusi",
-  "F-Hole",
-  "Gitar Ekstra Mahasiswa",
-  "Clavier",
-  "Serenata",
-  "Aksaratala",
-] as const;

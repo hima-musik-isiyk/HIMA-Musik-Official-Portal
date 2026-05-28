@@ -230,8 +230,9 @@ Konten dinamis untuk judul dan deskripsi utama halaman KKM.
 
 Daftar seluruh unit KKM dan informasi profilnya.
 
-- `Name` (Title) - Nama unit KKM.
-- `Slug` (Rich Text) - Slug tautan halaman (misal: "orkes-mahasiswa").
+- `Name` (Title) - Nama unit KKM (misal: `"OM"`, `"Studsy"`, `"Aksaratala"`).
+- `Slug` (Rich Text) - Slug tautan halaman (misal: `"orkes-mahasiswa"`).
+- `Urutan` / `Urutan Tampil` / `Order` (Number - Optional) - Prioritas urutan KKM di halaman grid. Urutan diurutkan secara menaik (ascending). Jika dikosongkan, unit KKM akan diurutkan secara alfabetis.
 - `Jargon` (Rich Text) - Jargon atau tagline singkat.
 - `Deskripsi Singkat` (Rich Text) - Deskripsi lengkap KKM.
 - `Logo` (Files) - Logo atau avatar resmi KKM.
