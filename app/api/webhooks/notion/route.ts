@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { inferScopes, revalidateScope } from "@/lib/notion-revalidate-helper";
 import {
   handleNotionRoomWebhook,
   handleNotionRoomWebhookHealthcheck,
@@ -65,10 +66,11 @@ function extractPropertyValue(prop: any): any {
 }
 
 export async function POST(request: Request) {
+  const clonedRequest = request.clone();
+
   // Read request body to determine if this is an Agenda database webhook submission
   let body: any;
   try {
-    const clonedRequest = request.clone();
     body = await clonedRequest.json();
   } catch (error) {
     console.error("Error reading webhook body:", error);
@@ -182,6 +184,20 @@ export async function POST(request: Request) {
       }
 
       console.warn("Discord notification sent successfully!");
+
+      // Revalidate events cache on new submissions
+      try {
+        revalidateScope("events");
+        console.warn(
+          "[Notion Webhook] Revalidated agenda/events for form submission.",
+        );
+      } catch (revalErr) {
+        console.error(
+          "[Notion Webhook] Failed to revalidate agenda/events:",
+          revalErr,
+        );
+      }
+
       return NextResponse.json({
         ok: true,
         message: "Agenda submission forwarded to Discord",
@@ -196,5 +212,32 @@ export async function POST(request: Request) {
   }
 
   // Fallback to internal room sync webhooks if it's not an agenda database submission
-  return handleNotionRoomWebhook(request);
+  const roomResponse = await handleNotionRoomWebhook(request);
+
+  // Revalidate other scopes for standard CMS updates
+  try {
+    const payload = await clonedRequest.json().catch(() => null);
+    if (payload) {
+      const scopes = await inferScopes(payload);
+      if (scopes && scopes.length > 0) {
+        console.warn(
+          `[Notion CMS Webhook] Revalidating scopes: ${scopes.join(", ")}`,
+        );
+        for (const scope of scopes) {
+          try {
+            revalidateScope(scope);
+          } catch (revalError) {
+            console.error(
+              `[Notion CMS Webhook] Failed to revalidate scope ${scope}:`,
+              revalError,
+            );
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[Notion CMS Webhook] Revalidation failed:", error);
+  }
+
+  return roomResponse;
 }
