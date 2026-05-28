@@ -273,7 +273,10 @@ const FAQView: React.FC = () => {
 
   // Load FAQs from API
   const fetchFAQs = async (showLoading = true) => {
-    if (showLoading) setIsLoading(true);
+    const hasCache =
+      typeof window !== "undefined" &&
+      !!window.localStorage.getItem("hima_faqs_cache");
+    if (showLoading && !hasCache) setIsLoading(true);
     setIsSyncing(true);
     setError(null);
     try {
@@ -284,23 +287,38 @@ const FAQView: React.FC = () => {
       const result = await response.json();
       if (result.success && Array.isArray(result.data)) {
         setFaqs(result.data);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            "hima_faqs_cache",
+            JSON.stringify(result.data),
+          );
+        }
       } else {
         throw new Error(result.error || "Data tidak valid");
       }
     } catch (err) {
-      if (showLoading) {
+      if (showLoading && !hasCache) {
         setError(
           err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
         );
       }
     } finally {
-      if (showLoading) setIsLoading(false);
+      setIsLoading(false);
       setIsSyncing(false);
     }
   };
 
   // Initial Fetch & Active Browser Polling (5 Seconds)
   useEffect(() => {
+    // Try to load from localStorage cache first
+    try {
+      const cached = window.localStorage.getItem("hima_faqs_cache");
+      if (cached) {
+        setFaqs(JSON.parse(cached));
+        setIsLoading(false);
+      }
+    } catch {}
+
     fetchFAQs(true);
 
     const interval = setInterval(() => {
@@ -609,9 +627,8 @@ const FAQView: React.FC = () => {
           {/* Loading state */}
           {isLoading && (
             <div className="border-stone-850 flex flex-col items-center justify-center border border-dashed bg-stone-950/10 py-24">
-              <IconRefreshCw className="text-gold-500/60 mb-4 h-6 w-6 animate-spin" />
               <p className="font-mono text-[10px] tracking-widest text-stone-500 uppercase">
-                Menghubungkan ke Notion...
+                Memuat data...
               </p>
             </div>
           )}

@@ -375,6 +375,7 @@ To maximize loading speeds while keeping content fresh, the portal uses a hybrid
 
 - **Development Mode (`NODE_ENV === "development"`):** Cache revalidation is set to **1 second**. When editing content in Notion, simply reload the browser tab locally to view the updated content instantly.
 - **Production Mode (`NODE_ENV === "production"`):** Cache revalidation is set to **`false` (never expire by time)**. Pages are served instantly from the serverless edge cache. The system relies 100% on the automatic Notion webhook payload parser to invalidate the cache only when an actual change occurs in Notion.
+- **Client-Side SWR (Stale-While-Revalidate):** To eliminate transition delays and loading animations entirely for navbar-linked pages (Profil, KKM, Agenda, FAQ, Sekretariat), visual components implement instant client-side SWR rendering. The UI initializes from a persistent browser cache (`localStorage`) or initial server props to render immediately without visual delay. Fresh data is fetched asynchronously in a background `useEffect` from dedicated API endpoints (`/api/profil`, `/api/kkm`, `/api/agenda`, `/api/faq`, `/api/sekretariat`), updating the UI and cache silently upon resolution.
 
 #### Manual Force-Sync & Preview Action Bar
 

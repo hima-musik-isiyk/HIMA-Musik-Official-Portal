@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import React, { useEffect, useState } from "react";
 
 import type { KKMGroup } from "@/lib/kkm-data";
 import { SEKRETARIAT_FOOTER_COPY } from "@/lib/site-copy";
@@ -198,17 +199,68 @@ function KKMCard({ group }: { group: KKMGroup }) {
 
 export default function KKMPortalView({
   hero,
-  groups,
+  groups: initialGroups,
 }: {
   hero?: { title: string; description: string };
   groups: KKMGroup[];
 }) {
   const scopeRef = useViewEntrance("/kkm");
 
-  const displayTitle = hero?.title || "KKM HIMA MUSIK";
+  const [data, setData] = useState({
+    hero: hero || { title: "", description: "" },
+    groups: initialGroups || [],
+  });
+
+  useEffect(() => {
+    // Try to load from localStorage cache first to bootstrap client-side SWR
+    try {
+      const cached = window.localStorage.getItem("hima_kkm_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setData((prev) => ({
+          hero: prev.hero.title ? prev.hero : parsed.hero || prev.hero,
+          groups:
+            prev.groups && prev.groups.length > 0
+              ? prev.groups
+              : parsed.groups || [],
+        }));
+      }
+    } catch {}
+
+    const fetchKKMData = async () => {
+      try {
+        const res = await fetch("/api/kkm");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            setData(result.data);
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                "hima_kkm_cache",
+                JSON.stringify(result.data),
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh kkm data:", err);
+      }
+    };
+
+    fetchKKMData();
+
+    const interval = setInterval(() => {
+      fetchKKMData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const displayTitle = data.hero?.title || "KKM HIMA MUSIK";
   const displayDesc =
-    hero?.description ||
+    data.hero?.description ||
     "Delapan komunitas kreatif di bawah naungan HIMA MUSIK ISI Yogyakarta. Temukan keluarga bermusikmu, kembangkan potensi, dan ciptakan karya bersama.";
+  const groups = data.groups;
 
   let mainTitle = "KKM";
   let lastTitle = "HIMA MUSIK";

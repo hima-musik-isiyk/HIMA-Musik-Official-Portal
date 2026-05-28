@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { FEATURES } from "@/lib/feature-flags";
 import type { DocMeta } from "@/lib/notion";
@@ -63,7 +63,56 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-export default function DocsPortalView({ docs }: DocsPortalViewProps) {
+export default function DocsPortalView({
+  docs: initialDocs,
+}: DocsPortalViewProps) {
+  const [data, setData] = useState({
+    docs: initialDocs || [],
+  });
+
+  useEffect(() => {
+    // Try to load from localStorage cache first to bootstrap client-side SWR
+    try {
+      const cached = window.localStorage.getItem("hima_sekretariat_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setData((prev) => ({
+          docs:
+            prev.docs && prev.docs.length > 0 ? prev.docs : parsed.docs || [],
+        }));
+      }
+    } catch {}
+
+    const fetchSekretariatData = async () => {
+      try {
+        const res = await fetch("/api/sekretariat");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            setData({ docs: result.data });
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                "hima_sekretariat_cache",
+                JSON.stringify({ docs: result.data }),
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh sekretariat data:", err);
+      }
+    };
+
+    fetchSekretariatData();
+
+    const interval = setInterval(() => {
+      fetchSekretariatData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const docs = data.docs;
   const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
   const scopeRef = useViewEntrance("/sekretariat");
   const cardsRef = useRef<HTMLDivElement>(null);

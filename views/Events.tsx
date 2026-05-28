@@ -775,12 +775,75 @@ function EventCard({
 }
 
 export default function EventsView({
-  collection,
-  kkmGroups,
+  collection: initialCollection,
+  kkmGroups: initialKkmGroups,
 }: {
   collection: EventsCollection;
   kkmGroups: KKMGroup[];
 }) {
+  const [data, setData] = useState({
+    collection: initialCollection || {
+      upcoming: [],
+      ongoing: [],
+      past: [],
+      announcements: [],
+    },
+    kkmGroups: initialKkmGroups || [],
+  });
+
+  useEffect(() => {
+    // Try to load from localStorage cache first to bootstrap client-side SWR
+    try {
+      const cached = window.localStorage.getItem("hima_agenda_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setData((prev) => ({
+          collection:
+            prev.collection.upcoming.length > 0 ||
+            prev.collection.ongoing.length > 0 ||
+            prev.collection.past.length > 0 ||
+            prev.collection.announcements.length > 0
+              ? prev.collection
+              : parsed.collection || prev.collection,
+          kkmGroups:
+            prev.kkmGroups && prev.kkmGroups.length > 0
+              ? prev.kkmGroups
+              : parsed.kkmGroups || [],
+        }));
+      }
+    } catch {}
+
+    const fetchAgendaData = async () => {
+      try {
+        const res = await fetch("/api/agenda");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            setData(result.data);
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                "hima_agenda_cache",
+                JSON.stringify(result.data),
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh agenda data:", err);
+      }
+    };
+
+    fetchAgendaData();
+
+    const interval = setInterval(() => {
+      fetchAgendaData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const collection = data.collection;
+  const kkmGroups = data.kkmGroups;
   const mappedCollection = useMemo(() => {
     const kkmGroupByUnit = new Map<string, KKMGroup>();
 

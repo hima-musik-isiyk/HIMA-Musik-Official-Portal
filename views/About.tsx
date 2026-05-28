@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo,useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import LightPillar from "@/components/LightPillar";
 import RotatingText from "@/components/RotatingText";
@@ -25,6 +25,64 @@ const About: React.FC<AboutProps> = ({
   divisions: fetchedDivisions,
 }) => {
   const scopeRef = useViewEntrance("/profil");
+
+  const [data, setData] = useState({
+    paragraph: paragraph || "",
+    cabinetName: cabinetName || "",
+    executives: fetchedExecutives || [],
+    divisions: fetchedDivisions || [],
+  });
+
+  useEffect(() => {
+    // Try to load from localStorage cache first to bootstrap client-side SWR
+    try {
+      const cached = window.localStorage.getItem("hima_profil_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setData((prev) => ({
+          paragraph: prev.paragraph || parsed.paragraph || "",
+          cabinetName: prev.cabinetName || parsed.cabinetName || "",
+          executives:
+            prev.executives && prev.executives.length > 0
+              ? prev.executives
+              : parsed.executives || [],
+          divisions:
+            prev.divisions && prev.divisions.length > 0
+              ? prev.divisions
+              : parsed.divisions || [],
+        }));
+      }
+    } catch {}
+
+    const fetchProfilData = async () => {
+      try {
+        const res = await fetch("/api/profil");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            setData(result.data);
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                "hima_profil_cache",
+                JSON.stringify(result.data),
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh profil data:", err);
+      }
+    };
+
+    fetchProfilData();
+
+    const interval = setInterval(() => {
+      fetchProfilData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const fallbackExecutives = [
     { role: "Ketua Himpunan", name: "Vincent Nuridzati Adittama" },
     { role: "Wakil Ketua", name: "Nadia Fibriani" },
@@ -45,11 +103,11 @@ const About: React.FC<AboutProps> = ({
   ];
 
   const executivesList =
-    fetchedExecutives && fetchedExecutives.length > 0
-      ? fetchedExecutives
+    data.executives && data.executives.length > 0
+      ? data.executives
       : fallbackExecutives;
 
-  const displayCabinetName = cabinetName || "2026";
+  const displayCabinetName = data.cabinetName || "2026";
 
   const defaultParagraphs = [
     "Himpunan Mahasiswa Musik (HIMA MUSIK) adalah ruang kolektif mahasiswa musik di lingkungan ISI Yogyakarta yang berfokus pada pengembangan keilmuan, praktik artistik, dan solidaritas antarmahasiswa. Akar ekosistem musik kampus ini tidak lepas dari warisan Akademi Musik Indonesia (AMI) yang kemudian berproses dalam struktur ISI Yogyakarta.",
@@ -57,8 +115,8 @@ const About: React.FC<AboutProps> = ({
   ];
 
   let displayParagraphs = defaultParagraphs;
-  if (paragraph) {
-    displayParagraphs = paragraph
+  if (data.paragraph) {
+    displayParagraphs = data.paragraph
       .split(/<br\s*\/?>|<br\s*\/?>\s*<br\s*\/?>|\n\n|\r\n\r\n/)
       .map((p) => p.trim())
       .filter(Boolean);
@@ -160,7 +218,7 @@ const About: React.FC<AboutProps> = ({
             <h3 className="text-gold-500 mb-6 text-sm font-medium">Divisi</h3>
             <DivisionCards
               executives={executivesList}
-              divisions={fetchedDivisions}
+              divisions={data.divisions}
             />
           </div>
         </div>
