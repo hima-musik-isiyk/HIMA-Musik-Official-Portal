@@ -37,15 +37,18 @@ __pycache__/
 .env*.local
 
 # Telegram export/runtime data
-telegram_dump/
-*.session
-*.session-journal
+migration/telegram_dump/
+migration/*.session
+migration/*.session-journal
 
 # Virtual Environments
 .venv/
 .venv*/
 venv/
 env/
+migration/.venv/
+migration/.venv*/
+migration/venv/
+migration/env/
 # Canva tokens & logs
 .canva_session.json
-acc.log

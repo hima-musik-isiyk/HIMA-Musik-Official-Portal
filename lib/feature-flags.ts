@@ -13,9 +13,4 @@ export const FEATURES = {
    */
   // SHOW_DOCS_SIDEBAR: process.env.NODE_ENV === "development",
   SHOW_DOCS_SIDEBAR: false,
-  /**
-   * Toggle for recruitment pages.
-   * Exposed in development for local testing, hidden in production.
-   */
-  ALLOW_PENDAFTARAN: process.env.NODE_ENV === "development",
 };

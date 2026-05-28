@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
-import { prisma } from "@/lib/prisma";
 
 const DISCORD_FIELD_LIMIT = 1024;
 
@@ -85,61 +84,6 @@ export async function POST(request: Request) {
         },
         { status: 500 },
       );
-    }
-
-    try {
-      await prisma.aduan.create({
-        data: {
-          name: typeof name === "string" && name.trim() ? name.trim() : null,
-          nim: typeof nim === "string" && nim.trim() ? nim.trim() : null,
-          category:
-            typeof category === "string" && category.trim()
-              ? category.trim()
-              : "Umum",
-          message: message.trim(),
-        },
-      });
-    } catch (dbError) {
-      console.error("DB write failed (aduan):", dbError);
-
-      const errorWebhookUrl =
-        process.env.DISCORD_ERROR_WEBHOOK_URL ?? webhookUrl;
-
-      if (errorWebhookUrl) {
-        try {
-          await sendDiscordWebhook(
-            errorWebhookUrl,
-            {
-              username: "HIMA Musik Alerts",
-              allowed_mentions: { parse: [] },
-              embeds: [
-                {
-                  title: "DB Write Failed - Aduan",
-                  description:
-                    "Discord notification sent, but aduan data was not saved to database. Manual entry required.",
-                  color: 0xff4d4f,
-                  timestamp: new Date().toISOString(),
-                  fields: [
-                    { name: "Nama", value: truncate(safeName), inline: true },
-                    {
-                      name: "Kategori",
-                      value: truncate(safeCategory),
-                      inline: true,
-                    },
-                  ],
-                  footer: { text: "HIMA Musik Official Portal" },
-                },
-              ],
-            },
-            "DB error notification to Discord",
-          );
-        } catch (discordError) {
-          console.error(
-            "Failed to send DB error notification to Discord:",
-            discordError,
-          );
-        }
-      }
     }
 
     return NextResponse.json({ success: true });

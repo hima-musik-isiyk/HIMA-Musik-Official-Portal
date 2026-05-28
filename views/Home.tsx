@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import BlurText from "@/components/BlurText";
 import LightPillar from "@/components/LightPillar";
 import TextPressure from "@/components/TextPressure";
+import type { BerandaModularItem } from "@/lib/notion";
 import useViewEntrance from "@/lib/useViewEntrance";
 import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
@@ -22,7 +23,12 @@ const AccentLine = React.forwardRef<
 ));
 AccentLine.displayName = "AccentLine";
 
-const Home: React.FC = () => {
+interface HomeProps {
+  heroSection?: BerandaModularItem[];
+  jelajahi?: BerandaModularItem[];
+}
+
+const Home: React.FC<HomeProps> = ({ heroSection, jelajahi }) => {
   const pathname = "/";
   const rootRef = useViewEntrance(pathname);
 
@@ -59,6 +65,61 @@ const Home: React.FC = () => {
     }
     setMusikPressureActive(false);
   }, [disableEntranceEffects, disablePressureEffect]);
+
+  // Robust Static Fallbacks
+  const fallbackHeroSection: BerandaModularItem[] = [
+    {
+      id: "default-hero-1",
+      buttonTitle: "Tentang Kami",
+      description:
+        "Wadah kolektif mahasiswa Musik ISI Yogyakarta. Membangun ekosistem kreatif yang inklusif, progresif, dan berorientasi pada keunggulan artistik.",
+      visible: true,
+      redirect: "/profil",
+      urutan: 1,
+    },
+  ];
+
+  const fallbackJelajahi: BerandaModularItem[] = [
+    {
+      id: "default-jelajahi-1",
+      buttonTitle: "Tentang Kami",
+      description: "Sejarah, visi, dan struktur organisasi HIMA.",
+      visible: true,
+      redirect: "/profil",
+      urutan: 1,
+    },
+    {
+      id: "default-jelajahi-2",
+      buttonTitle: "Program Kerja",
+      description: "Konser tahunan, workshop, dan diskusi publik.",
+      visible: true,
+      redirect: "/agenda",
+      urutan: 2,
+    },
+    {
+      id: "default-jelajahi-3",
+      buttonTitle: "Layanan Aduan",
+      description: "Saluran aspirasi dan advokasi akademik.",
+      visible: true,
+      redirect: "/aduan",
+      urutan: 3,
+    },
+  ];
+
+  const heroItems =
+    heroSection && heroSection.length > 0 ? heroSection : fallbackHeroSection;
+  const jelajahiItems =
+    jelajahi && jelajahi.length > 0 ? jelajahi : fallbackJelajahi;
+
+  // Grid dynamic column class mapping
+  const gridColsClass =
+    jelajahiItems.length === 1
+      ? "md:grid-cols-1"
+      : jelajahiItems.length === 2
+        ? "md:grid-cols-2"
+        : jelajahiItems.length === 3
+          ? "md:grid-cols-3"
+          : "md:grid-cols-4";
 
   return (
     <div ref={rootRef} className="w-full">
@@ -197,27 +258,36 @@ const Home: React.FC = () => {
               className="mb-10 h-px w-full bg-linear-to-r from-stone-800 via-stone-800/50 to-transparent md:mb-12 md:w-[50vw]"
               aria-hidden="true"
             />
-            <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12">
-              <Link
-                href="/about"
-                className="btn-primary shrink-0"
-                data-animate="up"
-                data-animate-delay="1.05"
-                data-animate-duration="0.65"
-              >
-                <span className="btn-primary-label">Tentang Kami</span>
-                <div className="btn-primary-overlay"></div>
-              </Link>
-              <p
-                data-animate="up"
-                data-animate-delay="1.17"
-                data-animate-duration="0.85"
-                className="max-w-sm border-stone-800 text-[0.8125rem] leading-[1.7] font-light text-stone-500 md:border-l md:pl-12"
-              >
-                Wadah kolektif mahasiswa Musik ISI Yogyakarta. Membangun
-                ekosistem kreatif yang inklusif, progresif, dan berorientasi
-                pada keunggulan artistik.
-              </p>
+            <div className="flex flex-col gap-8">
+              {heroItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12"
+                >
+                  <Link
+                    href={item.redirect || "/"}
+                    className="btn-primary shrink-0"
+                    data-animate="up"
+                    data-animate-delay={1.05 + index * 0.1}
+                    data-animate-duration="0.65"
+                  >
+                    <span className="btn-primary-label">
+                      {item.buttonTitle}
+                    </span>
+                    <div className="btn-primary-overlay"></div>
+                  </Link>
+                  {item.description && (
+                    <p
+                      data-animate="up"
+                      data-animate-delay={1.17 + index * 0.1}
+                      data-animate-duration="0.85"
+                      className="max-w-sm border-stone-800 text-[0.8125rem] leading-[1.7] font-light text-stone-500 md:border-l md:pl-12"
+                    >
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -257,94 +327,41 @@ const Home: React.FC = () => {
 
           <div
             data-animate-stagger="0.1"
-            className="grid grid-cols-1 gap-0 divide-y divide-stone-800/60 border-t border-b border-stone-800/60 md:grid-cols-3 md:divide-x md:divide-y-0"
+            className={`grid grid-cols-1 gap-0 divide-y divide-stone-800/60 border-t border-b border-stone-800/60 ${gridColsClass} md:divide-x md:divide-y-0`}
           >
-            <Link
-              href="/about"
-              data-animate="up"
-              className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
-            >
-              <div>
-                <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
-                  Tentang Kami
-                </h3>
-                <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
-                  Sejarah, visi, dan struktur organisasi HIMA.
-                </p>
-              </div>
-              <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
-                Selengkapnya
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-
-            <Link
-              href="/events"
-              data-animate="up"
-              className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
-            >
-              <div>
-                <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
-                  Program Kerja
-                </h3>
-                <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
-                  Konser tahunan, workshop, dan diskusi publik.
-                </p>
-              </div>
-              <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
-                Selengkapnya
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-
-            <Link
-              href="/aduan"
-              data-animate="up"
-              className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
-            >
-              <div>
-                <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
-                  Layanan Aduan
-                </h3>
-                <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
-                  Saluran aspirasi dan advokasi akademik.
-                </p>
-              </div>
-              <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
-                Selengkapnya
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
+            {jelajahiItems.map((item) => (
+              <Link
+                key={item.id}
+                href={item.redirect || "/"}
+                data-animate="up"
+                className="group relative flex cursor-pointer flex-col justify-between p-10 transition-colors duration-300 hover:bg-stone-900/50 md:p-12"
+              >
+                <div>
+                  <h3 className="mb-3 font-serif text-xl text-stone-300 transition-colors duration-300 group-hover:text-white md:text-2xl">
+                    {item.buttonTitle}
+                  </h3>
+                  {item.description && (
+                    <p className="text-[0.8125rem] leading-relaxed text-stone-600 transition-colors duration-300 group-hover:text-stone-400">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+                <span className="group-hover:text-gold-500 mt-8 inline-flex items-center gap-2 text-[0.65rem] tracking-[0.3em] text-stone-700 uppercase transition-colors duration-300">
+                  Selengkapnya
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="translate-x-0 transition-transform duration-300 group-hover:translate-x-1"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

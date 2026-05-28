@@ -45,13 +45,13 @@ function getEventHref(
 ): string {
   const ownerUnit = normalizeUnitName(entry.ownerUnit);
   const kkmSlug = ownerUnit ? kkmSlugByUnitName.get(ownerUnit) : undefined;
-  return kkmSlug ? `/kkm/${kkmSlug}` : `/events/${entry.slug}`;
+  return kkmSlug ? `/kkm/${kkmSlug}` : `/agenda/${entry.slug}`;
 }
 
 function getEventDetailHref(entry: EventEntryMeta): string {
   return entry.isRepost
-    ? `/events/repost/${entry.slug}`
-    : `/events/${entry.slug}`;
+    ? `/agenda/repost/${entry.slug}`
+    : `/agenda/${entry.slug}`;
 }
 
 function formatDate(date: string): string {
@@ -781,7 +781,41 @@ export default function EventsView({
   collection: EventsCollection;
   kkmGroups: KKMGroup[];
 }) {
-  const scopeRef = useViewEntrance("/events");
+  const mappedCollection = useMemo(() => {
+    const kkmGroupByUnit = new Map<string, KKMGroup>();
+
+    for (const group of kkmGroups) {
+      if (group.slug) {
+        kkmGroupByUnit.set(normalizeUnitName(group.slug), group);
+      }
+      const normalizedName = normalizeUnitName(group.name);
+      if (normalizedName) {
+        kkmGroupByUnit.set(normalizedName, group);
+      }
+    }
+
+    const mapEntry = (entry: EventEntryMeta): EventEntryMeta => {
+      if (!entry.ownerUnit) return entry;
+      const normalizedOwner = normalizeUnitName(entry.ownerUnit);
+      const matchedGroup = kkmGroupByUnit.get(normalizedOwner);
+      if (matchedGroup) {
+        return {
+          ...entry,
+          ownerUnit: matchedGroup.name,
+        };
+      }
+      return entry;
+    };
+
+    return {
+      upcoming: collection.upcoming.map(mapEntry),
+      ongoing: collection.ongoing.map(mapEntry),
+      past: collection.past.map(mapEntry),
+      announcements: collection.announcements.map(mapEntry),
+    };
+  }, [collection, kkmGroups]);
+
+  const scopeRef = useViewEntrance("/agenda");
   const kkmSlugByUnitName = useMemo(() => {
     const map = new Map<string, string>();
 
@@ -797,12 +831,12 @@ export default function EventsView({
   // Build a flat list of all entries with their entryKind for filtering
   const allEntries = useMemo(() => {
     return [
-      ...collection.upcoming,
-      ...collection.ongoing,
-      ...collection.past,
-      ...collection.announcements,
+      ...mappedCollection.upcoming,
+      ...mappedCollection.ongoing,
+      ...mappedCollection.past,
+      ...mappedCollection.announcements,
     ];
-  }, [collection]);
+  }, [mappedCollection]);
 
   const [activeKindFilter, setActiveKindFilter] = useState<string>("all");
   const [activeTimeFilter, setActiveTimeFilter] = useState<TimeFilter>("all");
@@ -1124,6 +1158,22 @@ export default function EventsView({
               </span>
             </h1>
           </div>
+          <div
+            data-animate="up"
+            data-animate-delay="0.2"
+            className="mt-6 md:mt-0"
+          >
+            <Link
+              href="https://pengajuan-agenda-himamusik.notion.site/36e3b26dc3be80a8955bcbf8933c8cdb?pvs=105"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-gold-500/30 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 inline-flex items-center gap-2 border px-5 py-2.5 text-xs font-semibold tracking-widest uppercase transition duration-300 hover:text-white"
+              style={ACTION_RADIUS}
+            >
+              Ajukan Agenda
+              <IconExternalLink width={13} height={13} />
+            </Link>
+          </div>
         </header>
 
         {!hasEntries && (
@@ -1137,7 +1187,7 @@ export default function EventsView({
           </div>
         )}
 
-        <EventCalendar collection={collection} />
+        <EventCalendar collection={mappedCollection} />
 
         {hasEntries && (
           <section

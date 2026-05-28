@@ -104,7 +104,7 @@ export default function SuratAktifForm() {
           </h1>
           <p className="mt-3 text-stone-400">
             Form ini akan otomatis membuat kartu tugas di board Sekretaris dan
-            mengirim notifikasi via Telegram.
+            mengirim notifikasi via Discord.
           </p>
           <hr className="mt-6 border-stone-800" />
         </div>

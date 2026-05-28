@@ -16,12 +16,11 @@ const shouldSkipAutoRouteAnimation = (pathname: string) => {
   // RouteEntranceAnimator only covers future routes that lack one.
   if (pathname === "/") return true;
   const manualPrefixes = [
-    "/about",
-    "/events",
-    "/gallery",
+    "/profil",
+    "/agenda",
+    "/faq",
     "/aduan",
     "/kkm",
-    "/pendaftaran",
     "/sekretariat",
     "/notion-secret-page",
   ];

@@ -1,4 +1,4 @@
-import { getNotionClient, NotionPage } from "./notion";
+import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 
 export type FAQEntry = {
   id: string;
@@ -33,15 +33,23 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
   }
 
   try {
-    const response = await notion.databases.query({
-      database_id: databaseId,
+    const dataSourceId = await resolveDataSourceIdSafe(databaseId);
+    if (!dataSourceId) {
+      console.error(
+        "[Notion FAQ] Could not resolve FAQ database to data source.",
+      );
+      return [];
+    }
+
+    const response = await (notion as any).dataSources.query({
+      data_source_id: dataSourceId,
     });
 
     const parsedEntries = (response.results as NotionPage[]).map((page) => {
       const props = page.properties;
 
-      // 1. Pertanyaan (Title)
-      const titleObj = props.Pertanyaan;
+      // 1. Pertanyaan (Title) - Judul Pertanyaan or Pertanyaan
+      const titleObj = props["Judul Pertanyaan"] ?? props.Pertanyaan;
       const question =
         titleObj?.type === "title"
           ? titleObj.title
@@ -90,11 +98,17 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
           ? categoryObj.multi_select.map((s: { name: string }) => s.name)
           : [];
 
-      // 8. Visibilitas (Select)
+      // 8. Visibilitas (Checkbox or Select)
       const visibilityObj = props.Visibilitas;
-      const visibility = (
-        visibilityObj?.type === "select" ? visibilityObj.select?.name : "Tampil"
-      ) as FAQEntry["visibility"];
+      let visibilityVal = true;
+      if (visibilityObj?.type === "checkbox") {
+        visibilityVal = visibilityObj.checkbox;
+      } else if (visibilityObj?.type === "select") {
+        visibilityVal = visibilityObj.select?.name === "Tampil";
+      }
+      const visibility: FAQEntry["visibility"] = visibilityVal
+        ? "Tampil"
+        : "Disembunyikan";
 
       return {
         id: page.id,
@@ -150,28 +164,83 @@ export async function createFAQEntry(
     ? category
     : "Lainnya";
 
+  // Retrieve database properties dynamically via its Data Source
+  let dbProperties: Record<string, unknown> = {};
+  try {
+    const dataSourceId = await resolveDataSourceIdSafe(databaseId);
+    if (dataSourceId) {
+      const ds = await (notion as any).dataSources.retrieve({
+        data_source_id: dataSourceId,
+      });
+      if (ds && "properties" in ds) {
+        dbProperties = ds.properties as Record<string, unknown>;
+      }
+    }
+  } catch (err) {
+    console.warn(
+      "[Notion FAQ] Could not retrieve database schema via data source, writing with default properties:",
+      err,
+    );
+  }
+
+  const properties: Record<string, any> = {};
+
+  // Title: "Judul Pertanyaan" or fallback to "Pertanyaan"
+  if ("Judul Pertanyaan" in dbProperties) {
+    properties["Judul Pertanyaan"] = {
+      title: [{ text: { content: question.trim() } }],
+    };
+  } else {
+    properties.Pertanyaan = {
+      title: [{ text: { content: question.trim() } }],
+    };
+  }
+
+  // Rich Text: "Nama Penanya"
+  if ("Nama Penanya" in dbProperties) {
+    properties["Nama Penanya"] = {
+      rich_text: [{ text: { content: askerName.trim() || "Anonim" } }],
+    };
+  }
+
+  // Select: "Sumber"
+  if ("Sumber" in dbProperties) {
+    properties.Sumber = {
+      select: { name: "Publik" },
+    };
+  }
+
+  // Status: "Status"
+  if ("Status" in dbProperties) {
+    properties.Status = {
+      status: { name: "Masuk" },
+    };
+  }
+
+  // Multi-select: "Kategori" (Optional)
+  if ("Kategori" in dbProperties) {
+    properties.Kategori = {
+      multi_select: [{ name: cleanCategory }],
+    };
+  }
+
+  // Checkbox or Select: "Visibilitas"
+  if ("Visibilitas" in dbProperties) {
+    const type = (dbProperties.Visibilitas as any)?.type;
+    if (type === "checkbox") {
+      properties.Visibilitas = {
+        checkbox: true,
+      };
+    } else {
+      properties.Visibilitas = {
+        select: { name: "Tampil" },
+      };
+    }
+  }
+
   return await notion.pages.create({
     parent: { database_id: databaseId },
-    properties: {
-      Pertanyaan: {
-        title: [{ text: { content: question.trim() } }],
-      },
-      "Nama Penanya": {
-        rich_text: [{ text: { content: askerName.trim() || "Anonim" } }],
-      },
-      Sumber: {
-        select: { name: "Publik" },
-      },
-      Status: {
-        status: { name: "Masuk" },
-      },
-      Kategori: {
-        multi_select: [{ name: cleanCategory }],
-      },
-      Visibilitas: {
-        select: { name: "Tampil" },
-      },
-    },
+    properties,
   });
 }
 
@@ -189,10 +258,16 @@ export function filterFAQVisibility(entries: FAQEntry[]): FAQEntry[] {
     // 1. Override manual Visibilitas: Disembunyikan -> ❌ Tidak
     if (entry.visibility === "Disembunyikan") return false;
 
+    // New Minecraft Galactic Exception:
+    // If status is Disembunyikan but visibility is Tampil (on), we keep it!
+    if (entry.status === "Disembunyikan" && entry.visibility === "Tampil") {
+      return true;
+    }
+
     // 2. Tipe Status: Disembunyikan -> ❌ Tidak
     if (entry.status === "Disembunyikan") return false;
 
-    // 3. Sumber Publik rules
+    // 3. Sumber Publik rules (allows displaying unanswered submissions in "Tanya Jawab Publik" queue)
     if (entry.source === "Publik") {
       if (entry.status === "Masuk" || entry.status === "Ditinjau") {
         return true;
@@ -205,7 +280,7 @@ export function filterFAQVisibility(entries: FAQEntry[]): FAQEntry[] {
       }
     }
 
-    // 4. Sumber HIMA rules
+    // 4. Sumber HIMA rules (requires answered or redirected)
     if (entry.source === "Hima") {
       if (entry.status === "Dijawab") {
         return true;

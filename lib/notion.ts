@@ -1,24 +1,28 @@
 import { Client } from "@notionhq/client";
-import type {} from // BlockObjectResponse,
-// QueryDataSourceResponse,
-"@notionhq/client/build/src/api-endpoints";
+import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import {} from /* classifyEventLifecycle, getEventDateSortValue */ "./event-dates";
-import { /* KKM_ENTRY_ORDER, */ type KKMGroup } from "./kkm-data";
+import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
+import type { KKMGroup } from "./kkm-data";
 import {
   ArchiveEntry,
   buildAnchorMap,
   DocMeta,
   NotionBlock,
-  // NotionPage,
-  // stripCustomTags,
+  NotionPage,
+  stripCustomTags,
 } from "./notion-shared";
 
 export * from "./notion-shared";
 
-export type NotionContentScope = "sekretariat" | "kkm" | "events";
+export type NotionContentScope =
+  | "sekretariat"
+  | "kkm"
+  | "events"
+  | "beranda"
+  | "profil"
+  | "karya";
 
 export type EventLifecycle =
   | "upcoming"
@@ -49,6 +53,38 @@ export interface EventsCollection {
   announcements: EventEntryMeta[];
 }
 
+export interface BerandaEntry {
+  id: string;
+  title: string;
+  slug: string;
+  blockType: "Hero" | "Banner Pengumuman" | "CTA Rekrutmen" | "Highlight Acara";
+  status: string;
+  lastModified: string;
+  blocks: NotionBlock[];
+}
+
+export interface ProfilEntry {
+  id: string;
+  title: string;
+  slug: string;
+  order: number;
+  status: string;
+  lastModified: string;
+  blocks: NotionBlock[];
+}
+
+export interface KaryaEntryMeta {
+  id: string;
+  slug: string;
+  title: string;
+  creator: string;
+  genres: string[];
+  platform: string;
+  embedLink: string;
+  submissionDate: string;
+  lastEdited: string;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Singleton client                                                   */
 /* ------------------------------------------------------------------ */
@@ -63,7 +99,7 @@ function createNotionClient() {
     console.warn("Missing NOTION_INTEGRATION_TOKEN environment variable");
     return null;
   }
-  return new Client({ auth: token, notionVersion: "2026-03-11" });
+  return new Client({ auth: token, notionVersion: "2025-09-03" });
 }
 
 export function getNotionClient(): Client {
@@ -78,6 +114,10 @@ export function getNotionClient(): Client {
   }
 
   return client as Client;
+}
+
+function getNotionClientAny(): any {
+  return getNotionClient() as any;
 }
 
 /* ------------------------------------------------------------------ */
@@ -115,7 +155,6 @@ export async function resolveCitation(
 /* ------------------------------------------------------------------ */
 /*  Notion property helpers                                            */
 /* ------------------------------------------------------------------ */
-/*
 const propertyNameMapCache = new WeakMap<
   NotionPage["properties"],
   Map<string, keyof NotionPage["properties"]>
@@ -144,9 +183,7 @@ function getProperty(
   const matchedKey = propertyNameMap.get(normalizedName);
   return matchedKey ? properties[matchedKey] : undefined;
 }
-*/
 
-/*
 function getTitle(page: NotionPage): string {
   for (const prop of Object.values(page.properties)) {
     if (prop.type === "title" && prop.title.length > 0) {
@@ -155,9 +192,7 @@ function getTitle(page: NotionPage): string {
   }
   return "Untitled";
 }
-*/
 
-/*
 function getTitleProperty(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "title" && prop.title.length > 0) {
@@ -165,9 +200,7 @@ function getTitleProperty(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getRichText(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "rich_text") {
@@ -175,9 +208,7 @@ function getRichText(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getSelect(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "select" && prop.select) {
@@ -185,9 +216,15 @@ function getSelect(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
+function getStatus(page: NotionPage, name: string): string {
+  const prop = getProperty(page, name);
+  if (prop?.type === "status" && prop.status) {
+    return prop.status.name;
+  }
+  return "";
+}
+
 function getMultiSelect(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
   if (prop?.type === "multi_select") {
@@ -195,9 +232,7 @@ function getMultiSelect(page: NotionPage, name: string): string[] {
   }
   return [];
 }
-*/
 
-/*
 function getNumber(page: NotionPage, name: string): number {
   const prop = getProperty(page, name);
   if (prop?.type === "number" && prop.number !== null) {
@@ -205,9 +240,7 @@ function getNumber(page: NotionPage, name: string): number {
   }
   return 999;
 }
-*/
 
-/*
 function getCheckbox(
   page: NotionPage,
   name: string,
@@ -219,9 +252,7 @@ function getCheckbox(
   }
   return defaultValue;
 }
-*/
 
-/*
 function getDate(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date) {
@@ -229,9 +260,7 @@ function getDate(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getDateEnd(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "date" && prop.date?.end) {
@@ -239,9 +268,7 @@ function getDateEnd(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getUrl(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "url" && prop.url) {
@@ -249,9 +276,7 @@ function getUrl(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getFormulaString(page: NotionPage, name: string): string {
   const prop = getProperty(page, name);
   if (prop?.type === "formula") {
@@ -264,9 +289,7 @@ function getFormulaString(page: NotionPage, name: string): string {
   }
   return "";
 }
-*/
 
-/*
 function getFiles(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
   if (prop?.type !== "files") return [];
@@ -278,32 +301,24 @@ function getFiles(page: NotionPage, name: string): string[] {
     })
     .filter(Boolean);
 }
-*/
 
-/*
 function getCoverUrl(page: NotionPage, name = "Cover Image"): string | null {
   return getFiles(page, name)[0] ?? null;
 }
-*/
 
-/*
 function getChildPageTitle(block: NotionBlock): string {
   if (block.type !== "child_page") return "";
   const typed = block.child_page as { title?: string } | undefined;
   return (typed?.title ?? "").trim();
 }
-*/
 
-/*
 function isPreferredEventChildPage(title: string): boolean {
   const normalized = title.trim().toLowerCase();
   return /shared|share|draft|publish|published|konten|content|public|umum/.test(
     normalized,
   );
 }
-*/
 
-/*
 function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
   let firstChildPage: NotionBlock | null = null;
 
@@ -328,9 +343,7 @@ function findPreferredChildPage(blocks: NotionBlock[]): NotionBlock | null {
 
   return firstChildPage;
 }
-*/
 
-/*
 function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
   const dropUntilAfterFirstTopLevelTable = (
     items: NotionBlock[],
@@ -350,9 +363,7 @@ function selectEventContentBlocks(blocks: NotionBlock[]): NotionBlock[] {
 
   return blocks;
 }
-*/
 
-/*
 function getSlugValue(page: NotionPage, fallbackText: string): string {
   return (
     getRichText(page, "Slug") ||
@@ -360,9 +371,7 @@ function getSlugValue(page: NotionPage, fallbackText: string): string {
     slugify(fallbackText)
   );
 }
-*/
 
-/*
 function getTodayInJakarta(): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Jakarta",
@@ -371,16 +380,27 @@ function getTodayInJakarta(): string {
     day: "2-digit",
   }).format(new Date());
 }
-*/
 
-/*
 function isEventPublished(page: NotionPage): boolean {
-  if (!getCheckbox(page, "Publish", true)) return false;
-  return true;
+  const status = getStatus(page, "Status");
+  if (status) {
+    return status === "Published";
+  }
+  const statusCms = getStatus(page, "Status Konten CMS");
+  if (statusCms) {
+    return statusCms === "Live";
+  }
+  return getCheckbox(page, "Publish", true);
 }
-*/
 
-/*
+function isEventPreviewable(page: NotionPage): boolean {
+  const status = getStatus(page, "Status");
+  if (status) {
+    return status === "Diedit KKM";
+  }
+  return false;
+}
+
 function slugify(text: string): string {
   return text
     .normalize("NFKD")
@@ -389,7 +409,6 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
-*/
 
 /* ------------------------------------------------------------------ */
 /*  Docs database queries                                              */
@@ -461,51 +480,129 @@ export async function resolveDataSourceIdSafe(
   }
 }
 
+interface PageDatabases {
+  childDatabases: string[];
+  mentionedDatabases: string[];
+}
+
+export async function fetchPageDatabases(
+  pageId: string,
+): Promise<PageDatabases> {
+  const result: PageDatabases = {
+    childDatabases: [],
+    mentionedDatabases: [],
+  };
+
+  if (!pageId) return result;
+
+  try {
+    const response = await getNotionClient().blocks.children.list({
+      block_id: normalizeNotionId(pageId),
+    });
+
+    for (const block of response.results as any[]) {
+      if (block.type === "child_database") {
+        result.childDatabases.push(block.id);
+      } else {
+        const blockContent = (block as any)[block.type];
+        if (blockContent && Array.isArray(blockContent.rich_text)) {
+          for (const rt of blockContent.rich_text) {
+            if (rt.type === "mention" && rt.mention?.type === "database") {
+              result.mentionedDatabases.push(rt.mention.database.id);
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[Notion fetchPageDatabases] Failed for page ${pageId}:`,
+      error,
+    );
+  }
+
+  return result;
+}
+
+const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
+const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
+const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
+const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
+const _AGENDA_DB_ID =
+  process.env.NOTION_AGENDA_DATABASE_ID ??
+  process.env.NOTION_EVENTS_DATABASE_ID ??
+  "";
+const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID ?? "";
+const DOCS_DB_ID =
+  process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
+  process.env.NOTION_PROJECT_DATABASE_ID ??
+  "";
+
 export const fetchAllDocs = unstable_cache(
   async (): Promise<DocMeta[]> => {
-    /*
     if (!DOCS_DB_ID) return [];
 
-    const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
-    if (!docsDataSourceId) return [];
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response: QueryDataSourceResponse =
-        await getNotionClient().dataSources.query({
-          data_source_id: docsDataSourceId,
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      if (!dataSourceId) return [];
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
           start_cursor: cursor,
         });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchAllDocs] Query failed:", error);
+      return [];
+    }
 
     return results
-      .map((page) => ({
-        id: page.id,
-        slug: getRichText(page, "Slug") || page.id,
-        title: getTitle(page),
-        category: getSelect(page, "Category"),
-        icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
-        order: getNumber(page, "Order"),
-        createdAt: page.created_time,
-        lastEdited: page.last_edited_time,
-        published: getCheckbox(page, "Publish", true),
-      }))
+      .map((page) => {
+        const title =
+          getTitleProperty(page, "Nama Dokumen") ||
+          getTitleProperty(page, "Name") ||
+          getTitle(page);
+        const category =
+          getSelect(page, "Kategori") || getSelect(page, "Category");
+        const status = getStatus(page, "Status Konten CMS");
+        const isPublished = status
+          ? status === "Live"
+          : getCheckbox(page, "Publish", true);
+
+        return {
+          id: page.id,
+          slug: getRichText(page, "Slug") || page.id,
+          title,
+          category,
+          icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
+          order:
+            getNumber(page, "Urutan Tampil") ?? getNumber(page, "Order") ?? 999,
+          createdAt: page.created_time,
+          lastEdited: page.last_edited_time,
+          published: isPublished,
+        };
+      })
       .filter((doc) => doc.published)
       .sort((a, b) => {
         if (a.order !== b.order) return a.order - b.order;
-        const categoryCompare = a.category.localeCompare(b.category, "id", {
-          sensitivity: "base",
-        });
+        const categoryCompare = (a.category || "").localeCompare(
+          b.category || "",
+          "id",
+          {
+            sensitivity: "base",
+          },
+        );
         if (categoryCompare !== 0) return categoryCompare;
         return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
       });
-    */
-    return [];
   },
   ["notion-all-docs"],
   { revalidate: 60, tags: ["notion-docs"] },
@@ -515,123 +612,280 @@ export const fetchAllDocs = unstable_cache(
 /*  KKM database queries                                               */
 /* ------------------------------------------------------------------ */
 
-/*
-const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
-*/
+export async function resolveKKMDatabases(
+  pageId: string,
+): Promise<{ heroDbId: string; groupsDbId: string }> {
+  const result = {
+    heroDbId: "36e3b26d-c3be-80de-a00e-dff07d738239",
+    groupsDbId: "36e3b26d-c3be-8065-94be-f94365699c8d",
+  };
+
+  if (!pageId) return result;
+
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 2) {
+      result.heroDbId = dbs.childDatabases[0];
+      result.groupsDbId = dbs.childDatabases[1];
+    } else if (dbs.childDatabases.length === 1) {
+      const singleId = dbs.childDatabases[0];
+      if (singleId === "36e3b26d-c3be-80de-a00e-dff07d738239") {
+        result.heroDbId = singleId;
+      } else {
+        result.groupsDbId = singleId;
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion resolveKKMDatabases] Failed to fetch page child databases",
+      error,
+    );
+  }
+
+  return result;
+}
+
+export async function fetchKKMDatabaseId(pageId: string): Promise<string> {
+  if (!pageId) return KKM_DB_ID || "36e3b26d-c3be-8065-94be-f94365699c8d";
+  const resolved = await resolveKKMDatabases(pageId);
+  return resolved.groupsDbId;
+}
+
+export const fetchKKMDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchKKMDatabaseId(pageId);
+  },
+  ["notion-kkm-database-id"],
+  { revalidate: 60, tags: ["notion-kkm"] },
+);
 
 export const fetchKKMGroups = unstable_cache(
   async (): Promise<KKMGroup[]> => {
-    /*
-    if (!KKM_DB_ID) return [];
+    const activeDbId = KKM_PAGE_ID
+      ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
+      : KKM_DB_ID;
 
-    const kkmDataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
-    if (!kkmDataSourceId) return [];
+    if (!activeDbId) return [];
+
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: kkmDataSourceId,
-        start_cursor: cursor,
-      });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+      if (!dataSourceId) return [];
 
-    const kkmMap = new Map<string, KKMGroup>();
-    const extraGroups: KKMGroup[] = [];
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchKKMGroups] Query failed:", error);
+      return [];
+    }
+
+    const groups: KKMGroup[] = [];
 
     for (const page of results) {
-      const name = (getTitleProperty(page, "Name") || getTitle(page)).trim();
+      const name = (
+        getTitleProperty(page, "Name") ||
+        getTitleProperty(page, "Nama Unit KKM") ||
+        getTitle(page)
+      ).trim();
       if (!name) {
         continue;
       }
 
-      const richTextLinks = getRichText(page, "Link Sosmed");
-      const urlLink = getUrl(page, "Link Sosmed");
-      const socialLinks = (richTextLinks || urlLink)
-        .split(/\r?\n/)
-        .map((item) => item.trim())
-        .filter(Boolean);
+      const status = getStatus(page, "Status Konten CMS");
+      if (status && status !== "Live") continue;
 
-      const group = {
+      const tagline = getRichText(page, "Jargon") || "";
+      const description = getRichText(page, "Deskripsi Singkat") || "";
+
+      const logoUrl = getFiles(page, "Logo")[0] || null;
+      const instagram = getUrl(page, "Instagram") || "";
+      const tiktok = getUrl(page, "TikTok") || "";
+      const youtube = getUrl(page, "YouTube") || "";
+
+      let socialLinks = [instagram, tiktok, youtube].filter(Boolean);
+      if (socialLinks.length === 0) {
+        const contacts =
+          getRichText(page, "Kontak Unit") ||
+          getRichText(page, "Link Sosmed") ||
+          getUrl(page, "Link Sosmed");
+        socialLinks = contacts
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      const order =
+        getNumber(page, "Urutan") ??
+        getNumber(page, "Urutan Tampil") ??
+        getNumber(page, "Order") ??
+        999;
+
+      groups.push({
+        id: page.id,
         slug: getRichText(page, "Slug") || slugify(name),
         name,
-        tagline: getRichText(page, "Jargon"),
-        description: getRichText(page, "Deskripsi Singkat"),
+        tagline,
+        description,
+        logoUrl,
+        instagram,
+        tiktok,
+        youtube,
         socialLinks,
-      };
-
-      if (KKM_ENTRY_ORDER.includes(name as (typeof KKM_ENTRY_ORDER)[number])) {
-        kkmMap.set(name, group);
-      } else {
-        extraGroups.push(group);
-      }
+        order,
+      });
     }
 
-    const orderedGroups = KKM_ENTRY_ORDER.map((name) =>
-      kkmMap.get(name),
-    ).filter((entry): entry is KKMGroup => Boolean(entry));
+    groups.sort((a, b) => {
+      const orderA = a.order ?? 999;
+      const orderB = b.order ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name, "id", { sensitivity: "base" });
+    });
 
-    extraGroups.sort((a, b) =>
-      a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
-    );
-
-    return [...orderedGroups, ...extraGroups];
-    */
-    return [];
+    return groups;
   },
   ["notion-kkm-groups"],
   { revalidate: 60, tags: ["notion-kkm"] },
 );
 
+export interface KKMHeroData {
+  title: string;
+  description: string;
+}
+
+export interface KKMModularData {
+  hero: KKMHeroData;
+  groups: KKMGroup[];
+}
+
+export async function fetchKKMModularData(
+  pageId: string,
+): Promise<KKMModularData> {
+  const data: KKMModularData = {
+    hero: {
+      title: "KKM HIMA MUSIK",
+      description:
+        "Delapan komunitas kreatif di bawah naungan HIMA MUSIK ISI Yogyakarta. Temukan keluarga bermusikmu, kembangkan potensi, dan ciptakan karya bersama.",
+    },
+    groups: [],
+  };
+
+  if (!pageId) {
+    data.groups = await fetchKKMGroups();
+    return data;
+  }
+
+  const resolved = await resolveKKMDatabases(pageId);
+
+  // 1. Fetch KKM: Hero Section if found
+  if (resolved.heroDbId) {
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(resolved.heroDbId);
+      if (dataSourceId) {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+        });
+
+        for (const page of response.results) {
+          const name = (getTitleProperty(page, "Name") || getTitle(page))
+            .trim()
+            .toLowerCase();
+          const value = getRichText(page, "Value");
+          if (name.includes("title")) {
+            data.hero.title = value;
+          } else if (name.includes("desc")) {
+            data.hero.description = value;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "[Notion fetchKKMModularData] Failed to fetch KKM Hero Section, using default",
+        error,
+      );
+    }
+  }
+
+  // 2. Fetch KKM Groups
+  data.groups = await fetchKKMGroups();
+
+  return data;
+}
+
+export const fetchKKMModularDataCached = unstable_cache(
+  async (pageId: string): Promise<KKMModularData> => {
+    return fetchKKMModularData(pageId);
+  },
+  ["notion-kkm-modular-data"],
+  { revalidate: 60, tags: ["notion-kkm"] },
+);
+
 export const fetchKKMEntryBySlug = cache(
   async (
-    _slug: string,
+    slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    /*
-    if (!KKM_DB_ID) return null;
+    const activeDbId = KKM_PAGE_ID
+      ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
+      : KKM_DB_ID;
 
-    const kkmDataSourceId = await resolveDataSourceIdSafe(KKM_DB_ID);
-    if (!kkmDataSourceId) return null;
+    if (!activeDbId) return null;
+
     const normalizedSlug = slug.trim().toLowerCase();
-
     let matchedPage: NotionPage | undefined;
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: kkmDataSourceId,
-        start_cursor: cursor,
-      });
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+      if (!dataSourceId) return null;
 
-      const page = (response.results as NotionPage[]).find((entry) => {
-        const name = (
-          getTitleProperty(entry, "Name") || getTitle(entry)
-        ).trim();
-        const entrySlug = (getRichText(entry, "Slug") || slugify(name))
-          .trim()
-          .toLowerCase();
-        return entrySlug === normalizedSlug;
-      });
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
 
-      if (page) {
-        matchedPage = page;
-        break;
-      }
+        const page = (response.results as NotionPage[]).find((entry) => {
+          const name = (
+            getTitleProperty(entry, "Name") ||
+            getTitleProperty(entry, "Nama Unit KKM") ||
+            getTitle(entry)
+          ).trim();
+          const entrySlug = (getRichText(entry, "Slug") || slugify(name))
+            .trim()
+            .toLowerCase();
+          return entrySlug === normalizedSlug;
+        });
 
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        if (page) {
+          matchedPage = page;
+          break;
+        }
+
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchKKMEntryBySlug] Query failed:", error);
+      return null;
+    }
 
     if (!matchedPage) return null;
 
     const name = (
-      getTitleProperty(matchedPage, "Name") || getTitle(matchedPage)
+      getTitleProperty(matchedPage, "Name") ||
+      getTitleProperty(matchedPage, "Nama Unit KKM") ||
+      getTitle(matchedPage)
     ).trim();
     const entrySlug = (
       getRichText(matchedPage, "Slug") || slugify(name)
@@ -653,28 +907,44 @@ export const fetchKKMEntryBySlug = cache(
       },
       blocks,
     };
-    */
-    return null;
   },
 );
 
-/*
 function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
-  const title = getTitleProperty(page, "Name") || getTitle(page);
-  const slug = getSlugValue(page, title);
-  const eventDate = getDate(page, "Event Date");
-  const eventDateEnd = getDateEnd(page, "Event Date");
+  const title =
+    getTitleProperty(page, "Nama Acara") ||
+    getTitleProperty(page, "Judul Tayangan") ||
+    getTitleProperty(page, "Name") ||
+    getTitle(page);
+  const slug =
+    getRichText(page, "Request Slug Khusus") || getSlugValue(page, title);
+  const eventDate =
+    getDate(page, "Tanggal Acara") ||
+    getDate(page, "Event Date") ||
+    getDate(page, "Date");
+  const eventDateEnd =
+    getDateEnd(page, "Tanggal Acara") ||
+    getDateEnd(page, "Event Date") ||
+    getDateEnd(page, "Date");
   const sourceLink = getUrl(page, "Source Link");
   const sourceName = getRichText(page, "Source Name");
   const isRepost = getCheckbox(page, "Repost", false);
   const entryKind =
-    getSelect(page, "Entry Kind") || (eventDate ? "Event" : "Announcement");
+    getSelect(page, "Tipe Acara") ||
+    getSelect(page, "Entry Kind") ||
+    (eventDate ? "Event" : "Announcement");
   const lifecycle = classifyEventLifecycle(
     entryKind,
     { start: eventDate, end: eventDateEnd },
     today,
   );
-  const ownerUnit = getSelect(page, "Owner Unit");
+  const ownerUnit =
+    getRichText(page, "KKM Pengusul") || getSelect(page, "Owner Unit");
+
+  const createdAt =
+    page.properties["Submission time"]?.type === "created_time"
+      ? page.properties["Submission time"].created_time
+      : page.created_time;
 
   return {
     id: page.id,
@@ -683,26 +953,29 @@ function mapEventPage(page: NotionPage, today: string): EventEntryMeta {
     category: "Events",
     icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
     order: 999,
-    createdAt: page.created_time,
+    createdAt: createdAt,
     lastEdited: page.last_edited_time,
-    published: getCheckbox(page, "Publish", true),
-    summary: getRichText(page, "Summary"),
+    published: isEventPublished(page),
+    summary:
+      getRichText(page, "Deskripsi Singkat Acara") ||
+      getRichText(page, "Summary"),
     ownerUnit,
     entryKind,
     eventDate,
     eventDateEnd,
-    location: getRichText(page, "Location"),
+    location:
+      getRichText(page, "Lokasi Acara") ||
+      getRichText(page, "Lokasi") ||
+      getRichText(page, "Location"),
     registrationLink: getUrl(page, "Registration Link"),
     sourceLink,
     sourceName,
     isRepost,
-    coverImageUrl: getCoverUrl(page),
+    coverImageUrl: getFiles(page, "Gambar")[0] || getCoverUrl(page),
     lifecycle,
   };
 }
-*/
 
-/*
 function sortEventEntries(
   entries: EventEntryMeta[],
   lifecycle: EventLifecycle,
@@ -732,7 +1005,112 @@ function sortEventEntries(
     return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
   });
 }
-*/
+
+/* ------------------------------------------------------------------ */
+/*  Karya database queries                                              */
+/* ------------------------------------------------------------------ */
+
+export const fetchKaryaEntries = unstable_cache(
+  async (): Promise<KaryaEntryMeta[]> => {
+    if (!KARYA_DB_ID) return [];
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(KARYA_DB_ID);
+      if (!dataSourceId) return [];
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchKaryaEntries] Query failed:", error);
+      return [];
+    }
+
+    return results
+      .map((page) => {
+        const statusCMS = getStatus(page, "Status Konten CMS");
+        const statusVerif = getStatus(page, "Status Verifikasi");
+        const isLive = statusCMS === "Live" && statusVerif === "Disetujui";
+
+        if (!isLive) return null;
+
+        return {
+          id: page.id,
+          slug: getSlugValue(page, getTitle(page)),
+          title: getTitle(page),
+          creator: getRichText(page, "Pencipta / Penampil"),
+          genres: getMultiSelect(page, "Genre / Jenis Karya"),
+          platform: getSelect(page, "Platform Utama"),
+          embedLink: getRichText(page, "Link Embed"),
+          submissionDate: getDate(page, "Integritas Riwayat"),
+          lastEdited: page.last_edited_time,
+        };
+      })
+      .filter((k): k is KaryaEntryMeta => k !== null)
+      .sort(
+        (a, b) =>
+          new Date(b.submissionDate).getTime() -
+          new Date(a.submissionDate).getTime(),
+      );
+  },
+  ["notion-karya-entries"],
+  { revalidate: 60, tags: ["notion-karya"] },
+);
+
+export async function fetchAgendaDatabaseId(pageId: string): Promise<string> {
+  if (!pageId)
+    return (
+      process.env.NOTION_AGENDA_DATABASE_ID ??
+      process.env.NOTION_EVENTS_DATABASE_ID ??
+      "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
+    );
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchAgendaDatabaseId] Failed to fetch page child databases",
+      error,
+    );
+  }
+  return (
+    process.env.NOTION_AGENDA_DATABASE_ID ??
+    process.env.NOTION_EVENTS_DATABASE_ID ??
+    "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
+  );
+}
+
+export const fetchAgendaDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchAgendaDatabaseId(pageId);
+  },
+  ["notion-agenda-database-id"],
+  { revalidate: 60, tags: ["notion-agenda"] },
+);
+
+async function getActiveAgendaDbId(): Promise<string> {
+  const pageId = process.env.NOTION_AGENDA_PAGE_ID;
+  if (pageId) {
+    return await fetchAgendaDatabaseIdCached(pageId);
+  }
+  return (
+    process.env.NOTION_AGENDA_DATABASE_ID ??
+    process.env.NOTION_EVENTS_DATABASE_ID ??
+    "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
+  );
+}
 
 export const fetchEventsCollection = unstable_cache(
   async (): Promise<EventsCollection> => {
@@ -743,25 +1121,31 @@ export const fetchEventsCollection = unstable_cache(
       announcements: [],
     };
 
-    /*
-    if (!EVENTS_DB_ID) return emptyCollection;
+    const activeDbId = await getActiveAgendaDbId();
+    if (!activeDbId) return emptyCollection;
 
     const today = getTodayInJakarta();
-    const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
-    if (!eventsDataSourceId) return emptyCollection;
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: eventsDataSourceId,
-        start_cursor: cursor,
-      });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+      if (!dataSourceId) return emptyCollection;
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchEventsCollection] Query failed:", error);
+      return emptyCollection;
+    }
 
     const entries = results
       .filter((page) => isEventPublished(page))
@@ -785,8 +1169,6 @@ export const fetchEventsCollection = unstable_cache(
         "announcement",
       ),
     };
-    */
-    return emptyCollection;
   },
   ["notion-events-collection"],
   { revalidate: 60, tags: ["notion-events"] },
@@ -808,40 +1190,62 @@ export const fetchAllEventEntries = unstable_cache(
 
 export const fetchEventBySlug = cache(
   async (
-    _slug: string,
+    slug: string,
+    options?: { allowPreview?: boolean },
   ): Promise<{ meta: EventEntryMeta; blocks: NotionBlock[] } | null> => {
-    /*
-    if (!EVENTS_DB_ID) return null;
+    const activeDbId = await getActiveAgendaDbId();
+    if (!activeDbId) return null;
 
-    const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
-    if (!eventsDataSourceId) return null;
     const normalizedSlug = slug.trim().toLowerCase();
     const today = getTodayInJakarta();
 
     let matchedPage: NotionPage | undefined;
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: eventsDataSourceId,
-        start_cursor: cursor,
-      });
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+      if (!dataSourceId) return null;
 
-      const page = (response.results as NotionPage[]).find((entry) => {
-        const title = getTitleProperty(entry, "Name") || getTitle(entry);
-        const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
-        return entrySlug === normalizedSlug && isEventPublished(entry);
-      });
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
 
-      if (page) {
-        matchedPage = page;
-        break;
-      }
+        const page = (response.results as NotionPage[]).find((entry) => {
+          const title =
+            getTitleProperty(entry, "Nama Acara") ||
+            getTitleProperty(entry, "Judul Tayangan") ||
+            getTitleProperty(entry, "Name") ||
+            getTitle(entry);
+          const entrySlug = (
+            getRichText(entry, "Request Slug Khusus") ||
+            getSlugValue(entry, title)
+          )
+            .trim()
+            .toLowerCase();
 
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+          const isPublished = isEventPublished(entry);
+          const isPreviewable = options?.allowPreview
+            ? isEventPreviewable(entry)
+            : false;
+
+          return entrySlug === normalizedSlug && (isPublished || isPreviewable);
+        });
+
+        if (page) {
+          matchedPage = page;
+          break;
+        }
+
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchEventBySlug] Query failed:", error);
+      return null;
+    }
 
     if (!matchedPage) return null;
 
@@ -852,106 +1256,132 @@ export const fetchEventBySlug = cache(
       meta: mapEventPage(matchedPage, today),
       blocks,
     };
-    */
-    return null;
   },
 );
 
 export async function fetchEventCoverUrlBySlug(
-  _slug: string,
+  slug: string,
 ): Promise<string | null> {
-  /*
-  if (!EVENTS_DB_ID) return null;
+  const activeDbId = await getActiveAgendaDbId();
+  if (!activeDbId) return null;
 
-  const eventsDataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
-  if (!eventsDataSourceId) return null;
   const normalizedSlug = slug.trim().toLowerCase();
   let cursor: string | undefined;
 
-  do {
-    const response = await getNotionClient().dataSources.query({
-      data_source_id: eventsDataSourceId,
-      start_cursor: cursor,
-    });
-
-    const page = (response.results as NotionPage[]).find((entry) => {
-      const title = getTitleProperty(entry, "Name") || getTitle(entry);
-      const entrySlug = getSlugValue(entry, title).trim().toLowerCase();
-      return entrySlug === normalizedSlug && isEventPublished(entry);
-    });
-
-    if (page) {
-      return getCoverUrl(page);
-    }
-
-    cursor = response.has_more
-      ? (response.next_cursor ?? undefined)
-      : undefined;
-  } while (cursor);
-  */
-
-  return null;
-}
-
-export const fetchDocBySlug = cache(
-  async (
-    _slug: string,
-  ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    /*
-    if (!DOCS_DB_ID) return null;
-
-    const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
-    if (!docsDataSourceId) return null;
-    const normalizedSlug = slug.trim().toLowerCase();
-
-    let matchedPage: NotionPage | undefined;
-    let cursor: string | undefined;
+  try {
+    const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+    if (!dataSourceId) return null;
 
     do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: docsDataSourceId,
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: dataSourceId,
         start_cursor: cursor,
       });
 
       const page = (response.results as NotionPage[]).find((entry) => {
-        const entrySlug = (getRichText(entry, "Slug") || entry.id)
+        const title =
+          getTitleProperty(entry, "Nama Acara") ||
+          getTitleProperty(entry, "Judul Tayangan") ||
+          getTitleProperty(entry, "Name") ||
+          getTitle(entry);
+        const entrySlug = (
+          getRichText(entry, "Request Slug Khusus") ||
+          getSlugValue(entry, title)
+        )
           .trim()
           .toLowerCase();
-        const published = getCheckbox(entry, "Publish", true);
-        return entrySlug === normalizedSlug && published;
+        return entrySlug === normalizedSlug && isEventPublished(entry);
       });
 
       if (page) {
-        matchedPage = page;
-        break;
+        return getFiles(page, "Gambar")[0] || getCoverUrl(page);
       }
 
       cursor = response.has_more
         ? (response.next_cursor ?? undefined)
         : undefined;
     } while (cursor);
+  } catch (error) {
+    console.error("[Notion fetchEventCoverUrlBySlug] Query failed:", error);
+  }
+
+  return null;
+}
+
+export const fetchDocBySlug = cache(
+  async (
+    slug: string,
+  ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
+    if (!DOCS_DB_ID) return null;
+
+    const normalizedSlug = slug.trim().toLowerCase();
+    let matchedPage: NotionPage | undefined;
+    let cursor: string | undefined;
+
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      if (!dataSourceId) return null;
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+
+        const page = (response.results as NotionPage[]).find((entry) => {
+          const entrySlug = (getRichText(entry, "Slug") || entry.id)
+            .trim()
+            .toLowerCase();
+          const status = getStatus(entry, "Status Konten CMS");
+          const published = status
+            ? status === "Live"
+            : getCheckbox(entry, "Publish", true);
+          return entrySlug === normalizedSlug && published;
+        });
+
+        if (page) {
+          matchedPage = page;
+          break;
+        }
+
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchDocBySlug] Query failed:", error);
+      return null;
+    }
 
     const page = matchedPage;
     if (!page) return null;
 
     const blocks = await fetchAllBlocks(page.id);
+    const title =
+      getTitleProperty(page, "Nama Dokumen") ||
+      getTitleProperty(page, "Name") ||
+      getTitle(page);
+    const category = getSelect(page, "Kategori") || getSelect(page, "Category");
+    const status = getStatus(page, "Status Konten CMS");
+    const isPublished = status
+      ? status === "Live"
+      : getCheckbox(page, "Publish", true);
 
     return {
       meta: {
         id: page.id,
         slug: getRichText(page, "Slug") || page.id,
-        title: getTitle(page),
-        category: getSelect(page, "Category"),
+        title,
+        category,
         icon: page.icon?.type === "emoji" ? page.icon.emoji : null,
-        order: getNumber(page, "Order"),
+        order:
+          getNumber(page, "Urutan Tampil") ?? getNumber(page, "Order") ?? 999,
         createdAt: page.created_time,
         lastEdited: page.last_edited_time,
-        published: getCheckbox(page, "Publish", true),
+        published: isPublished,
       },
       blocks,
     };
-    */
-    return null;
   },
 );
 
@@ -960,42 +1390,59 @@ export const fetchDocBySlug = cache(
 /* ------------------------------------------------------------------ */
 
 export const fetchArchives = unstable_cache(
-  async (_tag?: string): Promise<ArchiveEntry[]> => {
-    /*
+  async (tag?: string): Promise<ArchiveEntry[]> => {
     if (!DOCS_DB_ID) return [];
 
-    const docsDataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
-    if (!docsDataSourceId) return [];
     const normalizedTag = tag?.trim().toLowerCase();
-
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().dataSources.query({
-        data_source_id: docsDataSourceId,
-        start_cursor: cursor,
-      });
-      results.push(...(response.results as NotionPage[]));
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      if (!dataSourceId) return [];
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchArchives] Query failed:", error);
+      return [];
+    }
 
     return results
-      .map((page) => ({
-        id: page.id,
-        title: getTitle(page),
-        summary:
-          getRichText(page, "Summary") || getRichText(page, "Slug") || "", // Fallback or summary
-        date: getDate(page, "Date") || page.created_time.split("T")[0],
-        tags: getMultiSelect(page, "Tags"),
-        category: getSelect(page, "Category"),
-        published: getCheckbox(page, "Publish", true),
-      }))
+      .map((page) => {
+        const title =
+          getTitleProperty(page, "Nama Dokumen") ||
+          getTitleProperty(page, "Name") ||
+          getTitle(page);
+        const category =
+          getSelect(page, "Kategori") || getSelect(page, "Category");
+        const status = getStatus(page, "Status Konten CMS");
+        const published = status
+          ? status === "Live"
+          : getCheckbox(page, "Publish", true);
+
+        return {
+          id: page.id,
+          title,
+          summary:
+            getRichText(page, "Summary") || getRichText(page, "Slug") || "",
+          date: getDate(page, "Date") || page.created_time.split("T")[0],
+          tags: getMultiSelect(page, "Tags"),
+          category,
+          published,
+        };
+      })
       .filter((entry) => {
         if (!entry.published) return false;
-        if (entry.category !== "Arsip") return false; // Only archives
+        if (entry.category !== "Arsip") return false;
         if (!normalizedTag) return true;
         return entry.tags.some((entryTag) =>
           entryTag.toLowerCase().includes(normalizedTag),
@@ -1007,17 +1454,14 @@ export const fetchArchives = unstable_cache(
         if (!b.date) return -1;
         return b.date.localeCompare(a.date);
       });
-    */
-    return [];
   },
   ["notion-archives"],
   { revalidate: 60, tags: ["notion-archives"] },
 );
 
 export async function fetchArchiveById(
-  _id: string,
+  id: string,
 ): Promise<{ entry: ArchiveEntry; blocks: NotionBlock[] } | null> {
-  /*
   if (!DOCS_DB_ID) return null;
 
   try {
@@ -1025,17 +1469,24 @@ export async function fetchArchiveById(
       page_id: id,
     })) as NotionPage;
 
-    const published = getCheckbox(page, "Publish", true);
-    const category = getSelect(page, "Category");
+    const status = getStatus(page, "Status Konten CMS");
+    const published = status
+      ? status === "Live"
+      : getCheckbox(page, "Publish", true);
+    const category = getSelect(page, "Kategori") || getSelect(page, "Category");
 
     if (!published || category !== "Arsip") return null;
 
     const blocks = await fetchAllBlocks(page.id);
+    const title =
+      getTitleProperty(page, "Nama Dokumen") ||
+      getTitleProperty(page, "Name") ||
+      getTitle(page);
 
     return {
       entry: {
         id: page.id,
-        title: getTitle(page),
+        title,
         summary:
           getRichText(page, "Summary") || getRichText(page, "Slug") || "",
         date: getDate(page, "Date") || page.created_time.split("T")[0],
@@ -1044,11 +1495,10 @@ export async function fetchArchiveById(
       },
       blocks,
     };
-  } catch {
+  } catch (error) {
+    console.error("[Notion fetchArchiveById] Query failed:", error);
     return null;
   }
-  */
-  return null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1056,34 +1506,35 @@ export async function fetchArchiveById(
 /* ------------------------------------------------------------------ */
 
 export const fetchAllBlocks = cache(
-  async (_blockId: string): Promise<NotionBlock[]> => {
-    /*
+  async (blockId: string): Promise<NotionBlock[]> => {
     const blocks: NotionBlock[] = [];
     let cursor: string | undefined;
 
-    do {
-      const response = await getNotionClient().blocks.children.list({
-        block_id: blockId,
-        start_cursor: cursor,
-        page_size: 100,
-      });
+    try {
+      do {
+        const response = await getNotionClient().blocks.children.list({
+          block_id: blockId,
+          start_cursor: cursor,
+          page_size: 100,
+        });
 
-      for (const rawBlock of response.results as BlockObjectResponse[]) {
-        const block: NotionBlock = { ...rawBlock };
-        if (block.has_children) {
-          block.children = await fetchAllBlocks(block.id);
+        for (const rawBlock of response.results as BlockObjectResponse[]) {
+          const block: NotionBlock = { ...rawBlock };
+          if (block.has_children) {
+            block.children = await fetchAllBlocks(block.id);
+          }
+          blocks.push(block);
         }
-        blocks.push(block);
-      }
 
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchAllBlocks] Query failed:", error);
+    }
 
     return blocks;
-    */
-    return [];
   },
 );
 
@@ -1091,7 +1542,7 @@ export const fetchAllBlocks = cache(
 /*  Search across all docs                                             */
 /* ------------------------------------------------------------------ */
 
-export async function searchDocs(_query: string): Promise<
+export async function searchDocs(query: string): Promise<
   Array<{
     id: string;
     title: string;
@@ -1100,38 +1551,638 @@ export async function searchDocs(_query: string): Promise<
     highlight: string;
   }>
 > {
-  /*
   if (!query.trim()) return [];
 
-  const response = await getNotionClient().search({
-    query,
-    filter: { value: "page", property: "object" },
-    page_size: 10,
-  });
-
-  const results: Array<{
-    id: string;
-    title: string;
-    slug: string;
-    category: string;
-    highlight: string;
-  }> = [];
-
-  for (const page of response.results as NotionPage[]) {
-    const title = getTitle(page);
-    const slug = getRichText(page, "Slug") || page.id;
-    const category = getSelect(page, "Category");
-
-    results.push({
-      id: page.id,
-      title,
-      slug,
-      category,
-      highlight: title,
+  try {
+    const response = await getNotionClient().search({
+      query,
+      filter: { value: "page", property: "object" },
+      page_size: 10,
     });
+
+    const results: Array<{
+      id: string;
+      title: string;
+      slug: string;
+      category: string;
+      highlight: string;
+    }> = [];
+
+    for (const page of response.results as NotionPage[]) {
+      const title =
+        getTitleProperty(page, "Nama Dokumen") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const slug = getRichText(page, "Slug") || page.id;
+      const category =
+        getSelect(page, "Kategori") || getSelect(page, "Category");
+
+      results.push({
+        id: page.id,
+        title,
+        slug,
+        category,
+        highlight: title,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error("[Notion searchDocs] Search failed:", error);
+    return [];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Beranda & Profil database helpers                                  */
+/* ------------------------------------------------------------------ */
+
+export const fetchBerandaEntries = unstable_cache(
+  async (): Promise<BerandaEntry[]> => {
+    if (!BERANDA_DB_ID) return [];
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(BERANDA_DB_ID);
+      if (!dataSourceId) return [];
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchBerandaEntries] Query failed:", error);
+      return [];
+    }
+
+    const entries: BerandaEntry[] = [];
+    for (const page of results) {
+      const status = getStatus(page, "Status Konten CMS");
+      if (status && status !== "Live") continue;
+
+      const title =
+        getTitleProperty(page, "Judul Tayangan") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const slug = getRichText(page, "Slug") || slugify(title);
+      const blockType = (getSelect(page, "Tipe Blok") ||
+        "Hero") as BerandaEntry["blockType"];
+      const blocks = await fetchAllBlocks(page.id);
+
+      entries.push({
+        id: page.id,
+        title,
+        slug,
+        blockType,
+        status,
+        lastModified: page.last_edited_time,
+        blocks,
+      });
+    }
+
+    return entries;
+  },
+  ["notion-beranda-entries"],
+  { revalidate: 60, tags: ["notion-beranda"] },
+);
+
+export const fetchProfilEntries = unstable_cache(
+  async (): Promise<ProfilEntry[]> => {
+    if (!PROFIL_DB_ID) return [];
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(PROFIL_DB_ID);
+      if (!dataSourceId) return [];
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchProfilEntries] Query failed:", error);
+      return [];
+    }
+
+    const entries: ProfilEntry[] = [];
+    for (const page of results) {
+      const status = getStatus(page, "Status Konten CMS");
+      if (status && status !== "Live") continue;
+
+      const title =
+        getTitleProperty(page, "Judul Tayangan") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const slug = getRichText(page, "Slug") || slugify(title);
+      const order = getNumber(page, "Urutan Tampil") || 999;
+      const blocks = await fetchAllBlocks(page.id);
+
+      entries.push({
+        id: page.id,
+        title,
+        slug,
+        order,
+        status,
+        lastModified: page.last_edited_time,
+        blocks,
+      });
+    }
+
+    return entries.sort((a, b) => a.order - b.order);
+  },
+  ["notion-profil-entries"],
+  { revalidate: 60, tags: ["notion-profil"] },
+);
+
+/* ------------------------------------------------------------------ */
+/*  Modular Beranda database queries                                  */
+/* ------------------------------------------------------------------ */
+
+export interface BerandaModularItem {
+  id: string;
+  buttonTitle: string;
+  description: string;
+  visible: boolean;
+  redirect: string;
+  urutan: number;
+}
+
+export interface BerandaModularData {
+  heroSection: BerandaModularItem[];
+  jelajahi: BerandaModularItem[];
+}
+
+export async function fetchModularDatabase(
+  dbId: string,
+): Promise<BerandaModularItem[]> {
+  const dataSourceId = await resolveDataSourceIdSafe(dbId);
+  if (!dataSourceId) return [];
+
+  const results: NotionPage[] = [];
+  let cursor: string | undefined;
+
+  try {
+    do {
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: dataSourceId,
+        start_cursor: cursor,
+      });
+      results.push(...(response.results as NotionPage[]));
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
+  } catch (error) {
+    console.error(
+      `[Notion fetchModularDatabase] Query failed for ${dbId}:`,
+      error,
+    );
+    return [];
   }
 
-  return results;
-  */
-  return [];
+  return results
+    .map((page) => {
+      const buttonTitle =
+        getTitleProperty(page, "Button Title") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const description = getRichText(page, "Description");
+      const visible = getCheckbox(page, "Visible", true);
+      const redirect = getRichText(page, "Redirect");
+      const urutan =
+        getNumber(page, "Urutan") !== 999
+          ? getNumber(page, "Urutan")
+          : getNumber(page, "Urutan Tampil") !== 999
+            ? getNumber(page, "Urutan Tampil")
+            : 999;
+
+      return {
+        id: page.id,
+        buttonTitle,
+        description,
+        visible,
+        redirect,
+        urutan,
+      };
+    })
+    .filter((item) => item.visible)
+    .sort((a, b) => a.urutan - b.urutan);
 }
+
+export async function fetchBerandaModularData(
+  pageId: string,
+): Promise<BerandaModularData> {
+  const data: BerandaModularData = {
+    heroSection: [],
+    jelajahi: [],
+  };
+
+  if (!pageId) return data;
+
+  let foundHeroDbId = "36e3b26d-c3be-802c-aac0-c7dbcd40ef36";
+  let foundJelajahiDbId = "36e3b26d-c3be-802c-91ac-e5ed573d89f6";
+
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      foundHeroDbId = dbs.childDatabases[0];
+    }
+    if (dbs.childDatabases.length >= 2) {
+      foundJelajahiDbId = dbs.childDatabases[1];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchBerandaModularData] Could not fetch page children blocks, falling back to static/configured database IDs",
+      error,
+    );
+  }
+
+  const [heroItems, jelajahiItems] = await Promise.all([
+    fetchModularDatabase(foundHeroDbId),
+    fetchModularDatabase(foundJelajahiDbId),
+  ]);
+
+  data.heroSection = heroItems;
+  data.jelajahi = jelajahiItems;
+
+  return data;
+}
+
+export const fetchBerandaModularDataCached = unstable_cache(
+  async (pageId: string): Promise<BerandaModularData> => {
+    return fetchBerandaModularData(pageId);
+  },
+  ["notion-beranda-modular-data"],
+  { revalidate: 60, tags: ["notion-beranda"] },
+);
+
+/* ------------------------------------------------------------------ */
+/*  Modular Profil database queries                                   */
+/* ------------------------------------------------------------------ */
+
+export interface ProfilModularExecutive {
+  role: string;
+  name: string;
+}
+
+export interface ProfilModularDivision {
+  name: string;
+  members: string[];
+  slots: number;
+  openPositions: string[];
+}
+
+export interface ProfilModularData {
+  paragraph: string;
+  cabinetName: string;
+  executives: ProfilModularExecutive[];
+  divisions: ProfilModularDivision[];
+}
+
+export async function fetchProfilModularData(
+  pageId: string,
+): Promise<ProfilModularData> {
+  const data: ProfilModularData = {
+    paragraph: "",
+    cabinetName: "",
+    executives: [],
+    divisions: [],
+  };
+
+  if (!pageId) return data;
+
+  let foundSectionDbId = "";
+  let foundKabinetDbId = "";
+  let foundSdmDbId = "";
+
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      foundSectionDbId = dbs.childDatabases[0];
+    }
+    if (dbs.childDatabases.length >= 2) {
+      foundKabinetDbId = dbs.childDatabases[1];
+    }
+    if (dbs.mentionedDatabases.length >= 1) {
+      foundSdmDbId = dbs.mentionedDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchProfilModularData] Could not fetch page children blocks",
+      error,
+    );
+  }
+
+  // Fallbacks just in case discovery fails
+  if (!foundSectionDbId)
+    foundSectionDbId = "36e3b26d-c3be-8076-9a94-d776ed290943";
+  if (!foundKabinetDbId)
+    foundKabinetDbId = "36e3b26d-c3be-804e-b7da-f0a1f98f218e";
+  if (!foundSdmDbId) foundSdmDbId = "35c3b26d-c3be-8021-b84a-df0a98e7b1e1";
+
+  try {
+    // 1. Fetch Profil Organisasi Section
+    const sectionDataSourceId = await resolveDataSourceIdSafe(foundSectionDbId);
+    let sectionPages: any[] = [];
+    if (sectionDataSourceId) {
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: sectionDataSourceId,
+      });
+      sectionPages = response.results;
+    }
+
+    let rawParagraph = "";
+    for (const page of sectionPages) {
+      const item = getTitleProperty(page, "Item") || getTitle(page);
+      const val = getRichText(page, "Deskripsi/Value");
+      if (item.toLowerCase().includes("paragraf")) {
+        rawParagraph = val;
+      } else if (item.toLowerCase().includes("kabinet")) {
+        data.cabinetName = val;
+      }
+    }
+    data.paragraph = rawParagraph;
+
+    // 2. Fetch Struktur Kabinet Config
+    const kabinetDataSourceId = await resolveDataSourceIdSafe(foundKabinetDbId);
+    let maxBatch = 1;
+    if (kabinetDataSourceId) {
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: kabinetDataSourceId,
+      });
+      for (const page of response.results) {
+        const title = getTitleProperty(page, "Isi") || getTitle(page);
+        const val = getNumber(page, "Value");
+        if (title.toLowerCase().includes("tampilkan batch") && val !== 999) {
+          maxBatch = val;
+        }
+      }
+    }
+
+    // 3. Fetch Database SDM & Evaluasi
+    const sdmDataSourceId = await resolveDataSourceIdSafe(foundSdmDbId);
+    const sdmPages: any[] = [];
+    if (sdmDataSourceId) {
+      let cursor: string | undefined;
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: sdmDataSourceId,
+          start_cursor: cursor,
+        });
+        sdmPages.push(...response.results);
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    }
+
+    // Filter by Keaktifan and Batch
+    const filteredMembers = sdmPages.filter((page) => {
+      const status = getSelect(page, "Status Keaktifan");
+      if (
+        status === "Diberhentikan" ||
+        status === "Demisioner" ||
+        status === "Cuti"
+      ) {
+        return false;
+      }
+
+      const batchStr = getSelect(page, "Batch") || "";
+      const match = batchStr.match(/Batch (\d+)/i);
+      const batchNum = match ? parseInt(match[1], 10) : 999;
+      return batchNum <= maxBatch;
+    });
+
+    // Collect all referenced division IDs
+    const divIds = Array.from(
+      new Set(
+        filteredMembers.flatMap((page) => {
+          const prop = getProperty(page, "Divisi") as any;
+          if (prop?.type === "relation") {
+            return prop.relation.map((r: any) => r.id);
+          }
+          return [];
+        }),
+      ),
+    ) as string[];
+
+    // Fetch referenced division names in parallel
+    const divisionMap = new Map<string, string>();
+    await Promise.all(
+      divIds.map(async (id) => {
+        try {
+          const divPage = await getNotionClient().pages.retrieve({
+            page_id: id,
+          });
+          const titleProp = Object.values((divPage as any).properties).find(
+            (p: any) => p.type === "title",
+          ) as any;
+          const name = titleProp?.title?.[0]?.plain_text || "Unnamed Division";
+          divisionMap.set(id, name);
+        } catch (err) {
+          console.error(
+            `Failed to fetch division details for page ${id}:`,
+            err,
+          );
+        }
+      }),
+    );
+
+    // Map members to a clean structure
+    const parsedMembers = filteredMembers.map((page) => {
+      const name =
+        getTitleProperty(page, "Nama Lengkap Staf") || getTitle(page);
+      const roles = getMultiSelect(page, "Jabatan Kabinet");
+      const status = getSelect(page, "Status Keaktifan");
+
+      const divProp = getProperty(page, "Divisi") as any;
+      const divPageId =
+        divProp?.type === "relation" ? divProp.relation?.[0]?.id : null;
+      const divisionName = divPageId ? divisionMap.get(divPageId) || "" : "";
+
+      const isOpen =
+        status === "Rekrutmen" ||
+        name.toLowerCase().includes("[open position]");
+
+      return {
+        id: page.id,
+        name,
+        roles,
+        divisionName,
+        isOpen,
+      };
+    });
+
+    // Separate BPH vs Divisions
+    const bphMembers = parsedMembers.filter(
+      (m) =>
+        m.divisionName.toLowerCase() === "bph" ||
+        m.roles.some((r) => /ketua|wakil|sekretaris|bendahara/i.test(r)),
+    );
+    const divisionMembers = parsedMembers.filter(
+      (m) =>
+        m.divisionName.toLowerCase() !== "bph" &&
+        !m.roles.some((r) => /ketua|wakil|sekretaris|bendahara/i.test(r)),
+    );
+
+    // Map executives for OrgChart
+    const execMap = new Map<string, string>();
+
+    // Symmetrically determine BPH role limits by looking at entire sdmPages data structure
+    const isRoleInBatchRange = (roleRegex: RegExp) => {
+      return sdmPages.some((page) => {
+        const roles = getMultiSelect(page, "Jabatan Kabinet");
+        const batchStr = getSelect(page, "Batch") || "";
+        const match = batchStr.match(/Batch (\d+)/i);
+        const batchNum = match ? parseInt(match[1], 10) : 999;
+        return roles.some((r) => roleRegex.test(r)) && batchNum <= maxBatch;
+      });
+    };
+
+    if (isRoleInBatchRange(/ketua/i))
+      execMap.set("ketua", "[OPEN POSITION] - Ketua");
+    if (isRoleInBatchRange(/wakil/i))
+      execMap.set("wakil", "[OPEN POSITION] - Wakil Ketua");
+    if (isRoleInBatchRange(/sekretaris/i))
+      execMap.set("sekretaris", "[OPEN POSITION] - Sekretaris");
+    if (isRoleInBatchRange(/sekretaris muda|co-sekretaris/i))
+      execMap.set("co-sekretaris", "[OPEN POSITION] - Co-Sekretaris");
+    if (isRoleInBatchRange(/bendahara/i))
+      execMap.set("bendahara", "[OPEN POSITION] - Bendahara");
+    if (isRoleInBatchRange(/bendahara muda|co-bendahara/i))
+      execMap.set("co-bendahara", "[OPEN POSITION] - Co-Bendahara");
+
+    // Populate roles
+    for (const m of bphMembers) {
+      for (const r of m.roles) {
+        const lower = r.toLowerCase();
+        if (lower === "ketua") {
+          execMap.set("ketua", m.name);
+        } else if (lower.includes("wakil")) {
+          execMap.set("wakil", m.name);
+        } else if (lower === "sekretaris") {
+          execMap.set("sekretaris", m.name);
+        } else if (
+          lower.includes("sekretaris muda") ||
+          lower.includes("co-sekretaris")
+        ) {
+          execMap.set("co-sekretaris", m.name);
+        } else if (lower === "bendahara") {
+          execMap.set("bendahara", m.name);
+        } else if (
+          lower.includes("bendahara muda") ||
+          lower.includes("co-bendahara")
+        ) {
+          execMap.set("co-bendahara", m.name);
+        }
+      }
+    }
+
+    data.executives = [];
+    if (execMap.has("ketua"))
+      data.executives.push({
+        role: "Ketua Himpunan",
+        name: execMap.get("ketua")!,
+      });
+    if (execMap.has("wakil"))
+      data.executives.push({
+        role: "Wakil Ketua",
+        name: execMap.get("wakil")!,
+      });
+    if (execMap.has("sekretaris"))
+      data.executives.push({
+        role: "Sekretaris",
+        name: execMap.get("sekretaris")!,
+      });
+    if (execMap.has("co-sekretaris"))
+      data.executives.push({
+        role: "Co-Sekretaris",
+        name: execMap.get("co-sekretaris")!,
+      });
+    if (execMap.has("bendahara"))
+      data.executives.push({
+        role: "Bendahara",
+        name: execMap.get("bendahara")!,
+      });
+    if (execMap.has("co-bendahara"))
+      data.executives.push({
+        role: "Co-Bendahara",
+        name: execMap.get("co-bendahara")!,
+      });
+
+    // Group divisions dynamically
+    const divGroups = new Map<
+      string,
+      { members: string[]; slots: number; openPositions: string[] }
+    >();
+
+    // Add all unique referenced non-BPH division names to map
+    for (const name of divisionMap.values()) {
+      if (name.toLowerCase() !== "bph") {
+        divGroups.set(name, { members: [], slots: 0, openPositions: [] });
+      }
+    }
+
+    for (const m of divisionMembers) {
+      if (!m.divisionName || m.divisionName.toLowerCase() === "bph") continue;
+
+      let group = divGroups.get(m.divisionName);
+      if (!group) {
+        group = { members: [], slots: 0, openPositions: [] };
+        divGroups.set(m.divisionName, group);
+      }
+
+      if (m.isOpen) {
+        group.slots += 1;
+        let cleanRole = m.name.replace(/^\[OPEN POSITION\]\s*-\s*/i, "").trim();
+        const specificRole = m.roles.find(
+          (r) => !/staf penuh|staf muda/i.test(r),
+        );
+        if (specificRole) {
+          cleanRole = specificRole;
+        }
+        group.openPositions.push(cleanRole);
+      } else {
+        group.members.push(m.name);
+      }
+    }
+
+    data.divisions = Array.from(divGroups.entries()).map(([name, group]) => ({
+      name,
+      members: group.members,
+      slots: group.slots,
+      openPositions: group.openPositions,
+    }));
+  } catch (error) {
+    console.error(
+      "[Notion fetchProfilModularData] Failed to process database content:",
+      error,
+    );
+  }
+
+  return data;
+}
+
+export const fetchProfilModularDataCached = unstable_cache(
+  async (pageId: string): Promise<ProfilModularData> => {
+    return fetchProfilModularData(pageId);
+  },
+  ["notion-profil-modular-data"],
+  { revalidate: 60, tags: ["notion-profil"] },
+);

@@ -27,8 +27,128 @@ type FAQFormData = {
 
 const STORAGE_KEY = "hima_faq_draft_v1";
 
+const ObfuscatedMinecraftText: React.FC<{ text: string; enabled: boolean }> = ({
+  text,
+  enabled,
+}) => {
+  const [displayedText, setDisplayedText] = useState(text);
+
+  useEffect(() => {
+    if (!enabled) {
+      setDisplayedText(text);
+      return;
+    }
+
+    const chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789§!@#$%^&*()_+-=[]{}|;':\",./<>?";
+    const interval = setInterval(() => {
+      let scrambled = "";
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === " ") {
+          scrambled += " ";
+        } else {
+          scrambled += chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      setDisplayedText(scrambled);
+    }, 80);
+
+    return () => clearInterval(interval);
+  }, [text, enabled]);
+
+  if (enabled) {
+    return (
+      <span className="font-mono tracking-widest text-stone-500/80 blur-[1px] select-none">
+        {displayedText}
+      </span>
+    );
+  }
+  return <>{text}</>;
+};
+
+const FAQStatusBadge: React.FC<{ status: FAQEntry["status"] }> = ({
+  status,
+}) => {
+  switch (status) {
+    case "Masuk":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-blue-900/20 bg-blue-950/20 px-2.5 py-0.5 text-[9px] font-medium text-blue-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+          Masuk
+        </span>
+      );
+    case "Ditinjau":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-amber-900/20 bg-amber-950/20 px-2.5 py-0.5 text-[9px] font-medium text-amber-400">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+          Ditinjau
+        </span>
+      );
+    case "Disembunyikan":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-purple-900/20 bg-purple-950/20 px-2.5 py-0.5 text-[9px] font-medium text-purple-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+          Disembunyikan
+        </span>
+      );
+    case "Dialihkan":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-cyan-900/20 bg-cyan-950/20 px-2.5 py-0.5 text-[9px] font-medium text-cyan-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+          Dialihkan
+        </span>
+      );
+    case "Dijawab":
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-emerald-900/20 bg-emerald-950/20 px-2.5 py-0.5 text-[9px] font-medium text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          Dijawab
+        </span>
+      );
+    default:
+      return (
+        <span className="flex items-center gap-1.5 rounded-full border border-stone-900/20 bg-stone-950/20 px-2.5 py-0.5 text-[9px] font-medium text-stone-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-stone-400" />
+          {status}
+        </span>
+      );
+  }
+};
+
+const PaginationControl: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="mt-4 flex items-center justify-center gap-3">
+      <button
+        disabled={currentPage === 1}
+        onClick={() => onPageChange(currentPage - 1)}
+        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-2.5 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+        style={{ borderRadius: "var(--radius-action)" }}
+      >
+        Prev
+      </button>
+      <span className="font-mono text-[9px] tracking-widest text-stone-600 uppercase">
+        {currentPage} / {totalPages}
+      </span>
+      <button
+        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+        className="hover:border-stone-750 border border-white/5 bg-stone-900/30 px-2.5 py-1 text-[10px] tracking-wider text-stone-400 uppercase transition-all duration-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+        style={{ borderRadius: "var(--radius-action)" }}
+      >
+        Next
+      </button>
+    </div>
+  );
+};
+
 const FAQView: React.FC = () => {
-  const scopeRef = useViewEntrance("/sekretariat/faq");
+  const scopeRef = useViewEntrance("/faq");
 
   // State Management
   const [faqs, setFaqs] = useState<FAQEntry[]>([]);
@@ -39,6 +159,16 @@ const FAQView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null);
+
+  // Pagination States
+  const [answeredPage, setAnsweredPage] = useState(1);
+  const [unansweredPage, setUnansweredPage] = useState(1);
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setAnsweredPage(1);
+    setUnansweredPage(1);
+  }, [searchQuery, activeCategory]);
 
   // Form State
   const [formData, setFormData] = useState<FAQFormData>({
@@ -187,13 +317,32 @@ const FAQView: React.FC = () => {
   // Separate Answered vs Unanswered
   const { answeredFaqs, unansweredFaqs } = useMemo(() => {
     const answered = filteredFaqs.filter(
-      (f) => f.status === "Dijawab" || f.status === "Dialihkan",
+      (f) =>
+        f.status === "Dijawab" ||
+        f.status === "Dialihkan" ||
+        (f.status === "Disembunyikan" && f.answer),
     );
     const unanswered = filteredFaqs.filter(
-      (f) => f.status === "Masuk" || f.status === "Ditinjau",
+      (f) =>
+        f.status === "Masuk" ||
+        f.status === "Ditinjau" ||
+        (f.status === "Disembunyikan" && !f.answer),
     );
     return { answeredFaqs: answered, unansweredFaqs: unanswered };
   }, [filteredFaqs]);
+
+  const totalAnsweredPages = Math.ceil(answeredFaqs.length / 5);
+  const totalUnansweredPages = Math.ceil(unansweredFaqs.length / 4);
+
+  const paginatedAnswered = useMemo(() => {
+    const start = (answeredPage - 1) * 5;
+    return answeredFaqs.slice(start, start + 5);
+  }, [answeredFaqs, answeredPage]);
+
+  const paginatedUnanswered = useMemo(() => {
+    const start = (unansweredPage - 1) * 4;
+    return unansweredFaqs.slice(start, start + 4);
+  }, [unansweredFaqs, unansweredPage]);
 
   return (
     <div
@@ -264,7 +413,8 @@ const FAQView: React.FC = () => {
             placeholder="Cari pertanyaan, jawaban, atau nama..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="border-stone-850 focus:border-gold-500/50 focus:ring-gold-500/30 w-full rounded-xl border bg-stone-900/40 py-3.5 pr-4 pl-12 text-sm text-white placeholder-stone-500 transition-all duration-300 focus:bg-stone-900/80 focus:ring-1 focus:outline-none"
+            className="border-stone-850 focus:border-gold-500/50 focus:ring-gold-500/30 w-full border bg-stone-900/40 py-3.5 pr-4 pl-12 text-sm text-white placeholder-stone-500 transition-all duration-300 focus:bg-stone-900/80 focus:ring-1 focus:outline-none"
+            style={{ borderRadius: "var(--radius-action)" }}
           />
           {searchQuery && (
             <button
@@ -353,26 +503,38 @@ const FAQView: React.FC = () => {
 
                 {answeredFaqs.length > 0 ? (
                   <div className="space-y-4">
-                    {answeredFaqs.map((faq) => {
+                    {paginatedAnswered.map((faq) => {
                       const isExpanded = expandedFaqId === faq.id;
                       return (
                         <div
                           key={faq.id}
-                          className={`group border transition-all duration-300 ${
+                          className={`group overflow-hidden border transition-all duration-300 ${
                             isExpanded
                               ? "border-gold-500/20 bg-stone-900/20"
                               : "border-white/5 hover:border-stone-800 hover:bg-stone-900/10"
                           }`}
+                          style={{ borderRadius: "var(--radius-action)" }}
                         >
                           {/* Accordion Trigger */}
                           <button
                             onClick={() =>
                               setExpandedFaqId(isExpanded ? null : faq.id)
                             }
-                            className="flex w-full items-start justify-between gap-4 p-5 text-left"
+                            className="flex w-full items-start justify-between gap-4 p-4 text-left"
                           >
                             <div className="space-y-2">
                               <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono text-[9px] text-stone-500">
+                                  {new Date(faq.createdAt).toLocaleDateString(
+                                    "id-ID",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    },
+                                  )}
+                                </span>
+                                <span className="text-stone-700">·</span>
                                 {faq.categories.map((c) => (
                                   <span
                                     key={c}
@@ -386,13 +548,17 @@ const FAQView: React.FC = () => {
                                     HIMA Official
                                   </span>
                                 )}
+                                <FAQStatusBadge status={faq.status} />
                               </div>
                               <h3 className="text-sm font-medium text-stone-200 transition-colors group-hover:text-white md:text-base">
-                                {faq.question}
+                                <ObfuscatedMinecraftText
+                                  text={faq.question}
+                                  enabled={faq.status === "Disembunyikan"}
+                                />
                               </h3>
                               <p className="text-[10px] text-stone-600">
                                 Ditanyakan oleh{" "}
-                                <span className="text-stone-400">
+                                <span className="font-medium text-stone-400">
                                   {faq.askerName}
                                 </span>
                               </p>
@@ -408,7 +574,7 @@ const FAQView: React.FC = () => {
 
                           {/* Accordion Content */}
                           {isExpanded && (
-                            <div className="space-y-4 border-t border-white/5 bg-stone-950/20 px-5 py-5">
+                            <div className="space-y-4 border-t border-white/5 bg-stone-950/20 px-4 py-4">
                               {faq.status === "Dialihkan" ? (
                                 <div className="space-y-3">
                                   <p className="text-sm leading-relaxed font-light text-stone-400">
@@ -422,7 +588,10 @@ const FAQView: React.FC = () => {
                                       href={faq.refUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="border-stone-850 hover:border-gold-500/50 inline-flex items-center gap-2 rounded-xl border bg-stone-900 px-4 py-2.5 text-xs text-stone-300 transition-all hover:bg-stone-900/70 hover:text-white"
+                                      className="border-stone-850 hover:border-gold-500/50 inline-flex items-center gap-2 border bg-stone-900 px-4 py-2.5 text-xs text-stone-300 transition-all hover:bg-stone-900/70 hover:text-white"
+                                      style={{
+                                        borderRadius: "var(--radius-action)",
+                                      }}
                                     >
                                       <span>Lihat Jawaban Resmi</span>
                                       <ExternalLink className="text-gold-500 h-3 w-3" />
@@ -431,29 +600,26 @@ const FAQView: React.FC = () => {
                                 </div>
                               ) : (
                                 <p className="text-sm leading-relaxed font-light whitespace-pre-line text-stone-300">
-                                  {faq.answer ||
-                                    "Belum ada teks jawaban resmi."}
+                                  <ObfuscatedMinecraftText
+                                    text={
+                                      faq.answer ||
+                                      "Belum ada teks jawaban resmi."
+                                    }
+                                    enabled={faq.status === "Disembunyikan"}
+                                  />
                                 </p>
                               )}
-
-                              {/* Version Metadata */}
-                              <div className="flex items-center gap-2 border-t border-white/5 pt-3 text-[9px] text-stone-600">
-                                <span>Terakhir diperbarui:</span>
-                                <span className="text-stone-500">
-                                  {new Date(
-                                    faq.lastEditedAt,
-                                  ).toLocaleDateString("id-ID", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                              </div>
                             </div>
                           )}
                         </div>
                       );
                     })}
+
+                    <PaginationControl
+                      currentPage={answeredPage}
+                      totalPages={totalAnsweredPages}
+                      onPageChange={setAnsweredPage}
+                    />
                   </div>
                 ) : (
                   <div className="border-stone-850 rounded-xl border border-dashed py-12 text-center text-stone-600">
@@ -478,43 +644,59 @@ const FAQView: React.FC = () => {
                 </div>
 
                 {unansweredFaqs.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {unansweredFaqs.map((faq) => (
-                      <div
-                        key={faq.id}
-                        className="hover:border-stone-850 space-y-4 border border-white/5 bg-[#111]/30 p-5 transition-all duration-300 hover:bg-[#111]/50"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-500 uppercase">
-                            {faq.categories[0]}
-                          </span>
-                          <span className="flex items-center gap-1.5 rounded-full border border-amber-900/20 bg-amber-950/20 px-2.5 py-0.5 text-[9px] font-medium text-amber-400">
-                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                            Menunggu Jawaban
-                          </span>
-                        </div>
-                        <p className="text-sm leading-relaxed font-medium text-stone-300">
-                          &ldquo;{faq.question}&rdquo;
-                        </p>
-                        <div className="flex items-center justify-between border-t border-white/5 pt-3 text-[10px] text-stone-600">
-                          <span>
-                            Oleh:{" "}
-                            <span className="text-stone-400">
-                              {faq.askerName}
+                  <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {paginatedUnanswered.map((faq) => (
+                        <div
+                          key={faq.id}
+                          className="hover:border-stone-850 flex flex-col justify-between border border-white/5 bg-[#111]/30 p-4 transition-all duration-300 hover:bg-[#111]/50"
+                          style={{ borderRadius: "var(--radius-action)" }}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-mono text-[9px] text-stone-500">
+                                  {new Date(faq.createdAt).toLocaleDateString(
+                                    "id-ID",
+                                    {
+                                      day: "numeric",
+                                      month: "short",
+                                    },
+                                  )}
+                                </span>
+                                <span className="text-stone-700">·</span>
+                                <span className="rounded-md border border-white/5 bg-stone-950 px-2 py-0.5 text-[8px] tracking-wider text-stone-500 uppercase">
+                                  {faq.categories[0]}
+                                </span>
+                              </div>
+                              <FAQStatusBadge status={faq.status} />
+                            </div>
+                            <p className="text-sm leading-relaxed font-medium text-stone-300">
+                              &ldquo;
+                              <ObfuscatedMinecraftText
+                                text={faq.question}
+                                enabled={faq.status === "Disembunyikan"}
+                              />
+                              &rdquo;
+                            </p>
+                          </div>
+                          <div className="mt-3 border-t border-white/5 pt-2 text-[10px] text-stone-600">
+                            <span>
+                              Oleh:{" "}
+                              <span className="text-stone-400">
+                                {faq.askerName}
+                              </span>
                             </span>
-                          </span>
-                          <span>
-                            {new Date(faq.createdAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "short",
-                              },
-                            )}
-                          </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    <PaginationControl
+                      currentPage={unansweredPage}
+                      totalPages={totalUnansweredPages}
+                      onPageChange={setUnansweredPage}
+                    />
                   </div>
                 ) : (
                   <div className="border-stone-850 rounded-xl border border-dashed py-12 text-center text-stone-600">
@@ -636,8 +818,11 @@ const FAQView: React.FC = () => {
                     !formData.question.trim() ||
                     !formData.askerName.trim()
                   }
-                  className="hover:bg-gold-400 disabled:border-stone-850 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-xs font-semibold text-black transition-all hover:text-white disabled:cursor-not-allowed disabled:bg-stone-900 disabled:text-stone-600"
-                  style={{ transitionDuration: "300ms" }}
+                  className="hover:bg-gold-400 disabled:border-stone-850 flex w-full items-center justify-center gap-2 bg-white px-5 py-3.5 text-xs font-semibold text-black transition-all hover:text-white disabled:cursor-not-allowed disabled:bg-stone-900 disabled:text-stone-600"
+                  style={{
+                    transitionDuration: "300ms",
+                    borderRadius: "var(--radius-action)",
+                  }}
                 >
                   {isSubmitting ? (
                     <>

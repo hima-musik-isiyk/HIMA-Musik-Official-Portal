@@ -22,62 +22,33 @@ import LogoHima from "./LogoHima";
 /*  Menu data                                                          */
 /* ------------------------------------------------------------------ */
 
-interface DropdownItem {
-  href: string;
-  label: string;
-  description: string;
-}
-
-interface NavGroup {
+interface NavItem {
   label: string;
   href?: string;
-  dropdown?: DropdownItem[];
+  isAnchor?: boolean;
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  { label: "Profil", href: "/about" },
+const NAV_ITEMS: NavItem[] = [
+  { label: "Profil", href: "/profil" },
   { label: "KKM", href: "/kkm" },
-  {
-    label: "Publikasi",
-    dropdown: [
-      {
-        href: "/events",
-        label: "Acara",
-        description: "Kalender program & agenda kegiatan",
-      },
-      {
-        href: "/gallery",
-        label: "Galeri",
-        description: "Arsip visual dokumentasi",
-      },
-    ],
-  },
-  {
-    label: "Layanan",
-    dropdown: [
-      {
-        href: "/sekretariat",
-        label: "Pusat Administrasi & Sekretariat",
-        description: "Portal dokumen, SOP, regulasi & arsip organisasi",
-      },
-      {
-        href: "/aduan",
-        label: "Ruang Advokasi",
-        description: "Layanan aduan & aspirasi mahasiswa",
-      },
-    ],
-  },
+  { label: "Agenda", href: "/agenda" },
+  { label: "Karya", href: "/karya" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Sekretariat", href: "/sekretariat" },
+  { label: "Aduan", href: "/aduan" },
+  { label: "Kontak", isAnchor: true },
 ];
 
-const MOBILE_NAV_ITEMS = [
-  { href: "/", label: "Beranda" },
-  { href: "/about", label: "Profil" },
-  { href: "/kkm", label: "KKM" },
-  { href: "/events", label: "Acara" },
-  { href: "/gallery", label: "Galeri" },
-  { href: "/sekretariat", label: "Pusat Administrasi" },
-  { href: "/aduan", label: "Ruang Advokasi" },
-  // pendaftaran intentionally hidden from mobile nav
+const MOBILE_NAV_ITEMS: NavItem[] = [
+  { label: "Beranda", href: "/" },
+  { label: "Profil", href: "/profil" },
+  { label: "KKM", href: "/kkm" },
+  { label: "Agenda", href: "/agenda" },
+  { label: "Karya", href: "/karya" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Sekretariat", href: "/sekretariat" },
+  { label: "Aduan", href: "/aduan" },
+  { label: "Kontak", isAnchor: true },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -96,7 +67,6 @@ const Navigation: React.FC = () => {
   const [mobileMenuLayer, setMobileMenuLayer] = useState(40);
   const [circleLayers, setCircleLayers] = useState({ base: 42, top: 44 });
   const [navLayer, setNavLayer] = useState(50);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
@@ -114,7 +84,6 @@ const Navigation: React.FC = () => {
   const menuCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const dropdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
@@ -437,26 +406,6 @@ const Navigation: React.FC = () => {
     return () => window.removeEventListener("resize", updateViewportState);
   }, []);
 
-  /* ------ Dropdown hover with delay ----- */
-  const handleDropdownEnter = useCallback((label: string) => {
-    if (dropdownTimeoutRef.current) {
-      clearTimeout(dropdownTimeoutRef.current);
-      dropdownTimeoutRef.current = null;
-    }
-    setOpenDropdown(label);
-  }, []);
-
-  const handleDropdownLeave = useCallback(() => {
-    dropdownTimeoutRef.current = setTimeout(() => {
-      setOpenDropdown(null);
-    }, 150);
-  }, []);
-
-  /* Close dropdown on route change */
-  useEffect(() => {
-    setOpenDropdown(null);
-  }, [currentPath]);
-
   /* ------ Active detection ----- */
   const isPathActive = (href: string) => {
     if (href === "/") return currentPath === "/";
@@ -466,11 +415,29 @@ const Navigation: React.FC = () => {
   const shouldHideLogoLines =
     hasMounted && isPathActive("/sekretariat") && isMobileViewport;
 
-  const isGroupActive = (group: NavGroup) => {
-    if (group.href) return isPathActive(group.href);
-    if (group.dropdown) return group.dropdown.some((d) => isPathActive(d.href));
-    return false;
-  };
+  /* ------ Kontak anchor scroll ----- */
+  const handleKontakClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const target = document.getElementById("footer-kontak");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // Fire the highlight AFTER the scroll animation ends.
+      // scrollend is natively supported in Chrome 114+ / Firefox 109+.
+      // A timeout fallback covers Safari and older browsers.
+      let settled = false;
+      const dispatchHighlight = () => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener("scrollend", dispatchHighlight);
+        window.dispatchEvent(new CustomEvent("hima:highlight-kontak"));
+      };
+      window.addEventListener("scrollend", dispatchHighlight, { once: true });
+      // Fallback: fire after 650 ms regardless
+      setTimeout(dispatchHighlight, 650);
+    }
+    setIsMenuOpen(false);
+  }, []);
 
   return (
     <>
@@ -554,7 +521,6 @@ const Navigation: React.FC = () => {
             onClick={() => {
               markIntentionalRouteAnimation();
               setIsMenuOpen(false);
-              setOpenDropdown(null);
             }}
           >
             <LogoHima
@@ -566,116 +532,34 @@ const Navigation: React.FC = () => {
             />
           </Link>
 
-          {/* CENTER: Desktop Mega-Menu */}
+          {/* CENTER: Desktop Nav — flat 7-item */}
           <div className="hidden items-center gap-1 md:flex">
-            {NAV_GROUPS.map((group) =>
-              group.dropdown ? (
-                <div
-                  key={group.label}
-                  className="relative"
-                  onMouseEnter={() => handleDropdownEnter(group.label)}
-                  onMouseLeave={handleDropdownLeave}
+            {NAV_ITEMS.map((item) =>
+              item.isAnchor ? (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={handleKontakClick}
+                  className="group relative px-4 py-2 text-sm font-medium tracking-[0.2em] text-neutral-500 transition-all duration-500 hover:text-white"
                 >
-                  <button
-                    className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] transition-all duration-300 ${
-                      isGroupActive(group)
-                        ? "text-gold-500"
-                        : "text-neutral-500 hover:text-white"
-                    }`}
-                    onClick={() =>
-                      setOpenDropdown((prev) =>
-                        prev === group.label ? null : group.label,
-                      )
-                    }
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {group.label}
-                      <svg
-                        className={`h-3 w-3 transition-transform duration-200 ${
-                          openDropdown === group.label ? "rotate-180" : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </span>
-                    <span
-                      className={`bg-gold-500 absolute -bottom-0.5 left-1/2 h-px -translate-x-1/2 transition-all duration-500 ${
-                        isGroupActive(group)
-                          ? "w-3/4 opacity-100"
-                          : "w-0 opacity-0"
-                      }`}
-                    />
-                  </button>
-
-                  {/* Dropdown pane */}
-                  <div
-                    className={`absolute top-full left-1/2 z-50 mt-2 -ml-36 ${
-                      openDropdown === group.label
-                        ? "pointer-events-auto"
-                        : "pointer-events-none"
-                    }`}
-                  >
-                    <div
-                      className={`w-72 rounded-xl border border-white/10 p-2 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
-                        openDropdown === group.label
-                          ? "translate-y-0 bg-stone-900/80 opacity-100"
-                          : "-translate-y-2 bg-stone-900/80 opacity-0"
-                      }`}
-                    >
-                      {group.dropdown.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => {
-                            markIntentionalRouteAnimation();
-                            setOpenDropdown(null);
-                          }}
-                          className={`group/item block rounded-lg px-3 py-3 transition-all duration-200 ${
-                            isPathActive(item.href)
-                              ? "text-white"
-                              : "text-neutral-400 hover:text-white"
-                          }`}
-                        >
-                          <div
-                            className={`text-sm font-medium ${
-                              isPathActive(item.href)
-                                ? "text-gold-300"
-                                : "group-hover/item:text-white"
-                            }`}
-                          >
-                            {item.label}
-                          </div>
-                          <div className="mt-0.5 text-xs leading-relaxed text-stone-500">
-                            {item.description}
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                  {item.label}
+                  <span className="bg-gold-500 absolute -bottom-0.5 left-1/2 h-px w-0 -translate-x-1/2 opacity-0 transition-all duration-500 group-hover:w-1/2 group-hover:opacity-50" />
+                </button>
               ) : (
                 <Link
-                  key={group.label}
-                  href={group.href!}
+                  key={item.label}
+                  href={item.href!}
                   onClick={markIntentionalRouteAnimation}
                   className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] transition-all duration-500 ${
-                    isGroupActive(group)
+                    isPathActive(item.href!)
                       ? "text-gold-500"
                       : "text-neutral-500 hover:text-white"
                   }`}
                 >
-                  {group.label}
+                  {item.label}
                   <span
                     className={`bg-gold-500 absolute -bottom-0.5 left-1/2 h-px -translate-x-1/2 transition-all duration-500 ${
-                      isGroupActive(group)
+                      isPathActive(item.href!)
                         ? "w-full opacity-100"
                         : "w-0 opacity-0 group-hover:w-1/2 group-hover:opacity-50"
                     }`}
@@ -773,30 +657,54 @@ const Navigation: React.FC = () => {
           }`}
         >
           {MOBILE_NAV_ITEMS.map((item, idx) => {
-            const isActive = isPathActive(item.href);
+            const isActive = !item.isAnchor && isPathActive(item.href!);
             const isClicked = activeMobileIndex === idx && isNavigating;
-            const isRecruitment = item.href === "/pendaftaran";
+            const sharedClass = `relative font-serif italic transition-all duration-500 ${
+              isCompactMobileMenu ? "text-2xl" : "text-3xl"
+            } ${
+              isClicked
+                ? "z-20 text-white"
+                : isActive
+                  ? "text-gold-500"
+                  : "text-neutral-500 hover:text-white"
+            } ${activeMobileIndex === idx && !isClicked ? "bg-gold-500/20" : ""}`;
+
+            if (item.isAnchor) {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  ref={(el) =>
+                    setMobileLinkRef(
+                      el as unknown as HTMLAnchorElement | null,
+                      idx,
+                    )
+                  }
+                  onClick={(e) => {
+                    animateMobileRipple(idx);
+                    handleKontakClick(e);
+                  }}
+                  className={sharedClass}
+                >
+                  <span className="relative z-10">{item.label}</span>
+                  <span
+                    ref={(el) => setMobileRippleRef(el, idx)}
+                    className="bg-gold-500/20 pointer-events-none absolute inset-0 scale-0 rounded-full opacity-0"
+                  />
+                </button>
+              );
+            }
 
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.label}
+                href={item.href!}
                 ref={(el) => setMobileLinkRef(el, idx)}
                 onClick={(e) => {
                   animateMobileRipple(idx);
-                  handleNavItemClick(item.href, idx, e);
+                  handleNavItemClick(item.href!, idx, e);
                 }}
-                className={`relative font-serif italic transition-all duration-500 ${
-                  isCompactMobileMenu ? "text-2xl" : "text-3xl"
-                } ${
-                  isRecruitment
-                    ? "text-gold-400"
-                    : isClicked
-                      ? "z-20 text-white"
-                      : isActive
-                        ? "text-gold-500"
-                        : "text-neutral-500 hover:text-white"
-                } ${activeMobileIndex === idx && !isClicked ? "bg-gold-500/20" : ""}`}
+                className={sharedClass}
               >
                 <span className="relative z-10">{item.label}</span>
                 <span
