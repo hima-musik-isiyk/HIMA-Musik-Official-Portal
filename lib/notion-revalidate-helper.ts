@@ -1,6 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
-import { getNotionClient } from "@/lib/notion";
+import { fetchRedirectDatabaseIdCached, getNotionClient } from "@/lib/notion";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
 
@@ -28,7 +28,8 @@ export type ContentScope =
   | "karya"
   | "faq"
   | "profil"
-  | "beranda";
+  | "beranda"
+  | "redirects";
 
 const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
 const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
@@ -43,6 +44,7 @@ const AGENDA_DB_ID =
   "";
 const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID ?? "";
 const FAQ_DB_ID = process.env.NOTION_FAQ_DATABASE_ID ?? "";
+const REDIRECT_PAGE_ID = process.env.NOTION_REDIRECT_PAGE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
 const parentChainCache = new Map<
@@ -106,6 +108,13 @@ async function buildScopeMatchers() {
     resolvePrimaryDataSourceId(BERANDA_DB_ID),
   ]);
 
+  const redirectDbId = REDIRECT_PAGE_ID
+    ? await fetchRedirectDatabaseIdCached(REDIRECT_PAGE_ID)
+    : "";
+  const redirectDataSourceId = redirectDbId
+    ? await resolvePrimaryDataSourceId(redirectDbId)
+    : null;
+
   return {
     docs: {
       databaseId: DOCS_DB_ID ? normalizeNotionId(DOCS_DB_ID) : null,
@@ -134,6 +143,10 @@ async function buildScopeMatchers() {
     beranda: {
       databaseId: BERANDA_DB_ID ? normalizeNotionId(BERANDA_DB_ID) : null,
       dataSourceId: berandaDataSourceId,
+    },
+    redirects: {
+      databaseId: redirectDbId ? normalizeNotionId(redirectDbId) : null,
+      dataSourceId: redirectDataSourceId,
     },
   };
 }
@@ -299,6 +312,11 @@ export function revalidateScope(scope: ContentScope) {
     revalidatePath("/");
     return;
   }
+
+  if (scope === "redirects") {
+    revalidateTag("notion-redirects", { expire: 0 });
+    return;
+  }
 }
 
 export async function inferScopes(
@@ -326,6 +344,7 @@ export async function inferScopes(
     "faq",
     "profil",
     "beranda",
+    "redirects",
   ] as const) {
     const matcher = matches[scope];
 

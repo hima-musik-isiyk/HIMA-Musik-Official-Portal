@@ -2202,3 +2202,87 @@ export const fetchProfilModularDataCached = unstable_cache(
   ["notion-profil-modular-data"],
   { revalidate: 60, tags: ["notion-profil"] },
 );
+
+/* ------------------------------------------------------------------ */
+/*  Modular Redirect database queries                                 */
+/* ------------------------------------------------------------------ */
+
+export interface RedirectEntry {
+  id: string;
+  name: string;
+  sourcePath: string;
+  destinationUrl: string;
+}
+
+export async function fetchRedirectDatabaseId(pageId: string): Promise<string> {
+  if (!pageId) return "";
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchRedirectDatabaseId] Failed to fetch page child databases",
+      error,
+    );
+  }
+  return "";
+}
+
+export const fetchRedirectDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchRedirectDatabaseId(pageId);
+  },
+  ["notion-redirect-database-id"],
+  { revalidate: 60, tags: ["notion-redirects"] },
+);
+
+export const fetchRedirects = unstable_cache(
+  async (): Promise<RedirectEntry[]> => {
+    const pageId = process.env.NOTION_REDIRECT_PAGE_ID;
+    if (!pageId) return [];
+
+    try {
+      const activeDbId = await fetchRedirectDatabaseIdCached(pageId);
+      if (!activeDbId) return [];
+
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+      if (!dataSourceId) return [];
+
+      const results: NotionPage[] = [];
+      let cursor: string | undefined;
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+
+      return results
+        .map((page) => {
+          const name = getTitleProperty(page, "Name") || getTitle(page);
+          const sourcePath = getRichText(page, "Modified");
+          const destinationUrl = getRichText(page, "Destination URL");
+
+          return {
+            id: page.id,
+            name,
+            sourcePath: sourcePath.trim(),
+            destinationUrl: destinationUrl.trim(),
+          };
+        })
+        .filter((entry) => entry.sourcePath && entry.destinationUrl);
+    } catch (error) {
+      console.error("[Notion fetchRedirects] Query failed:", error);
+      return [];
+    }
+  },
+  ["notion-redirects"],
+  { revalidate: 60, tags: ["notion-redirects"] },
+);

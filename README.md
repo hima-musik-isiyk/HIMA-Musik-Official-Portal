@@ -72,15 +72,16 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Notion Database & Page IDs (4 Database CMS Final + 4 Page IDs)
-   NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
-   NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
-   NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
-   NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
-   NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
-   NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
-   NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
-   NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
+    # Notion Database & Page IDs (4 Database CMS Final + 5 Page IDs)
+    NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
+    NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
+    NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
+    NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
+    NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
+    NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
+    NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
+    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
+    NOTION_REDIRECT_PAGE_ID=your_redirect_page_id        # Single Page ID containing redirects child database
 
    # Webhooks & Discord
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
@@ -292,6 +293,20 @@ Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
 - `Urutan Tampil` (Number)
 - `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
 - `Integritas Riwayat` (Date)
+
+### 7. Halaman Redirect Modular (`NOTION_REDIRECT_PAGE_ID`)
+
+Mengelola aturan redirect dinamis/pintasan di website. Halaman Redirect diakses melalui satu parent Notion Page ID yang menampung sub-database di bawahnya. Sistem mendeteksi sub-database ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
+
+- **Database Pertama (Indeks 0)** bertindak sebagai **Redirects Table**
+
+#### A. Database Redirect (`t="Redirect"`)
+
+Aturan pengalihan URL dari path internal ke URL tujuan eksternal/internal.
+
+- `Name` (Title) - Nama pengenal atau deskripsi redirect (misal: "Formulir Agenda").
+- `Modified` (Rich Text) - Path internal sumber yang akan diintersept (misal: `/agenda/submit`).
+- `Destination URL` (Rich Text) - URL atau path tujuan redirect (misal: `https://pengajuan-agenda-himamusik.notion.site/...`).
 
 ---
 
