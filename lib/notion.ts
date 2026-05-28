@@ -96,7 +96,11 @@ export interface KaryaEntryMeta {
   creator: string;
   genres: string[];
   platform: string;
+  platforms: string[];
   embedLink: string;
+  embedUrl: string;
+  artworkUrl: string | null;
+  nim: number;
   submissionDate: string;
   lastEdited: string;
 }
@@ -548,7 +552,7 @@ const _AGENDA_DB_ID =
   process.env.NOTION_AGENDA_DATABASE_ID ??
   process.env.NOTION_EVENTS_DATABASE_ID ??
   "";
-const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID ?? "";
+const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
 const DOCS_DB_ID =
   process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
   process.env.NOTION_PROJECT_DATABASE_ID ??
@@ -1026,15 +1030,142 @@ function sortEventEntries(
 /*  Karya database queries                                              */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/*  Karya database queries                                              */
+/* ------------------------------------------------------------------ */
+
+async function resolveKaryaMediaDetails(
+  platformSelects: string[],
+  embedLink: string,
+): Promise<{ embedUrl: string; artworkUrl: string | null }> {
+  const details = {
+    embedUrl: embedLink,
+    artworkUrl: null as string | null,
+  };
+
+  if (!embedLink) return details;
+
+  const url = embedLink.trim();
+
+  // Match platform from URL
+  const isYouTube = /youtube\.com|youtu\.be/i.test(url);
+  const isSpotify = /spotify\.com/i.test(url);
+  const isSoundCloud = /soundcloud\.com/i.test(url);
+  const isAppleMusic = /music\.apple\.com/i.test(url);
+
+  if (isYouTube) {
+    const ytRegex =
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(ytRegex);
+    const videoId = match ? match[1] : null;
+    if (videoId) {
+      details.embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      details.artworkUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    }
+  } else if (isSpotify) {
+    if (url.includes("open.spotify.com/")) {
+      details.embedUrl = url.replace(
+        "open.spotify.com/",
+        "open.spotify.com/embed/",
+      );
+    }
+    try {
+      const res = await fetch(
+        `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        details.artworkUrl = data.thumbnail_url || null;
+      }
+    } catch (err) {
+      console.error(
+        "[Notion resolveKaryaMediaDetails] Spotify oEmbed error:",
+        err,
+      );
+    }
+  } else if (isSoundCloud) {
+    details.embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23d4a64d&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=true`;
+    try {
+      const res = await fetch(
+        `https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        details.artworkUrl = data.thumbnail_url || null;
+      }
+    } catch (err) {
+      console.error(
+        "[Notion resolveKaryaMediaDetails] SoundCloud oEmbed error:",
+        err,
+      );
+    }
+  } else if (isAppleMusic) {
+    if (url.includes("music.apple.com/")) {
+      details.embedUrl = url.replace(
+        "music.apple.com/",
+        "embed.music.apple.com/",
+      );
+    }
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+      });
+      if (res.ok) {
+        const html = await res.text();
+        const match =
+          html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i) ||
+          html.match(/<meta\s+content="([^"]+)"\s+property="og:image"/i);
+        if (match) {
+          details.artworkUrl = match[1];
+        }
+      }
+    } catch (err) {
+      console.error(
+        "[Notion resolveKaryaMediaDetails] Apple Music error:",
+        err,
+      );
+    }
+  }
+
+  return details;
+}
+
+export async function fetchKaryaDatabaseId(pageId: string): Promise<string> {
+  if (!pageId) return "";
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchKaryaDatabaseId] Failed to fetch page child databases",
+      error,
+    );
+  }
+  return "";
+}
+
+export const fetchKaryaDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchKaryaDatabaseId(pageId);
+  },
+  ["notion-karya-database-id"],
+  { revalidate: 60, tags: ["notion-karya"] },
+);
+
 export const fetchKaryaEntries = unstable_cache(
   async (): Promise<KaryaEntryMeta[]> => {
-    if (!KARYA_DB_ID) return [];
+    if (!KARYA_PAGE_ID) return [];
 
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(KARYA_DB_ID);
+      const activeDbId = await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID);
+      if (!activeDbId) return [];
+
+      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
       if (!dataSourceId) return [];
 
       do {
@@ -1052,32 +1183,54 @@ export const fetchKaryaEntries = unstable_cache(
       return [];
     }
 
-    return results
-      .map((page) => {
-        const statusCMS = getStatus(page, "Status Konten CMS");
-        const statusVerif = getStatus(page, "Status Verifikasi");
-        const isLive = statusCMS === "Live" && statusVerif === "Disetujui";
+    const filteredPages = results.filter((page) => {
+      const status = getStatus(page, "Status");
+      return status === "Published";
+    });
 
-        if (!isLive) return null;
+    const parsedEntries = await Promise.all(
+      filteredPages.map(async (page) => {
+        const title =
+          getTitleProperty(page, "Judul Karya / Tayangan") || getTitle(page);
+        const slug = getSlugValue(page, title);
+        const creator = getRichText(page, "Pencipta / Penampil");
+        const genres = getMultiSelect(page, "Genre / Jenis Karya");
+        const platforms = getMultiSelect(page, "Platform Utama");
+        const embedLink = getUrl(page, "Link Embed Utama (Full URL)");
+        const nim = getNumber(page, "NIM Penanggung Jawab");
+
+        const submissionTimeProp = page.properties["Submission time"];
+        const submissionDate =
+          submissionTimeProp?.type === "created_time"
+            ? submissionTimeProp.created_time.split("T")[0]
+            : page.created_time.split("T")[0];
+
+        // Resolve media player details (embed and artwork)
+        const media = await resolveKaryaMediaDetails(platforms, embedLink);
 
         return {
           id: page.id,
-          slug: getSlugValue(page, getTitle(page)),
-          title: getTitle(page),
-          creator: getRichText(page, "Pencipta / Penampil"),
-          genres: getMultiSelect(page, "Genre / Jenis Karya"),
-          platform: getSelect(page, "Platform Utama"),
-          embedLink: getRichText(page, "Link Embed"),
-          submissionDate: getDate(page, "Integritas Riwayat"),
+          slug,
+          title,
+          creator,
+          genres,
+          platform: platforms[0] || "",
+          platforms,
+          embedLink,
+          embedUrl: media.embedUrl,
+          artworkUrl: media.artworkUrl,
+          nim,
+          submissionDate,
           lastEdited: page.last_edited_time,
         };
-      })
-      .filter((k): k is KaryaEntryMeta => k !== null)
-      .sort(
-        (a, b) =>
-          new Date(b.submissionDate).getTime() -
-          new Date(a.submissionDate).getTime(),
-      );
+      }),
+    );
+
+    return parsedEntries.sort(
+      (a, b) =>
+        new Date(b.submissionDate).getTime() -
+        new Date(a.submissionDate).getTime(),
+    );
   },
   ["notion-karya-entries"],
   { revalidate: 60, tags: ["notion-karya"] },

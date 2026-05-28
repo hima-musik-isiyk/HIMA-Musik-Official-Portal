@@ -268,7 +268,30 @@ Daftar agenda kegiatan, program kerja, dan pengajuan acara KKM.
   - **Diedit KKM**: Tersembunyi dari publik, namun dapat diulas oleh pengusul di `/agenda/preview/[slug]`.
   - **Published**: Ditampilkan secara penuh di `/agenda` dan dapat diakses langsung via `/agenda/[slug]`.
 
-### 5. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
+### 5. Halaman Karya Modular (`NOTION_KARYA_PAGE_ID`)
+
+Halaman utama Karya dikelola secara modular melalui satu parent Notion Page ID yang menampung child database `"Karya: Formulir dan CMS"` di bawahnya (Indeks 0). Sistem mendeteksi database ini secara dinamis berdasarkan urutan letak (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
+
+- **Database Pertama (Indeks 0)** bertindak sebagai **Karya: Formulir dan CMS**
+
+#### A. Database Karya: Formulir dan CMS (`t="Karya: Formulir dan CMS"`)
+
+Daftar karya mahasiswa, genre, dan tautan embed video/audio.
+
+- `Judul Karya / Tayangan` (Title) - Judul karya/tayangan.
+- `Pencipta / Penampil` (Rich Text) - Nama pencipta, penampil, atau grup mahasiswa.
+- `Platform Utama` (Multi-select) - Platform pemutaran utama (YouTube, Spotify, SoundCloud, Apple Music, Lainnya).
+- `Link Embed Utama (Full URL)` (URL) - Tautan URL lengkap karya untuk diembed dan diputar langsung.
+- `Genre / Jenis Karya` (Multi-select) - Klasik, Jazz, Pop, Rock, Folk, Elektronik, Eksperimental, Lainnya.
+- `NIM Penanggung Jawab` (Number) - NIM mahasiswa pengusul untuk keperluan verifikasi.
+- `Respondent` (Created By) - Identitas pembuat halaman.
+- `Submission time` (Created Time) - Waktu pengisian data.
+- `Status` (Status: `Masuk` → `Di-review` → `Published`)
+  - **Masuk**: Data baru disubmit, tersembunyi sepenuhnya dari publik.
+  - **Di-review**: Sedang ditinjau oleh pengurus HIMA, belum ditampilkan.
+  - **Published**: Karyamu terverifikasi dan muncul secara live di `/karya` dengan pemutar embed interaktif dan artwork oEmbed.
+
+### 6. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
 
 Pusat bantuan Tanya Jawab publik dan internal HIMA.
 
@@ -282,7 +305,7 @@ Pusat bantuan Tanya Jawab publik dan internal HIMA.
 - `Last Edited Time` (Last Edited Time - Native)
   _Aturan Tampil: `Visibilitas = true` AND `Status = Dijawab OR Dialihkan`._
 
-### 6. Database Sekretariat (`NOTION_SEKRETARIAT_DATABASE_ID`)
+### 7. Database Sekretariat (`NOTION_SEKRETARIAT_DATABASE_ID`)
 
 Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
 
@@ -294,7 +317,7 @@ Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
 - `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
 - `Integritas Riwayat` (Date)
 
-### 7. Halaman Redirect Modular (`NOTION_REDIRECT_PAGE_ID`)
+### 8. Halaman Redirect Modular (`NOTION_REDIRECT_PAGE_ID`)
 
 Mengelola aturan redirect dinamis/pintasan di website. Halaman Redirect diakses melalui satu parent Notion Page ID yang menampung sub-database di bawahnya. Sistem mendeteksi sub-database ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
 

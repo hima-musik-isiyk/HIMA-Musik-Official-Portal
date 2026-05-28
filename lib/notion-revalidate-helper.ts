@@ -1,6 +1,10 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
-import { fetchRedirectDatabaseIdCached, getNotionClient } from "@/lib/notion";
+import {
+  fetchKaryaDatabaseIdCached,
+  fetchRedirectDatabaseIdCached,
+  getNotionClient,
+} from "@/lib/notion";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
 
@@ -42,7 +46,7 @@ const AGENDA_DB_ID =
   process.env.NOTION_AGENDA_DATABASE_ID ??
   process.env.NOTION_EVENTS_DATABASE_ID ??
   "";
-const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID ?? "";
+const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
 const FAQ_DB_ID = process.env.NOTION_FAQ_DATABASE_ID ?? "";
 const REDIRECT_PAGE_ID = process.env.NOTION_REDIRECT_PAGE_ID ?? "";
 
@@ -90,6 +94,10 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
+  const karyaDbId = KARYA_PAGE_ID
+    ? await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID)
+    : "";
+
   const [
     docsDataSourceId,
     eventsDataSourceId,
@@ -102,7 +110,7 @@ async function buildScopeMatchers() {
     resolvePrimaryDataSourceId(DOCS_DB_ID),
     resolvePrimaryDataSourceId(AGENDA_DB_ID),
     resolvePrimaryDataSourceId(KKM_DB_ID),
-    resolvePrimaryDataSourceId(KARYA_DB_ID),
+    resolvePrimaryDataSourceId(karyaDbId),
     resolvePrimaryDataSourceId(FAQ_DB_ID),
     resolvePrimaryDataSourceId(PROFIL_DB_ID),
     resolvePrimaryDataSourceId(BERANDA_DB_ID),
@@ -129,7 +137,7 @@ async function buildScopeMatchers() {
       dataSourceId: kkmDataSourceId,
     },
     karya: {
-      databaseId: KARYA_DB_ID ? normalizeNotionId(KARYA_DB_ID) : null,
+      databaseId: karyaDbId ? normalizeNotionId(karyaDbId) : null,
       dataSourceId: karyaDataSourceId,
     },
     faq: {

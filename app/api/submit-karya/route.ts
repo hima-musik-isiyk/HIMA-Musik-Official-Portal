@@ -1,20 +1,28 @@
 import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
-import { getNotionClient } from "@/lib/notion";
+import { fetchKaryaDatabaseIdCached, getNotionClient } from "@/lib/notion";
 
 export async function POST(request: Request) {
-  const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID;
+  const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID;
   const DISCORD_WEBHOOK_URL = process.env.DISCORD_KARYA_WEBHOOK_URL;
 
-  if (!KARYA_DB_ID) {
+  if (!KARYA_PAGE_ID) {
     return NextResponse.json(
-      { error: "Karya Database ID not configured" },
+      { error: "Karya Page ID not configured" },
       { status: 500 },
     );
   }
 
   try {
+    const activeDbId = await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID);
+    if (!activeDbId) {
+      return NextResponse.json(
+        { error: "Karya Database ID could not be resolved from parent page" },
+        { status: 500 },
+      );
+    }
+
     const body = await request.json();
     const { title, creator, nim, genres, platform, embedLink } = body;
 
@@ -34,26 +42,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const today = new Date().toISOString().split("T")[0];
-
     const response = await notion.pages.create({
-      parent: { database_id: KARYA_DB_ID },
+      parent: { database_id: activeDbId },
       properties: {
-        "Judul Karya": { title: [{ text: { content: title } }] } as any,
-        "Status Verifikasi": { status: { name: "Masuk" } } as any,
-        "Status Konten CMS": { status: { name: "Draf" } } as any,
+        "Judul Karya / Tayangan": {
+          title: [{ text: { content: title } }],
+        } as any,
+        Status: { status: { name: "Masuk" } } as any,
         "Pencipta / Penampil": {
           rich_text: [{ text: { content: creator } }],
         } as any,
         "NIM Penanggung Jawab": {
-          rich_text: [{ text: { content: nim } }],
+          number: parseInt(nim, 10),
         } as any,
         "Genre / Jenis Karya": {
           multi_select: (genres || []).map((g: string) => ({ name: g })),
         } as any,
-        "Platform Utama": { select: { name: platform } } as any,
-        "Link Embed": { rich_text: [{ text: { content: embedLink } }] } as any,
-        "Integritas Riwayat": { date: { start: today } } as any,
+        "Platform Utama": {
+          multi_select: [{ name: platform }],
+        } as any,
+        "Link Embed Utama (Full URL)": {
+          url: embedLink,
+        } as any,
       },
     });
 
