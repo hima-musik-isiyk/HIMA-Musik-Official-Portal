@@ -21,7 +21,8 @@ export type NotionContentScope =
   | "kkm"
   | "events"
   | "beranda"
-  | "profil";
+  | "profil"
+  | "karya";
 
 export type EventLifecycle =
   | "upcoming"
@@ -70,6 +71,18 @@ export interface ProfilEntry {
   status: string;
   lastModified: string;
   blocks: NotionBlock[];
+}
+
+export interface KaryaEntryMeta {
+  id: string;
+  slug: string;
+  title: string;
+  creator: string;
+  genres: string[];
+  platform: string;
+  embedLink: string;
+  submissionDate: string;
+  lastEdited: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -458,7 +471,11 @@ export async function resolveDataSourceIdSafe(
 const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
 const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const EVENTS_DB_ID = process.env.NOTION_EVENTS_DATABASE_ID ?? "";
+const AGENDA_DB_ID =
+  process.env.NOTION_AGENDA_DATABASE_ID ??
+  process.env.NOTION_EVENTS_DATABASE_ID ??
+  "";
+const KARYA_DB_ID = process.env.NOTION_KARYA_DATABASE_ID ?? "";
 const DOCS_DB_ID =
   process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
   process.env.NOTION_PROJECT_DATABASE_ID ??
@@ -783,6 +800,67 @@ function sortEventEntries(
   });
 }
 
+/* ------------------------------------------------------------------ */
+/*  Karya database queries                                              */
+/* ------------------------------------------------------------------ */
+
+export const fetchKaryaEntries = unstable_cache(
+  async (): Promise<KaryaEntryMeta[]> => {
+    if (!KARYA_DB_ID) return [];
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(KARYA_DB_ID);
+      if (!dataSourceId) return [];
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchKaryaEntries] Query failed:", error);
+      return [];
+    }
+
+    return results
+      .map((page) => {
+        const statusCMS = getStatus(page, "Status Konten CMS");
+        const statusVerif = getStatus(page, "Status Verifikasi");
+        const isLive = statusCMS === "Live" && statusVerif === "Disetujui";
+
+        if (!isLive) return null;
+
+        return {
+          id: page.id,
+          slug: getSlugValue(page, getTitle(page)),
+          title: getTitle(page),
+          creator: getRichText(page, "Pencipta / Penampil"),
+          genres: getMultiSelect(page, "Genre / Jenis Karya"),
+          platform: getSelect(page, "Platform Utama"),
+          embedLink: getRichText(page, "Link Embed"),
+          submissionDate: getDate(page, "Integritas Riwayat"),
+          lastEdited: page.last_edited_time,
+        };
+      })
+      .filter((k): k is KaryaEntryMeta => k !== null)
+      .sort(
+        (a, b) =>
+          new Date(b.submissionDate).getTime() -
+          new Date(a.submissionDate).getTime(),
+      );
+  },
+  ["notion-karya-entries"],
+  { revalidate: 60, tags: ["notion-karya"] },
+);
+
 export const fetchEventsCollection = unstable_cache(
   async (): Promise<EventsCollection> => {
     const emptyCollection: EventsCollection = {
@@ -792,14 +870,14 @@ export const fetchEventsCollection = unstable_cache(
       announcements: [],
     };
 
-    if (!EVENTS_DB_ID) return emptyCollection;
+    if (!AGENDA_DB_ID) return emptyCollection;
 
     const today = getTodayInJakarta();
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(AGENDA_DB_ID);
       if (!dataSourceId) return emptyCollection;
 
       do {
@@ -862,7 +940,7 @@ export const fetchEventBySlug = cache(
   async (
     slug: string,
   ): Promise<{ meta: EventEntryMeta; blocks: NotionBlock[] } | null> => {
-    if (!EVENTS_DB_ID) return null;
+    if (!AGENDA_DB_ID) return null;
 
     const normalizedSlug = slug.trim().toLowerCase();
     const today = getTodayInJakarta();
@@ -871,7 +949,7 @@ export const fetchEventBySlug = cache(
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(AGENDA_DB_ID);
       if (!dataSourceId) return null;
 
       do {
@@ -918,13 +996,13 @@ export const fetchEventBySlug = cache(
 export async function fetchEventCoverUrlBySlug(
   slug: string,
 ): Promise<string | null> {
-  if (!EVENTS_DB_ID) return null;
+  if (!AGENDA_DB_ID) return null;
 
   const normalizedSlug = slug.trim().toLowerCase();
   let cursor: string | undefined;
 
   try {
-    const dataSourceId = await resolveDataSourceIdSafe(EVENTS_DB_ID);
+    const dataSourceId = await resolveDataSourceIdSafe(AGENDA_DB_ID);
     if (!dataSourceId) return null;
 
     do {
