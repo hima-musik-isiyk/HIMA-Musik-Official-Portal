@@ -24,11 +24,17 @@ The portal focuses on:
   - Date and author metadata displayed on closed card previews (before expansion)
   - Custom Minecraft Standard Galactic character scrambler obfuscation for hidden content
   - Dynamic page-by-page rendering with custom retro-themed `PaginationControl` for both lists
+  - Customized dropdown selection standard utilizing absolute custom chevrons matching design tokens
 - **Ruang Advokasi (Aduan):**
   - Category-based submission of complaints (Akademik, Fasilitas, Organisasi, Lainnya)
   - AI-assisted message refinement utilizing Groq (Llama 3)
   - Discord webhook integration for real-time administrator notifications
   - Local draft recovery using standard storage APIs
+  - Custom chevron-decorated category selector matching the unified portal input styles
+- **Etalase Karya Mahasiswa:** Interactive portfolio showcase featuring dynamic audio/video embeds (YouTube, Spotify, etc.) and oEmbed artwork fetching (route: `/karya`).
+  - Search query matching by title and performer
+  - Genre-based and platform-based drop-down filtering aligned with unified select styling
+  - Instant play overlays and real-time playback control
 - **Pusat Administrasi & Sekretariat:**
   - Dynamic SOPs, guidelines, archives, and reports compiled from Notion
   - Online self-service request forms (Surat Aktif Organisasi, Peminjaman Alat Musik)

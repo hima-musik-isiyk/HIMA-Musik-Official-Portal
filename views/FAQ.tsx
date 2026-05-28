@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
+import { IconChevronDown } from "@/components/Icons";
 import type { FAQEntry } from "@/lib/faq";
 import useViewEntrance from "@/lib/useViewEntrance";
 
@@ -764,24 +765,54 @@ const FAQView: React.FC = () => {
                 </div>
 
                 {/* Kategori Input */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold tracking-wider text-stone-400 uppercase">
+                <div className="group relative space-y-2">
+                  <label className="group-focus-within:text-gold-300 block text-xs font-semibold tracking-wider text-stone-400 uppercase transition-colors duration-300">
                     Kategori Pertanyaan
                   </label>
-                  <select
-                    name="category"
-                    disabled={isSubmitting}
-                    value={formData.category}
-                    onChange={handleFormChange}
-                    className="focus:border-gold-500/50 w-full border border-white/10 bg-stone-900/50 px-4 py-3 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none"
-                    style={{ borderRadius: "var(--radius-action)" }}
-                  >
-                    <option value="Pendaftaran">Pendaftaran (Oprec)</option>
-                    <option value="Kegiatan">Kegiatan / Event</option>
-                    <option value="Organisasi">Organisasi (HIMA)</option>
-                    <option value="Akademik">Akademik</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="category"
+                      disabled={isSubmitting}
+                      value={formData.category}
+                      onChange={handleFormChange}
+                      className="focus:border-gold-500/50 w-full appearance-none border border-white/10 bg-stone-900/50 px-4 py-3 pr-10 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      style={{ borderRadius: "var(--radius-action)" }}
+                    >
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="Pendaftaran"
+                      >
+                        Pendaftaran (Oprec)
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="Kegiatan"
+                      >
+                        Kegiatan / Event
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="Organisasi"
+                      >
+                        Organisasi (HIMA)
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="Akademik"
+                      >
+                        Akademik
+                      </option>
+                      <option
+                        className="bg-[#111] text-neutral-300"
+                        value="Lainnya"
+                      >
+                        Lainnya
+                      </option>
+                    </select>
+                    <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
+                      <IconChevronDown />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Pertanyaan Input */}

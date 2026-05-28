@@ -3,7 +3,11 @@
 import Link from "next/link";
 import React, { useState } from "react";
 
-import { IconExternalLink, IconMusic } from "@/components/Icons";
+import {
+  IconChevronDown,
+  IconExternalLink,
+  IconMusic,
+} from "@/components/Icons";
 import { type KaryaEntryMeta } from "@/lib/notion";
 import useViewEntrance from "@/lib/useViewEntrance";
 
@@ -143,34 +147,56 @@ export default function KaryaView({ entries }: KaryaViewProps) {
             {/* Filtering Controls */}
             <div className="flex flex-wrap gap-3">
               {/* Genre Filter */}
-              <select
-                value={selectedGenre}
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="focus:border-gold-500/80 appearance-none border border-white/10 bg-black/40 px-4 py-2.5 pr-8 text-xs text-neutral-300 transition-colors focus:outline-none"
-                style={ACTION_RADIUS}
-              >
-                <option value="all">Semua Genre</option>
-                {GENRES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
+              <div className="group relative">
+                <select
+                  value={selectedGenre}
+                  onChange={(e) => setSelectedGenre(e.target.value)}
+                  className="focus:border-gold-500/80 appearance-none border border-white/10 bg-black/40 px-4 py-2.5 pr-10 text-xs text-neutral-300 transition-colors focus:outline-none"
+                  style={ACTION_RADIUS}
+                >
+                  <option className="bg-[#111] text-neutral-300" value="all">
+                    Semua Genre
                   </option>
-                ))}
-              </select>
+                  {GENRES.map((g) => (
+                    <option
+                      className="bg-[#111] text-neutral-300"
+                      key={g}
+                      value={g}
+                    >
+                      {g}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-3 transition-colors duration-300">
+                  <IconChevronDown width={12} height={12} />
+                </div>
+              </div>
 
               {/* Platform Filter */}
-              <select
-                value={selectedPlatform}
-                onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="focus:border-gold-500/80 appearance-none border border-white/10 bg-black/40 px-4 py-2.5 pr-8 text-xs text-neutral-300 transition-colors focus:outline-none"
-                style={ACTION_RADIUS}
-              >
-                <option value="all">Semua Platform</option>
-                {PLATFORMS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
+              <div className="group relative">
+                <select
+                  value={selectedPlatform}
+                  onChange={(e) => setSelectedPlatform(e.target.value)}
+                  className="focus:border-gold-500/80 appearance-none border border-white/10 bg-black/40 px-4 py-2.5 pr-10 text-xs text-neutral-300 transition-colors focus:outline-none"
+                  style={ACTION_RADIUS}
+                >
+                  <option className="bg-[#111] text-neutral-300" value="all">
+                    Semua Platform
                   </option>
-                ))}
-              </select>
+                  {PLATFORMS.map((p) => (
+                    <option
+                      className="bg-[#111] text-neutral-300"
+                      key={p}
+                      value={p}
+                    >
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-3 transition-colors duration-300">
+                  <IconChevronDown width={12} height={12} />
+                </div>
+              </div>
             </div>
           </div>
 
