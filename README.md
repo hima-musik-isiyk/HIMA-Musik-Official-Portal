@@ -72,10 +72,10 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Notion Database & Page IDs (6 Database CMS Final + 1 Page ID)
-   NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
-   NOTION_PROFIL_DATABASE_ID=your_profil_database_id
-   NOTION_KKM_DATABASE_ID=your_kkm_database_id
+    # Notion Database & Page IDs (5 Database CMS Final + 2 Page IDs)
+    NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
+    NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
+    NOTION_KKM_DATABASE_ID=your_kkm_database_id
    NOTION_EVENTS_DATABASE_ID=your_events_database_id
    NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
@@ -166,16 +166,41 @@ Pintasan navigasi cepat menuju fitur-fitur portal HIMA Musik dengan grid respons
 - `Urutan` (Number) - Urutan urutan prioritas di dalam grid.
 - `Visible` (Checkbox) - Mengontrol tampilan elemen di grid.
 
-### 2. Database Profil (`NOTION_PROFIL_DATABASE_ID`)
+### 2. Halaman Profil Modular (`NOTION_PROFIL_PAGE_ID`)
 
-Konten statis organisasi publik seperti sejarah dan struktur kabinet.
+Halaman Profil diakses melalui satu parent Notion Page ID yang menampung sub-databases dan mention database. Sistem mendeteksi elemen-elemen ini secara dinamis melalui block children API:
 
-- `Judul Tayangan` (Title)
-- `ID Konten` (Unique ID)
-- `Slug` (Rich Text)
-- `Urutan Tampil` (Number)
-- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
-- `Integritas Riwayat` (Date)
+#### A. Database Profil Organisasi Section (`t="Profil Organisasi Section"`)
+
+Konten paragraf deskripsi dan nama kabinet.
+
+- `Item` (Title) - Nama item konfigurasi (misal: "Paragraf", "Nama Kabinet").
+- `Deskripsi/Value` (Rich Text) - Nilai teks dari item terkait.
+
+#### B. Database Struktur Kabinet (`t="Struktur Kabinet"`)
+
+Mengatur batasan batch pengurus yang akan ditampilkan.
+
+- `Isi` (Title) - Nama konfigurasi (misal: "Tampilkan Batch dari 1 Sampai").
+- `Value` (Number) - Batas batch maksimal yang ingin ditampilkan.
+
+#### C. Database SDM & Evaluasi (Database Mention)
+
+Daftar seluruh pengurus, staf, dan lowongan posisi (kaderisasi). Database ini direferensikan sebagai database mention di dalam baris paragraf pada halaman Profil.
+
+- `Nama Lengkap Staf` (Title) - Nama pengurus atau tag `[OPEN POSITION]`.
+- `Jabatan Kabinet` (Multi-select) - Daftar jabatan di kabinet.
+- `Divisi` (Relation) - Relasi ke database Divisi.
+- `Batch` (Select) - Informasi batch pengurus (misal: "Batch 1 - Pendiri").
+- `Status Keaktifan` (Select) - Status keaktifan (Aktif, Rekrutmen, Demisioner).
+
+#### D. Fitur UX & Interaktivitas Divisi
+
+Untuk menghadirkan pengalaman visual yang premium dan interaktif pada bagian Divisi:
+
+- **Layout Grid Dua Kolom:** Menampilkan kartu-kartu divisi dalam layout grid 2 kolom (`md:grid-cols-2`).
+- **Anchor "Terbuka" & Animasi Teks Berputar:** Ketika kursor diarahkan ke kartu divisi (hover), tulisan status lowongan berubah secara dinamis dengan efek transisi mewah. Kata `"Terbuka"` bertindak sebagai anchor statis di sebelah kiri, diikuti oleh badge/pill berwarna emas premium (`bg-gold-500/20`) yang memutar daftar posisi secara bergantian (misal: `Terbuka [Staf Acara]`, `Terbuka [Koordinator Event]`). Ketika idle (tidak dihover), badge tersebut kembali ke tulisan statis `"{slots} posisi terbuka"`.
+- **Symmetric OrgChart & Smart Layout Control:** Menampilkan struktur BPH secara proporsional. BPH Batch 2 (seperti Co-Sekretaris atau Co-Bendahara) disembunyikan secara dinamis beserta garis penghubungnya jika melebihi batas batch maksimum yang dikonfigurasi di Notion, tanpa membuat kartu BPH utama meregang secara vertikal.
 
 ### 3. Database KKM (`NOTION_KKM_DATABASE_ID`)
 

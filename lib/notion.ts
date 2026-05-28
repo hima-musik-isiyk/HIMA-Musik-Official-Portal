@@ -1565,3 +1565,376 @@ export const fetchBerandaModularDataCached = unstable_cache(
   ["notion-beranda-modular-data"],
   { revalidate: 60, tags: ["notion-beranda"] },
 );
+
+/* ------------------------------------------------------------------ */
+/*  Modular Profil database queries                                   */
+/* ------------------------------------------------------------------ */
+
+export interface ProfilModularExecutive {
+  role: string;
+  name: string;
+}
+
+export interface ProfilModularDivision {
+  name: string;
+  members: string[];
+  slots: number;
+  openPositions: string[];
+}
+
+export interface ProfilModularData {
+  paragraph: string;
+  cabinetName: string;
+  executives: ProfilModularExecutive[];
+  divisions: ProfilModularDivision[];
+}
+
+export async function fetchProfilModularData(
+  pageId: string,
+): Promise<ProfilModularData> {
+  const data: ProfilModularData = {
+    paragraph: "",
+    cabinetName: "",
+    executives: [],
+    divisions: [],
+  };
+
+  if (!pageId) return data;
+
+  let foundSectionDbId = "";
+  let foundKabinetDbId = "";
+  let foundSdmDbId = "";
+
+  try {
+    const response = await getNotionClient().blocks.children.list({
+      block_id: normalizeNotionId(pageId),
+    });
+
+    for (const block of response.results as any[]) {
+      if (block.type === "child_database") {
+        const title = block.child_database?.title || "";
+        if (
+          title.toLowerCase().includes("profil") ||
+          title.toLowerCase().includes("organisasi")
+        ) {
+          foundSectionDbId = block.id;
+        } else if (
+          title.toLowerCase().includes("struktur") ||
+          title.toLowerCase().includes("kabinet")
+        ) {
+          foundKabinetDbId = block.id;
+        }
+      } else if (block.type === "paragraph") {
+        const richText = block.paragraph?.rich_text || [];
+        for (const rt of richText) {
+          if (rt.type === "mention" && rt.mention?.type === "database") {
+            foundSdmDbId = rt.mention.database.id;
+            break;
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchProfilModularData] Could not fetch page children blocks",
+      error,
+    );
+  }
+
+  // Fallbacks just in case discovery fails
+  if (!foundSectionDbId)
+    foundSectionDbId = "36e3b26d-c3be-8076-9a94-d776ed290943";
+  if (!foundKabinetDbId)
+    foundKabinetDbId = "36e3b26d-c3be-804e-b7da-f0a1f98f218e";
+  if (!foundSdmDbId) foundSdmDbId = "35c3b26d-c3be-8021-b84a-df0a98e7b1e1";
+
+  try {
+    // 1. Fetch Profil Organisasi Section
+    const sectionDataSourceId = await resolveDataSourceIdSafe(foundSectionDbId);
+    let sectionPages: any[] = [];
+    if (sectionDataSourceId) {
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: sectionDataSourceId,
+      });
+      sectionPages = response.results;
+    }
+
+    let rawParagraph = "";
+    for (const page of sectionPages) {
+      const item = getTitleProperty(page, "Item") || getTitle(page);
+      const val = getRichText(page, "Deskripsi/Value");
+      if (item.toLowerCase().includes("paragraf")) {
+        rawParagraph = val;
+      } else if (item.toLowerCase().includes("kabinet")) {
+        data.cabinetName = val;
+      }
+    }
+    data.paragraph = rawParagraph;
+
+    // 2. Fetch Struktur Kabinet Config
+    const kabinetDataSourceId = await resolveDataSourceIdSafe(foundKabinetDbId);
+    let maxBatch = 1;
+    if (kabinetDataSourceId) {
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: kabinetDataSourceId,
+      });
+      for (const page of response.results) {
+        const title = getTitleProperty(page, "Isi") || getTitle(page);
+        const val = getNumber(page, "Value");
+        if (title.toLowerCase().includes("tampilkan batch") && val !== 999) {
+          maxBatch = val;
+        }
+      }
+    }
+
+    // 3. Fetch Database SDM & Evaluasi
+    const sdmDataSourceId = await resolveDataSourceIdSafe(foundSdmDbId);
+    const sdmPages: any[] = [];
+    if (sdmDataSourceId) {
+      let cursor: string | undefined;
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: sdmDataSourceId,
+          start_cursor: cursor,
+        });
+        sdmPages.push(...response.results);
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    }
+
+    // Filter by Keaktifan and Batch
+    const filteredMembers = sdmPages.filter((page) => {
+      const status = getSelect(page, "Status Keaktifan");
+      if (
+        status === "Diberhentikan" ||
+        status === "Demisioner" ||
+        status === "Cuti"
+      ) {
+        return false;
+      }
+
+      const batchStr = getSelect(page, "Batch") || "";
+      const match = batchStr.match(/Batch (\d+)/i);
+      const batchNum = match ? parseInt(match[1], 10) : 999;
+      return batchNum <= maxBatch;
+    });
+
+    // Collect all referenced division IDs
+    const divIds = Array.from(
+      new Set(
+        filteredMembers.flatMap((page) => {
+          const prop = getProperty(page, "Divisi") as any;
+          if (prop?.type === "relation") {
+            return prop.relation.map((r: any) => r.id);
+          }
+          return [];
+        }),
+      ),
+    ) as string[];
+
+    // Fetch referenced division names in parallel
+    const divisionMap = new Map<string, string>();
+    await Promise.all(
+      divIds.map(async (id) => {
+        try {
+          const divPage = await getNotionClient().pages.retrieve({
+            page_id: id,
+          });
+          const titleProp = Object.values((divPage as any).properties).find(
+            (p: any) => p.type === "title",
+          ) as any;
+          const name = titleProp?.title?.[0]?.plain_text || "Unnamed Division";
+          divisionMap.set(id, name);
+        } catch (err) {
+          console.error(
+            `Failed to fetch division details for page ${id}:`,
+            err,
+          );
+        }
+      }),
+    );
+
+    // Map members to a clean structure
+    const parsedMembers = filteredMembers.map((page) => {
+      const name =
+        getTitleProperty(page, "Nama Lengkap Staf") || getTitle(page);
+      const roles = getMultiSelect(page, "Jabatan Kabinet");
+      const status = getSelect(page, "Status Keaktifan");
+
+      const divProp = getProperty(page, "Divisi") as any;
+      const divPageId =
+        divProp?.type === "relation" ? divProp.relation?.[0]?.id : null;
+      const divisionName = divPageId ? divisionMap.get(divPageId) || "" : "";
+
+      const isOpen =
+        status === "Rekrutmen" ||
+        name.toLowerCase().includes("[open position]");
+
+      return {
+        id: page.id,
+        name,
+        roles,
+        divisionName,
+        isOpen,
+      };
+    });
+
+    // Separate BPH vs Divisions
+    const bphMembers = parsedMembers.filter(
+      (m) =>
+        m.divisionName.toLowerCase() === "bph" ||
+        m.roles.some((r) => /ketua|wakil|sekretaris|bendahara/i.test(r)),
+    );
+    const divisionMembers = parsedMembers.filter(
+      (m) =>
+        m.divisionName.toLowerCase() !== "bph" &&
+        !m.roles.some((r) => /ketua|wakil|sekretaris|bendahara/i.test(r)),
+    );
+
+    // Map executives for OrgChart
+    const execMap = new Map<string, string>();
+
+    // Symmetrically determine BPH role limits by looking at entire sdmPages data structure
+    const isRoleInBatchRange = (roleRegex: RegExp) => {
+      return sdmPages.some((page) => {
+        const roles = getMultiSelect(page, "Jabatan Kabinet");
+        const batchStr = getSelect(page, "Batch") || "";
+        const match = batchStr.match(/Batch (\d+)/i);
+        const batchNum = match ? parseInt(match[1], 10) : 999;
+        return roles.some((r) => roleRegex.test(r)) && batchNum <= maxBatch;
+      });
+    };
+
+    if (isRoleInBatchRange(/ketua/i))
+      execMap.set("ketua", "[OPEN POSITION] - Ketua");
+    if (isRoleInBatchRange(/wakil/i))
+      execMap.set("wakil", "[OPEN POSITION] - Wakil Ketua");
+    if (isRoleInBatchRange(/sekretaris/i))
+      execMap.set("sekretaris", "[OPEN POSITION] - Sekretaris");
+    if (isRoleInBatchRange(/sekretaris muda|co-sekretaris/i))
+      execMap.set("co-sekretaris", "[OPEN POSITION] - Co-Sekretaris");
+    if (isRoleInBatchRange(/bendahara/i))
+      execMap.set("bendahara", "[OPEN POSITION] - Bendahara");
+    if (isRoleInBatchRange(/bendahara muda|co-bendahara/i))
+      execMap.set("co-bendahara", "[OPEN POSITION] - Co-Bendahara");
+
+    // Populate roles
+    for (const m of bphMembers) {
+      for (const r of m.roles) {
+        const lower = r.toLowerCase();
+        if (lower === "ketua") {
+          execMap.set("ketua", m.name);
+        } else if (lower.includes("wakil")) {
+          execMap.set("wakil", m.name);
+        } else if (lower === "sekretaris") {
+          execMap.set("sekretaris", m.name);
+        } else if (
+          lower.includes("sekretaris muda") ||
+          lower.includes("co-sekretaris")
+        ) {
+          execMap.set("co-sekretaris", m.name);
+        } else if (lower === "bendahara") {
+          execMap.set("bendahara", m.name);
+        } else if (
+          lower.includes("bendahara muda") ||
+          lower.includes("co-bendahara")
+        ) {
+          execMap.set("co-bendahara", m.name);
+        }
+      }
+    }
+
+    data.executives = [];
+    if (execMap.has("ketua"))
+      data.executives.push({
+        role: "Ketua Himpunan",
+        name: execMap.get("ketua")!,
+      });
+    if (execMap.has("wakil"))
+      data.executives.push({
+        role: "Wakil Ketua",
+        name: execMap.get("wakil")!,
+      });
+    if (execMap.has("sekretaris"))
+      data.executives.push({
+        role: "Sekretaris",
+        name: execMap.get("sekretaris")!,
+      });
+    if (execMap.has("co-sekretaris"))
+      data.executives.push({
+        role: "Co-Sekretaris",
+        name: execMap.get("co-sekretaris")!,
+      });
+    if (execMap.has("bendahara"))
+      data.executives.push({
+        role: "Bendahara",
+        name: execMap.get("bendahara")!,
+      });
+    if (execMap.has("co-bendahara"))
+      data.executives.push({
+        role: "Co-Bendahara",
+        name: execMap.get("co-bendahara")!,
+      });
+
+    // Group divisions dynamically
+    const divGroups = new Map<
+      string,
+      { members: string[]; slots: number; openPositions: string[] }
+    >();
+
+    // Add all unique referenced non-BPH division names to map
+    for (const name of divisionMap.values()) {
+      if (name.toLowerCase() !== "bph") {
+        divGroups.set(name, { members: [], slots: 0, openPositions: [] });
+      }
+    }
+
+    for (const m of divisionMembers) {
+      if (!m.divisionName || m.divisionName.toLowerCase() === "bph") continue;
+
+      let group = divGroups.get(m.divisionName);
+      if (!group) {
+        group = { members: [], slots: 0, openPositions: [] };
+        divGroups.set(m.divisionName, group);
+      }
+
+      if (m.isOpen) {
+        group.slots += 1;
+        let cleanRole = m.name.replace(/^\[OPEN POSITION\]\s*-\s*/i, "").trim();
+        const specificRole = m.roles.find(
+          (r) => !/staf penuh|staf muda/i.test(r),
+        );
+        if (specificRole) {
+          cleanRole = specificRole;
+        }
+        group.openPositions.push(cleanRole);
+      } else {
+        group.members.push(m.name);
+      }
+    }
+
+    data.divisions = Array.from(divGroups.entries()).map(([name, group]) => ({
+      name,
+      members: group.members,
+      slots: group.slots,
+      openPositions: group.openPositions,
+    }));
+  } catch (error) {
+    console.error(
+      "[Notion fetchProfilModularData] Failed to process database content:",
+      error,
+    );
+  }
+
+  return data;
+}
+
+export const fetchProfilModularDataCached = unstable_cache(
+  async (pageId: string): Promise<ProfilModularData> => {
+    return fetchProfilModularData(pageId);
+  },
+  ["notion-profil-modular-data"],
+  { revalidate: 60, tags: ["notion-profil"] },
+);

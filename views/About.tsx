@@ -1,14 +1,31 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo,useRef, useState } from "react";
 
 import LightPillar from "@/components/LightPillar";
+import RotatingText from "@/components/RotatingText";
+import type {
+  ProfilModularDivision,
+  ProfilModularExecutive,
+} from "@/lib/notion";
 import { divisions as allDivisions } from "@/lib/pendaftaran-data";
 import useViewEntrance from "@/lib/useViewEntrance";
 
-const About: React.FC = () => {
+interface AboutProps {
+  paragraph?: string;
+  cabinetName?: string;
+  executives?: ProfilModularExecutive[];
+  divisions?: ProfilModularDivision[];
+}
+
+const About: React.FC<AboutProps> = ({
+  paragraph,
+  cabinetName,
+  executives: fetchedExecutives,
+  divisions: fetchedDivisions,
+}) => {
   const scopeRef = useViewEntrance("/profil");
-  const executives = [
+  const fallbackExecutives = [
     { role: "Ketua Himpunan", name: "Vincent Nuridzati Adittama" },
     { role: "Wakil Ketua", name: "Nadia Fibriani" },
     { role: "Sekretaris", name: "Nuzulul Dian Maulida" },
@@ -26,6 +43,26 @@ const About: React.FC = () => {
     },
     { role: "Divisi Program & Event", name: "Syaka Maheswara Adi Suro" },
   ];
+
+  const executivesList =
+    fetchedExecutives && fetchedExecutives.length > 0
+      ? fetchedExecutives
+      : fallbackExecutives;
+
+  const displayCabinetName = cabinetName || "2026";
+
+  const defaultParagraphs = [
+    "Himpunan Mahasiswa Musik (HIMA MUSIK) adalah ruang kolektif mahasiswa musik di lingkungan ISI Yogyakarta yang berfokus pada pengembangan keilmuan, praktik artistik, dan solidaritas antarmahasiswa. Akar ekosistem musik kampus ini tidak lepas dari warisan Akademi Musik Indonesia (AMI) yang kemudian berproses dalam struktur ISI Yogyakarta.",
+    "Dalam perjalanannya, bentuk organisasi mahasiswa musik dapat mengalami fase transisi, reorganisasi, dan pembaruan antar generasi. Karena itu, profil ini menempatkan HIMA MUSIK sebagai kelanjutan semangat kolaborasi mahasiswa musik: merawat tradisi, mendorong eksplorasi kontemporer, serta memperkuat kontribusi bagi ekosistem seni pertunjukan.",
+  ];
+
+  let displayParagraphs = defaultParagraphs;
+  if (paragraph) {
+    displayParagraphs = paragraph
+      .split(/<br\s*\/?>|<br\s*\/?>\s*<br\s*\/?>|\n\n|\r\n\r\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+  }
 
   return (
     <div
@@ -49,7 +86,9 @@ const About: React.FC = () => {
               className="font-serif text-6xl tracking-tight text-white md:text-8xl"
             >
               Kabinet{" "}
-              <span className="text-gold-500/80 font-light italic">2026</span>
+              <span className="text-gold-500/80 font-light italic">
+                {displayCabinetName}
+              </span>
             </h1>
 
             <div
@@ -57,22 +96,27 @@ const About: React.FC = () => {
               data-animate-delay="0.25"
               className="text-lg leading-relaxed font-light text-neutral-400"
             >
-              <p className="first-letter:text-gold-500 mb-8 first-letter:float-left first-letter:mr-3 first-letter:font-serif first-letter:text-7xl">
-                Himpunan Mahasiswa Musik (HIMA MUSIK) adalah ruang kolektif
-                mahasiswa musik di lingkungan ISI Yogyakarta yang berfokus pada
-                pengembangan keilmuan, praktik artistik, dan solidaritas
-                antarmahasiswa. Akar ekosistem musik kampus ini tidak lepas dari
-                warisan Akademi Musik Indonesia (AMI) yang kemudian berproses
-                dalam struktur ISI Yogyakarta.
-              </p>
-              <p>
-                Dalam perjalanannya, bentuk organisasi mahasiswa musik dapat
-                mengalami fase transisi, reorganisasi, dan pembaruan antar
-                generasi. Karena itu, profil ini menempatkan HIMA MUSIK sebagai
-                kelanjutan semangat kolaborasi mahasiswa musik: merawat tradisi,
-                mendorong eksplorasi kontemporer, serta memperkuat kontribusi
-                bagi ekosistem seni pertunjukan.
-              </p>
+              {displayParagraphs.map((p, idx) => {
+                if (idx === 0) {
+                  let text = p;
+                  if (text.startsWith("impunan")) {
+                    text = "H" + text;
+                  }
+                  return (
+                    <p
+                      key={idx}
+                      className="first-letter:text-gold-500 mb-8 first-letter:float-left first-letter:mr-3 first-letter:font-serif first-letter:text-7xl"
+                    >
+                      {text}
+                    </p>
+                  );
+                }
+                return (
+                  <p key={idx} className="mb-8">
+                    {p}
+                  </p>
+                );
+              })}
             </div>
           </div>
           <div
@@ -100,7 +144,7 @@ const About: React.FC = () => {
           >
             Struktur Kabinet <br />
             <span className="text-gold-500 text-3xl font-light italic">
-              2026
+              {displayCabinetName}
             </span>
           </h2>
 
@@ -110,11 +154,14 @@ const About: React.FC = () => {
             </h3>
           </div>
 
-          <OrgChart executives={executives} />
+          <OrgChart executives={executivesList} />
 
           <div className="mt-12">
             <h3 className="text-gold-500 mb-6 text-sm font-medium">Divisi</h3>
-            <DivisionCards executives={executives} />
+            <DivisionCards
+              executives={executivesList}
+              divisions={fetchedDivisions}
+            />
           </div>
         </div>
       </div>
@@ -123,6 +170,48 @@ const About: React.FC = () => {
 };
 
 // --- Helper components reused from PendaftaranLanding layout ---
+
+/** Renders a hoverable open-position badge for BPH muda slots */
+const BphOpenSlot = () => {
+  const [hovered, setHovered] = useState(false);
+  const rtRef = useRef<any>(null);
+  return (
+    <div
+      className="mt-1 flex items-center justify-center gap-1.5"
+      onMouseEnter={() => {
+        setHovered(true);
+        rtRef.current?.next();
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+        rtRef.current?.reset();
+      }}
+    >
+      <span className="text-gold-300/80 shrink-0 font-serif text-xs tracking-wider uppercase">
+        Terbuka
+      </span>
+      <span className="bg-gold-500/20 text-gold-300 border-gold-500/30 inline-flex items-center rounded border px-2 py-0.5">
+        <RotatingText
+          ref={rtRef}
+          texts={["1 Posisi"]}
+          mainClassName="font-serif text-xs uppercase tracking-wider"
+          staggerFrom="last"
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "-120%" }}
+          staggerDuration={0.025}
+          splitLevelClassName="overflow-hidden pb-0.5"
+          transition={{ type: "spring", damping: 30, stiffness: 400 }}
+          rotationInterval={2000}
+          splitBy="words"
+          auto={hovered}
+          loop
+        />
+      </span>
+    </div>
+  );
+};
+
 const OrgChart = ({
   executives,
 }: {
@@ -220,7 +309,7 @@ const OrgChart = ({
               ref={sekretarisBranchRef}
             >
               <div className="h-8 w-px bg-white/15" />
-              <div className="flex w-full flex-1 flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-25 md:px-6 md:py-6">
+              <div className="flex w-full flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-25 md:px-6 md:py-6">
                 <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                   Sekretaris
                 </p>
@@ -229,19 +318,37 @@ const OrgChart = ({
                 </p>
               </div>
 
-              <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
-              <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-1 flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
-                <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
-                  Co-Sekretaris
-                </p>
-                <p className="text-gold-200 font-serif text-sm md:text-base">
-                  {executives.find(
-                    (e) =>
-                      e.role.toLowerCase().includes("co-sekretaris") ||
-                      e.role.toLowerCase().includes("co sekretaris"),
-                  )?.name ?? "1 posisi terbuka"}
-                </p>
-              </div>
+              {executives.some(
+                (e) =>
+                  e.role.toLowerCase().includes("co-sekretaris") ||
+                  e.role.toLowerCase().includes("sekretaris muda"),
+              ) && (
+                <>
+                  <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
+                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                    <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
+                      Sekretaris Muda
+                    </p>
+                    {(() => {
+                      const found = executives.find(
+                        (e) =>
+                          e.role.toLowerCase().includes("co-sekretaris") ||
+                          e.role.toLowerCase().includes("co sekretaris") ||
+                          e.role.toLowerCase().includes("sekretaris muda"),
+                      );
+                      const isReal =
+                        found && !found.name.includes("[OPEN POSITION]");
+                      return isReal ? (
+                        <p className="text-gold-200 font-serif text-sm md:text-base">
+                          {found.name}
+                        </p>
+                      ) : (
+                        <BphOpenSlot />
+                      );
+                    })()}
+                  </div>
+                </>
+              )}
             </div>
 
             <div
@@ -249,14 +356,45 @@ const OrgChart = ({
               ref={bendaharaBranchRef}
             >
               <div className="h-8 w-px bg-white/15" />
-              <div className="w-full max-w-sm border border-white/8 bg-white/3 px-8 py-6 text-center">
+              <div className="flex w-full flex-col justify-center border border-white/8 bg-white/3 px-4 py-5 text-center md:min-h-25 md:px-6 md:py-6">
                 <p className="mb-2 text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
                   Bendahara
                 </p>
-                <p className="font-serif text-lg text-white">
+                <p className="font-serif text-sm leading-snug text-white md:text-base">
                   {findExec("bendahara")}
                 </p>
               </div>
+
+              {executives.some(
+                (e) =>
+                  e.role.toLowerCase().includes("co-bendahara") ||
+                  e.role.toLowerCase().includes("bendahara muda"),
+              ) && (
+                <>
+                  <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
+                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                    <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
+                      Bendahara Muda
+                    </p>
+                    {(() => {
+                      const found = executives.find(
+                        (e) =>
+                          e.role.toLowerCase().includes("co-bendahara") ||
+                          e.role.toLowerCase().includes("bendahara muda"),
+                      );
+                      const isReal =
+                        found && !found.name.includes("[OPEN POSITION]");
+                      return isReal ? (
+                        <p className="text-gold-200 font-serif text-sm md:text-base">
+                          {found.name}
+                        </p>
+                      ) : (
+                        <BphOpenSlot />
+                      );
+                    })()}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -265,10 +403,95 @@ const OrgChart = ({
   );
 };
 
+const DivisionCard = ({
+  name,
+  members,
+  slots,
+  openPositions,
+  angkatan,
+}: {
+  name: string;
+  members: string[];
+  slots: number;
+  openPositions: string[];
+  angkatan?: string;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const rotatingTextRef = useRef<any>(null);
+
+  const rotatingTexts = useMemo(() => {
+    const defaultText = `${slots} Posisi`;
+    if (!openPositions || openPositions.length === 0) return [defaultText];
+    return [defaultText, ...openPositions];
+  }, [slots, openPositions]);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    rotatingTextRef.current?.next();
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    rotatingTextRef.current?.reset();
+  };
+
+  return (
+    <div
+      data-animate="up"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="border-gold-500/20 bg-gold-500/5 group hover:border-gold-500/50 hover:bg-gold-500/10 relative cursor-default border p-6 text-center transition-all duration-300"
+    >
+      <p className="text-gold-200 mb-3 font-serif text-base transition-colors duration-300 group-hover:text-white">
+        {name}
+      </p>
+      {members.length > 0 ? (
+        <div className="text-gold-200/60 group-hover:text-gold-200/80 mb-2 text-sm transition-colors duration-300">
+          {members.map((n) => (
+            <div key={n}>{n}</div>
+          ))}
+        </div>
+      ) : null}
+      {slots > 0 ? (
+        <div className="flex min-h-6 items-center justify-center text-sm font-medium">
+          <div className="flex items-center gap-1.5">
+            <span className="text-gold-300/80 shrink-0 font-serif text-xs tracking-wider uppercase">
+              Terbuka
+            </span>
+            <span className="bg-gold-500/20 text-gold-300 border-gold-500/30 inline-flex items-center rounded border px-2 py-0.5">
+              <RotatingText
+                ref={rotatingTextRef}
+                texts={rotatingTexts}
+                mainClassName="font-serif text-xs uppercase tracking-wider"
+                staggerFrom="last"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "-120%" }}
+                staggerDuration={0.025}
+                splitLevelClassName="overflow-hidden pb-0.5"
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                rotationInterval={2000}
+                splitBy="words"
+                auto={isHovered}
+                loop
+              />
+            </span>
+          </div>
+        </div>
+      ) : null}
+      {angkatan && (
+        <p className="mt-1.5 text-[10px] text-neutral-500">{angkatan}</p>
+      )}
+    </div>
+  );
+};
+
 const DivisionCards = ({
   executives,
+  divisions: fetchedDivisions,
 }: {
   executives: { role: string; name: string }[];
+  divisions?: ProfilModularDivision[];
 }) => {
   const divisions = allDivisions.filter((d) => !d.id.startsWith("co-"));
 
@@ -281,40 +504,41 @@ const DivisionCards = ({
     return matches.map((m) => m.name);
   };
 
+  if (fetchedDivisions && fetchedDivisions.length > 0) {
+    return (
+      <div
+        data-animate-stagger="0.1"
+        className="grid grid-cols-1 gap-4 md:grid-cols-2"
+      >
+        {fetchedDivisions.map((division) => (
+          <DivisionCard
+            key={division.name}
+            name={division.name}
+            members={division.members}
+            slots={division.slots}
+            openPositions={division.openPositions}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       data-animate-stagger="0.1"
-      className="grid grid-cols-1 gap-4 md:grid-cols-3"
+      className="grid grid-cols-1 gap-4 md:grid-cols-2"
     >
       {divisions.map((division) => {
         const names = findNamesForDivision(division.name);
         return (
-          <div
+          <DivisionCard
             key={division.id}
-            data-animate="up"
-            className="border-gold-500/20 bg-gold-500/5 border p-6 text-center"
-          >
-            <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
-              Divisi
-            </p>
-            <p className="text-gold-200 mb-3 font-serif text-base">
-              {division.name}
-            </p>
-            {names.length > 0 ? (
-              <div className="text-gold-200/60 text-sm">
-                {names.map((n) => (
-                  <div key={n}>{n}</div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gold-200/60 text-sm">
-                {division.slots} posisi terbuka
-              </p>
-            )}
-            <p className="mt-1.5 text-xs text-neutral-500">
-              {(division as { angkatan?: string }).angkatan ?? ""}
-            </p>
-          </div>
+            name={division.name}
+            members={names}
+            slots={division.slots}
+            openPositions={[]}
+            angkatan={(division as any).angkatan}
+          />
         );
       })}
     </div>
