@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import PreviewActionBar from "@/components/PreviewActionBar";
 import { fetchEventBySlug, fetchKKMGroups } from "@/lib/notion";
 import EventDetailView from "@/views/EventDetail";
 
@@ -52,11 +53,7 @@ export default async function AgendaPreviewPage({
 
   return (
     <div className="relative">
-      {/* Premium Preview Alert Banner */}
-      <div className="border-gold-500/20 text-gold-300 sticky top-0 z-50 border-b bg-black/80 py-3 text-center text-xs font-semibold tracking-[0.2em] uppercase backdrop-blur-md">
-        ⚠️ Mode Preview: Halaman ini hanya untuk tinjauan internal KKM /
-        Pengurus HIMA
-      </div>
+      <PreviewActionBar />
       <EventDetailView
         meta={result.meta}
         blocks={result.blocks}

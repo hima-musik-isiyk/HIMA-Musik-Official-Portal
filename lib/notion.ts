@@ -1,7 +1,23 @@
 import { Client } from "@notionhq/client";
 import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoints";
-import { unstable_cache } from "next/cache";
+import { unstable_cache as next_unstable_cache } from "next/cache";
 import { cache } from "react";
+
+// Custom wrapper to enforce a 1-second cache lifetime in development mode
+// so that reloading the page locally updates the CMS content instantly.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function unstable_cache<T extends (...args: any[]) => Promise<any>>(
+  cb: T,
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] },
+): T {
+  const isDev = process.env.NODE_ENV === "development";
+  const finalOptions = {
+    ...options,
+    revalidate: isDev ? 1 : (options?.revalidate ?? 60),
+  };
+  return next_unstable_cache(cb, keyParts, finalOptions) as unknown as T;
+}
 
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
 import type { KKMGroup } from "./kkm-data";
