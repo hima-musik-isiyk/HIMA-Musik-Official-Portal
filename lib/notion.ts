@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
-import { KKM_ENTRY_ORDER, type KKMGroup } from "./kkm-data";
+import type { KKMGroup } from "./kkm-data";
 import {
   ArchiveEntry,
   buildAnchorMap,
@@ -600,22 +600,43 @@ export const fetchAllDocs = unstable_cache(
 /*  KKM database queries                                               */
 /* ------------------------------------------------------------------ */
 
-export async function fetchKKMDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return KKM_DB_ID;
+export async function resolveKKMDatabases(
+  pageId: string,
+): Promise<{ heroDbId: string; groupsDbId: string }> {
+  const result = {
+    heroDbId: "36e3b26d-c3be-80de-a00e-dff07d738239",
+    groupsDbId: "36e3b26d-c3be-8065-94be-f94365699c8d",
+  };
+
+  if (!pageId) return result;
+
   try {
     const dbs = await fetchPageDatabases(pageId);
     if (dbs.childDatabases.length >= 2) {
-      return dbs.childDatabases[1];
-    } else if (dbs.childDatabases.length > 0) {
-      return dbs.childDatabases[0];
+      result.heroDbId = dbs.childDatabases[0];
+      result.groupsDbId = dbs.childDatabases[1];
+    } else if (dbs.childDatabases.length === 1) {
+      const singleId = dbs.childDatabases[0];
+      if (singleId === "36e3b26d-c3be-80de-a00e-dff07d738239") {
+        result.heroDbId = singleId;
+      } else {
+        result.groupsDbId = singleId;
+      }
     }
   } catch (error) {
     console.warn(
-      "[Notion fetchKKMDatabaseId] Could not fetch page children blocks, falling back to KKM_DB_ID",
+      "[Notion resolveKKMDatabases] Failed to fetch page child databases",
       error,
     );
   }
-  return KKM_DB_ID;
+
+  return result;
+}
+
+export async function fetchKKMDatabaseId(pageId: string): Promise<string> {
+  if (!pageId) return KKM_DB_ID || "36e3b26d-c3be-8065-94be-f94365699c8d";
+  const resolved = await resolveKKMDatabases(pageId);
+  return resolved.groupsDbId;
 }
 
 export const fetchKKMDatabaseIdCached = unstable_cache(
@@ -656,8 +677,7 @@ export const fetchKKMGroups = unstable_cache(
       return [];
     }
 
-    const kkmMap = new Map<string, KKMGroup>();
-    const extraGroups: KKMGroup[] = [];
+    const groups: KKMGroup[] = [];
 
     for (const page of results) {
       const name = (
@@ -692,7 +712,13 @@ export const fetchKKMGroups = unstable_cache(
           .filter(Boolean);
       }
 
-      const group = {
+      const order =
+        getNumber(page, "Urutan") ??
+        getNumber(page, "Urutan Tampil") ??
+        getNumber(page, "Order") ??
+        999;
+
+      groups.push({
         id: page.id,
         slug: getRichText(page, "Slug") || slugify(name),
         name,
@@ -703,24 +729,18 @@ export const fetchKKMGroups = unstable_cache(
         tiktok,
         youtube,
         socialLinks,
-      };
-
-      if (KKM_ENTRY_ORDER.includes(name as (typeof KKM_ENTRY_ORDER)[number])) {
-        kkmMap.set(name, group);
-      } else {
-        extraGroups.push(group);
-      }
+        order,
+      });
     }
 
-    const orderedGroups = KKM_ENTRY_ORDER.map((name) =>
-      kkmMap.get(name),
-    ).filter((entry): entry is KKMGroup => Boolean(entry));
+    groups.sort((a, b) => {
+      const orderA = a.order ?? 999;
+      const orderB = b.order ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name, "id", { sensitivity: "base" });
+    });
 
-    extraGroups.sort((a, b) =>
-      a.name.localeCompare(b.name, "id", { sensitivity: "base" }),
-    );
-
-    return [...orderedGroups, ...extraGroups];
+    return groups;
   },
   ["notion-kkm-groups"],
   { revalidate: 60, tags: ["notion-kkm"] },
@@ -753,24 +773,12 @@ export async function fetchKKMModularData(
     return data;
   }
 
-  let foundHeroDbId = "";
-
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 2) {
-      foundHeroDbId = dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchKKMModularData] Could not fetch page children blocks",
-      error,
-    );
-  }
+  const resolved = await resolveKKMDatabases(pageId);
 
   // 1. Fetch KKM: Hero Section if found
-  if (foundHeroDbId) {
+  if (resolved.heroDbId) {
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(foundHeroDbId);
+      const dataSourceId = await resolveDataSourceIdSafe(resolved.heroDbId);
       if (dataSourceId) {
         const response = await getNotionClientAny().dataSources.query({
           data_source_id: dataSourceId,
