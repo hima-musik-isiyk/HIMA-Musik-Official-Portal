@@ -72,8 +72,8 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Notion Database IDs (6 Database CMS Final)
-   NOTION_BERANDA_DATABASE_ID=your_beranda_database_id
+   # Notion Database & Page IDs (6 Database CMS Final + 1 Page ID)
+   NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
    NOTION_PROFIL_DATABASE_ID=your_profil_database_id
    NOTION_KKM_DATABASE_ID=your_kkm_database_id
    NOTION_EVENTS_DATABASE_ID=your_events_database_id
@@ -142,16 +142,29 @@ Old URLs `/about` and `/events` redirect permanently to `/profil` and `/agenda` 
 
 The HIMA Musik portal features a dynamic Content Management System backed by **6 Notion Databases** managed exclusively by the Ketua. Below is the exact schema and property types defined in the Notion Teamspace:
 
-### 1. Database Beranda (`NOTION_BERANDA_DATABASE_ID`)
+### 1. Halaman Beranda Modular (`NOTION_BERANDA_PAGE_ID`)
 
-Konten dinamis untuk banner, pengumuman, dan hero sections.
+Halaman utama Beranda dikelola secara modular melalui satu parent Notion Page ID yang menampung beberapa child databases di bawahnya. Sistem mendeteksi database-database ini secara dinamis melalui block children API dan memproses kontennya:
 
-- `Judul Tayangan` (Title)
-- `ID Konten` (Unique ID)
-- `Slug` (Rich Text)
-- `Tipe Blok` (Select: `Hero`, `Banner Pengumuman`, `CTA Rekrutmen`, `Highlight Acara`)
-- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Dijadwalkan` → `Live` → `Arsip`)
-- `Integritas Riwayat` (Date)
+#### A. Database Hero Section (`t="Hero Section"`)
+
+Konten dinamis untuk tombol CTA (Call to Action) dan deskripsi utama pada header.
+
+- `Button Title` (Title) - Judul tombol utama.
+- `Description` (Rich Text) - Deskripsi singkat di samping tombol.
+- `Redirect` (Rich Text) - Link tujuan ketika tombol diklik.
+- `Urutan` (Number) - Urutan prioritas tampilan.
+- `Visible` (Checkbox) - Status visibilitas tombol.
+
+#### B. Database Jelajahi (`t="Jelajahi"`)
+
+Pintasan navigasi cepat menuju fitur-fitur portal HIMA Musik dengan grid responsif yang beradaptasi secara otomatis.
+
+- `Button Title` (Title) - Nama layanan / tautan.
+- `Description` (Rich Text) - Penjelasan singkat layanan.
+- `Redirect` (Rich Text) - Link tujuan internal/eksternal.
+- `Urutan` (Number) - Urutan urutan prioritas di dalam grid.
+- `Visible` (Checkbox) - Mengontrol tampilan elemen di grid.
 
 ### 2. Database Profil (`NOTION_PROFIL_DATABASE_ID`)
 

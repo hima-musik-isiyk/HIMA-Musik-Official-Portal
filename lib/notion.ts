@@ -1436,3 +1436,132 @@ export const fetchProfilEntries = unstable_cache(
   ["notion-profil-entries"],
   { revalidate: 60, tags: ["notion-profil"] },
 );
+
+/* ------------------------------------------------------------------ */
+/*  Modular Beranda database queries                                  */
+/* ------------------------------------------------------------------ */
+
+export interface BerandaModularItem {
+  id: string;
+  buttonTitle: string;
+  description: string;
+  visible: boolean;
+  redirect: string;
+  urutan: number;
+}
+
+export interface BerandaModularData {
+  heroSection: BerandaModularItem[];
+  jelajahi: BerandaModularItem[];
+}
+
+export async function fetchModularDatabase(
+  dbId: string,
+): Promise<BerandaModularItem[]> {
+  const dataSourceId = await resolveDataSourceIdSafe(dbId);
+  if (!dataSourceId) return [];
+
+  const results: NotionPage[] = [];
+  let cursor: string | undefined;
+
+  try {
+    do {
+      const response = await getNotionClientAny().dataSources.query({
+        data_source_id: dataSourceId,
+        start_cursor: cursor,
+      });
+      results.push(...(response.results as NotionPage[]));
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
+  } catch (error) {
+    console.error(
+      `[Notion fetchModularDatabase] Query failed for ${dbId}:`,
+      error,
+    );
+    return [];
+  }
+
+  return results
+    .map((page) => {
+      const buttonTitle =
+        getTitleProperty(page, "Button Title") ||
+        getTitleProperty(page, "Name") ||
+        getTitle(page);
+      const description = getRichText(page, "Description");
+      const visible = getCheckbox(page, "Visible", true);
+      const redirect = getRichText(page, "Redirect");
+      const urutan =
+        getNumber(page, "Urutan") !== 999
+          ? getNumber(page, "Urutan")
+          : getNumber(page, "Urutan Tampil") !== 999
+            ? getNumber(page, "Urutan Tampil")
+            : 999;
+
+      return {
+        id: page.id,
+        buttonTitle,
+        description,
+        visible,
+        redirect,
+        urutan,
+      };
+    })
+    .filter((item) => item.visible)
+    .sort((a, b) => a.urutan - b.urutan);
+}
+
+export async function fetchBerandaModularData(
+  pageId: string,
+): Promise<BerandaModularData> {
+  const data: BerandaModularData = {
+    heroSection: [],
+    jelajahi: [],
+  };
+
+  if (!pageId) return data;
+
+  let foundHeroDbId = "36e3b26d-c3be-802c-aac0-c7dbcd40ef36";
+  let foundJelajahiDbId = "36e3b26d-c3be-802c-91ac-e5ed573d89f6";
+
+  try {
+    const response = await getNotionClient().blocks.children.list({
+      block_id: normalizeNotionId(pageId),
+    });
+
+    for (const block of response.results as any[]) {
+      if (block.type === "child_database") {
+        const title = block.child_database?.title || "";
+        if (title.toLowerCase().includes("hero")) {
+          foundHeroDbId = block.id;
+        } else if (title.toLowerCase().includes("jelajahi")) {
+          foundJelajahiDbId = block.id;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchBerandaModularData] Could not fetch page children blocks, falling back to static/configured database IDs",
+      error,
+    );
+  }
+
+  const [heroItems, jelajahiItems] = await Promise.all([
+    fetchModularDatabase(foundHeroDbId),
+    fetchModularDatabase(foundJelajahiDbId),
+  ]);
+
+  data.heroSection = heroItems;
+  data.jelajahi = jelajahiItems;
+
+  return data;
+}
+
+export const fetchBerandaModularDataCached = unstable_cache(
+  async (pageId: string): Promise<BerandaModularData> => {
+    return fetchBerandaModularData(pageId);
+  },
+  ["notion-beranda-modular-data"],
+  { revalidate: 60, tags: ["notion-beranda"] },
+);
