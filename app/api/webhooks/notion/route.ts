@@ -137,7 +137,9 @@ export async function POST(request: Request) {
       : new Date().toISOString();
 
     // 1. Send Discord Notification if configured
-    const discordWebhookUrl = process.env.DISCORD_KARYA_WEBHOOK_URL;
+    const discordWebhookUrl =
+      process.env.DISCORD_KARYA_WEBHOOK_URL ||
+      "https://discord.com/api/webhooks/1509621771136012391/HubUQorPzJOhOnODs6xJQtiei1gpE2e6cEuQzX019NNEfLYpuBDB9Ik98X_ZgPOGqk2H";
     if (discordWebhookUrl) {
       const embed: any = {
         title: `🎨 Karya Baru Diajukan: ${title}`,

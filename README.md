@@ -88,12 +88,14 @@ The portal focuses on:
     NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
     NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
     NOTION_REDIRECT_PAGE_ID=your_redirect_page_id        # Single Page ID containing redirects child database
+    NOTION_KARYA_PAGE_ID=your_karya_page_id              # Single Page ID containing Karya child database
 
    # Webhooks & Discord
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
    DISCORD_FAQ_WEBHOOK_URL=your_faq_discord_webhook_url
    DISCORD_FORMS_WEBHOOK_URL=your_sekretariat_forms_discord_webhook_url
    DISCORD_AGENDA_WEBHOOK_URL=your_agenda_discord_webhook_url
+   DISCORD_KARYA_WEBHOOK_URL=your_karya_discord_webhook_url
    ```
 
    _(For full integration configurations including Canva, Supabase, and Notion webhooks, see `CODEBASE_KNOWLEDGE.md`.)_

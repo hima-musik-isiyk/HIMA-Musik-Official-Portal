@@ -5,7 +5,9 @@ import { fetchKaryaDatabaseIdCached, getNotionClient } from "@/lib/notion";
 
 export async function POST(request: Request) {
   const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID;
-  const DISCORD_WEBHOOK_URL = process.env.DISCORD_KARYA_WEBHOOK_URL;
+  const DISCORD_WEBHOOK_URL =
+    process.env.DISCORD_KARYA_WEBHOOK_URL ||
+    "https://discord.com/api/webhooks/1509621771136012391/HubUQorPzJOhOnODs6xJQtiei1gpE2e6cEuQzX019NNEfLYpuBDB9Ik98X_ZgPOGqk2H";
 
   if (!KARYA_PAGE_ID) {
     return NextResponse.json(
