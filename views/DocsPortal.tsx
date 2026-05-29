@@ -263,30 +263,27 @@ export default function DocsPortalView({
             return (
               <div
                 key={section.key}
-                className="group relative flex flex-col border border-white/5 p-7 transition-colors hover:bg-stone-900/10"
+                className="group relative flex flex-col rounded-2xl border border-white/5 bg-stone-900/10 p-6 transition-all duration-300 hover:border-stone-800/80 hover:bg-stone-900/20"
                 data-animate="up"
               >
-                <div className="relative mb-6">
-                  <p className="mb-2 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase">
-                    Fokus Utama
-                  </p>
-                  <h2 className="group-hover:text-gold-400 font-serif text-2xl text-white transition-colors">
+                <div className="relative mb-3">
+                  <h2 className="group-hover:text-gold-400 font-serif text-xl text-white transition-colors">
                     {section.title}
                   </h2>
                 </div>
 
-                <p className="mb-8 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
+                <p className="mb-6 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
                   {section.description}
                 </p>
 
                 <div className="mt-auto">
                   {sectionDocs.length > 0 ? (
                     <div className="space-y-2">
-                      {sectionDocs.slice(0, 4).map((doc) => (
+                      {sectionDocs.slice(0, 3).map((doc) => (
                         <Link
                           key={doc.id}
                           href={`/sekretariat/${doc.slug}`}
-                          className="group/link flex items-center gap-3 rounded-xl border border-transparent px-4 py-2.5 text-xs text-stone-400 transition-colors hover:border-stone-800 hover:bg-stone-900/40 hover:text-white"
+                          className="group/link flex items-center gap-2.5 rounded-xl border border-transparent px-3.5 py-2 text-xs text-stone-400 transition-colors hover:border-stone-800/50 hover:bg-stone-900/30 hover:text-white"
                         >
                           <span className="group-hover/link:text-gold-400 text-stone-600 transition-colors">
                             {doc.icon || (
@@ -308,9 +305,9 @@ export default function DocsPortalView({
                           <span className="flex-1 truncate">{doc.title}</span>
                         </Link>
                       ))}
-                      {sectionDocs.length > 4 && (
-                        <p className="mt-3 text-center text-[0.65rem] font-medium tracking-wide text-stone-600">
-                          +{sectionDocs.length - 4} DOKUMEN LAINNYA
+                      {sectionDocs.length > 3 && (
+                        <p className="mt-2 text-center text-[0.65rem] font-medium tracking-wide text-stone-600">
+                          +{sectionDocs.length - 3} DOKUMEN LAINNYA
                         </p>
                       )}
                     </div>

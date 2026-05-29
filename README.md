@@ -350,6 +350,14 @@ Mengelompokkan dokumen secara dinamis dengan deskripsi bantuan visual di landing
 - `Name` (Title) - Nama kategori (misal: "Laporan Kinerja", "Panduan & SOP", "FAQ").
 - `Deskripsi` (Rich Text) - Deskripsi ringkas alur birokrasi/layanan kategori terkait.
 
+#### C. Fitur UX & Interaktivitas Sekretariat
+
+Untuk menghadirkan pengalaman visual yang premium, rapi, dan terorganisir pada portal Sekretariat:
+
+- **Card Layout yang Kompak:** Menggunakan kartu-kartu ber-border melengkung premium (`rounded-2xl`) dengan efek glassmorphic warna latar stone (`bg-stone-900/10`) dan highlight border transisi lembut saat di-hover.
+- **Batas Maksimal Tampilan Dokumen:** Untuk mencegah visual "raksasa" yang berlebihan, setiap kartu kategori dibatasi hanya menampilkan maksimal **3 dokumen utama**. Sisa dokumen di bawah kategori tersebut dapat diakses melalui sidebar interaktif (`DocsSidebar`) yang selalu tampil di bagian kiri halaman portal dokumen.
+- **Pill Indikator Dokumen Tambahan:** Jika dokumen melebihi batas 3, sistem secara dinamis menampilkan teks status tambahan seperti `"+X DOKUMEN LAINNYA"`.
+
 ### 8. Halaman Redirect Modular (`NOTION_REDIRECT_PAGE_ID`)
 
 Mengelola aturan redirect dinamis/pintasan di website. Halaman Redirect diakses melalui satu parent Notion Page ID yang menampung sub-database di bawahnya. Sistem mendeteksi sub-database ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
