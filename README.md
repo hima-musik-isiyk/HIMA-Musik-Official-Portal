@@ -90,7 +90,8 @@ The portal focuses on:
     NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
     NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
     NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
-    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id
+    NOTION_SEKRETARIAT_PAGE_ID=your_sekretariat_page_id          # Single Page ID containing child databases
+    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id  # Optional legacy fallback
     NOTION_REDIRECT_PAGE_ID=your_redirect_page_id        # Single Page ID containing redirects child database
     NOTION_KARYA_PAGE_ID=your_karya_page_id              # Single Page ID containing Karya child database
 
@@ -322,17 +323,32 @@ Pusat bantuan Tanya Jawab impromptu.
 - `Last Edited Time` (Last Edited Time - Native)
   _Aturan Tampil: `Visibilitas = true` AND `Status = Masuk OR Ditinjau OR Dijawab OR Dialihkan`._
 
-### 7. Database Sekretariat (`NOTION_SEKRETARIAT_DATABASE_ID`)
+### 7. Halaman Sekretariat Modular (`NOTION_SEKRETARIAT_PAGE_ID`)
 
-Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik.
+Pusat dokumen organisasi, SOP, edaran, dan arsip HIMA Musik dikelola secara modular melalui satu parent Notion Page ID yang menampung sub-databases di bawahnya. Sistem mendeteksi database-database ini secara dinamis berdasarkan urutan letaknya (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
 
-- `Nama Dokumen` (Title)
-- `ID Konten` (Unique ID)
-- `Slug` (Rich Text)
-- `Kategori` (Select: `SOP`, `Surat Edaran`, `Pengumuman`, `Panduan`)
-- `Urutan Tampil` (Number)
-- `Status Konten CMS` (Status: `Draf` → `Peninjauan` → `Live` → `Arsip`)
-- `Integritas Riwayat` (Date)
+- **Database Pertama (Indeks 0)** bertindak sebagai **Sekretariat: Dokumen**
+- **Database Kedua (Indeks 1)** bertindak sebagai **Sekretariat: Kategori**
+
+#### A. Database Sekretariat: Dokumen (`t="Sekretariat: Dokumen"`)
+
+Daftar dokumen, SOP, panduan, dan regulasi internal kabinet.
+
+- `Nama Dokumen` (Title) - Judul atau nama dokumen.
+- `Slug` (Rich Text) - Slug kustom URL halaman detail.
+- `Kategori` (Relation) - Relasi ke database Sekretariat: Kategori.
+- `Urutan Tampil` (Number) - Urutan prioritas tampilan.
+- `Status` (Status: `Draft` → `Peninjauan` → `Publish` → `Arsip`)
+  - **Draft / Peninjauan**: Disembunyikan sepenuhnya dari publik.
+  - **Publish**: Ditampilkan live di grid sekretariat umum.
+  - **Arsip**: Disajikan di portal histori `/sekretariat/archives`.
+
+#### B. Database Sekretariat: Kategori (`t="Sekretariat: Kategori"`)
+
+Mengelompokkan dokumen secara dinamis dengan deskripsi bantuan visual di landing page.
+
+- `Name` (Title) - Nama kategori (misal: "Laporan Kinerja", "Panduan & SOP", "FAQ").
+- `Deskripsi` (Rich Text) - Deskripsi ringkas alur birokrasi/layanan kategori terkait.
 
 ### 8. Halaman Redirect Modular (`NOTION_REDIRECT_PAGE_ID`)
 

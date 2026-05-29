@@ -1,11 +1,11 @@
 import React from "react";
 
-import { fetchAllDocs } from "@/lib/notion";
+import { fetchSekretariatPortalData } from "@/lib/notion";
 import DocsPortalView from "@/views/DocsPortal";
 
 export const revalidate = 60;
 
 export default async function DocsPage() {
-  const docs = await fetchAllDocs();
-  return <DocsPortalView docs={docs} />;
+  const { docs, categories } = await fetchSekretariatPortalData();
+  return <DocsPortalView docs={docs} initialCategories={categories} />;
 }

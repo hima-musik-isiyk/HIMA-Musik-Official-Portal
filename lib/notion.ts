@@ -559,20 +559,72 @@ const _AGENDA_DB_ID =
   process.env.NOTION_EVENTS_DATABASE_ID ??
   "";
 const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
+const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
 const DOCS_DB_ID =
   process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
   process.env.NOTION_PROJECT_DATABASE_ID ??
   "";
 
-export const fetchAllDocs = unstable_cache(
-  async (): Promise<DocMeta[]> => {
-    if (!DOCS_DB_ID) return [];
+function getRelationIds(page: NotionPage, name: string): string[] {
+  const prop = getProperty(page, name);
+  if (prop?.type === "relation" && Array.isArray(prop.relation)) {
+    return prop.relation.map((r) => r.id);
+  }
+  return [];
+}
 
+export async function resolveSekretariatDatabases(
+  pageId: string,
+): Promise<{ docsDbId: string; categoriesDbId: string }> {
+  const result = {
+    docsDbId: "36f3b26d-c3be-8017-ba07-e3a418fa4366",
+    categoriesDbId: "36f3b26d-c3be-800a-bbfa-f34ad546ec0e",
+  };
+
+  if (!pageId) return result;
+
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 2) {
+      result.docsDbId = dbs.childDatabases[0];
+      result.categoriesDbId = dbs.childDatabases[1];
+    } else if (dbs.childDatabases.length === 1) {
+      result.docsDbId = dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion resolveSekretariatDatabases] Failed to fetch page child databases",
+      error,
+    );
+  }
+
+  return result;
+}
+
+export const resolveSekretariatDatabasesCached = unstable_cache(
+  async (
+    pageId: string,
+  ): Promise<{ docsDbId: string; categoriesDbId: string }> => {
+    return resolveSekretariatDatabases(pageId);
+  },
+  ["notion-sekretariat-databases"],
+  { revalidate: 60, tags: ["notion-docs"] },
+);
+
+export interface SekretariatCategory {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const fetchSekretariatCategories = unstable_cache(
+  async (categoriesDbId: string): Promise<SekretariatCategory[]> => {
+    if (!categoriesDbId) return [];
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(categoriesDbId);
       if (!dataSourceId) return [];
 
       do {
@@ -586,21 +638,101 @@ export const fetchAllDocs = unstable_cache(
           : undefined;
       } while (cursor);
     } catch (error) {
-      console.error("[Notion fetchAllDocs] Query failed:", error);
+      console.error("[Notion fetchSekretariatCategories] Query failed:", error);
       return [];
     }
 
-    return results
+    return results.map((page) => {
+      const name = getTitleProperty(page, "Name") || getTitle(page);
+      const description = getRichText(page, "Deskripsi");
+      return {
+        id: page.id,
+        name,
+        description,
+      };
+    });
+  },
+  ["notion-sekretariat-categories-data"],
+  { revalidate: 60, tags: ["notion-docs"] },
+);
+
+export interface SekretariatPortalData {
+  docs: DocMeta[];
+  categories: SekretariatCategory[];
+}
+
+export const fetchSekretariatPortalData = unstable_cache(
+  async (): Promise<SekretariatPortalData> => {
+    const pageId = NOTION_SEKRETARIAT_PAGE_ID;
+    let docsDbId = DOCS_DB_ID;
+    let categoriesDbId = "";
+
+    if (pageId) {
+      const resolved = await resolveSekretariatDatabasesCached(pageId);
+      docsDbId = resolved.docsDbId;
+      categoriesDbId = resolved.categoriesDbId;
+    }
+
+    if (!docsDbId) {
+      return { docs: [], categories: [] };
+    }
+
+    const categories = categoriesDbId
+      ? await fetchSekretariatCategories(categoriesDbId)
+      : [];
+
+    const categoryMap = new Map<string, SekretariatCategory>(
+      categories.map((c) => [normalizeNotionId(c.id), c]),
+    );
+
+    const results: NotionPage[] = [];
+    let cursor: string | undefined;
+
+    try {
+      const dataSourceId = await resolveDataSourceIdSafe(docsDbId);
+      if (!dataSourceId) return { docs: [], categories };
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+    } catch (error) {
+      console.error("[Notion fetchAllDocs] Query failed:", error);
+      return { docs: [], categories };
+    }
+
+    const docs = results
       .map((page) => {
         const title =
           getTitleProperty(page, "Nama Dokumen") ||
           getTitleProperty(page, "Name") ||
           getTitle(page);
-        const category =
-          getSelect(page, "Kategori") || getSelect(page, "Category");
-        const status = getStatus(page, "Status Konten CMS");
+
+        const relationIds = getRelationIds(page, "Kategori");
+        let category = "";
+        if (relationIds.length > 0) {
+          category =
+            relationIds
+              .map((id) => categoryMap.get(normalizeNotionId(id))?.name)
+              .filter(Boolean)[0] || "";
+        }
+        if (!category) {
+          category =
+            getSelect(page, "Kategori") ||
+            getSelect(page, "Category") ||
+            "Umum";
+        }
+
+        const status =
+          getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
         const isPublished = status
-          ? status === "Live"
+          ? status === "Publish" || status === "Live"
           : getCheckbox(page, "Publish", true);
 
         return {
@@ -629,6 +761,17 @@ export const fetchAllDocs = unstable_cache(
         if (categoryCompare !== 0) return categoryCompare;
         return a.title.localeCompare(b.title, "id", { sensitivity: "base" });
       });
+
+    return { docs, categories };
+  },
+  ["notion-sekretariat-portal-data"],
+  { revalidate: 60, tags: ["notion-docs"] },
+);
+
+export const fetchAllDocs = unstable_cache(
+  async (): Promise<DocMeta[]> => {
+    const data = await fetchSekretariatPortalData();
+    return data.docs;
   },
   ["notion-all-docs"],
   { revalidate: 60, tags: ["notion-docs"] },
@@ -1494,14 +1637,32 @@ export const fetchDocBySlug = cache(
   async (
     slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    if (!DOCS_DB_ID) return null;
+    const pageId = NOTION_SEKRETARIAT_PAGE_ID;
+    let docsDbId = DOCS_DB_ID;
+    let categoriesDbId = "";
+
+    if (pageId) {
+      const resolved = await resolveSekretariatDatabasesCached(pageId);
+      docsDbId = resolved.docsDbId;
+      categoriesDbId = resolved.categoriesDbId;
+    }
+
+    if (!docsDbId) return null;
+
+    const categories = categoriesDbId
+      ? await fetchSekretariatCategories(categoriesDbId)
+      : [];
+
+    const categoryMap = new Map<string, SekretariatCategory>(
+      categories.map((c) => [normalizeNotionId(c.id), c]),
+    );
 
     const normalizedSlug = slug.trim().toLowerCase();
     let matchedPage: NotionPage | undefined;
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(docsDbId);
       if (!dataSourceId) return null;
 
       do {
@@ -1514,9 +1675,10 @@ export const fetchDocBySlug = cache(
           const entrySlug = (getRichText(entry, "Slug") || entry.id)
             .trim()
             .toLowerCase();
-          const status = getStatus(entry, "Status Konten CMS");
+          const status =
+            getStatus(entry, "Status") || getStatus(entry, "Status Konten CMS");
           const published = status
-            ? status === "Live"
+            ? status === "Publish" || status === "Live"
             : getCheckbox(entry, "Publish", true);
           return entrySlug === normalizedSlug && published;
         });
@@ -1543,10 +1705,24 @@ export const fetchDocBySlug = cache(
       getTitleProperty(page, "Nama Dokumen") ||
       getTitleProperty(page, "Name") ||
       getTitle(page);
-    const category = getSelect(page, "Kategori") || getSelect(page, "Category");
-    const status = getStatus(page, "Status Konten CMS");
+
+    const relationIds = getRelationIds(page, "Kategori");
+    let category = "";
+    if (relationIds.length > 0) {
+      category =
+        relationIds
+          .map((id) => categoryMap.get(normalizeNotionId(id))?.name)
+          .filter(Boolean)[0] || "";
+    }
+    if (!category) {
+      category =
+        getSelect(page, "Kategori") || getSelect(page, "Category") || "Umum";
+    }
+
+    const status =
+      getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
     const isPublished = status
-      ? status === "Live"
+      ? status === "Publish" || status === "Live"
       : getCheckbox(page, "Publish", true);
 
     return {
@@ -1573,14 +1749,22 @@ export const fetchDocBySlug = cache(
 
 export const fetchArchives = unstable_cache(
   async (tag?: string): Promise<ArchiveEntry[]> => {
-    if (!DOCS_DB_ID) return [];
+    const pageId = NOTION_SEKRETARIAT_PAGE_ID;
+    let docsDbId = DOCS_DB_ID;
+
+    if (pageId) {
+      const resolved = await resolveSekretariatDatabasesCached(pageId);
+      docsDbId = resolved.docsDbId;
+    }
+
+    if (!docsDbId) return [];
 
     const normalizedTag = tag?.trim().toLowerCase();
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(DOCS_DB_ID);
+      const dataSourceId = await resolveDataSourceIdSafe(docsDbId);
       if (!dataSourceId) return [];
 
       do {
@@ -1599,17 +1783,22 @@ export const fetchArchives = unstable_cache(
     }
 
     return results
+      .filter((page) => {
+        const status =
+          getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
+        if (status !== "Arsip") return false;
+
+        if (!normalizedTag) return true;
+        const tags = getMultiSelect(page, "Tags");
+        return tags.some((entryTag) =>
+          entryTag.toLowerCase().includes(normalizedTag),
+        );
+      })
       .map((page) => {
         const title =
           getTitleProperty(page, "Nama Dokumen") ||
           getTitleProperty(page, "Name") ||
           getTitle(page);
-        const category =
-          getSelect(page, "Kategori") || getSelect(page, "Category");
-        const status = getStatus(page, "Status Konten CMS");
-        const published = status
-          ? status === "Live"
-          : getCheckbox(page, "Publish", true);
 
         return {
           id: page.id,
@@ -1618,17 +1807,8 @@ export const fetchArchives = unstable_cache(
             getRichText(page, "Summary") || getRichText(page, "Slug") || "",
           date: getDate(page, "Date") || page.created_time.split("T")[0],
           tags: getMultiSelect(page, "Tags"),
-          category,
-          published,
+          published: true,
         };
-      })
-      .filter((entry) => {
-        if (!entry.published) return false;
-        if (entry.category !== "Arsip") return false;
-        if (!normalizedTag) return true;
-        return entry.tags.some((entryTag) =>
-          entryTag.toLowerCase().includes(normalizedTag),
-        );
       })
       .sort((a, b) => {
         if (!a.date && !b.date) return 0;
@@ -1644,20 +1824,16 @@ export const fetchArchives = unstable_cache(
 export async function fetchArchiveById(
   id: string,
 ): Promise<{ entry: ArchiveEntry; blocks: NotionBlock[] } | null> {
-  if (!DOCS_DB_ID) return null;
-
   try {
     const page = (await getNotionClient().pages.retrieve({
       page_id: id,
     })) as NotionPage;
 
-    const status = getStatus(page, "Status Konten CMS");
-    const published = status
-      ? status === "Live"
-      : getCheckbox(page, "Publish", true);
-    const category = getSelect(page, "Kategori") || getSelect(page, "Category");
+    const status =
+      getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
+    const isArchived = status === "Arsip";
 
-    if (!published || category !== "Arsip") return null;
+    if (!isArchived) return null;
 
     const blocks = await fetchAllBlocks(page.id);
     const title =

@@ -4,7 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { FEATURES } from "@/lib/feature-flags";
-import type { DocMeta } from "@/lib/notion";
+import type { DocMeta, SekretariatCategory } from "@/lib/notion";
 import {
   createCommandPaletteShortcutEvent,
   SHORTCUT_SYMBOL_CLASS,
@@ -57,6 +57,7 @@ const FOCUSED_SECTIONS = [
 
 interface DocsPortalViewProps {
   docs: DocMeta[];
+  initialCategories?: SekretariatCategory[];
 }
 
 function normalize(value: string) {
@@ -65,9 +66,11 @@ function normalize(value: string) {
 
 export default function DocsPortalView({
   docs: initialDocs,
+  initialCategories = [],
 }: DocsPortalViewProps) {
   const [data, setData] = useState({
     docs: initialDocs || [],
+    categories: initialCategories || [],
   });
 
   useEffect(() => {
@@ -79,6 +82,10 @@ export default function DocsPortalView({
         setData((prev) => ({
           docs:
             prev.docs && prev.docs.length > 0 ? prev.docs : parsed.docs || [],
+          categories:
+            prev.categories && prev.categories.length > 0
+              ? prev.categories
+              : parsed.categories || [],
         }));
       }
     } catch {}
@@ -89,11 +96,12 @@ export default function DocsPortalView({
         if (res.ok) {
           const result = await res.json();
           if (result.success && result.data) {
-            setData({ docs: result.data });
+            const nextCats = result.categories || [];
+            setData({ docs: result.data, categories: nextCats });
             if (typeof window !== "undefined") {
               window.localStorage.setItem(
                 "hima_sekretariat_cache",
-                JSON.stringify({ docs: result.data }),
+                JSON.stringify({ docs: result.data, categories: nextCats }),
               );
             }
           }
@@ -134,38 +142,42 @@ export default function DocsPortalView({
       )
       .slice(0, 3);
 
-    const matchedDocIds = new Set<string>();
-    const resolvedFocusedSections = FOCUSED_SECTIONS.map((section) => {
-      const aliases = section.aliases.map(normalize);
-      const matchedDocs = docs
-        .filter((doc) => {
-          if (matchedDocIds.has(doc.id)) return false;
-
-          const haystack = [doc.category, doc.title, doc.slug]
-            .filter(Boolean)
-            .map(normalize)
-            .join(" ");
-
-          return aliases.some((alias) => haystack.includes(alias));
-        })
-        .sort((a, b) => a.order - b.order);
-
-      for (const doc of matchedDocs) {
-        matchedDocIds.add(doc.id);
-      }
-
-      return {
-        ...section,
-        docs: matchedDocs,
-      };
-    });
+    const resolvedFocusedSections =
+      data.categories.length > 0
+        ? data.categories.map((category) => {
+            const matchedDocs = (grouped[category.name] ?? []).sort(
+              (a, b) => a.order - b.order,
+            );
+            return {
+              key: category.id,
+              title: category.name,
+              description: category.description,
+              docs: matchedDocs,
+            };
+          })
+        : FOCUSED_SECTIONS.map((section) => {
+            const aliases = section.aliases.map(normalize);
+            const matchedDocs = docs
+              .filter((doc) => {
+                const haystack = [doc.category, doc.title, doc.slug]
+                  .filter(Boolean)
+                  .map(normalize)
+                  .join(" ");
+                return aliases.some((alias) => haystack.includes(alias));
+              })
+              .sort((a, b) => a.order - b.order);
+            return {
+              ...section,
+              docs: matchedDocs,
+            };
+          });
 
     return {
       groupedDocs: grouped,
       recentlyUpdated: sortedUpdated,
       focusedSections: resolvedFocusedSections,
     };
-  }, [docs]);
+  }, [docs, data.categories]);
 
   return (
     <div

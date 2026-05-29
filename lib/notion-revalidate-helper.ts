@@ -4,6 +4,7 @@ import {
   fetchKaryaDatabaseIdCached,
   fetchRedirectDatabaseIdCached,
   getNotionClient,
+  resolveSekretariatDatabasesCached,
 } from "@/lib/notion";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
@@ -41,6 +42,7 @@ const DOCS_DB_ID =
   process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
   process.env.NOTION_PROJECT_DATABASE_ID ??
   "";
+const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
 const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
 const AGENDA_DB_ID =
   process.env.NOTION_AGENDA_DATABASE_ID ??
@@ -94,12 +96,20 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
+  const resolvedDocs = NOTION_SEKRETARIAT_PAGE_ID
+    ? await resolveSekretariatDatabasesCached(NOTION_SEKRETARIAT_PAGE_ID)
+    : { docsDbId: DOCS_DB_ID, categoriesDbId: "" };
+
+  const docsDbId = resolvedDocs.docsDbId;
+  const categoriesDbId = resolvedDocs.categoriesDbId;
+
   const karyaDbId = KARYA_PAGE_ID
     ? await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID)
     : "";
 
   const [
     docsDataSourceId,
+    categoriesDataSourceId,
     eventsDataSourceId,
     kkmDataSourceId,
     karyaDataSourceId,
@@ -107,7 +117,8 @@ async function buildScopeMatchers() {
     profilDataSourceId,
     berandaDataSourceId,
   ] = await Promise.all([
-    resolvePrimaryDataSourceId(DOCS_DB_ID),
+    resolvePrimaryDataSourceId(docsDbId),
+    resolvePrimaryDataSourceId(categoriesDbId),
     resolvePrimaryDataSourceId(AGENDA_DB_ID),
     resolvePrimaryDataSourceId(KKM_DB_ID),
     resolvePrimaryDataSourceId(karyaDbId),
@@ -125,8 +136,12 @@ async function buildScopeMatchers() {
 
   return {
     docs: {
-      databaseId: DOCS_DB_ID ? normalizeNotionId(DOCS_DB_ID) : null,
+      databaseId: docsDbId ? normalizeNotionId(docsDbId) : null,
       dataSourceId: docsDataSourceId,
+      categoriesDatabaseId: categoriesDbId
+        ? normalizeNotionId(categoriesDbId)
+        : null,
+      categoriesDataSourceId: categoriesDataSourceId,
     },
     events: {
       databaseId: AGENDA_DB_ID ? normalizeNotionId(AGENDA_DB_ID) : null,
@@ -409,6 +424,45 @@ export async function inferScopes(
       matcher.databaseId === entityScopeHints.databaseId
     ) {
       scopeSet.add(scope);
+    }
+
+    // For docs scope, also match categoriesDatabaseId and categoriesDataSourceId
+    const catMatcher = matcher as {
+      categoriesDatabaseId?: string | null;
+      categoriesDataSourceId?: string | null;
+    };
+    if (catMatcher.categoriesDataSourceId) {
+      if (
+        (normalizedParentDataSourceId &&
+          catMatcher.categoriesDataSourceId === normalizedParentDataSourceId) ||
+        (payload.entity?.type === "data_source" &&
+          normalizedEntityId &&
+          catMatcher.categoriesDataSourceId === normalizedEntityId) ||
+        (parentScopeHints.dataSourceId &&
+          catMatcher.categoriesDataSourceId ===
+            parentScopeHints.dataSourceId) ||
+        (entityScopeHints.dataSourceId &&
+          catMatcher.categoriesDataSourceId === entityScopeHints.dataSourceId)
+      ) {
+        scopeSet.add(scope);
+      }
+    }
+
+    if (catMatcher.categoriesDatabaseId) {
+      if (
+        (payload.entity?.type === "database" &&
+          normalizedEntityId &&
+          catMatcher.categoriesDatabaseId === normalizedEntityId) ||
+        (payload.data?.parent?.type === "database" &&
+          normalizedParentId &&
+          catMatcher.categoriesDatabaseId === normalizedParentId) ||
+        (parentScopeHints.databaseId &&
+          catMatcher.categoriesDatabaseId === parentScopeHints.databaseId) ||
+        (entityScopeHints.databaseId &&
+          catMatcher.categoriesDatabaseId === entityScopeHints.databaseId)
+      ) {
+        scopeSet.add(scope);
+      }
     }
   }
 

@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { fetchAllDocs } from "@/lib/notion";
+import { fetchSekretariatPortalData } from "@/lib/notion";
 
 export const revalidate = 0; // Dynamic API route
 
 export async function GET() {
   try {
-    const docs = await fetchAllDocs();
+    const { docs, categories } = await fetchSekretariatPortalData();
     return NextResponse.json({
       success: true,
       data: docs,
+      categories: categories,
     });
   } catch (error) {
     console.error("[Sekretariat API GET] Error:", error);
