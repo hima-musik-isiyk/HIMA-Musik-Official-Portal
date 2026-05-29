@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
+import { fetchAduanDatabaseIdCached, getNotionClient } from "@/lib/notion";
 
 const DISCORD_FIELD_LIMIT = 1024;
 
@@ -32,12 +33,55 @@ export async function POST(request: Request) {
     }
 
     const webhookUrl = process.env.DISCORD_ADUAN_WEBHOOK_URL;
+    const aduanPageId = process.env.NOTION_ADUAN_PAGE_ID;
 
-    if (!webhookUrl) {
-      console.error("Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL");
+    if (!webhookUrl || !aduanPageId) {
+      console.error(
+        "Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL or NOTION_ADUAN_PAGE_ID",
+      );
       return NextResponse.json(
         { error: "Server misconfiguration: Missing env variables" },
         { status: 500 },
+      );
+    }
+
+    const notion = getNotionClient();
+    if (!notion) {
+      return NextResponse.json(
+        { error: "Notion client not initialized" },
+        { status: 500 },
+      );
+    }
+
+    const activeDbId = await fetchAduanDatabaseIdCached(aduanPageId);
+    if (!activeDbId) {
+      console.error(
+        "Failed to resolve Aduan Database ID from parent page:",
+        aduanPageId,
+      );
+      return NextResponse.json(
+        {
+          error: "Failed to archive to Notion",
+          details: "Could not resolve child database from Aduan Page",
+        },
+        { status: 500 },
+      );
+    }
+
+    // Resolve active parent object (data_source_id vs database_id) for compatibility with Notion API v2025-09-03
+    let parentObj: any = { database_id: activeDbId };
+    try {
+      const dbInfo = await notion.databases.retrieve({
+        database_id: activeDbId,
+      });
+      const dataSourceId = (dbInfo as any).data_sources?.[0]?.id;
+      if (dataSourceId) {
+        parentObj = { data_source_id: dataSourceId };
+      }
+    } catch (e) {
+      console.warn(
+        "[Notion resolveDataSource] Could not retrieve data source, falling back to database parent:",
+        e,
       );
     }
 
@@ -81,6 +125,41 @@ export async function POST(request: Request) {
             discordError instanceof Error
               ? discordError.message
               : "Unknown Discord error",
+        },
+        { status: 500 },
+      );
+    }
+
+    try {
+      await notion.pages.create({
+        parent: parentObj,
+        properties: {
+          Nama: {
+            title: [{ text: { content: safeName } }],
+          } as any,
+          NIM: {
+            rich_text: [{ text: { content: safeNim } }],
+          } as any,
+          Kategori: {
+            rich_text: [{ text: { content: safeCategory } }],
+          } as any,
+          Pesan: {
+            rich_text: [{ text: { content: safeMessage } }],
+          } as any,
+          Status: {
+            status: { name: "Masuk" },
+          } as any,
+        },
+      });
+    } catch (notionError) {
+      console.error("Notion API Error for Aduan:", notionError);
+      return NextResponse.json(
+        {
+          error: "Failed to archive to Notion",
+          details:
+            notionError instanceof Error
+              ? notionError.message
+              : "Unknown Notion error",
         },
         { status: 500 },
       );

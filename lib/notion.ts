@@ -1303,6 +1303,33 @@ export const fetchKaryaDatabaseIdCached = unstable_cache(
   { revalidate: 60, tags: ["notion-karya"] },
 );
 
+export async function fetchAduanDatabaseId(pageId: string): Promise<string> {
+  if (!pageId) return "";
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.mentionedDatabases.length > 0) {
+      return dbs.mentionedDatabases[0];
+    }
+    if (dbs.childDatabases.length > 0) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion fetchAduanDatabaseId] Failed to fetch page child databases",
+      error,
+    );
+  }
+  return "";
+}
+
+export const fetchAduanDatabaseIdCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return fetchAduanDatabaseId(pageId);
+  },
+  ["notion-aduan-database-id"],
+  { revalidate: 60, tags: ["notion-aduan"] },
+);
+
 export const fetchKaryaEntries = unstable_cache(
   async (): Promise<KaryaEntryMeta[]> => {
     if (!KARYA_PAGE_ID) return [];

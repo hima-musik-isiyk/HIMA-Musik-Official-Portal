@@ -337,6 +337,10 @@ const Aduan: React.FC = () => {
         setSubmitError(
           "Gagal mengirim notifikasi. Coba lagi dalam beberapa saat.",
         );
+      } else if (errorMsg.includes("Notion")) {
+        setSubmitError(
+          "Gagal mengarsipkan laporan ke Notion. Coba lagi dalam beberapa saat.",
+        );
       } else if (errorMsg.includes("Message is required")) {
         setSubmitError("Pesan tidak boleh kosong.");
       } else {

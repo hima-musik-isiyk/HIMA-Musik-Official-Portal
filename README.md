@@ -32,6 +32,7 @@ The portal focuses on:
   - Category-based submission of complaints (Akademik, Fasilitas, Organisasi, Lainnya)
   - AI-assisted message refinement utilizing Groq (Llama 3)
   - Discord webhook integration for real-time administrator notifications
+  - Notion database integration for permanent digital archiving and admin tracking
   - Local draft recovery using standard storage APIs
   - Custom chevron-decorated category selector matching the unified portal input styles
 - **Etalase Karya Mahasiswa:** Interactive portfolio showcase featuring dynamic audio/video embeds (YouTube, Spotify, etc.) and oEmbed artwork fetching (route: `/karya`).
@@ -82,18 +83,19 @@ The portal focuses on:
    GROQ_API_KEY=your_groq_api_key
    NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-    # Notion Database & Page IDs (4 Database CMS Final + 5 Page IDs)
-    NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
-    NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
-    NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
-    NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
-    NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
-    NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
-    NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
-    NOTION_SEKRETARIAT_PAGE_ID=your_sekretariat_page_id          # Single Page ID containing child databases
-    NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id  # Optional legacy fallback
-    NOTION_REDIRECT_PAGE_ID=your_redirect_page_id        # Single Page ID containing redirects child database
-    NOTION_KARYA_PAGE_ID=your_karya_page_id              # Single Page ID containing Karya child database
+   # Notion Database & Page IDs (5 Database CMS Final + 5 Page IDs)
+   NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
+   NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
+   NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
+   NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
+   NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
+   NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
+   NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
+   NOTION_SEKRETARIAT_PAGE_ID=your_sekretariat_page_id          # Single Page ID containing child databases
+   NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id  # Optional legacy fallback
+   NOTION_REDIRECT_PAGE_ID=your_redirect_page_id        # Single Page ID containing redirects child database
+   NOTION_KARYA_PAGE_ID=your_karya_page_id              # Single Page ID containing Karya child database
+   NOTION_ADUAN_PAGE_ID=your_aduan_page_id              # Single Page ID containing Aduan child database or mention
 
    # Webhooks & Discord
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
@@ -165,7 +167,7 @@ Old URLs `/about` and `/events` redirect permanently to `/profil` and `/agenda` 
 
 ## Content Model (Notion CMS Redesign)
 
-The HIMA Musik portal features a dynamic Content Management System backed by **6 Notion Databases** managed exclusively by the Ketua. Below is the exact schema and property types defined in the Notion Teamspace:
+The HIMA Musik portal features a dynamic Content Management System backed by **7 Notion Databases** managed exclusively by the Ketua. Below is the exact schema and property types defined in the Notion Teamspace:
 
 ### 1. Halaman Beranda Modular (`NOTION_BERANDA_PAGE_ID`)
 
@@ -371,6 +373,20 @@ Aturan pengalihan URL dari path internal ke URL tujuan eksternal/internal.
 - `Name` (Title) - Nama pengenal atau deskripsi redirect (misal: "Formulir Agenda").
 - `Modified` (Rich Text) - Path internal sumber yang akan diintersept (misal: `/agenda/submit`).
 - `Destination URL` (Rich Text) - URL atau path tujuan redirect (misal: `https://pengajuan-agenda-himamusik.notion.site/...`).
+
+### 9. Halaman Aduan Modular (`NOTION_ADUAN_PAGE_ID`)
+
+Tempat pengarsipan keluhan, aspirasi, dan saran mahasiswa yang masuk melalui Ruang Advokasi. Halaman Aduan diakses melalui satu parent Notion Page ID yang menampung sub-database atau mention database di bawahnya. Sistem mendeteksi database ini secara dinamis berdasarkan urutan letaknya dalam halaman.
+
+#### A. Database Aduan (`t="Aduan"`)
+
+Menyimpan data laporan yang disubmit oleh mahasiswa untuk ditindaklanjuti oleh Divisi Advokasi.
+
+- `Nama` (Title) - Nama pelapor (jika diisi, default "Anonim").
+- `NIM` (Rich Text) - NIM pelapor (jika diisi, default "-").
+- `Kategori` (Rich Text) - Kategori aduan (Akademik, Fasilitas, Organisasi, Lainnya).
+- `Pesan` (Rich Text) - Isi pesan atau keluhan lengkap mahasiswa.
+- `Status` (Status) - Status penanganan laporan (`Masuk` → `Diproses` → `Tidak Selesai` → `Selesai`).
 
 ---
 
