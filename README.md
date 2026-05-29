@@ -27,7 +27,7 @@ The portal focuses on:
   - Dynamic page-by-page rendering with custom retro-themed `PaginationControl` for the board.
 - **FAQ Resmi HIMA:** Curated official help documentation managed by the cabinet (route: `/sekretariat/faq`).
   - Dynamic rendering as a structured document page directly compiled from the Notion Sekretariat database using `NotionRenderer`.
-  - Supports rich-block styling, toggle lists, side table of contents, and responsive layouts.
+  - Supports rich-block styling, toggle lists, side table of contents with IDE-style sticky scope breadcrumbs (ancestor headings pin seamlessly at the top as you scroll, closing the gap to prevent header duplication with a dynamic ResizeObserver-based height measurement for precise scroll-padding offsets), and responsive layouts.
 - **Ruang Advokasi (Aduan):**
   - Category-based submission of complaints (Akademik, Fasilitas, Organisasi, Lainnya)
   - AI-assisted message refinement utilizing Groq (Llama 3)
