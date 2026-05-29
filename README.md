@@ -79,37 +79,63 @@ The portal focuses on:
 2. Create a `.env.local` file in the project root and configure the necessary environment variables:
 
    ```bash
-   # Core Integrations
+   # --- AI & LLM Services ---
    GROQ_API_KEY=your_groq_api_key
-   NOTION_INTEGRATION_TOKEN=your_notion_integration_token
 
-   # Notion Database & Page IDs (5 Database CMS Final + 5 Page IDs)
-   NOTION_BERANDA_PAGE_ID=your_beranda_page_id          # Single Page ID containing child databases
-   NOTION_PROFIL_PAGE_ID=your_profil_page_id            # Single Page ID containing child databases & database mentions
-   NOTION_KKM_PAGE_ID=your_kkm_page_id                  # Single Page ID containing child databases
-   NOTION_KKM_DATABASE_ID=your_kkm_database_id          # Optional legacy fallback
-   NOTION_AGENDA_PAGE_ID=your_agenda_page_id            # Single Page ID containing child databases
-   NOTION_EVENTS_DATABASE_ID=your_events_database_id    # Optional legacy fallback
-   NOTION_FAQ_DATABASE_ID=your_faq_database_id          # Required for /faq route
-   NOTION_SEKRETARIAT_PAGE_ID=your_sekretariat_page_id          # Single Page ID containing child databases
-   NOTION_SEKRETARIAT_DATABASE_ID=your_sekretariat_database_id  # Optional legacy fallback
-   NOTION_REDIRECT_PAGE_ID=your_redirect_page_id        # Single Page ID containing redirects child database
-   NOTION_KARYA_PAGE_ID=your_karya_page_id              # Single Page ID containing Karya child database
-   NOTION_ADUAN_PAGE_ID=your_aduan_page_id              # Single Page ID containing Aduan child database or mention
-
-   # Webhooks & Discord
+   # --- Form Notifications to Discord ---
    DISCORD_ADUAN_WEBHOOK_URL=your_aduan_discord_webhook_url
+   DISCORD_PENDAFTARAN_WEBHOOK_URL=your_pendaftaran_discord_webhook_url
+   DISCORD_FORMS_WEBHOOK_URL=your_forms_discord_webhook_url
    DISCORD_FAQ_WEBHOOK_URL=your_faq_discord_webhook_url
-   DISCORD_FORMS_WEBHOOK_URL=your_sekretariat_forms_discord_webhook_url
+   DISCORD_ERROR_WEBHOOK_URL=your_error_discord_webhook_url
    DISCORD_AGENDA_WEBHOOK_URL=your_agenda_discord_webhook_url
    DISCORD_KARYA_WEBHOOK_URL=your_karya_discord_webhook_url
 
-   # Brevo Transactional Email (for Karya submission receipts)
+   # --- Email Service (Brevo) ---
    BREVO_API_KEY=your_brevo_api_key
    BREVO_SENDER_EMAIL=your_verified_sender@yourdomain.com
 
-   _(For full integration configurations including Canva, Supabase, and Notion webhooks, see `CODEBASE_KNOWLEDGE.md`.)_
+   # --- Notion Integration (7 Database CMS Final) ---
+   NOTION_INTEGRATION_TOKEN=your_notion_integration_token
+   NOTION_WEBHOOK_VERIFICATION_TOKEN=your_webhook_verification_token
+   NOTION_BERANDA_PAGE_ID=your_beranda_page_id
+   NOTION_PROFIL_PAGE_ID=your_profil_page_id
+   NOTION_KKM_PAGE_ID=your_kkm_page_id
+   NOTION_AGENDA_PAGE_ID=your_agenda_page_id
+   NOTION_KARYA_PAGE_ID=your_karya_page_id
+   NOTION_FAQ_PAGE_ID=your_faq_page_id
+   NOTION_SEKRETARIAT_PAGE_ID=your_sekretariat_page_id
+   NOTION_REDIRECT_PAGE_ID=your_redirect_page_id
+   NOTION_ADUAN_PAGE_ID=your_aduan_page_id
 
+   # --- Supabase Realtime & Keepalive ---
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   SUPABASE_KEEPALIVE_TABLE=keepalive
+   CRON_SECRET=your_cron_secret
+
+   # --- Instagram Webhook to Discord ---
+   VERIFY_TOKEN=your_verify_token
+   DISCORD_WEBHOOK_URL=your_instagram_discord_webhook_url
+   DISCORD_PARSED_WEBHOOK_URL=your_instagram_parsed_discord_webhook_url
+   DISCORD_RAW_WEBHOOK_URL=your_instagram_raw_discord_webhook_url
+   INSTAGRAM_ACCESS_TOKEN=your_instagram_access_token
+   HIMA_INSTAGRAM_ID=your_instagram_account_id
+
+   # --- Canva API ---
+   CANVA_CLIENT_ID=your_canva_client_id
+   CANVA_CLIENT_SECRET=your_canva_client_secret
+   CANVA_ACCESS_TOKEN=your_canva_access_token
+   CANVA_REFRESH_TOKEN=your_canva_refresh_token
+   CANVA_REDIRECT_URI=your_canva_redirect_uri
+
+   # --- Telegram API Credentials ---
+   TG_API_ID=your_telegram_api_id
+   TG_API_HASH=your_telegram_api_hash
+   TG_PHONE=your_telegram_phone
+   TG_CODE=your_telegram_code
+   TG_CHAT_ID=your_telegram_chat_id
    ```
 
 3. Run the development server:
@@ -312,14 +338,20 @@ Daftar karya mahasiswa, genre, dan tautan embed video/audio.
   - **Published**: Karyamu terverifikasi dan muncul secara live di `/karya` dengan pemutar embed interaktif dan artwork oEmbed.
 - **Email Konfirmasi Otomatis:** Setelah form Karya berhasil disubmit via `/api/submit-karya`, sistem secara otomatis mengirimkan salinan pengajuan (submission receipt) ke alamat email yang diisi oleh mahasiswa via layanan Brevo Transactional Email. Email ini mencakup detail karya, status awal (`Masuk`), dan waktu pengajuan dalam format WIB.
 
-### 6. Database FAQ (`NOTION_FAQ_DATABASE_ID`)
+### 6. Halaman FAQ Modular (`NOTION_FAQ_PAGE_ID`)
+
+Halaman FAQ dikelola secara modular melalui satu parent Notion Page ID yang menampung child database `"FAQ"` di bawahnya (Indeks 0). Sistem mendeteksi database ini secara dinamis berdasarkan urutan letak (order of appearance) dalam halaman, sehingga kebal dari kesalahan akibat pengubahan nama (renaming) database di Notion:
+
+- **Database Pertama (Indeks 0)** bertindak sebagai **Database FAQ**
+
+#### A. Database FAQ
 
 Pusat bantuan Tanya Jawab impromptu.
 
-- `Judul Pertanyaan` (Title)
-- `Nama Penanya` (Rich Text)
-- `Jawaban` (Rich Text)
-- `URL Referensi` (URL)
+- `Judul Pertanyaan` (Title) - Pertanyaan dari mahasiswa.
+- `Nama Penanya` (Rich Text) - Nama pengirim pertanyaan (default "Anonim").
+- `Jawaban` (Rich Text) - Jawaban dari pengurus HIMA.
+- `URL Referensi` (URL) - Tautan referensi informasi.
 - `Status` (Status: `Masuk` → `Ditinjau` → `Dijawab` / `Dialihkan` / `Disembunyikan`)
 - `Visibilitas` (Checkbox - Override manual)
 - `Last Edited Time` (Last Edited Time - Native)

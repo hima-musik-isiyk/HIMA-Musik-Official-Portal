@@ -1,4 +1,9 @@
-import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
+import {
+  getNotionClient,
+  NotionPage,
+  resolveDataSourceIdSafe,
+  resolveFAQDatabaseCached,
+} from "./notion";
 
 export type FAQEntry = {
   id: string;
@@ -18,13 +23,15 @@ export type FAQEntry = {
  * Queries the FAQ & Tanya Jawab Notion Database and returns a parsed list of entries.
  */
 export async function fetchFAQEntries(): Promise<FAQEntry[]> {
-  const databaseId = process.env.NOTION_FAQ_DATABASE_ID;
-  if (!databaseId) {
+  const pageId = process.env.NOTION_FAQ_PAGE_ID;
+  if (!pageId) {
     console.error(
-      "[Notion FAQ] Missing NOTION_FAQ_DATABASE_ID environment variable.",
+      "[Notion FAQ] Missing NOTION_FAQ_PAGE_ID environment variable.",
     );
     return [];
   }
+
+  const databaseId = await resolveFAQDatabaseCached(pageId);
 
   const notion = getNotionClient();
   if (!notion) {
@@ -144,10 +151,12 @@ export async function createFAQEntry(
   askerName: string,
   category: string,
 ): Promise<unknown> {
-  const databaseId = process.env.NOTION_FAQ_DATABASE_ID;
-  if (!databaseId) {
-    throw new Error("Missing NOTION_FAQ_DATABASE_ID environment variable.");
+  const pageId = process.env.NOTION_FAQ_PAGE_ID;
+  if (!pageId) {
+    throw new Error("Missing NOTION_FAQ_PAGE_ID environment variable.");
   }
+
+  const databaseId = await resolveFAQDatabaseCached(pageId);
 
   const notion = getNotionClient();
   if (!notion) {

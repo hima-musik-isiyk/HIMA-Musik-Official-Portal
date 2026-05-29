@@ -99,16 +99,16 @@
 
 ## 5. Environment Variables
 
-| Variable                         | Required | Used In                         | Description                              |
-| -------------------------------- | -------- | ------------------------------- | ---------------------------------------- |
-| `NOTION_INTEGRATION_TOKEN`       | Yes      | `lib/notion.ts`                 | Secret token for Notion API.             |
-| `NOTION_SEKRETARIAT_DATABASE_ID` | Yes      | `lib/notion.ts`                 | ID for the Docs/Guidelines database.     |
-| `NOTION_EVENTS_DATABASE_ID`      | Yes      | `lib/notion.ts`                 | ID for the Events/Agenda database.       |
-| `GROQ_API_KEY`                   | Yes      | `app/api/refine-aduan/route.ts` | API Key for Llama-3 text refinement.     |
-| `DISCORD_ADUAN_WEBHOOK_URL`      | Yes      | `app/api/submit/route.ts`       | Webhook for student complaints.          |
-| `NEXT_PUBLIC_SUPABASE_URL`       | Yes      | `lib/supabase.ts`               | Supabase endpoint.                       |
-| `CRON_SECRET`                    | No       | `api/cron/supabase-keepalive`   | Auth for external cron pings.            |
-| `CANVA_CLIENT_ID/SECRET`         | No       | `lib/canva.ts`                  | OAuth credentials for Canva integration. |
+| Variable                     | Required | Used In                         | Description                              |
+| ---------------------------- | -------- | ------------------------------- | ---------------------------------------- |
+| `NOTION_INTEGRATION_TOKEN`   | Yes      | `lib/notion.ts`                 | Secret token for Notion API.             |
+| `NOTION_SEKRETARIAT_PAGE_ID` | Yes      | `lib/notion.ts`                 | Modular parent Page ID for Docs portal.  |
+| `NOTION_AGENDA_PAGE_ID`      | Yes      | `lib/notion.ts`                 | Modular parent Page ID for Agenda CMS.   |
+| `GROQ_API_KEY`               | Yes      | `app/api/refine-aduan/route.ts` | API Key for Llama-3 text refinement.     |
+| `DISCORD_ADUAN_WEBHOOK_URL`  | Yes      | `app/api/submit/route.ts`       | Webhook for student complaints.          |
+| `NEXT_PUBLIC_SUPABASE_URL`   | Yes      | `lib/supabase.ts`               | Supabase endpoint.                       |
+| `CRON_SECRET`                | No       | `api/cron/supabase-keepalive`   | Auth for external cron pings.            |
+| `CANVA_CLIENT_ID/SECRET`     | No       | `lib/canva.ts`                  | OAuth credentials for Canva integration. |
 
 ---
 
@@ -158,12 +158,12 @@
 ### 7a. Notion Databases
 
 - **Events Database:**
-  - Env: `NOTION_EVENTS_DATABASE_ID`
-  - Properties: `Name` (Title), `Slug` (Formula), `Date` (Date), `Publish` (Checkbox), `Cover Image` (Files).
-  - Logic: Filtered by `Publish` = true. Sorted by `Date` descending.
+  - Env: `NOTION_AGENDA_PAGE_ID` (dynamically resolves child databases)
+  - Properties: `Nama Acara` (Title), `Tanggal Acara` (Date), `Status` (Status), `Gambar` (Files).
+  - Logic: Filtered by `Status` = "Published". Sorted by Date descending.
 - **Sekretariat Database:**
-  - Env: `NOTION_SEKRETARIAT_DATABASE_ID`
-  - Properties: `Name` (Title), `Slug` (Formula), `Category` (Select), `Order` (Number).
+  - Env: `NOTION_SEKRETARIAT_PAGE_ID` (dynamically resolves child databases)
+  - Properties: `Nama Dokumen` (Title), `Slug` (Rich Text), `Kategori` (Relation), `Urutan Tampil` (Number).
 
 ---
 

@@ -550,20 +550,10 @@ export async function fetchPageDatabases(
   return result;
 }
 
-const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
-const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
 const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
-const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const _AGENDA_DB_ID =
-  process.env.NOTION_AGENDA_DATABASE_ID ??
-  process.env.NOTION_EVENTS_DATABASE_ID ??
-  "";
 const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
 const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
-const DOCS_DB_ID =
-  process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
-  process.env.NOTION_PROJECT_DATABASE_ID ??
-  "";
+const DOCS_DB_ID = "36f3b26d-c3be-8017-ba07-e3a418fa4366";
 
 function getRelationIds(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
@@ -815,7 +805,7 @@ export async function resolveKKMDatabases(
 }
 
 export async function fetchKKMDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return KKM_DB_ID || "36e3b26d-c3be-8065-94be-f94365699c8d";
+  if (!pageId) return "36e3b26d-c3be-8065-94be-f94365699c8d";
   const resolved = await resolveKKMDatabases(pageId);
   return resolved.groupsDbId;
 }
@@ -828,11 +818,36 @@ export const fetchKKMDatabaseIdCached = unstable_cache(
   { revalidate: 60, tags: ["notion-kkm"] },
 );
 
+export async function resolveFAQDatabase(pageId: string): Promise<string> {
+  const defaultDbId = "36d3b26d-c3be-8041-b2bd-d9b7f746e06e";
+  if (!pageId) return defaultDbId;
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      return dbs.childDatabases[0];
+    }
+  } catch (error) {
+    console.warn(
+      "[Notion resolveFAQDatabase] Failed to fetch page child databases",
+      error,
+    );
+  }
+  return defaultDbId;
+}
+
+export const resolveFAQDatabaseCached = unstable_cache(
+  async (pageId: string): Promise<string> => {
+    return resolveFAQDatabase(pageId);
+  },
+  ["notion-faq-database-id"],
+  { revalidate: 60, tags: ["notion-faq"] },
+);
+
 export const fetchKKMGroups = unstable_cache(
   async (): Promise<KKMGroup[]> => {
     const activeDbId = KKM_PAGE_ID
       ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
-      : KKM_DB_ID;
+      : "36e3b26d-c3be-8065-94be-f94365699c8d";
 
     if (!activeDbId) return [];
 
@@ -1420,12 +1435,7 @@ export const fetchKaryaEntries = unstable_cache(
 );
 
 export async function fetchAgendaDatabaseId(pageId: string): Promise<string> {
-  if (!pageId)
-    return (
-      process.env.NOTION_AGENDA_DATABASE_ID ??
-      process.env.NOTION_EVENTS_DATABASE_ID ??
-      "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
-    );
+  if (!pageId) return "36e3b26d-c3be-80dc-aa20-e1ee3940b466";
   try {
     const dbs = await fetchPageDatabases(pageId);
     if (dbs.childDatabases.length >= 1) {
@@ -1437,11 +1447,7 @@ export async function fetchAgendaDatabaseId(pageId: string): Promise<string> {
       error,
     );
   }
-  return (
-    process.env.NOTION_AGENDA_DATABASE_ID ??
-    process.env.NOTION_EVENTS_DATABASE_ID ??
-    "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
-  );
+  return "36e3b26d-c3be-80dc-aa20-e1ee3940b466";
 }
 
 export const fetchAgendaDatabaseIdCached = unstable_cache(
@@ -1457,11 +1463,7 @@ async function getActiveAgendaDbId(): Promise<string> {
   if (pageId) {
     return await fetchAgendaDatabaseIdCached(pageId);
   }
-  return (
-    process.env.NOTION_AGENDA_DATABASE_ID ??
-    process.env.NOTION_EVENTS_DATABASE_ID ??
-    "36e3b26d-c3be-80dc-aa20-e1ee3940b466"
-  );
+  return "36e3b26d-c3be-80dc-aa20-e1ee3940b466";
 }
 
 export const fetchEventsCollection = unstable_cache(
@@ -1979,119 +1981,74 @@ export async function searchDocs(query: string): Promise<
 }
 
 /* ------------------------------------------------------------------ */
-/*  Beranda & Profil database helpers                                  */
+/*  Beranda & Profil database resolution helpers                       */
 /* ------------------------------------------------------------------ */
 
-export const fetchBerandaEntries = unstable_cache(
-  async (): Promise<BerandaEntry[]> => {
-    if (!BERANDA_DB_ID) return [];
-
-    const results: NotionPage[] = [];
-    let cursor: string | undefined;
-
-    try {
-      const dataSourceId = await resolveDataSourceIdSafe(BERANDA_DB_ID);
-      if (!dataSourceId) return [];
-
-      do {
-        const response = await getNotionClientAny().dataSources.query({
-          data_source_id: dataSourceId,
-          start_cursor: cursor,
-        });
-        results.push(...(response.results as NotionPage[]));
-        cursor = response.has_more
-          ? (response.next_cursor ?? undefined)
-          : undefined;
-      } while (cursor);
-    } catch (error) {
-      console.error("[Notion fetchBerandaEntries] Query failed:", error);
-      return [];
+export async function resolveBerandaDatabases(
+  pageId: string,
+): Promise<{ heroDbId: string; jelajahiDbId: string }> {
+  const result = {
+    heroDbId: "36e3b26d-c3be-802c-aac0-c7dbcd40ef36",
+    jelajahiDbId: "36e3b26d-c3be-802c-91ac-e5ed573d89f6",
+  };
+  if (!pageId) return result;
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      result.heroDbId = dbs.childDatabases[0];
     }
-
-    const entries: BerandaEntry[] = [];
-    for (const page of results) {
-      const status = getStatus(page, "Status Konten CMS");
-      if (status && status !== "Live") continue;
-
-      const title =
-        getTitleProperty(page, "Judul Tayangan") ||
-        getTitleProperty(page, "Name") ||
-        getTitle(page);
-      const slug = getRichText(page, "Slug") || slugify(title);
-      const blockType = (getSelect(page, "Tipe Blok") ||
-        "Hero") as BerandaEntry["blockType"];
-      const blocks = await fetchAllBlocks(page.id);
-
-      entries.push({
-        id: page.id,
-        title,
-        slug,
-        blockType,
-        status,
-        lastModified: page.last_edited_time,
-        blocks,
-      });
+    if (dbs.childDatabases.length >= 2) {
+      result.jelajahiDbId = dbs.childDatabases[1];
     }
+  } catch (error) {
+    console.warn("[Notion resolveBerandaDatabases] Failed", error);
+  }
+  return result;
+}
 
-    return entries;
+export const resolveBerandaDatabasesCached = unstable_cache(
+  async (
+    pageId: string,
+  ): Promise<{ heroDbId: string; jelajahiDbId: string }> => {
+    return resolveBerandaDatabases(pageId);
   },
-  ["notion-beranda-entries"],
+  ["notion-beranda-databases"],
   { revalidate: 60, tags: ["notion-beranda"] },
 );
 
-export const fetchProfilEntries = unstable_cache(
-  async (): Promise<ProfilEntry[]> => {
-    if (!PROFIL_DB_ID) return [];
-
-    const results: NotionPage[] = [];
-    let cursor: string | undefined;
-
-    try {
-      const dataSourceId = await resolveDataSourceIdSafe(PROFIL_DB_ID);
-      if (!dataSourceId) return [];
-
-      do {
-        const response = await getNotionClientAny().dataSources.query({
-          data_source_id: dataSourceId,
-          start_cursor: cursor,
-        });
-        results.push(...(response.results as NotionPage[]));
-        cursor = response.has_more
-          ? (response.next_cursor ?? undefined)
-          : undefined;
-      } while (cursor);
-    } catch (error) {
-      console.error("[Notion fetchProfilEntries] Query failed:", error);
-      return [];
+export async function resolveProfilDatabases(
+  pageId: string,
+): Promise<{ sectionDbId: string; kabinetDbId: string; sdmDbId: string }> {
+  const result = {
+    sectionDbId: "36e3b26d-c3be-8076-9a94-d776ed290943",
+    kabinetDbId: "36e3b26d-c3be-804e-b7da-f0a1f98f218e",
+    sdmDbId: "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",
+  };
+  if (!pageId) return result;
+  try {
+    const dbs = await fetchPageDatabases(pageId);
+    if (dbs.childDatabases.length >= 1) {
+      result.sectionDbId = dbs.childDatabases[0];
     }
-
-    const entries: ProfilEntry[] = [];
-    for (const page of results) {
-      const status = getStatus(page, "Status Konten CMS");
-      if (status && status !== "Live") continue;
-
-      const title =
-        getTitleProperty(page, "Judul Tayangan") ||
-        getTitleProperty(page, "Name") ||
-        getTitle(page);
-      const slug = getRichText(page, "Slug") || slugify(title);
-      const order = getNumber(page, "Urutan Tampil") || 999;
-      const blocks = await fetchAllBlocks(page.id);
-
-      entries.push({
-        id: page.id,
-        title,
-        slug,
-        order,
-        status,
-        lastModified: page.last_edited_time,
-        blocks,
-      });
+    if (dbs.childDatabases.length >= 2) {
+      result.kabinetDbId = dbs.childDatabases[1];
     }
+    if (dbs.mentionedDatabases.length >= 1) {
+      result.sdmDbId = dbs.mentionedDatabases[0];
+    }
+  } catch (error) {
+    console.warn("[Notion resolveProfilDatabases] Failed", error);
+  }
+  return result;
+}
 
-    return entries.sort((a, b) => a.order - b.order);
+export const resolveProfilDatabasesCached = unstable_cache(
+  async (
+    pageId: string,
+  ): Promise<{ sectionDbId: string; kabinetDbId: string; sdmDbId: string }> => {
+    return resolveProfilDatabases(pageId);
   },
-  ["notion-profil-entries"],
+  ["notion-profil-databases"],
   { revalidate: 60, tags: ["notion-profil"] },
 );
 

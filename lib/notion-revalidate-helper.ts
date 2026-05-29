@@ -1,9 +1,14 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
 import {
+  fetchAgendaDatabaseIdCached,
   fetchKaryaDatabaseIdCached,
+  fetchKKMDatabaseIdCached,
   fetchRedirectDatabaseIdCached,
   getNotionClient,
+  resolveBerandaDatabasesCached,
+  resolveFAQDatabaseCached,
+  resolveProfilDatabasesCached,
   resolveSekretariatDatabasesCached,
 } from "@/lib/notion";
 
@@ -36,20 +41,13 @@ export type ContentScope =
   | "beranda"
   | "redirects";
 
-const BERANDA_DB_ID = process.env.NOTION_BERANDA_DATABASE_ID ?? "";
-const PROFIL_DB_ID = process.env.NOTION_PROFIL_DATABASE_ID ?? "";
-const DOCS_DB_ID =
-  process.env.NOTION_SEKRETARIAT_DATABASE_ID ??
-  process.env.NOTION_PROJECT_DATABASE_ID ??
-  "";
-const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
-const KKM_DB_ID = process.env.NOTION_KKM_DATABASE_ID ?? "";
-const AGENDA_DB_ID =
-  process.env.NOTION_AGENDA_DATABASE_ID ??
-  process.env.NOTION_EVENTS_DATABASE_ID ??
-  "";
+const NOTION_BERANDA_PAGE_ID = process.env.NOTION_BERANDA_PAGE_ID ?? "";
+const NOTION_PROFIL_PAGE_ID = process.env.NOTION_PROFIL_PAGE_ID ?? "";
+const NOTION_KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
+const NOTION_AGENDA_PAGE_ID = process.env.NOTION_AGENDA_PAGE_ID ?? "";
 const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
-const FAQ_DB_ID = process.env.NOTION_FAQ_DATABASE_ID ?? "";
+const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
+const NOTION_FAQ_PAGE_ID = process.env.NOTION_FAQ_PAGE_ID ?? "";
 const REDIRECT_PAGE_ID = process.env.NOTION_REDIRECT_PAGE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
@@ -96,15 +94,56 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
-  const resolvedDocs = NOTION_SEKRETARIAT_PAGE_ID
-    ? await resolveSekretariatDatabasesCached(NOTION_SEKRETARIAT_PAGE_ID)
-    : { docsDbId: DOCS_DB_ID, categoriesDbId: "" };
+  const [
+    docsDbIdResolved,
+    agendaDbIdResolved,
+    kkmDbIdResolved,
+    profilDbResolved,
+    berandaDbResolved,
+    faqDbIdResolved,
+  ] = await Promise.all([
+    NOTION_SEKRETARIAT_PAGE_ID
+      ? resolveSekretariatDatabasesCached(NOTION_SEKRETARIAT_PAGE_ID)
+      : {
+          docsDbId: "36f3b26d-c3be-8017-ba07-e3a418fa4366",
+          categoriesDbId: "",
+        },
+    NOTION_AGENDA_PAGE_ID
+      ? fetchAgendaDatabaseIdCached(NOTION_AGENDA_PAGE_ID)
+      : "36e3b26d-c3be-80dc-aa20-e1ee3940b466",
+    NOTION_KKM_PAGE_ID
+      ? fetchKKMDatabaseIdCached(NOTION_KKM_PAGE_ID)
+      : "36e3b26d-c3be-8065-94be-f94365699c8d",
+    NOTION_PROFIL_PAGE_ID
+      ? resolveProfilDatabasesCached(NOTION_PROFIL_PAGE_ID)
+      : {
+          sectionDbId: "36e3b26d-c3be-8076-9a94-d776ed290943",
+          kabinetDbId: "36e3b26d-c3be-804e-b7da-f0a1f98f218e",
+          sdmDbId: "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",
+        },
+    NOTION_BERANDA_PAGE_ID
+      ? resolveBerandaDatabasesCached(NOTION_BERANDA_PAGE_ID)
+      : {
+          heroDbId: "36e3b26d-c3be-802c-aac0-c7dbcd40ef36",
+          jelajahiDbId: "36e3b26d-c3be-802c-91ac-e5ed573d89f6",
+        },
+    NOTION_FAQ_PAGE_ID
+      ? resolveFAQDatabaseCached(NOTION_FAQ_PAGE_ID)
+      : "36d3b26d-c3be-8041-b2bd-d9b7f746e06e",
+  ]);
 
-  const docsDbId = resolvedDocs.docsDbId;
-  const categoriesDbId = resolvedDocs.categoriesDbId;
+  const docsDbId = docsDbIdResolved.docsDbId;
+  const categoriesDbId = docsDbIdResolved.categoriesDbId;
+  const agendaDbId = agendaDbIdResolved;
+  const kkmDbId = kkmDbIdResolved;
+  const faqDbId = faqDbIdResolved;
 
   const karyaDbId = KARYA_PAGE_ID
     ? await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID)
+    : "";
+
+  const redirectDbId = REDIRECT_PAGE_ID
+    ? await fetchRedirectDatabaseIdCached(REDIRECT_PAGE_ID)
     : "";
 
   const [
@@ -114,25 +153,26 @@ async function buildScopeMatchers() {
     kkmDataSourceId,
     karyaDataSourceId,
     faqDataSourceId,
-    profilDataSourceId,
-    berandaDataSourceId,
+    profilSectionDataSourceId,
+    profilKabinetDataSourceId,
+    profilSdmDataSourceId,
+    berandaHeroDataSourceId,
+    berandaJelajahiDataSourceId,
+    redirectDataSourceId,
   ] = await Promise.all([
     resolvePrimaryDataSourceId(docsDbId),
     resolvePrimaryDataSourceId(categoriesDbId),
-    resolvePrimaryDataSourceId(AGENDA_DB_ID),
-    resolvePrimaryDataSourceId(KKM_DB_ID),
+    resolvePrimaryDataSourceId(agendaDbId),
+    resolvePrimaryDataSourceId(kkmDbId),
     resolvePrimaryDataSourceId(karyaDbId),
-    resolvePrimaryDataSourceId(FAQ_DB_ID),
-    resolvePrimaryDataSourceId(PROFIL_DB_ID),
-    resolvePrimaryDataSourceId(BERANDA_DB_ID),
+    resolvePrimaryDataSourceId(faqDbId),
+    resolvePrimaryDataSourceId(profilDbResolved.sectionDbId),
+    resolvePrimaryDataSourceId(profilDbResolved.kabinetDbId),
+    resolvePrimaryDataSourceId(profilDbResolved.sdmDbId),
+    resolvePrimaryDataSourceId(berandaDbResolved.heroDbId),
+    resolvePrimaryDataSourceId(berandaDbResolved.jelajahiDbId),
+    resolvePrimaryDataSourceId(redirectDbId),
   ]);
-
-  const redirectDbId = REDIRECT_PAGE_ID
-    ? await fetchRedirectDatabaseIdCached(REDIRECT_PAGE_ID)
-    : "";
-  const redirectDataSourceId = redirectDbId
-    ? await resolvePrimaryDataSourceId(redirectDbId)
-    : null;
 
   return {
     docs: {
@@ -144,11 +184,11 @@ async function buildScopeMatchers() {
       categoriesDataSourceId: categoriesDataSourceId,
     },
     events: {
-      databaseId: AGENDA_DB_ID ? normalizeNotionId(AGENDA_DB_ID) : null,
+      databaseId: agendaDbId ? normalizeNotionId(agendaDbId) : null,
       dataSourceId: eventsDataSourceId,
     },
     kkm: {
-      databaseId: KKM_DB_ID ? normalizeNotionId(KKM_DB_ID) : null,
+      databaseId: kkmDbId ? normalizeNotionId(kkmDbId) : null,
       dataSourceId: kkmDataSourceId,
     },
     karya: {
@@ -156,16 +196,32 @@ async function buildScopeMatchers() {
       dataSourceId: karyaDataSourceId,
     },
     faq: {
-      databaseId: FAQ_DB_ID ? normalizeNotionId(FAQ_DB_ID) : null,
+      databaseId: faqDbId ? normalizeNotionId(faqDbId) : null,
       dataSourceId: faqDataSourceId,
     },
     profil: {
-      databaseId: PROFIL_DB_ID ? normalizeNotionId(PROFIL_DB_ID) : null,
-      dataSourceId: profilDataSourceId,
+      databaseId: [
+        profilDbResolved.sectionDbId,
+        profilDbResolved.kabinetDbId,
+        profilDbResolved.sdmDbId,
+      ]
+        .filter(Boolean)
+        .map(normalizeNotionId),
+      dataSourceId: [
+        profilSectionDataSourceId,
+        profilKabinetDataSourceId,
+        profilSdmDataSourceId,
+      ]
+        .filter(Boolean)
+        .map(normalizeNotionId),
     },
     beranda: {
-      databaseId: BERANDA_DB_ID ? normalizeNotionId(BERANDA_DB_ID) : null,
-      dataSourceId: berandaDataSourceId,
+      databaseId: [berandaDbResolved.heroDbId, berandaDbResolved.jelajahiDbId]
+        .filter(Boolean)
+        .map(normalizeNotionId),
+      dataSourceId: [berandaHeroDataSourceId, berandaJelajahiDataSourceId]
+        .filter(Boolean)
+        .map(normalizeNotionId),
     },
     redirects: {
       databaseId: redirectDbId ? normalizeNotionId(redirectDbId) : null,
@@ -342,6 +398,17 @@ export function revalidateScope(scope: ContentScope) {
   }
 }
 
+function matchId(
+  target: string | null | undefined,
+  matcherValue: string | string[] | null | undefined,
+): boolean {
+  if (!target || !matcherValue) return false;
+  if (Array.isArray(matcherValue)) {
+    return matcherValue.includes(target);
+  }
+  return matcherValue === target;
+}
+
 export async function inferScopes(
   payload: NotionWebhookPayload,
 ): Promise<ContentScope[]> {
@@ -373,19 +440,19 @@ export async function inferScopes(
 
     if (
       normalizedParentDataSourceId &&
-      matcher.dataSourceId === normalizedParentDataSourceId
+      matchId(normalizedParentDataSourceId, matcher.dataSourceId)
     ) {
       scopeSet.add(scope);
     }
 
     if (payload.entity?.type === "data_source" && normalizedEntityId) {
-      if (matcher.dataSourceId === normalizedEntityId) {
+      if (matchId(normalizedEntityId, matcher.dataSourceId)) {
         scopeSet.add(scope);
       }
     }
 
     if (payload.entity?.type === "database" && normalizedEntityId) {
-      if (matcher.databaseId === normalizedEntityId) {
+      if (matchId(normalizedEntityId, matcher.databaseId)) {
         scopeSet.add(scope);
       }
     }
@@ -393,35 +460,35 @@ export async function inferScopes(
     if (
       payload.data?.parent?.type === "database" &&
       normalizedParentId &&
-      matcher.databaseId === normalizedParentId
+      matchId(normalizedParentId, matcher.databaseId)
     ) {
       scopeSet.add(scope);
     }
 
     if (
       parentScopeHints.dataSourceId &&
-      matcher.dataSourceId === parentScopeHints.dataSourceId
+      matchId(parentScopeHints.dataSourceId, matcher.dataSourceId)
     ) {
       scopeSet.add(scope);
     }
 
     if (
       parentScopeHints.databaseId &&
-      matcher.databaseId === parentScopeHints.databaseId
+      matchId(parentScopeHints.databaseId, matcher.databaseId)
     ) {
       scopeSet.add(scope);
     }
 
     if (
       entityScopeHints.dataSourceId &&
-      matcher.dataSourceId === entityScopeHints.dataSourceId
+      matchId(entityScopeHints.dataSourceId, matcher.dataSourceId)
     ) {
       scopeSet.add(scope);
     }
 
     if (
       entityScopeHints.databaseId &&
-      matcher.databaseId === entityScopeHints.databaseId
+      matchId(entityScopeHints.databaseId, matcher.databaseId)
     ) {
       scopeSet.add(scope);
     }
@@ -434,15 +501,23 @@ export async function inferScopes(
     if (catMatcher.categoriesDataSourceId) {
       if (
         (normalizedParentDataSourceId &&
-          catMatcher.categoriesDataSourceId === normalizedParentDataSourceId) ||
+          matchId(
+            normalizedParentDataSourceId,
+            catMatcher.categoriesDataSourceId,
+          )) ||
         (payload.entity?.type === "data_source" &&
           normalizedEntityId &&
-          catMatcher.categoriesDataSourceId === normalizedEntityId) ||
+          matchId(normalizedEntityId, catMatcher.categoriesDataSourceId)) ||
         (parentScopeHints.dataSourceId &&
-          catMatcher.categoriesDataSourceId ===
-            parentScopeHints.dataSourceId) ||
+          matchId(
+            parentScopeHints.dataSourceId,
+            catMatcher.categoriesDataSourceId,
+          )) ||
         (entityScopeHints.dataSourceId &&
-          catMatcher.categoriesDataSourceId === entityScopeHints.dataSourceId)
+          matchId(
+            entityScopeHints.dataSourceId,
+            catMatcher.categoriesDataSourceId,
+          ))
       ) {
         scopeSet.add(scope);
       }
@@ -452,14 +527,17 @@ export async function inferScopes(
       if (
         (payload.entity?.type === "database" &&
           normalizedEntityId &&
-          catMatcher.categoriesDatabaseId === normalizedEntityId) ||
+          matchId(normalizedEntityId, catMatcher.categoriesDatabaseId)) ||
         (payload.data?.parent?.type === "database" &&
           normalizedParentId &&
-          catMatcher.categoriesDatabaseId === normalizedParentId) ||
+          matchId(normalizedParentId, catMatcher.categoriesDatabaseId)) ||
         (parentScopeHints.databaseId &&
-          catMatcher.categoriesDatabaseId === parentScopeHints.databaseId) ||
+          matchId(
+            parentScopeHints.databaseId,
+            catMatcher.categoriesDatabaseId,
+          )) ||
         (entityScopeHints.databaseId &&
-          catMatcher.categoriesDatabaseId === entityScopeHints.databaseId)
+          matchId(entityScopeHints.databaseId, catMatcher.categoriesDatabaseId))
       ) {
         scopeSet.add(scope);
       }

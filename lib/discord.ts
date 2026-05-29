@@ -66,3 +66,64 @@ export async function sendDiscordWebhook(
     throw error;
   }
 }
+
+/**
+ * Centrally sends an error report to the Discord Error Webhook.
+ */
+export async function logErrorToDiscord(
+  error: any,
+  context = "Unhandled Application Error",
+): Promise<void> {
+  const errorWebhookUrl = process.env.DISCORD_ERROR_WEBHOOK_URL;
+  if (!errorWebhookUrl) {
+    console.warn(
+      `[Discord Helper] Skipping error log: DISCORD_ERROR_WEBHOOK_URL is not configured.`,
+    );
+    return;
+  }
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack =
+    error instanceof Error && error.stack
+      ? error.stack.slice(0, 1000)
+      : "No stack trace available";
+
+  const payload: DiscordWebhookPayload = {
+    username: "HIMA Musik Portal Error Monitor",
+    embeds: [
+      {
+        title: `🚨 Error in ${context}`,
+        description: `An error occurred during application execution.`,
+        color: 0xff4f4f, // red color
+        timestamp: new Date().toISOString(),
+        fields: [
+          {
+            name: "Message",
+            value: `\`\`\`\n${errorMessage}\n\`\`\``,
+          },
+          {
+            name: "Stack Trace (Truncated)",
+            value: `\`\`\`js\n${errorStack}\n\`\`\``,
+          },
+        ],
+        footer: {
+          text: "HIMA Musik Production Environment",
+        },
+      },
+    ],
+  };
+
+  try {
+    // Avoid infinite recursion if sendDiscordWebhook itself fails
+    await sendDiscordWebhook(
+      errorWebhookUrl,
+      payload,
+      `Error Monitor: ${context}`,
+    );
+  } catch (logError) {
+    console.error(
+      "[Discord Helper] Failed to report error to Discord:",
+      logError,
+    );
+  }
+}

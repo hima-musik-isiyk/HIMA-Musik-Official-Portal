@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { sendDiscordWebhook } from "@/lib/discord";
+import { logErrorToDiscord, sendDiscordWebhook } from "@/lib/discord";
 import { fetchAduanDatabaseIdCached, getNotionClient } from "@/lib/notion";
 
 const DISCORD_FIELD_LIMIT = 1024;
@@ -168,6 +168,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Internal Server Error:", error);
+    await logErrorToDiscord(error, "Aduan Form Submit API");
     return NextResponse.json(
       {
         error: "Internal Server Error",

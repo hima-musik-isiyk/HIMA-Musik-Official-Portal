@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { logErrorToDiscord } from "@/lib/discord";
 import { extractEnhancedText } from "@/services/refineParser";
 
 type GroqChatCompletion = {
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ enhanced: enhanced || originalText });
   } catch (error) {
     console.error("Error refining text with Groq:", error);
+    await logErrorToDiscord(error, "Groq AI Refine Aduan API");
     return NextResponse.json({ enhanced: originalText });
   }
 }
