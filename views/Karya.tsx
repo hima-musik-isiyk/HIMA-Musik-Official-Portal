@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   IconChevronDown,
@@ -17,9 +17,52 @@ interface KaryaViewProps {
 
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 
-export default function KaryaView({ entries }: KaryaViewProps) {
+export default function KaryaView({ entries: initialEntries }: KaryaViewProps) {
   const scopeRef = useViewEntrance("/karya");
   const [playingId, setPlayingId] = useState<string | null>(null);
+
+  const [entries, setEntries] = useState<KaryaEntryMeta[]>(
+    initialEntries || [],
+  );
+
+  useEffect(() => {
+    // Try to load from localStorage cache first to bootstrap client-side SWR
+    try {
+      const cached = window.localStorage.getItem("hima_karya_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setEntries((prev) => (prev && prev.length > 0 ? prev : parsed || []));
+      }
+    } catch {}
+
+    const fetchKaryaData = async () => {
+      try {
+        const res = await fetch("/api/karya");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            setEntries(result.data);
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(
+                "hima_karya_cache",
+                JSON.stringify(result.data),
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch fresh karya data:", err);
+      }
+    };
+
+    fetchKaryaData();
+
+    const interval = setInterval(() => {
+      fetchKaryaData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");

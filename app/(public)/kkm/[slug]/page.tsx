@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchKKMEntryBySlug, fetchKKMGroups } from "@/lib/notion";
 import DocPageView from "@/views/DocPage";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export async function generateStaticParams() {
   const groups = await fetchKKMGroups();

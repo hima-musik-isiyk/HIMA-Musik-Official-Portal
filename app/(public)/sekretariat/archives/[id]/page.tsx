@@ -4,7 +4,7 @@ import React from "react";
 import { fetchArchiveById } from "@/lib/notion";
 import ArchiveDetailView from "@/views/ArchiveDetail";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 type ArchiveDetailPageProps = {
   params: Promise<{ id: string }>;

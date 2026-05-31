@@ -432,22 +432,13 @@ Legacy `.databases.query` is replaced with `.dataSources.query`. All database fe
 
 ### Notion Webhook & Instant Cache Revalidation
 
-To achieve instantaneous data reflection without waiting for the 60-second polling intervals, the portal utilizes standard **Notion Developer Webhooks** integrated with **Next.js On-Demand Revalidation**:
+### Fully Dynamic Real-Time Notion Integration (Bypassed Caching)
 
-- **Payload Parsing:** When a change is made to a Notion database or child block, the webhook payload is parsed by `inferScopes()` in `lib/notion-revalidate-helper.ts`.
-- **Scope Resolution:** It resolves parent scopes dynamically based on page structure and Data Source ID matches.
-- **Cache Eviction:** Next.js on-demand caching tags (`notion-events`, `notion-kkm`, `notion-profil`, `notion-faq`, `notion-beranda`, `notion-docs`, `notion-karya`) are evicted instantly via `revalidateTag` and their corresponding page paths are purged via `revalidatePath`.
-- **Warning-Free Entity Resolution:** Webhook entities are processed via a type-safe resolver (`resolveRoomId` in `lib/notion-room/webhook.ts`) that preserves entity types (`page` | `database` | `block`) from the payload. This prevents retrieving database IDs using the page API, keeping the server logs completely clean of validation errors.
+To ensure that any updates made in the Notion Teamspace are reflected instantly across the entire portal without any lag, caching is completely bypassed:
 
----
-
-### Environment-Aware Caching Strategy & Manual Sync
-
-To maximize loading speeds while keeping content fresh, the portal uses a hybrid caching strategy built into `lib/notion.ts`:
-
-- **Development Mode (`NODE_ENV === "development"`):** Cache revalidation is set to **1 second**. When editing content in Notion, simply reload the browser tab locally to view the updated content instantly.
-- **Production Mode (`NODE_ENV === "production"`):** Cache revalidation is set to **`false` (never expire by time)**. Pages are served instantly from the serverless edge cache. The system relies 100% on the automatic Notion webhook payload parser to invalidate the cache only when an actual change occurs in Notion.
-- **Client-Side SWR (Stale-While-Revalidate):** To eliminate transition delays and loading animations entirely for navbar-linked pages (Profil, KKM, Agenda, FAQ, Sekretariat), visual components implement instant client-side SWR rendering. The UI initializes from a persistent browser cache (`localStorage`) or initial server props to render immediately without visual delay. Fresh data is fetched asynchronously in a background `useEffect` from dedicated API endpoints (`/api/profil`, `/api/kkm`, `/api/agenda`, `/api/faq`, `/api/sekretariat`), updating the UI and cache silently upon resolution.
+- **Bypassed Next.js Cache (`unstable_cache`):** All Notion data-fetching routines (Profil, KKM, Agenda, Karya, Sekretariat, and Beranda) bypass the Next.js `unstable_cache` wrapper entirely, querying the Notion API directly on every request.
+- **Dynamic Server-Side Rendering (`revalidate = 0`):** All public routes and API endpoints are configured as fully dynamic (`export const revalidate = 0`), forcing Next.js to server-render pages with the absolute latest data from Notion upon every visit.
+- **Client-Side SWR (Stale-While-Revalidate):** To eliminate transition delays and loading animations entirely for navbar-linked pages, visual components implement instant client-side SWR rendering. The UI initializes from the server-rendered HTML or initial server props immediately with the latest data, while silently fetching fresh data in a background `useEffect` from dedicated API endpoints (`/api/profil`, `/api/kkm`, `/api/agenda`, `/api/faq`, `/api/sekretariat`) to keep the UI perfectly synchronized without visual loaders.
 
 #### Manual Force-Sync & Preview Action Bar
 

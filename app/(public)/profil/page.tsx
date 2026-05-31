@@ -3,7 +3,7 @@ import React from "react";
 import { fetchProfilModularDataCached } from "@/lib/notion";
 import About from "@/views/About";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function ProfilPage() {
   const pageId =

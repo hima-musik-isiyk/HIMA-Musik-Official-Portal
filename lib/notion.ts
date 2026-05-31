@@ -1,6 +1,5 @@
 import { Client } from "@notionhq/client";
 import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoints";
-import { unstable_cache as next_unstable_cache } from "next/cache";
 import { cache } from "react";
 
 // Custom cache wrapper with environment-aware revalidation strategy:
@@ -11,17 +10,11 @@ import { cache } from "react";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   cb: T,
-  keyParts?: string[],
-  options?: { revalidate?: number | false; tags?: string[] },
+  _keyParts?: string[],
+  _options?: { revalidate?: number | false; tags?: string[] },
 ): T {
-  const isDev = process.env.NODE_ENV === "development";
-  const finalOptions: { revalidate: number | false; tags?: string[] } = {
-    ...options,
-    // Dev: 1s so every reload fetches fresh Notion data instantly.
-    // Prod: false = cache forever until webhook triggers revalidateTag/revalidatePath.
-    revalidate: (isDev ? 1 : false) as number | false,
-  };
-  return next_unstable_cache(cb, keyParts, finalOptions) as unknown as T;
+  // Bypass all caching to fetch the absolute latest data from Notion directly and instantaneously
+  return cb;
 }
 
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";

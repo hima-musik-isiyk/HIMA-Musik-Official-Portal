@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
+import { fetchFAQEntries, filterFAQVisibility } from "@/lib/faq";
 import FAQView from "@/views/FAQ";
+
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "FAQ & Tanya Jawab | HIMA Musik",
@@ -20,6 +23,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FAQPage() {
-  return <FAQView />;
+export default async function FAQPage() {
+  const rawEntries = await fetchFAQEntries();
+  const entries = filterFAQVisibility(rawEntries);
+
+  return <FAQView initialEntries={entries} />;
 }

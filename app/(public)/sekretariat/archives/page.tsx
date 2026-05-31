@@ -3,7 +3,7 @@ import React from "react";
 import { fetchArchives } from "@/lib/notion";
 import ArchivesView from "@/views/Archives";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function ArchivesPage() {
   const entries = await fetchArchives();

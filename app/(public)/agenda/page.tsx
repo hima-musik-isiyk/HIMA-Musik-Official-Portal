@@ -1,7 +1,7 @@
 import { fetchEventsCollection, fetchKKMGroups } from "@/lib/notion";
 import EventsView from "@/views/Events";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function AgendaPage() {
   const [collection, kkmGroups] = await Promise.all([

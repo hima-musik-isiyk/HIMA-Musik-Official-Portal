@@ -7,7 +7,7 @@ import {
 } from "@/lib/notion";
 import EventDetailView from "@/views/EventDetail";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export async function generateStaticParams() {
   const entries = await fetchAllEventEntries();

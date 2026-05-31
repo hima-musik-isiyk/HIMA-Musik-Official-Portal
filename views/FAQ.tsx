@@ -235,13 +235,17 @@ const PaginationControl: React.FC<{
   );
 };
 
-const FAQView: React.FC = () => {
+interface FAQViewProps {
+  initialEntries?: FAQEntry[];
+}
+
+const FAQView: React.FC<FAQViewProps> = ({ initialEntries }) => {
   const scopeRef = useViewEntrance("/faq");
 
   // State Management
-  const [faqs, setFaqs] = useState<FAQEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [faqs, setFaqs] = useState<FAQEntry[]>(initialEntries || []);
+  const [isLoading, setIsLoading] = useState(!initialEntries);
+  const [_isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Search, Filters & Row Expansion
@@ -456,7 +460,7 @@ const FAQView: React.FC = () => {
       {/* Background Radial Glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.015)_0%,transparent_60%)]" />
 
-      {/* Breadcrumb & Live Sync Badge */}
+      {/* Breadcrumb */}
       <div
         data-animate="up"
         className="mb-8 flex items-center justify-between gap-4 text-xs text-stone-500"
@@ -470,18 +474,6 @@ const FAQView: React.FC = () => {
           </Link>
           <span>/</span>
           <span className="text-stone-300">FAQ & Tanya Jawab</span>
-        </div>
-
-        {/* Premium Pulsing Live Syncing Indicator */}
-        <div className="flex items-center gap-2 rounded-full border border-white/5 bg-stone-900/30 px-3 py-1 font-mono text-[9px] tracking-wider text-stone-400 uppercase">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-          </span>
-          <span>Live Sync</span>
-          {isSyncing && (
-            <IconRefreshCw className="text-gold-500/60 h-2.5 w-2.5 animate-spin" />
-          )}
         </div>
       </div>
 

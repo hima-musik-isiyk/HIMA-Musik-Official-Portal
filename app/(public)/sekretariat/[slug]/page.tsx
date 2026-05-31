@@ -4,7 +4,7 @@ import React from "react";
 import { fetchAllDocs, fetchDocBySlug } from "@/lib/notion";
 import DocPageView from "@/views/DocPage";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export async function generateStaticParams() {
   const docs = await fetchAllDocs();
