@@ -16,6 +16,12 @@ The portal focuses on:
 
 - **Dynamic Landing Page:** Sleek homepage featuring responsive layouts, kinetic typography, and fluid entrance animations.
 - **Cabinet Profile & KKM:** Sourced directly from Notion, organizing divisions, cabinet hierarchies, and student interest groups.
+- **Open Recruitment (Oprec):** Fully-featured landing page and a multi-step interactive application form (routes: `/pendaftaran`, `/pendaftaran/form`).
+  - Interactive org chart detailing cabinet hierarchies (Chairman, Vice, Secretary, Treasurer, and assistant spots).
+  - High-density division guides showing main tasks, skills, and commitments via GSAP collapsible panels.
+  - Step-by-step registration wizard featuring local auto-save draft states, character counts, validation alerts, and step-by-step progress tracking.
+  - Automatic submission receipt delivery powered by Brevo Transactional SMTP email with customized HTML/text layouts.
+  - Multi-admin Discord webhook integration providing detailed embeds of newly submitted applications.
 - **Kalender Agenda:** Live tracking of academic schedules, projects, and repost schedules categorized by lifecycle (route: `/agenda`).
 - **FAQ & Tanya Jawab:** Impromptu, quick-response Q&A board backed by a Notion database (route: `/faq`).
   - Merged spreadsheet-inspired board showing both answered and unanswered questions clearly in a unified, high-density interactive grid table.
@@ -163,9 +169,11 @@ Routes are organized into semantic **Next.js Route Groups** matching the portal'
     - `faq/` – FAQ & Tanya Jawab board (Notion-backed)
     - `aduan/` – Student advocacy and complaint pipeline
     - `sekretariat/` – Documents, SOPs, archives, and self-service forms
+    - `pendaftaran/` – Open recruitment landing page and step-by-step application form
   - `(internal)/` – Restricted administrator utilities (`instagram-secret-page/`, `notion-secret-page/`)
   - `(legal)/` – Regulatory pages (`data-deletion/`, `privacy-policy/`, `terms-of-service/`)
   - `api/` – Next.js API route handlers:
+    - `pendaftaran/` – Application handler receiver (`POST` to process data, send confirmation email via Brevo, and push notification to Discord)
     - `webhook/` – Instagram webhook receiver (`GET` for hub verification, `POST` to parse events and forward embeds to Discord)
     - `notion/webhook/` – Generic Notion webhook endpoint. Performs real-time room sync and on-demand Next.js cache revalidation for CMS pages.
     - `webhooks/notion/` – Primary Notion webhook receiver (`GET` for healthcheck, `POST` to intercept Agenda form submissions, forward to Discord, trigger instant revalidation, and fall back to room sync and CMS revalidation)
@@ -177,17 +185,18 @@ Routes are organized into semantic **Next.js Route Groups** matching the portal'
 
 ## Navigation
 
-The navbar uses a flat 7-item structure (desktop & mobile):
+The navbar uses a flat structure (desktop & mobile), dynamically showing the recruitment portal under a feature flag:
 
-| Label       | Route          | Notes                              |
-| ----------- | -------------- | ---------------------------------- |
-| Profil      | `/profil`      | Organizational profile & cabinet   |
-| KKM         | `/kkm`         | Student interest groups            |
-| Agenda      | `/agenda`      | Events & publications calendar     |
-| FAQ         | `/faq`         | Q&A board                          |
-| Sekretariat | `/sekretariat` | Admin portal & forms               |
-| Aduan       | `/aduan`       | Advocacy channel                   |
-| Kontak      | —              | Smooth-scrolls to footer `#kontak` |
+| Label       | Route          | Notes                                 |
+| ----------- | -------------- | ------------------------------------- |
+| Profil      | `/profil`      | Organizational profile & cabinet      |
+| KKM         | `/kkm`         | Student interest groups               |
+| Agenda      | `/agenda`      | Events & publications calendar        |
+| FAQ         | `/faq`         | Q&A board                             |
+| Sekretariat | `/sekretariat` | Admin portal & forms                  |
+| Aduan       | `/aduan`       | Advocacy channel                      |
+| Pendaftaran | `/pendaftaran` | Open Recruitment portal (conditional) |
+| Kontak      | —              | Smooth-scrolls to footer `#kontak`    |
 
 Old URLs `/about` and `/events` redirect permanently to `/profil` and `/agenda` respectively.
 

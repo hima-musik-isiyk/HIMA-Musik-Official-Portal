@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import { FEATURES } from "@/lib/feature-flags";
 import { gsap } from "@/lib/gsap";
 import {
   createCommandPaletteShortcutEvent,
@@ -87,6 +88,18 @@ const Navigation: React.FC = () => {
 
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
+
+  const mobileNavItems = React.useMemo(() => {
+    if (FEATURES.ALLOW_PENDAFTARAN) {
+      const items = [...MOBILE_NAV_ITEMS];
+      items.splice(items.length - 1, 0, {
+        label: "Pendaftaran",
+        href: "/pendaftaran",
+      });
+      return items;
+    }
+    return MOBILE_NAV_ITEMS;
+  }, []);
 
   useEffect(() => {
     setHasMounted(true);
@@ -571,7 +584,16 @@ const Navigation: React.FC = () => {
 
           {/* RIGHT: CTA + Search + Hamburger */}
           <div className="flex items-center gap-4">
-            {/* Desktop CTA (Open Recruitment) removed to hide pendaftaran page */}
+            {/* Desktop CTA */}
+            {FEATURES.ALLOW_PENDAFTARAN && (
+              <Link
+                href="/pendaftaran"
+                onClick={markIntentionalRouteAnimation}
+                className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 lg:inline-flex"
+              >
+                Open Recruitment
+              </Link>
+            )}
 
             {/* Search trigger */}
             <button
@@ -656,17 +678,20 @@ const Navigation: React.FC = () => {
               : "justify-center space-y-8"
           }`}
         >
-          {MOBILE_NAV_ITEMS.map((item, idx) => {
+          {mobileNavItems.map((item, idx) => {
             const isActive = !item.isAnchor && isPathActive(item.href!);
             const isClicked = activeMobileIndex === idx && isNavigating;
+            const isRecruitment = item.href === "/pendaftaran";
             const sharedClass = `relative font-serif italic transition-all duration-500 ${
               isCompactMobileMenu ? "text-2xl" : "text-3xl"
             } ${
-              isClicked
-                ? "z-20 text-white"
-                : isActive
-                  ? "text-gold-500"
-                  : "text-neutral-500 hover:text-white"
+              isRecruitment
+                ? "text-gold-400"
+                : isClicked
+                  ? "z-20 text-white"
+                  : isActive
+                    ? "text-gold-500"
+                    : "text-neutral-500 hover:text-white"
             } ${activeMobileIndex === idx && !isClicked ? "bg-gold-500/20" : ""}`;
 
             if (item.isAnchor) {

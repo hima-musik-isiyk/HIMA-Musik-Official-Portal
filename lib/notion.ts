@@ -1013,7 +1013,7 @@ export const fetchKKMEntryBySlug = cache(
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
     const activeDbId = KKM_PAGE_ID
       ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
-      : KKM_DB_ID;
+      : "36e3b26d-c3be-8065-94be-f94365699c8d";
 
     if (!activeDbId) return null;
 

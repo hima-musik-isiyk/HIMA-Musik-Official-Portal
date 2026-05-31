@@ -13,4 +13,9 @@ export const FEATURES = {
    */
   // SHOW_DOCS_SIDEBAR: process.env.NODE_ENV === "development",
   SHOW_DOCS_SIDEBAR: false,
+  /**
+   * Toggle for recruitment pages.
+   * Exposed by default to restore the pendaftaran pages.
+   */
+  ALLOW_PENDAFTARAN: true,
 };
