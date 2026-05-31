@@ -400,6 +400,7 @@ Untuk menghadirkan pengalaman visual yang premium, rapi, dan terorganisir pada p
 - **Card Layout yang Kompak:** Menggunakan kartu-kartu ber-border melengkung premium (`rounded-2xl`) dengan efek glassmorphic warna latar stone (`bg-stone-900/10`) dan highlight border transisi lembut saat di-hover.
 - **Batas Maksimal Tampilan Dokumen:** Untuk mencegah visual "raksasa" yang berlebihan, setiap kartu kategori dibatasi hanya menampilkan maksimal **3 dokumen utama**. Sisa dokumen di bawah kategori tersebut dapat diakses melalui sidebar interaktif (`DocsSidebar`) yang selalu tampil di bagian kiri halaman portal dokumen.
 - **Pill Indikator Dokumen Tambahan:** Jika dokumen melebihi batas 3, sistem secara dinamis menampilkan teks status tambahan seperti `"+X DOKUMEN LAINNYA"`.
+- **Global Command Palette Integration:** Navigasi pencarian dokumen dilakukan secara terpusat melalui Command Palette utama untuk menjaga visual yang bersih dan minimalis pada landing page Sekretariat (tanpa search hint/trigger statis yang berulang).
 
 ### 8. Halaman Redirect Modular (`NOTION_REDIRECT_PAGE_ID`)
 

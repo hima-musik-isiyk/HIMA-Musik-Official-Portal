@@ -5,12 +5,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { FEATURES } from "@/lib/feature-flags";
 import type { DocMeta, SekretariatCategory } from "@/lib/notion";
-import {
-  createCommandPaletteShortcutEvent,
-  SHORTCUT_SYMBOL_CLASS,
-  tokenizeShortcutLabel,
-  useCommandPaletteShortcutLabel,
-} from "@/lib/shortcut";
 import { SEKRETARIAT_FOOTER_COPY } from "@/lib/site-copy";
 import useViewEntrance from "@/lib/useViewEntrance";
 import { cn } from "@/lib/utils";
@@ -121,7 +115,6 @@ export default function DocsPortalView({
   }, []);
 
   const docs = data.docs;
-  const commandPaletteShortcutLabel = useCommandPaletteShortcutLabel();
   const scopeRef = useViewEntrance("/sekretariat");
   const cardsRef = useRef<HTMLDivElement>(null);
 
@@ -204,45 +197,6 @@ export default function DocsPortalView({
           dan laporan kinerja bulanan. Navigasi dibuat ringkas agar anggota bisa
           langsung menemukan informasi inti tanpa kewalahan.
         </p>
-
-        {/* Search hint */}
-        <div className="mt-10">
-          <button
-            onClick={() => {
-              window.dispatchEvent(createCommandPaletteShortcutEvent());
-            }}
-            className="group flex w-full max-w-md items-center gap-4 rounded-xl border border-stone-800/80 bg-stone-900/30 px-6 py-4 text-sm text-stone-400 transition-colors hover:border-stone-700 hover:bg-stone-900/50"
-          >
-            <svg
-              className="text-gold-500 h-5 w-5 transition-transform group-hover:scale-110"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <span className="flex-1 text-left">
-              Cari pedoman, FAQ, atau laporan bulanan...
-            </span>
-            <kbd className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-stone-500">
-              {tokenizeShortcutLabel(commandPaletteShortcutLabel).map(
-                (token, index) => (
-                  <span
-                    key={`${token.char}-${index}`}
-                    className={token.isSymbol ? SHORTCUT_SYMBOL_CLASS : ""}
-                  >
-                    {token.char}
-                  </span>
-                ),
-              )}
-            </kbd>
-          </button>
-        </div>
       </div>
 
       {/* Main Grid: Categories & Recent */}
