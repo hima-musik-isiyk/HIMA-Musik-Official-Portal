@@ -279,6 +279,82 @@ const FAQList: React.FC<FAQViewProps> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [hasTouchedForm, setHasTouchedForm] = useState(false);
 
+  // AI Refinement States & Functions
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceStatus, setEnhanceStatus] = useState<
+    "idle" | "success" | "rate-limited" | "error"
+  >("idle");
+  const [questionHistory, setQuestionHistory] = useState<string[]>([]);
+
+  const handleEnhance = async () => {
+    if (!formData.question.trim()) return;
+    const currentQuestion = formData.question;
+    setHasTouchedForm(true);
+    setEnhanceStatus("idle");
+    setIsEnhancing(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const response = await fetch("/api/refine-faq", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question: formData.question }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.status === 429) {
+        setEnhanceStatus("rate-limited");
+        setIsEnhancing(false);
+        return;
+      }
+      if (!response.ok) {
+        setEnhanceStatus("error");
+        setIsEnhancing(false);
+        return;
+      }
+      const data = (await response.json()) as { enhanced?: string };
+      const nextQuestion =
+        typeof data.enhanced === "string" && data.enhanced.trim()
+          ? data.enhanced
+          : currentQuestion;
+      const wasChanged = nextQuestion !== currentQuestion;
+      if (wasChanged) {
+        setQuestionHistory((prev) => {
+          const next = [...prev, currentQuestion];
+          if (next.length > 10) {
+            next.shift();
+          }
+          return next;
+        });
+      }
+      setFormData((prev) => ({ ...prev, question: nextQuestion }));
+      setEnhanceStatus(wasChanged ? "success" : "idle");
+    } catch {
+      clearTimeout(timeoutId);
+      setEnhanceStatus("error");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleUndoEnhance = () => {
+    setQuestionHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const next = [...prev];
+      const last = next.pop() as string;
+      setFormData((current) => ({ ...current, question: last }));
+      return next;
+    });
+    setEnhanceStatus("idle");
+    setHasTouchedForm(true);
+  };
+
   // Load FAQs from API
   const fetchFAQs = async (showLoading = true) => {
     const hasCache =
@@ -407,6 +483,8 @@ const FAQList: React.FC<FAQViewProps> = ({
         question: "",
       });
       setHasTouchedForm(false);
+      setQuestionHistory([]);
+      setEnhanceStatus("idle");
       try {
         window.localStorage.removeItem(STORAGE_KEY);
       } catch {}
@@ -1052,6 +1130,51 @@ const FAQList: React.FC<FAQViewProps> = ({
                       className="focus:border-gold-500 focus:ring-gold-500 w-full resize-none border-white/10 bg-stone-900/50 px-4 py-3 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:ring-1 focus:outline-none"
                       style={{ borderRadius: "var(--radius-action)" }}
                     />
+
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-[10px] text-stone-500">
+                        {formData.question.length} Karakter
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleEnhance}
+                          disabled={
+                            isEnhancing || !formData.question || isSubmitting
+                          }
+                          title="Rapikan tata bahasa dan format pertanyaan menggunakan AI secara otomatis"
+                          className="text-gold-500/70 hover:text-gold-300 flex items-center gap-1.5 text-[11px] font-semibold transition-colors duration-300 disabled:text-stone-700"
+                        >
+                          {isEnhancing
+                            ? "Memproses..."
+                            : enhanceStatus === "success"
+                              ? "Diperbarui"
+                              : "Rapikan Tata Bahasa"}
+                        </button>
+                        {questionHistory.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleUndoEnhance}
+                            disabled={isSubmitting}
+                            className="border border-white/10 px-2 py-0.5 text-[10px] text-stone-400 transition-colors duration-300 hover:border-white/30 hover:text-white disabled:border-white/10 disabled:text-stone-700"
+                            style={{ borderRadius: "var(--radius-action)" }}
+                          >
+                            Undo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {enhanceStatus === "rate-limited" && (
+                      <p className="mt-1 text-[10px] text-amber-400/80">
+                        Terlalu cepat — tunggu beberapa detik sebelum mencoba
+                        lagi.
+                      </p>
+                    )}
+                    {enhanceStatus === "error" && (
+                      <p className="mt-1 text-[10px] text-red-400/80">
+                        Gagal memperbaiki teks. Silakan coba lagi.
+                      </p>
+                    )}
                   </div>
 
                   {/* Submit Error */}

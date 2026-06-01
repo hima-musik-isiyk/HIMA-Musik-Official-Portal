@@ -32,6 +32,7 @@ The portal focuses on:
   - Search query filters across questions, askers, and answers, alongside category and status lifecycle filters.
   - Custom Minecraft Standard Galactic character scrambler obfuscation for hidden content.
   - Dynamic page-by-page rendering with custom retro-themed `PaginationControl` for the board.
+  - AI-assisted message refinement utilizing Groq (Llama 3) to automatically polish, format, and translate casual input into polite, formal questions.
 - **FAQ Resmi HIMA:** Curated official help documentation managed by the cabinet (route: `/sekretariat/faq`).
   - Dynamic rendering as a structured document page directly compiled from the Notion Sekretariat database using `NotionRenderer`.
   - Supports rich-block styling, toggle lists, side table of contents with IDE-style sticky scope breadcrumbs (ancestor headings pin seamlessly at the top as you scroll, closing the gap to prevent header duplication with a dynamic ResizeObserver-based height measurement for precise scroll-padding offsets), and responsive layouts.
