@@ -23,6 +23,24 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
 }) => {
   if (!section.show) return null;
 
+  const page = cmsData.pages.find((p) => p.id === section.pageId);
+  const maxWidth = page?.maxWidth || "7xl";
+
+  const maxWidthMap: Record<string, string> = {
+    "7xl": "max-w-7xl",
+    max: "max-w-none",
+    "6xl": "max-w-6xl",
+    "5xl": "max-w-5xl",
+    "4xl": "max-w-4xl",
+    "3xl": "max-w-3xl",
+    "2xl": "max-w-2xl",
+    xl: "max-w-xl",
+    lg: "max-w-lg",
+    md: "max-w-md",
+    sm: "max-w-sm",
+  };
+  const maxWidthClass = maxWidthMap[maxWidth.toLowerCase()] || "max-w-7xl";
+
   const renderGroup = (groupId: string, components: CMSComponent[]) => {
     // Sort by suborder
     const sorted = [...components].sort((a, b) => {
@@ -155,7 +173,7 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
           ))}
         </div>
       )}
-      <div className="relative z-10 mx-auto w-full max-w-7xl">
+      <div className={`relative z-10 mx-auto w-full ${maxWidthClass}`}>
         <div className="flex flex-col gap-12">
           {sortedGroupKeys.map((key) => renderGroup(key, fgGroups[key]))}
         </div>

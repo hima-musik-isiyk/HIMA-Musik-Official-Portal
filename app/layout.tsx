@@ -9,6 +9,10 @@ import LegacyHashRedirectWrapper from "../components/LegacyHashRedirectWrapper";
 import LocatorInitializer from "../components/LocatorInitializer";
 import Navigation from "../components/Navigation";
 import RouteEntranceAnimator from "../components/RouteEntranceAnimator";
+import {
+  fetchContainerCMSCached,
+  getNavigationData,
+} from "../lib/notion-builder";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -29,7 +33,23 @@ type RootLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  let navItems = undefined;
+  let mobileNavItems = undefined;
+  let highlightItem = undefined;
+
+  try {
+    const cmsData = await fetchContainerCMSCached();
+    if (cmsData?.pages) {
+      const navData = getNavigationData(cmsData.pages);
+      navItems = navData.navItems;
+      mobileNavItems = navData.mobileNavItems;
+      highlightItem = navData.highlightItem;
+    }
+  } catch (error) {
+    console.error("Failed to load navigation from Notion CMS:", error);
+  }
+
   return (
     <html lang="id">
       <body
@@ -38,7 +58,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <LocatorInitializer />
         <LegacyHashRedirectWrapper />
         <div className="fixed inset-0 z-1 bg-[#0a0a0a]" aria-hidden="true" />
-        <Navigation />
+        <Navigation
+          navItems={navItems}
+          mobileNavItems={mobileNavItems}
+          highlightItem={highlightItem}
+        />
         <CommandPalette />
         <main className="relative z-3 grow pt-20">
           <RouteEntranceAnimator>{children}</RouteEntranceAnimator>

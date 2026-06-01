@@ -56,7 +56,23 @@ const MOBILE_NAV_ITEMS: NavItem[] = [
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-const Navigation: React.FC = () => {
+export interface NavItemDto {
+  label: string;
+  href?: string;
+  isAnchor?: boolean;
+}
+
+interface NavigationProps {
+  navItems?: NavItemDto[];
+  mobileNavItems?: NavItemDto[];
+  highlightItem?: NavItemDto | null;
+}
+
+const Navigation: React.FC<NavigationProps> = ({
+  navItems: propNavItems,
+  mobileNavItems: propMobileNavItems,
+  highlightItem: propHighlightItem,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -89,7 +105,19 @@ const Navigation: React.FC = () => {
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
 
+  const navItems = React.useMemo(() => {
+    return propNavItems || NAV_ITEMS;
+  }, [propNavItems]);
+
+  const highlightItem = React.useMemo(() => {
+    if (propHighlightItem !== undefined) return propHighlightItem;
+    return FEATURES.ALLOW_PENDAFTARAN
+      ? { label: "Open Recruitment", href: "/pendaftaran" }
+      : null;
+  }, [propHighlightItem]);
+
   const mobileNavItems = React.useMemo(() => {
+    if (propMobileNavItems) return propMobileNavItems;
     if (FEATURES.ALLOW_PENDAFTARAN) {
       const items = [...MOBILE_NAV_ITEMS];
       items.splice(items.length - 1, 0, {
@@ -99,7 +127,7 @@ const Navigation: React.FC = () => {
       return items;
     }
     return MOBILE_NAV_ITEMS;
-  }, []);
+  }, [propMobileNavItems]);
 
   useEffect(() => {
     setHasMounted(true);
@@ -547,7 +575,7 @@ const Navigation: React.FC = () => {
 
           {/* CENTER: Desktop Nav — flat 7-item */}
           <div className="hidden items-center gap-1 md:flex">
-            {NAV_ITEMS.map((item) =>
+            {navItems.map((item) =>
               item.isAnchor ? (
                 <button
                   key={item.label}
@@ -585,13 +613,13 @@ const Navigation: React.FC = () => {
           {/* RIGHT: CTA + Search + Hamburger */}
           <div className="flex items-center gap-4">
             {/* Desktop CTA */}
-            {FEATURES.ALLOW_PENDAFTARAN && (
+            {highlightItem && (
               <Link
-                href="/pendaftaran"
+                href={highlightItem.href!}
                 onClick={markIntentionalRouteAnimation}
                 className="border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 hover:text-gold-200 hidden rounded-lg border px-5 py-2 text-xs font-semibold tracking-[0.2em] uppercase transition-all duration-300 lg:inline-flex"
               >
-                Open Recruitment
+                {highlightItem.label}
               </Link>
             )}
 
@@ -681,7 +709,9 @@ const Navigation: React.FC = () => {
           {mobileNavItems.map((item, idx) => {
             const isActive = !item.isAnchor && isPathActive(item.href!);
             const isClicked = activeMobileIndex === idx && isNavigating;
-            const isRecruitment = item.href === "/pendaftaran";
+            const isRecruitment = !!(
+              highlightItem && item.href === highlightItem.href
+            );
             const sharedClass = `relative font-serif italic transition-all duration-500 ${
               isCompactMobileMenu ? "text-2xl" : "text-3xl"
             } ${

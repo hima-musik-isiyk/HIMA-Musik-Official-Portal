@@ -229,6 +229,27 @@ For components that support word-splitting decoration (like `GenericTitle` and `
   - For `BerandaTitle`: **Part A** defaults to `Value 1 || "HIMA"` and **Part B** defaults to `Value 2 || "MUSIK"`.
   - For `GenericTitle`: The layout defaults to standard inline rendering of the entire `Value 1` text.
 
+### Layout Boundaries & Page Max-Width
+
+To maintain a consistent and unified design grid, the maximum width of all foreground contents inside any page rendered by the `<PageBuilder>` layout engine is dynamically driven by the CMS:
+
+- **CMS-Driven Max-Width (`maxWidthClass`)**: Constrained by the **`Max Width`** column property of the `Master Page` database in Notion (e.g., `7xl`, `6xl`, `max`), mapping dynamically inside `SectionBuilder.tsx` (defaulting to `max-w-7xl` or `max-w-none` for `max`).
+- **Global Alignment & Dynamic Header/Footer**: The shared global header (`Navigation` component) and footer are dynamically compiled from the pages database, using **`Show In Nav`**, **`Urutan`**, and **`Max Width`** columns to render precise alignment and ordering.
+- **Section Shell Structure**:
+  ```tsx
+  <section
+    id={section.slug}
+    className="relative flex flex-col justify-center px-6 ..."
+  >
+    {/* Optional background layers */}
+    <div className={`relative z-10 mx-auto w-full ${maxWidthClass}`}>
+      <div className="flex flex-col gap-12">
+        {/* Rendered dynamic page components */}
+      </div>
+    </div>
+  </section>
+  ```
+
 ### Layout Layering & Stacking Context
 
 To ensure modular background decorations and light pillars (e.g., `<BerandaTempArtwork>`) do not cover essential interactive boundaries, the portal uses a strict global stacking system:
@@ -244,22 +265,22 @@ This architecture entirely replaces hardcoded page views, routing all static rou
 
 #### Master Page
 
-**Props:** `Name` (title); `Slug` (rich_text); `Tipe` (select: Page,Redirect); `Show In Nav` (checkbox); `Urutan` (rich_text); `Show Footer` (checkbox)
+**Props:** `Name` (title); `Slug` (rich_text); `Tipe` (select: Page,Redirect); `Show In Nav` (checkbox); `Urutan` (rich_text); `Show Footer` (checkbox); `Max Width` (rich_text)
 
-| Name                  | Slug                   | Tipe     | Show In Nav | Urutan    | Show Footer |
-| --------------------- | ---------------------- | -------- | ----------- | --------- | ----------- |
-| Pendaftaran           | /pendaftaran           | Page     | true        | Highlight | false       |
-| Notion Secret Page    | /notion-secret-page    | Page     | false       | Hidden    | false       |
-| Instagram Secret Page | /instagram-secret-page | Page     | false       | Hidden    | false       |
-| Kontak                |                        | Redirect | true        | 8         | false       |
-| Aduan                 | /aduan                 | Page     | true        | 7         | true        |
-| Sekretariat           | /sekretariat           | Page     | true        | 6         | false       |
-| Karya                 | /karya                 | Page     | true        | 4         | true        |
-| KKM                   | /kkm                   | Page     | true        | 2         | true        |
-| Profil                | /profil                | Page     | true        | 1         | true        |
-| Beranda               | /                      | Page     | true        | Logo      | true        |
-| Agenda                | /agenda                | Page     | true        | 3         | true        |
-| FAQ                   | /faq                   | Page     | true        | 5         | true        |
+| Name                  | Slug                   | Tipe     | Show In Nav | Urutan    | Show Footer | Max Width |
+| --------------------- | ---------------------- | -------- | ----------- | --------- | ----------- | --------- |
+| Pendaftaran           | /pendaftaran           | Page     | false       | Highlight | false       | 7xl       |
+| Notion Secret Page    | /notion-secret-page    | Page     | false       | Hidden    | false       | max       |
+| Instagram Secret Page | /instagram-secret-page | Page     | false       | Hidden    | false       | max       |
+| Kontak                |                        | Redirect | true        | 8         | false       |           |
+| Aduan                 | /aduan                 | Page     | true        | 7         | true        | 7xl       |
+| Sekretariat           | /sekretariat           | Page     | true        | 6         | false       | 7xl       |
+| Karya                 | /karya                 | Page     | false       | 4         | true        | 7xl       |
+| KKM                   | /kkm                   | Page     | false       | 2         | true        | 7xl       |
+| Profil                | /profil                | Page     | true        | 1         | true        | 7xl       |
+| Beranda               | /                      | Page     | true        | Logo      | true        | 7xl       |
+| Agenda                | /agenda                | Page     | false       | 3         | true        | 7xl       |
+| FAQ                   | /faq                   | Page     | false       | 5         | true        | 7xl       |
 
 #### Master Sections
 

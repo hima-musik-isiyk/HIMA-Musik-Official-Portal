@@ -78,6 +78,7 @@ export interface CMSPage {
   urutan: string;
   showFooter: boolean;
   sections: CMSSection[];
+  maxWidth?: string;
 }
 
 export interface CMSRedirect {
@@ -381,6 +382,7 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
       urutan: getRichText(p, "Urutan"),
       showFooter: getCheckbox(p, "Show Footer", true),
       sections: pSections,
+      maxWidth: getRichText(p, "Max Width") || "7xl",
     };
   });
 
@@ -666,3 +668,76 @@ export const createMockPage = (
     },
   ],
 });
+
+export interface NavItemDto {
+  label: string;
+  href?: string;
+  isAnchor?: boolean;
+}
+
+export function getNavigationData(pages: CMSPage[]): {
+  navItems: NavItemDto[];
+  mobileNavItems: NavItemDto[];
+  highlightItem: NavItemDto | null;
+} {
+  const getUrutanValue = (u: string) => {
+    const val = Number.parseInt(u, 10);
+    return Number.isNaN(val) ? 99999 : val;
+  };
+
+  // 1. Regular items
+  const standardPages = pages
+    .filter(
+      (p) =>
+        p.showInNav &&
+        p.urutan?.toLowerCase() !== "logo" &&
+        p.urutan?.toLowerCase() !== "highlight" &&
+        p.urutan?.toLowerCase() !== "hidden",
+    )
+    .sort((a, b) => getUrutanValue(a.urutan) - getUrutanValue(b.urutan));
+
+  const navItems: NavItemDto[] = standardPages.map((p) => {
+    const isAnchor = p.name.toLowerCase() === "kontak";
+    return {
+      label: p.name,
+      href: isAnchor ? undefined : p.slug,
+      isAnchor,
+    };
+  });
+
+  // 2. Highlight item
+  const highlightPage = pages.find(
+    (p) => p.urutan?.toLowerCase() === "highlight" && p.showInNav,
+  );
+  const highlightItem: NavItemDto | null = highlightPage
+    ? { label: highlightPage.name, href: highlightPage.slug }
+    : null;
+
+  // 3. Logo/Beranda
+  const logoPage = pages.find((p) => p.urutan?.toLowerCase() === "logo");
+  const logoHref = logoPage?.slug || "/";
+  const logoLabel = logoPage?.name || "Beranda";
+
+  // 4. Mobile nav items
+  const mobileNavItems: NavItemDto[] = [];
+  mobileNavItems.push({ label: logoLabel, href: logoHref });
+
+  // Non-anchor standard items
+  const regularNonAnchor = navItems.filter((item) => !item.isAnchor);
+  mobileNavItems.push(...regularNonAnchor);
+
+  // Add highlight before Kontak anchor
+  if (highlightItem) {
+    mobileNavItems.push(highlightItem);
+  }
+
+  // Anchor items (like Kontak) at the end
+  const anchorItems = navItems.filter((item) => item.isAnchor);
+  mobileNavItems.push(...anchorItems);
+
+  return {
+    navItems,
+    mobileNavItems,
+    highlightItem,
+  };
+}
