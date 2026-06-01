@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import React, { useState } from "react";
 
 import BlurText from "@/components/BlurText";
 import TextPressure from "@/components/TextPressure";
+import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
 import { shouldRunViewEntrance } from "@/lib/view-entrance";
 
 interface BerandaTitleProps {
@@ -16,10 +18,13 @@ export const BerandaTitle: React.FC<BerandaTitleProps> = ({
   value1 = "",
   value2 = "",
 }) => {
-  const pathname = "/";
+  const currentPathname = usePathname() || "/";
   const [disableEntranceEffects, setDisableEntranceEffects] = useState(false);
   const [disablePressureEffect, setDisablePressureEffect] = useState(false);
   const [musikPressureActive, setMusikPressureActive] = useState(false);
+
+  // We use this to force a reset of Part B whenever entrance effects are enabled
+  const [mountId, setMountId] = useState(0);
 
   // Parsing the word split dynamically
   const splitIndex = parseInt(value2, 10);
@@ -39,40 +44,47 @@ export const BerandaTitle: React.FC<BerandaTitleProps> = ({
     partB = value2 || "MUSIK";
   }
 
-  useEffect(() => {
-    const shouldAnimate = shouldRunViewEntrance(pathname);
-    if (!shouldAnimate) setDisableEntranceEffects(true);
+  useIsomorphicLayoutEffect(() => {
+    const shouldAnimate = shouldRunViewEntrance(currentPathname);
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setDisablePressureEffect(true);
-      setDisableEntranceEffects(true);
-    }
+    const isReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     const isTouchOnly =
       window.matchMedia("(pointer: coarse)").matches &&
       !window.matchMedia("(pointer: fine)").matches;
-    if (isTouchOnly) {
-      setDisablePressureEffect(true);
-    }
-  }, []);
 
-  useEffect(() => {
-    if (disablePressureEffect) {
+    // Reset states for fresh entrance
+    setMountId((prev) => prev + 1);
+
+    if (!shouldAnimate || isReducedMotion) {
+      setDisableEntranceEffects(true);
+      setMusikPressureActive(!isReducedMotion && !isTouchOnly);
+    } else {
+      setDisableEntranceEffects(false);
       setMusikPressureActive(false);
-      return;
     }
-    if (disableEntranceEffects) {
-      setMusikPressureActive(true);
-      return;
+
+    if (isReducedMotion || isTouchOnly) {
+      setDisablePressureEffect(true);
+    } else {
+      setDisablePressureEffect(false);
     }
-    setMusikPressureActive(false);
-  }, [disableEntranceEffects, disablePressureEffect]);
+  }, [currentPathname]);
 
   return (
     <h1 className="flex flex-col font-serif text-[5.5rem] leading-[0.88] tracking-tight text-white md:text-[9rem] lg:text-[11rem]">
       {disableEntranceEffects ? (
         <span className="inline-flex whitespace-nowrap">{partA}</span>
       ) : (
-        <BlurText text={partA} className="inline-flex" animateBy="letters" />
+        <BlurText
+          key={`part-a-${mountId}`}
+          text={partA}
+          className="inline-flex"
+          animateBy="letters"
+          delay={100}
+          threshold={0}
+        />
       )}
       <div className="relative isolate min-h-[1em] w-full overflow-visible font-light text-stone-700 italic">
         {disablePressureEffect ? (
@@ -82,13 +94,17 @@ export const BerandaTitle: React.FC<BerandaTitleProps> = ({
             </span>
           ) : (
             <BlurText
+              key={`part-b-no-pressure-${mountId}`}
               text={partB}
               className="inline-flex text-stone-700"
               animateBy="letters"
+              delay={250}
+              threshold={0}
             />
           )
         ) : musikPressureActive ? (
           <TextPressure
+            key={`part-b-pressure-${mountId}`}
             text={partB}
             className="translate-y-[0.04em]"
             fontFamily="var(--font-serif)"
@@ -105,10 +121,15 @@ export const BerandaTitle: React.FC<BerandaTitleProps> = ({
           />
         ) : (
           <BlurText
+            key={`part-b-entrance-${mountId}`}
             text={partB}
             className="inline-flex text-stone-700"
             animateBy="letters"
-            onAnimationComplete={() => setMusikPressureActive(true)}
+            delay={250}
+            threshold={0}
+            onAnimationComplete={() => {
+              setMusikPressureActive(true);
+            }}
           />
         )}
       </div>

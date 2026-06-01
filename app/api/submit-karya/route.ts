@@ -50,27 +50,27 @@ export async function POST(request: Request) {
       properties: {
         "Band/Artist dan Judul Karya / Tayangan": {
           title: [{ text: { content: title } }],
-        } as any,
-        Status: { status: { name: "Masuk" } } as any,
+        },
+        Status: { status: { name: "Masuk" } },
         "Pencipta / Penampil": {
           rich_text: [{ text: { content: creator } }],
-        } as any,
+        },
         "NIM Penanggung Jawab": {
           number: parseInt(nim, 10),
-        } as any,
+        },
         Email: {
           email: email || "",
-        } as any,
+        },
         "Genre / Jenis Karya": {
           multi_select: (genres || []).map((g: string) => ({ name: g })),
-        } as any,
+        },
         "Platform Utama": {
           multi_select: [{ name: platform }],
-        } as any,
+        },
         "Link Embed Utama (Full URL)": {
           url: embedLink,
-        } as any,
-      },
+        },
+      } as Parameters<typeof notion.pages.create>[0]["properties"],
     });
 
     if (DISCORD_WEBHOOK_URL) {
@@ -141,11 +141,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, id: response.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error submitting karya:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 },
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

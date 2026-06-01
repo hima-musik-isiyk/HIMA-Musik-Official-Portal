@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { FEATURES } from "@/lib/feature-flags";
-import { gsap } from "@/lib/gsap";
+import { getCmsGsapEasing, gsap } from "@/lib/gsap";
 import {
   createCommandPaletteShortcutEvent,
   SHORTCUT_SYMBOL_CLASS,
@@ -14,7 +14,7 @@ import {
 } from "@/lib/shortcut";
 import {
   flagViewEntranceForNextRoute,
-  isPageReload,
+  isEntranceAnimateEnabled,
 } from "@/lib/view-entrance";
 
 import LogoHima from "./LogoHima";
@@ -101,6 +101,7 @@ const Navigation: React.FC<NavigationProps> = ({
   const menuCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const ease = getCmsGsapEasing();
 
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
@@ -135,20 +136,21 @@ const Navigation: React.FC<NavigationProps> = ({
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion) return;
-
-    const navAnimateFlag = sessionStorage.getItem("navEntranceAnimate");
-    const skipNavEntrance = isPageReload();
+    if (reduceMotion || !isEntranceAnimateEnabled()) return;
 
     const context = gsap.context(() => {
-      const timeline = gsap.timeline({ defaults: { ease: "power2.out" } });
-      if (navBarRef.current && !navAnimateFlag && !skipNavEntrance) {
-        timeline.from(navBarRef.current, {
-          y: -14,
-          opacity: 0,
-          duration: 0.5,
-        });
-        sessionStorage.setItem("navEntranceAnimate", "true");
+      const timeline = gsap.timeline({ defaults: { ease } });
+      if (navBarRef.current) {
+        timeline.fromTo(
+          navBarRef.current,
+          { y: -14, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.5,
+            clearProps: "transform,opacity",
+          },
+        );
       }
       if (mobileMenuRef.current) {
         gsap.set(mobileMenuRef.current, { yPercent: -100, autoAlpha: 0 });
@@ -162,7 +164,7 @@ const Navigation: React.FC<NavigationProps> = ({
       context.revert();
       window.removeEventListener("toggleDocsSidebar", handleSidebarToggle);
     };
-  }, []);
+  }, [pathname, ease]);
 
   /* ------ Mobile menu open/close ----- */
   useEffect(() => {
@@ -206,7 +208,7 @@ const Navigation: React.FC<NavigationProps> = ({
         .to(mobileMenuRef.current, {
           yPercent: 0,
           duration: 0.2,
-          ease: "power2.out",
+          ease,
         })
         .fromTo(
           activeMobileLinks,
@@ -215,7 +217,7 @@ const Navigation: React.FC<NavigationProps> = ({
             y: 0,
             duration: 0.16,
             stagger: 0.015,
-            ease: "power2.out",
+            ease,
             clearProps: "transform",
           },
           "<",
@@ -240,7 +242,7 @@ const Navigation: React.FC<NavigationProps> = ({
           opacity: 0,
           duration: 0.16,
           stagger: 0.01,
-          ease: "power1.out",
+          ease,
         },
         0,
       );
@@ -250,7 +252,7 @@ const Navigation: React.FC<NavigationProps> = ({
           {
             opacity: 0,
             duration: 0.7,
-            ease: "power1.out",
+            ease,
           },
           0.06,
         );
@@ -261,7 +263,7 @@ const Navigation: React.FC<NavigationProps> = ({
           {
             autoAlpha: 0,
             duration: 0.8,
-            ease: "power2.inOut",
+            ease,
             delay: 0.28,
           },
           0,
@@ -274,7 +276,7 @@ const Navigation: React.FC<NavigationProps> = ({
           opacity: 0,
           duration: 0.16,
           stagger: 0.015,
-          ease: "power1.in",
+          ease,
         })
         .to(
           mobileMenuRef.current,
@@ -282,12 +284,12 @@ const Navigation: React.FC<NavigationProps> = ({
             yPercent: -100,
             autoAlpha: 0,
             duration: 0.32,
-            ease: "power2.inOut",
+            ease,
           },
           "<0.02",
         );
     }
-  }, [activeMobileIndex, isMenuOpen]);
+  }, [activeMobileIndex, isMenuOpen, ease]);
 
   /* ------ Helpers ----- */
   const clearMenuCloseTimeout = () => {
@@ -358,7 +360,7 @@ const Navigation: React.FC<NavigationProps> = ({
         scale: 2.2,
         autoAlpha: 0,
         duration: 0.45,
-        ease: "power2.out",
+        ease,
         clearProps: "transform,opacity",
       },
     );
@@ -399,11 +401,11 @@ const Navigation: React.FC<NavigationProps> = ({
       yPercent: -50,
     });
 
-    const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+    const tl = gsap.timeline({ defaults: { ease } });
     tl.to(circleBase, { width: diameter, height: diameter, duration: 1.2 }, 0)
       .to(circleTop, { width: diameter, height: diameter, duration: 1.2 }, 0)
-      .to(circleTop, { opacity: 0, duration: 0.5, ease: "power2.out" }, 0.18)
-      .to(circleBase, { opacity: 0, duration: 3.4, ease: "expo.out" }, 0.4)
+      .to(circleTop, { opacity: 0, duration: 0.5, ease }, 0.18)
+      .to(circleBase, { opacity: 0, duration: 3.4, ease }, 0.4)
       .set([circleBase, circleTop], { width: 0, height: 0, opacity: 0 });
   };
 

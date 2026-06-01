@@ -71,7 +71,7 @@ export async function sendDiscordWebhook(
  * Centrally sends an error report to the Discord Error Webhook.
  */
 export async function logErrorToDiscord(
-  error: any,
+  error: unknown,
   context = "Unhandled Application Error",
 ): Promise<void> {
   const errorWebhookUrl = process.env.DISCORD_ERROR_WEBHOOK_URL;

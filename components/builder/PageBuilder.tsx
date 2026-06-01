@@ -80,7 +80,7 @@ export const PageBuilder: React.FC<PageBuilderProps> = async ({
   const entranceSlug = normalizeCmsSlug(page.slug || pathname);
 
   return (
-    <PageEntranceWrapper slug={entranceSlug}>
+    <PageEntranceWrapper key={entranceSlug} slug={entranceSlug}>
       <div className="w-full">
         {visibleSections.map((section) => (
           <SectionBuilder

@@ -1,13 +1,17 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import RotatingText from "@/components/RotatingText";
+import RotatingText, { RotatingTextRef } from "@/components/RotatingText";
 import type {
   ProfilModularDivision,
   ProfilModularExecutive,
 } from "@/lib/notion";
 import { divisions as allDivisions } from "@/lib/pendaftaran-data";
+import useViewEntrance from "@/lib/useViewEntrance";
+
+import { GenericLineTitle } from "../core/GenericLineTitle";
 
 interface StrukturOrganisasiGraphProps {
   value1?: string; // Tampilkan Batch...
@@ -17,6 +21,7 @@ interface StrukturOrganisasiGraphProps {
 export const StrukturOrganisasiGraph: React.FC<
   StrukturOrganisasiGraphProps
 > = ({ value1, value2 }) => {
+  const pathname = usePathname();
   const [data, setData] = useState<{
     executives: ProfilModularExecutive[];
     divisions: ProfilModularDivision[];
@@ -26,6 +31,8 @@ export const StrukturOrganisasiGraph: React.FC<
     divisions: [],
     cabinetName: "",
   });
+
+  const scopeRef = useViewEntrance(pathname, [data]);
 
   useEffect(() => {
     // Try to load from localStorage cache first
@@ -104,15 +111,13 @@ export const StrukturOrganisasiGraph: React.FC<
       : fallbackExecutives;
 
   return (
-    <div className="w-full">
+    <div ref={scopeRef} className="w-full">
       <div className="mt-12">
-        <h3 className="text-gold-500 mb-6 text-sm font-medium">
-          Badan Pengurus Harian
-        </h3>
+        <GenericLineTitle value1="Badan Pengurus Harian" variation1="Center" />
       </div>
       <OrgChart executives={executivesList} />
       <div className="mt-12">
-        <h3 className="text-gold-500 mb-6 text-sm font-medium">Divisi</h3>
+        <GenericLineTitle value1="Divisi" variation1="Center" />
         <DivisionCards executives={executivesList} divisions={data.divisions} />
       </div>
     </div>
@@ -123,7 +128,7 @@ export const StrukturOrganisasiGraph: React.FC<
 
 const BphOpenSlot = () => {
   const [hovered, setHovered] = useState(false);
-  const rtRef = useRef<any>(null);
+  const rtRef = useRef<RotatingTextRef | null>(null);
   return (
     <div
       className="mt-1 flex items-center justify-center gap-1.5"
@@ -366,7 +371,7 @@ const DivisionCard = ({
   angkatan?: string;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const rotatingTextRef = useRef<any>(null);
+  const rotatingTextRef = useRef<RotatingTextRef | null>(null);
 
   const rotatingTexts = useMemo(() => {
     const defaultText = `${slots} Posisi`;
@@ -389,7 +394,7 @@ const DivisionCard = ({
       data-animate="up"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="border-gold-500/20 bg-gold-500/5 group hover:border-gold-500/50 hover:bg-gold-500/10 relative cursor-default border p-6 text-center transition-all duration-300"
+      className="border-gold-500/20 bg-gold-500/5 group hover:border-gold-500/50 hover:bg-gold-500/10 relative cursor-default border p-6 text-center transition-colors duration-300"
     >
       <p className="text-gold-200 mb-3 font-serif text-base transition-colors duration-300 group-hover:text-white">
         {name}
@@ -486,7 +491,7 @@ const DivisionCards = ({
             members={names}
             slots={division.slots}
             openPositions={[]}
-            angkatan={(division as any).angkatan}
+            angkatan={(division as { angkatan?: string }).angkatan}
           />
         );
       })}

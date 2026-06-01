@@ -4,7 +4,7 @@ import { Calendar, Clock, Info } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useRef, useState } from "react";
 
-import { gsap } from "@/lib/gsap";
+import { getCmsGsapEasing, gsap } from "@/lib/gsap";
 
 const DAYS_OF_WEEK = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -86,6 +86,8 @@ const SelectionTimelineCalendar: React.FC = () => {
 
   useEffect(() => {
     if (containerRef.current) {
+      const ease = getCmsGsapEasing();
+
       gsap.fromTo(
         containerRef.current.querySelectorAll(".calendar-day"),
         { opacity: 0, y: 20 },
@@ -94,7 +96,7 @@ const SelectionTimelineCalendar: React.FC = () => {
           y: 0,
           duration: 0.6,
           stagger: 0.03,
-          ease: "power3.out",
+          ease,
         },
       );
     }

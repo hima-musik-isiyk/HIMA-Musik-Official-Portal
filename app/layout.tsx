@@ -37,6 +37,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   let navItems = undefined;
   let mobileNavItems = undefined;
   let highlightItem = undefined;
+  let gsapEasing = "power3.out";
+  let entranceAnimate = "true";
 
   try {
     const cmsData = await fetchContainerCMSCached();
@@ -46,12 +48,22 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       mobileNavItems = navData.mobileNavItems;
       highlightItem = navData.highlightItem;
     }
+    gsapEasing = cmsData?.variables?.GSAP_EASING?.trim() || gsapEasing;
+    const cmsEntrance =
+      cmsData?.variables?.ENTRANCE_ANIMATE?.trim()?.toLowerCase();
+    if (cmsEntrance === "false") {
+      entranceAnimate = "false";
+    }
   } catch (error) {
     console.error("Failed to load navigation from Notion CMS:", error);
   }
 
   return (
-    <html lang="id">
+    <html
+      lang="id"
+      data-gsap-easing={gsapEasing}
+      data-entrance-animate={entranceAnimate}
+    >
       <body
         className={`${fraunces.variable} selection:bg-gold-300/30 selection:text-gold-500 flex min-h-screen flex-col bg-transparent font-sans text-neutral-200`}
       >
@@ -64,7 +76,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           highlightItem={highlightItem}
         />
         <CommandPalette />
-        <main className="relative z-3 grow pt-20">
+        <main className="relative z-3 grow pt-20 pb-24 md:pb-32">
           <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
         </main>
         <Footer />

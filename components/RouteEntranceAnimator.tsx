@@ -3,9 +3,12 @@
 import { usePathname } from "next/navigation";
 import React, { useRef } from "react";
 
-import { gsap } from "@/lib/gsap";
+import { getCmsGsapEasing, gsap } from "@/lib/gsap";
 import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import {
+  isEntranceAnimateEnabled,
+  shouldRunViewEntrance,
+} from "@/lib/view-entrance";
 
 type RouteEntranceAnimatorProps = {
   children: React.ReactNode;
@@ -47,6 +50,7 @@ export default function RouteEntranceAnimator({
     if (!scopeRef.current) return;
     if (shouldSkipAutoRouteAnimation(pathname)) return;
     if (!shouldRunViewEntrance(pathname)) return;
+    if (!isEntranceAnimateEnabled()) return;
 
     const routeRoot = scopeRef.current.firstElementChild as HTMLElement | null;
     if (!routeRoot) return;
@@ -64,6 +68,8 @@ export default function RouteEntranceAnimator({
     if (targets.length === 0) return;
 
     const ctx = gsap.context(() => {
+      const ease = getCmsGsapEasing();
+
       gsap.fromTo(
         targets,
         { autoAlpha: 0, y: 14 },
@@ -71,7 +77,7 @@ export default function RouteEntranceAnimator({
           autoAlpha: 1,
           y: 0,
           duration: 0.7,
-          ease: "power2.out",
+          ease,
           stagger: 0.06,
           clearProps: "opacity,visibility,transform",
         },

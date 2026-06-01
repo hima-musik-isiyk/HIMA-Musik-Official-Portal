@@ -117,9 +117,8 @@ const Footer: React.FC = () => {
   // Don't render footer on sekretariat pages
   if (pathname?.startsWith("/sekretariat")) return null;
 
-  // Helper to only return animation attributes on Home page
+  // Helper to return animation attributes
   const animAttrs = (variant: string, delay = 0, scroll = true) => {
-    if (pathname !== "/") return {};
     return {
       "data-animate": variant,
       ...(delay > 0 ? { "data-animate-delay": delay } : {}),

@@ -97,7 +97,7 @@ The portal focuses on:
 - `pnpm dev` – Start the local development server with hot-reloading
 - `pnpm build` – Compile the application for production deployment
 - `pnpm start` – Run the built production server locally
-- `pnpm lint` – Audit the codebase for styling and type safety rules
+- `pnpm lint` – Audit the codebase for quality, styling, and type safety rules
 
 ## Project Structure
 
@@ -187,7 +187,7 @@ This architecture entirely replaces hardcoded page views, routing all static rou
 
 To fully align with the modern Notion API paradigm implemented in `@notionhq/client` v5.22.0, the portal interacts with Notion databases through **Data Sources**.
 
-Legacy `.databases.query` is replaced with `.dataSources.query`. All database fetching routines automatically resolve database IDs to queryable Data Source IDs using `resolveDataSourceIdSafe()` before querying. Ensure the Notion Integration (e.g. "Fishing") has connection access shared to each database in the Notion UI.
+Legacy `.databases.query` is replaced with `.dataSources.query`. All database fetching routines automatically resolve database IDs to queryable Data Source IDs using `resolveDataSourceIdSafe()` before querying. Ensure the Notion Integration (e.g., "Fishing") has connection access shared to each database in the Notion UI.
 
 ---
 
@@ -220,7 +220,7 @@ To deliver an immersive, premium, and responsive user experience, the HIMA Musik
 - **Purpose:** Renders highly-stylized, organic, glowing volumetric light pillars that serve as ambient overlays throughout key public sections of the portal.
 - **Library Used:** Three.js (`three` package v0.183.1) and custom GLSL vertex/fragment shaders.
 - **Algorithm & Mathematical Mechanics:**
-  - **Raymarching / Sphere Tracing:** Unlike conventional polygons, the light pillar is drawn on a full-screen flat mesh (`PlaneGeometry(2, 2)`) using a customized raymarching algorithm computed entirely in a fragment shader on the GPU. The camera rays origin is fixed at `ro = vec3(0.0, 0.0, -10.0)` and marches along direction `rd = normalize(vec3(uv, 1.0))`.
+  - **Raymarching / Sphere Tracing:** Unlike conventional polygons, the light pillar is drawn on a full-screen flat mesh (`PlaneGeometry(2, 2)`) using a customized raymarching algorithm computed entirely in a fragment shader on the GPU. The camera ray's origin is fixed at `ro = vec3(0.0, 0.0, -10.0)` and marches along direction `rd = normalize(vec3(uv, 1.0))`.
   - **Dynamic Volumetric Deformers (Waves):** Organic fluid-like movements are modeled using a multi-octave 3D sine/cosine coordinate distortion loop:
     $$q = \text{rotate}(p.xz); \quad q += \cos(q.zxy \times \text{freq} - \text{uTime} \times j \times 2.0) \times \text{amp}$$
     where frequency (`freq`) doubles and amplitude (`amp`) halves at each octave iteration to generate high-frequency micro-deformations.
@@ -242,6 +242,7 @@ To deliver an immersive, premium, and responsive user experience, the HIMA Musik
 - **Purpose:** Smoothly staggers elements as they enter the browser viewport or transition during route changes.
 - **Library Used:** GSAP (`gsap` package v3.14.2) and the `ScrollTrigger` plugin.
 - **Algorithm & Simulated Workflow:**
+  - **Universal Easing Uniformity:** Standardizes all GSAP animations across the entire portal codebase—including page entrances, route transitions, mobile navigation drawer transitions, ripple effects, and accordion elements—to use a single, premium, cohesive universal easing curve (`power3.out`).
   - **DOM Stagger Separation:** In the Isomorphic Layout phase, the hook scans target subtrees for `[data-animate]`. Any child located under `[data-animate-stagger]` is detached from standalone rendering and compiled into a single unified ScrollTrigger group to drastically reduce scroll listeners and DOM overhead.
   - **FOUC Prevention:** Instantly applies an initial transform state (e.g. `opacity: 0, y: 20` for variant `up`) on frame zero before browser paints.
   - **Initial Viewport Detection:** Uses the element's bounding client rectangle to check if it's already above the trigger line (e.g., `88%` of viewport height). Elements already in the viewport animate immediately using sequential millisecond staggers, while elements below the fold register a lazy ScrollTrigger that runs `once: true`.

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { IconChevronDown } from "@/components/Icons";
-import { gsap } from "@/lib/gsap";
+import { getCmsGsapEasing, gsap } from "@/lib/gsap";
 import { type Division, divisions } from "@/lib/pendaftaran-data";
 
 const DivisionAccordionItem: React.FC<{
@@ -15,6 +15,7 @@ const DivisionAccordionItem: React.FC<{
     const content = contentRef.current;
     if (!content) return;
 
+    const ease = getCmsGsapEasing();
     gsap.killTweensOf(content);
 
     if (isOpen) {
@@ -22,7 +23,7 @@ const DivisionAccordionItem: React.FC<{
         height: "auto",
         opacity: 1,
         duration: 0.4,
-        ease: "power2.out",
+        ease,
       });
       return;
     }
@@ -31,7 +32,7 @@ const DivisionAccordionItem: React.FC<{
       height: 0,
       opacity: 0,
       duration: 0.3,
-      ease: "power2.inOut",
+      ease,
     });
   }, [isOpen]);
 

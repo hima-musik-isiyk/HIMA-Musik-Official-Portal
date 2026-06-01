@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { generateKaryaEmailTemplate, sendBrevoEmail } from "@/lib/brevo";
+import { DiscordEmbed } from "@/lib/discord";
 import { inferScopes, revalidateScope } from "@/lib/notion-revalidate-helper";
 import {
   handleNotionRoomWebhook,
@@ -12,52 +13,73 @@ export const dynamic = "force-dynamic";
 
 export const GET = handleNotionRoomWebhookHealthcheck;
 
-function extractPropertyValue(prop: any): any {
+function extractPropertyValue(prop: unknown): unknown {
   if (!prop) return "";
   if (typeof prop === "string") return prop;
   if (typeof prop !== "object") return prop;
 
-  switch (prop.type) {
+  const p = prop as Record<string, unknown>;
+  switch (p.type) {
     case "title":
-      return prop.title?.map((t: any) => t.plain_text).join("") || "";
+      return (
+        (p.title as { plain_text: string }[])
+          ?.map((t) => t.plain_text)
+          .join("") || ""
+      );
     case "rich_text":
-      return prop.rich_text?.map((t: any) => t.plain_text).join("") || "";
+      return (
+        (p.rich_text as { plain_text: string }[])
+          ?.map((t) => t.plain_text)
+          .join("") || ""
+      );
     case "status":
-      return prop.status?.name || "";
+      return (p.status as { name: string })?.name || "";
     case "select":
-      return prop.select?.name || "";
+      return (p.select as { name: string })?.name || "";
     case "multi_select":
-      return prop.multi_select?.map((s: any) => s.name) || [];
+      return (p.multi_select as { name: string }[])?.map((s) => s.name) || [];
     case "date":
-      if (!prop.date) return "";
-      return prop.date.end
-        ? `${prop.date.start} -> ${prop.date.end}`
-        : prop.date.start;
+      if (!p.date) return "";
+      const d = p.date as { start: string; end?: string };
+      return d.end ? `${d.start} -> ${d.end}` : d.start;
     case "checkbox":
-      return prop.checkbox;
+      return p.checkbox;
     case "number":
-      return prop.number;
+      return p.number;
     case "url":
-      return prop.url || "";
+      return p.url || "";
     case "email":
-      return prop.email || "";
+      return p.email || "";
     case "phone_number":
-      return prop.phone_number || "";
+      return p.phone_number || "";
     case "created_time":
-      return prop.created_time || "";
+      return p.created_time || "";
     case "last_edited_time":
-      return prop.last_edited_time || "";
+      return p.last_edited_time || "";
     case "created_by":
-      return prop.created_by?.name || prop.created_by?.id || "";
+      const cb = p.created_by as { name?: string; id?: string };
+      return cb?.name || cb?.id || "";
     case "last_edited_by":
-      return prop.last_edited_by?.name || prop.last_edited_by?.id || "";
+      const leb = p.last_edited_by as { name?: string; id?: string };
+      return leb?.name || leb?.id || "";
     case "people":
-      return prop.people?.map((p: any) => p.name || p.id).join(", ") || "";
+      return (
+        (p.people as { name?: string; id: string }[])
+          ?.map((pe) => pe.name || pe.id)
+          .join(", ") || ""
+      );
     case "files":
       return (
-        prop.files?.map((f: any) => {
-          if (f.type === "external") return f.external.url;
-          if (f.type === "file") return f.file.url;
+        (
+          p.files as {
+            type: string;
+            name: string;
+            external?: { url: string };
+            file?: { url: string };
+          }[]
+        )?.map((f) => {
+          if (f.type === "external" && f.external) return f.external.url;
+          if (f.type === "file" && f.file) return f.file.url;
           return f.name;
         }) || []
       );
@@ -70,7 +92,10 @@ export async function POST(request: Request) {
   const clonedRequest = request.clone();
 
   // Read request body to determine if this is a database webhook submission
-  let body: any;
+  let body: Record<string, unknown> & {
+    data?: { properties?: Record<string, unknown> };
+    properties?: Record<string, unknown>;
+  } = {};
   try {
     body = await clonedRequest.json();
   } catch (error) {
@@ -81,7 +106,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const props = body.data?.properties || body.properties || body;
+  const props = (body.data?.properties || body.properties || body) as Record<
+    string,
+    unknown
+  >;
 
   // Intercept if it is a Karya database submission
   const hasKaryaProps =
@@ -98,42 +126,52 @@ export async function POST(request: Request) {
       "Karya form webhook submission detected. Processing notification and email...",
     );
 
-    const title = extractPropertyValue(
-      props["Band/Artist dan Judul Karya / Tayangan"] ||
-        props.BandArtistDanJudulKaryaTayangan ||
-        "—",
+    const title = String(
+      extractPropertyValue(
+        props["Band/Artist dan Judul Karya / Tayangan"] ||
+          props.BandArtistDanJudulKaryaTayangan ||
+          "—",
+      ),
     );
-    const creator = extractPropertyValue(
-      props["Pencipta / Penampil"] || props.PenciptaPenampil || "—",
+    const creator = String(
+      extractPropertyValue(
+        props["Pencipta / Penampil"] || props.PenciptaPenampil || "—",
+      ),
     );
-    const nim = extractPropertyValue(
-      props["NIM Penanggung Jawab"] || props.NIMPenanggungJawab || "—",
+    const nim = String(
+      extractPropertyValue(
+        props["NIM Penanggung Jawab"] || props.NIMPenanggungJawab || "—",
+      ),
     );
     const rawPlatforms = extractPropertyValue(
       props["Platform Utama"] || props.PlatformUtama || [],
     );
     const platform = Array.isArray(rawPlatforms)
       ? rawPlatforms.join(", ")
-      : rawPlatforms || "—";
+      : String(rawPlatforms || "—");
     const rawGenres = extractPropertyValue(
       props["Genre / Jenis Karya"] || props.GenreJenisKarya || [],
     );
     const genres = Array.isArray(rawGenres)
       ? rawGenres.join(", ")
-      : rawGenres || "—";
-    const embedLink = extractPropertyValue(
-      props["Link Embed Utama (Full URL)"] ||
-        props.LinkEmbedUtamaFullURL ||
-        "—",
+      : String(rawGenres || "—");
+    const embedLink = String(
+      extractPropertyValue(
+        props["Link Embed Utama (Full URL)"] ||
+          props.LinkEmbedUtamaFullURL ||
+          "—",
+      ),
     );
-    const email = extractPropertyValue(props["Email"] || props.Email || "");
-    const status = extractPropertyValue(props["Status"] || "—");
-    const respondent = extractPropertyValue(props["Respondent"] || "—");
+    const email = String(
+      extractPropertyValue(props["Email"] || props.Email || ""),
+    );
+    const status = String(extractPropertyValue(props["Status"] || "—"));
+    const respondent = String(extractPropertyValue(props["Respondent"] || "—"));
 
     const submissionTimeProp =
       props["Submission time"] || props.SubmissionTime || props.submission_time;
     const submissionTime = submissionTimeProp
-      ? extractPropertyValue(submissionTimeProp)
+      ? String(extractPropertyValue(submissionTimeProp))
       : new Date().toISOString();
 
     // 1. Send Discord Notification if configured
@@ -141,7 +179,7 @@ export async function POST(request: Request) {
       process.env.DISCORD_KARYA_WEBHOOK_URL ||
       "https://discord.com/api/webhooks/1509621771136012391/HubUQorPzJOhOnODs6xJQtiei1gpE2e6cEuQzX019NNEfLYpuBDB9Ik98X_ZgPOGqk2H";
     if (discordWebhookUrl) {
-      const embed: any = {
+      const embed: DiscordEmbed = {
         title: `🎨 Karya Baru Diajukan: ${title}`,
         color: 0x3b82f6,
         fields: [
@@ -152,7 +190,7 @@ export async function POST(request: Request) {
           },
           {
             name: "🎓 NIM Penanggung Jawab",
-            value: String(nim) || "—",
+            value: nim || "—",
             inline: true,
           },
           { name: "📧 Email", value: email || "—", inline: true },
@@ -253,43 +291,49 @@ export async function POST(request: Request) {
     );
 
     // Extract property values cleanly
-    const namaAcara = extractPropertyValue(
-      props["Nama Acara"] || props.NamaAcara || props.Nama_Acara || "—",
+    const namaAcara = String(
+      extractPropertyValue(
+        props["Nama Acara"] || props.NamaAcara || props.Nama_Acara || "—",
+      ),
     );
-    const status = extractPropertyValue(props["Status"] || "—");
-    const slug = extractPropertyValue(
-      props["Request Slug Khusus"] || props.RequestSlugKhusus || "—",
+    const status = String(extractPropertyValue(props["Status"] || "—"));
+    const slug = String(
+      extractPropertyValue(
+        props["Request Slug Khusus"] || props.RequestSlugKhusus || "—",
+      ),
     );
-    const eventDate = extractPropertyValue(
-      props["Tanggal Acara"] || props.TanggalAcara || "—",
+    const eventDate = String(
+      extractPropertyValue(props["Tanggal Acara"] || props.TanggalAcara || "—"),
     );
-    const deskripsi = extractPropertyValue(
-      props["Deskripsi Singkat Acara"] || props.DeskripsiSingkatAcara || "—",
+    const deskripsi = String(
+      extractPropertyValue(
+        props["Deskripsi Singkat Acara"] || props.DeskripsiSingkatAcara || "—",
+      ),
     );
-    const kkmPengusul = extractPropertyValue(
-      props["KKM Pengusul"] || props.KKMPengusul || "—",
+    const kkmPengusul = String(
+      extractPropertyValue(props["KKM Pengusul"] || props.KKMPengusul || "—"),
     );
-    const lokasi = extractPropertyValue(
-      props["Lokasi Acara"] || props.LokasiAcara || "—",
+    const lokasi = String(
+      extractPropertyValue(props["Lokasi Acara"] || props.LokasiAcara || "—"),
     );
-    const respondent = extractPropertyValue(props["Respondent"] || "—");
+    const respondent = String(extractPropertyValue(props["Respondent"] || "—"));
 
     const submissionTimeProp =
       props["Submission time"] || props.SubmissionTime || props.submission_time;
     const submissionTime = submissionTimeProp
-      ? extractPropertyValue(submissionTimeProp)
+      ? String(extractPropertyValue(submissionTimeProp))
       : new Date().toISOString();
 
     const gambarFiles = props["Gambar"] || props.Gambar || [];
     const gambarList = Array.isArray(gambarFiles) ? gambarFiles : [gambarFiles];
-    const imageUrl = extractPropertyValue(gambarList[0]);
+    const imageUrl = String(extractPropertyValue(gambarList[0]) || "");
 
     // Construct a gorgeous Discord Embed
     const discordWebhookUrl =
       process.env.DISCORD_AGENDA_WEBHOOK_URL ||
       "https://discord.com/api/webhooks/1509555221729120448/yVID-vj0yIzJJASwmShviUp9yTjH1TeSfclC9-lvusqcFTFFrQHGA-z77WK2nQ9NDo93";
 
-    const embed: any = {
+    const embed: DiscordEmbed = {
       title: `📅 Agenda Baru Diajukan: ${namaAcara}`,
       description:
         deskripsi && deskripsi !== "—"

@@ -1,8 +1,11 @@
 import { useRef } from "react";
 
-import { gsap } from "@/lib/gsap";
+import { getCmsGsapEasing, gsap } from "@/lib/gsap";
 import useIsomorphicLayoutEffect from "@/lib/useIsomorphicLayoutEffect";
-import { shouldRunViewEntrance } from "@/lib/view-entrance";
+import {
+  isEntranceAnimateEnabled,
+  shouldRunViewEntrance,
+} from "@/lib/view-entrance";
 
 /* ────────────────────────────────────────────────────────────────────
  *  Universal entrance animation system.
@@ -56,7 +59,6 @@ const toVals = (from: FromVals): FromVals =>
     ]),
   );
 
-const EASE = "power3.out";
 const DURATION = 0.8;
 const START = "top 88%";
 
@@ -95,6 +97,7 @@ export default function useViewEntrance(
     if (!root) return;
 
     const shouldAnimate = shouldRunViewEntrance(pathname);
+    const isAnimateEnabled = isEntranceAnimateEnabled();
 
     /* ── 1. Identify stagger containers ── */
     const staggerContainers = root.querySelectorAll<HTMLElement>(
@@ -139,8 +142,10 @@ export default function useViewEntrance(
     let rafB: number | null = null;
 
     const ctx = gsap.context(() => {
-      if (!shouldAnimate) {
-        // If animations are suppressed (e.g. reload), ensure elements are visible
+      const ease = getCmsGsapEasing();
+
+      if (!shouldAnimate || !isAnimateEnabled) {
+        // If animations are suppressed (e.g. reload or CMS toggle), ensure elements are visible
         gsap.set(Array.from(all), { clearProps: "all" });
         all.forEach((el) => el.setAttribute("data-animated", "true"));
         return;
@@ -191,7 +196,7 @@ export default function useViewEntrance(
               ...toVals(from),
               duration,
               delay: isImmediate ? immediateBaseDelay + delay : delay,
-              ease: variant === "scale-x" ? "expo.inOut" : EASE,
+              ease,
               overwrite: "auto",
               force3D: needsTransformLayer(from),
               clearProps: "opacity,transform,visibility,will-change",
@@ -231,7 +236,7 @@ export default function useViewEntrance(
               duration,
               delay: isImmediate ? immediateBaseDelay : 0,
               stagger: { each: stagger, ease: "none" },
-              ease: EASE,
+              ease,
               overwrite: "auto",
               force3D: needsTransformLayer(from),
               clearProps: "opacity,transform,visibility,will-change",

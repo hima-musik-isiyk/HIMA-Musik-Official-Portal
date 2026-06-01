@@ -69,12 +69,15 @@ export async function POST(request: Request) {
     }
 
     // Resolve active parent object (data_source_id vs database_id) for compatibility with Notion API v2025-09-03
-    let parentObj: any = { database_id: activeDbId };
+    let parentObj: Parameters<typeof notion.pages.create>[0]["parent"] = {
+      database_id: activeDbId,
+    };
     try {
       const dbInfo = await notion.databases.retrieve({
         database_id: activeDbId,
       });
-      const dataSourceId = (dbInfo as any).data_sources?.[0]?.id;
+      const dataSourceId = (dbInfo as { data_sources?: { id: string }[] })
+        .data_sources?.[0]?.id;
       if (dataSourceId) {
         parentObj = { data_source_id: dataSourceId };
       }
@@ -136,20 +139,20 @@ export async function POST(request: Request) {
         properties: {
           Nama: {
             title: [{ text: { content: safeName } }],
-          } as any,
+          },
           NIM: {
             rich_text: [{ text: { content: safeNim } }],
-          } as any,
+          },
           Kategori: {
             rich_text: [{ text: { content: safeCategory } }],
-          } as any,
+          },
           Pesan: {
             rich_text: [{ text: { content: safeMessage } }],
-          } as any,
+          },
           Status: {
             status: { name: "Masuk" },
-          } as any,
-        },
+          },
+        } as Parameters<typeof notion.pages.create>[0]["properties"],
       });
     } catch (notionError) {
       console.error("Notion API Error for Aduan:", notionError);
