@@ -25,19 +25,16 @@ export const GenericTitle: React.FC<GenericTitleProps> = ({
   if (
     !isNaN(splitIndex) &&
     splitIndex > 0 &&
-    splitIndex <= value1.split(" ").length
+    splitIndex < value1.split(" ").length
   ) {
     const words = value1.split(" ");
-    const targetIdx = splitIndex - 1;
-    const before = words.slice(0, targetIdx).join(" ");
-    const targetWord = words[targetIdx];
-    const after = words.slice(targetIdx + 1).join(" ");
+    const partA = words.slice(0, splitIndex).join(" ");
+    const partB = words.slice(splitIndex).join(" ");
 
     content = (
       <>
-        {before && `${before} `}
-        <span className="text-gold-500/80 font-light italic">{targetWord}</span>
-        {after && ` ${after}`}
+        {partA && `${partA} `}
+        <span className="text-gold-500/80 font-light italic">{partB}</span>
       </>
     );
   }

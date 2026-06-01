@@ -214,6 +214,21 @@ All components available to the CMS must be mapped in `Registry.tsx`.
 - **Core Components** (`components/builder/core/`): Generic visual elements like `GenericTitle`, `GenericDescription`, and `GenericButton`. These apply unified styling and animations.
 - **Special Components** (`components/builder/special/`): Complex, functional blocks such as `AduanForm`, `StrukturOrganisasiGraph`, `KaryaGrid`, `AgendaList`, `FAQList`, `SekretariatGrid`, and `BerandaTitle`. These have been successfully extracted from legacy static views into modular components that dynamically consume `value1`, `value2`, and `value3` configurations from the CMS, making them fully compatible with the new architecture.
 
+### Title Decor Word Split Behavior
+
+For components that support word-splitting decoration (like `GenericTitle` and `BerandaTitle`), the `Value 2` field maps to `"Title Decor Word Split"`. This configuration allows you to format title layouts beautifully:
+
+- **1-Based Indexing**: `Value 2` represents the index at which the title text is divided. The first `N` words form **Part A** (rendered with default styling), and all subsequent words form **Part B** (rendered in an elegant, styled italic/golden highlight).
+  - For example, if the full text `Value 1` is `"HIMA MUSIK"`, and `Title Decor Word Split` is `1`:
+    - **Part A** (first word) = `"HIMA"`
+    - **Part B** (remaining words) = `"MUSIK"`
+  - For example, if the full text `Value 1` is `"text is fun"`, and `Title Decor Word Split` is `2`:
+    - **Part A** (first 2 words) = `"text is"`
+    - **Part B** (remaining words) = `"fun"`
+- **Robust Legacy Fallback**: If the `Value 2` property is non-numeric or missing, the components cleanly revert to a legacy fallback mode:
+  - For `BerandaTitle`: **Part A** defaults to `Value 1 || "HIMA"` and **Part B** defaults to `Value 2 || "MUSIK"`.
+  - For `GenericTitle`: The layout defaults to standard inline rendering of the entire `Value 1` text.
+
 This architecture entirely replaces hardcoded page views, routing all static routes (e.g. `/`, `/profil`, `/aduan`) through the universal `<PageBuilder slug="..." />` component.
 
 ## Container CMS (page builder: Master Page / Sections / Components)
