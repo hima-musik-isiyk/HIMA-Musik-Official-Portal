@@ -135,7 +135,7 @@ const Footer: React.FC = () => {
   return (
     <footer
       ref={scopeRef}
-      className="relative z-2 overflow-hidden border-t border-stone-800/40 bg-stone-950"
+      className="relative z-10 overflow-hidden border-t border-stone-800/40 bg-stone-950"
     >
       {/* ── ambient background effects ── */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">

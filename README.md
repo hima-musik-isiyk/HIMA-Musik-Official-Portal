@@ -229,6 +229,15 @@ For components that support word-splitting decoration (like `GenericTitle` and `
   - For `BerandaTitle`: **Part A** defaults to `Value 1 || "HIMA"` and **Part B** defaults to `Value 2 || "MUSIK"`.
   - For `GenericTitle`: The layout defaults to standard inline rendering of the entire `Value 1` text.
 
+### Layout Layering & Stacking Context
+
+To ensure modular background decorations and light pillars (e.g., `<BerandaTempArtwork>`) do not cover essential interactive boundaries, the portal uses a strict global stacking system:
+
+- **Navigation Menu (`z-50`)**: Remains pinned at the top level of the user interface for universal accessibility.
+- **Global Footer (`z-10`)**: Layered above the main container to guarantee that absolute overlays, floating particles, and negative-bottom ornaments in the page body slide _underneath_ its solid `#09090b`/`#0a0a0a` backdrop.
+- **Main Content Container (`z-3`)**: Holds the primary page sections and dynamic component builders.
+- **Global Ambient Canvas (`z-1`)**: The underlying backdrop where static backgrounds and canvas particles are rendered.
+
 This architecture entirely replaces hardcoded page views, routing all static routes (e.g. `/`, `/profil`, `/aduan`) through the universal `<PageBuilder slug="..." />` component.
 
 ## Container CMS (page builder: Master Page / Sections / Components)
