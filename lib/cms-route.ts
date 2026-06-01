@@ -2,12 +2,12 @@ import { headers } from "next/headers";
 
 export const CMS_PATHNAME_HEADER = "x-pathname";
 
-/** Current request pathname from middleware (no hardcoded route slugs). */
+/** Current request pathname from proxy (no hardcoded route slugs). */
 export async function getRequestPathname(): Promise<string> {
   const headerStore = await headers();
-  const fromMiddleware = headerStore.get(CMS_PATHNAME_HEADER);
-  if (fromMiddleware) {
-    const trimmed = fromMiddleware.trim();
+  const fromProxy = headerStore.get(CMS_PATHNAME_HEADER);
+  if (fromProxy) {
+    const trimmed = fromProxy.trim();
     return trimmed || "/";
   }
 

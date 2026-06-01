@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { CMS_PATHNAME_HEADER } from "@/lib/cms-route";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   try {
@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
     }
   } catch (error) {
     // Fail-safe: log the error and allow the request to proceed without blocking
-    console.error("[Middleware Redirects Error]:", error);
+    console.error("[Proxy Redirects Error]:", error);
   }
 
   const requestHeaders = new Headers(request.headers);

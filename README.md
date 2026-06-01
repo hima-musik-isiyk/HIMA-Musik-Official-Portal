@@ -177,6 +177,7 @@ Routes are organized into semantic **Next.js Route Groups** matching the portal'
 - `components/` – Reusable layout shells and shared UI blocks (Navigation, Footer, Command Palette)
 - `lib/` – Notion helper integrations, Supabase connectors, and custom hooks
 - `services/` – Serverless parsing helpers and Groq AI text parsers
+- `proxy.ts` – Next.js network-level boundary (handles dynamic redirects, request headers, and routing fail-safes)
 
 ## Navigation
 
