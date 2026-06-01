@@ -33,6 +33,30 @@ export interface ArchiveEntry {
 
 export type RichTextItem = { plain_text: string };
 
+/** Normalize Notion rich_text / title fields (string, array, or object). */
+export function extractRichTextPlainText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object" && "plain_text" in part) {
+          return String((part as RichTextItem).plain_text ?? "");
+        }
+        return "";
+      })
+      .join("")
+      .trim();
+  }
+  if (typeof value === "object") {
+    const record = value as { plain_text?: string; title?: unknown };
+    if (typeof record.plain_text === "string") return record.plain_text.trim();
+    if (record.title != null) return extractRichTextPlainText(record.title);
+  }
+  return "";
+}
+
 /* ------------------------------------------------------------------ */
 /*  Custom linking – anchor extraction & resolution                    */
 /* ------------------------------------------------------------------ */

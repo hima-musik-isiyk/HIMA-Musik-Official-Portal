@@ -1,14 +1,51 @@
 import { NextResponse } from "next/server";
 
-import { fetchProfilModularDataCached } from "@/lib/notion";
+import { fetchProfilOrgStructureCached } from "@/lib/notion";
+import {
+  fetchContainerCMSCached,
+  resolveCmsComponentDatabaseId,
+  resolveProfilMaxBatchFromCms,
+} from "@/lib/notion-builder";
 
-export const revalidate = 0; // Dynamic API route
+export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const pageId =
-      process.env.NOTION_PROFIL_PAGE_ID || "36e3b26dc3be80f2b542ced846ba8edb";
-    const data = await fetchProfilModularDataCached(pageId);
+    const { searchParams } = new URL(request.url);
+    let databaseId = searchParams.get("databaseId")?.trim() ?? "";
+    const batchParam = searchParams.get("batch")?.trim();
+
+    const cms = await fetchContainerCMSCached();
+
+    if (!databaseId) {
+      databaseId =
+        resolveCmsComponentDatabaseId(
+          cms,
+          "Struktur Organisasi Graph",
+          "value2",
+        ) ?? "";
+    }
+
+    if (!databaseId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Missing SDM database ID. Set it on Struktur Organisasi Graph (Value 2) in Container CMS.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const maxBatch = batchParam
+      ? Number.parseInt(batchParam, 10)
+      : resolveProfilMaxBatchFromCms(cms);
+
+    const data = await fetchProfilOrgStructureCached({
+      sdmDatabaseId: databaseId,
+      maxBatch: Number.isNaN(maxBatch) ? 999 : maxBatch,
+    });
+
     return NextResponse.json({
       success: true,
       data,

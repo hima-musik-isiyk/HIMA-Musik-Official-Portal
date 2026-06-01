@@ -1,0 +1,27 @@
+import { notFound } from "next/navigation";
+import React from "react";
+
+import { PageBuilder } from "@/components/builder/PageBuilder";
+import { fetchKKMDetailBySlug } from "@/lib/notion";
+
+export const revalidate = 0;
+
+interface KKMDetailProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function KKMDetailPage({ params }: KKMDetailProps) {
+  const { slug } = await params;
+  const result = await fetchKKMDetailBySlug(slug);
+
+  if (!result) return notFound();
+
+  return (
+    <PageBuilder
+      overrideComponent="Doc Page"
+      injectedProps={{
+        "Doc Page": { doc: result.meta, blocks: result.blocks },
+      }}
+    />
+  );
+}

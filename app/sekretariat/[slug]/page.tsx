@@ -1,0 +1,25 @@
+import { notFound } from "next/navigation";
+import React from "react";
+
+import { PageBuilder } from "@/components/builder/PageBuilder";
+import { fetchDocBySlug } from "@/lib/notion";
+
+export const revalidate = 0;
+
+interface DocRouteProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function DocRoutePage({ params }: DocRouteProps) {
+  const { slug } = await params;
+  const result = await fetchDocBySlug(slug);
+
+  if (!result) return notFound();
+
+  return (
+    <PageBuilder
+      overrideComponent="Doc Page"
+      injectedProps={{ "Doc Page": { doc: result.doc, blocks: result.blocks } }}
+    />
+  );
+}

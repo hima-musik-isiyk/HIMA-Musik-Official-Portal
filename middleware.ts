@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { CMS_PATHNAME_HEADER } from "@/lib/cms-route";
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -43,7 +45,12 @@ export async function middleware(request: NextRequest) {
     console.error("[Middleware Redirects Error]:", error);
   }
 
-  return NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(CMS_PATHNAME_HEADER, pathname);
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {

@@ -8,9 +8,9 @@ import {
   getNotionClient,
   resolveBerandaDatabasesCached,
   resolveFAQDatabaseCached,
-  resolveProfilDatabasesCached,
   resolveSekretariatDatabasesCached,
 } from "@/lib/notion";
+import { resolveProfilSdmDatabaseIdFromCms } from "@/lib/notion-builder";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
 
@@ -42,7 +42,6 @@ export type ContentScope =
   | "redirects";
 
 const NOTION_BERANDA_PAGE_ID = process.env.NOTION_BERANDA_PAGE_ID ?? "";
-const NOTION_PROFIL_PAGE_ID = process.env.NOTION_PROFIL_PAGE_ID ?? "";
 const NOTION_KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
 const NOTION_AGENDA_PAGE_ID = process.env.NOTION_AGENDA_PAGE_ID ?? "";
 const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
@@ -98,7 +97,7 @@ async function buildScopeMatchers() {
     docsDbIdResolved,
     agendaDbIdResolved,
     kkmDbIdResolved,
-    profilDbResolved,
+    profilSdmDbId,
     berandaDbResolved,
     faqDbIdResolved,
   ] = await Promise.all([
@@ -114,13 +113,7 @@ async function buildScopeMatchers() {
     NOTION_KKM_PAGE_ID
       ? fetchKKMDatabaseIdCached(NOTION_KKM_PAGE_ID)
       : "36e3b26d-c3be-8065-94be-f94365699c8d",
-    NOTION_PROFIL_PAGE_ID
-      ? resolveProfilDatabasesCached(NOTION_PROFIL_PAGE_ID)
-      : {
-          sectionDbId: "36e3b26d-c3be-8076-9a94-d776ed290943",
-          kabinetDbId: "36e3b26d-c3be-804e-b7da-f0a1f98f218e",
-          sdmDbId: "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",
-        },
+    resolveProfilSdmDatabaseIdFromCms(),
     NOTION_BERANDA_PAGE_ID
       ? resolveBerandaDatabasesCached(NOTION_BERANDA_PAGE_ID)
       : {
@@ -153,8 +146,6 @@ async function buildScopeMatchers() {
     kkmDataSourceId,
     karyaDataSourceId,
     faqDataSourceId,
-    profilSectionDataSourceId,
-    profilKabinetDataSourceId,
     profilSdmDataSourceId,
     berandaHeroDataSourceId,
     berandaJelajahiDataSourceId,
@@ -166,9 +157,9 @@ async function buildScopeMatchers() {
     resolvePrimaryDataSourceId(kkmDbId),
     resolvePrimaryDataSourceId(karyaDbId),
     resolvePrimaryDataSourceId(faqDbId),
-    resolvePrimaryDataSourceId(profilDbResolved.sectionDbId),
-    resolvePrimaryDataSourceId(profilDbResolved.kabinetDbId),
-    resolvePrimaryDataSourceId(profilDbResolved.sdmDbId),
+    resolvePrimaryDataSourceId(
+      profilSdmDbId ?? "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",
+    ),
     resolvePrimaryDataSourceId(berandaDbResolved.heroDbId),
     resolvePrimaryDataSourceId(berandaDbResolved.jelajahiDbId),
     resolvePrimaryDataSourceId(redirectDbId),
@@ -200,18 +191,10 @@ async function buildScopeMatchers() {
       dataSourceId: faqDataSourceId,
     },
     profil: {
-      databaseId: [
-        profilDbResolved.sectionDbId,
-        profilDbResolved.kabinetDbId,
-        profilDbResolved.sdmDbId,
-      ]
+      databaseId: [profilSdmDbId ?? "35c3b26d-c3be-8021-b84a-df0a98e7b1e1"]
         .filter(Boolean)
         .map(normalizeNotionId),
-      dataSourceId: [
-        profilSectionDataSourceId,
-        profilKabinetDataSourceId,
-        profilSdmDataSourceId,
-      ]
+      dataSourceId: [profilSdmDataSourceId]
         .filter(Boolean)
         .map(normalizeNotionId),
     },

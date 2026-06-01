@@ -4,6 +4,6 @@ import { PageBuilder } from "@/components/builder/PageBuilder";
 
 export const revalidate = 0;
 
-export default async function Page() {
-  return <PageBuilder />;
+export default function SuratAktifPage() {
+  return <PageBuilder overrideComponent="Surat Aktif Form" />;
 }

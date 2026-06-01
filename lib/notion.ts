@@ -23,6 +23,7 @@ import {
   ArchiveEntry,
   buildAnchorMap,
   DocMeta,
+  extractRichTextPlainText,
   NotionBlock,
   NotionPage,
   stripCustomTags,
@@ -502,6 +503,74 @@ export async function resolveDataSourceIdSafe(
 interface PageDatabases {
   childDatabases: string[];
   mentionedDatabases: string[];
+}
+
+export interface ChildDatabaseRef {
+  id: string;
+  title: string;
+}
+
+async function resolveChildDatabaseTitle(
+  blockId: string,
+  blockTitle: unknown,
+): Promise<string> {
+  const fromBlock = extractRichTextPlainText(blockTitle);
+  if (fromBlock) return fromBlock;
+
+  try {
+    const client = getNotionClient();
+    if (!client) return "";
+    const database = await client.databases.retrieve({
+      database_id: normalizeNotionId(blockId),
+    });
+    if ("title" in database) {
+      return extractRichTextPlainText(database.title);
+    }
+  } catch {
+    // Fall through — caller may match by block order.
+  }
+  return "";
+}
+
+export async function fetchPageChildDatabases(
+  pageId: string,
+): Promise<ChildDatabaseRef[]> {
+  const refs: ChildDatabaseRef[] = [];
+  if (!pageId) return refs;
+
+  const client = getNotionClient();
+  if (!client) return refs;
+
+  try {
+    let cursor: string | undefined;
+
+    do {
+      const response = await client.blocks.children.list({
+        block_id: normalizeNotionId(pageId),
+        start_cursor: cursor,
+      });
+
+      for (const block of response.results as any[]) {
+        if (block.type !== "child_database") continue;
+        const title = await resolveChildDatabaseTitle(
+          block.id,
+          block.child_database?.title,
+        );
+        refs.push({ id: block.id, title });
+      }
+
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
+  } catch (error) {
+    console.error(
+      `[Notion fetchPageChildDatabases] Failed for page ${pageId}:`,
+      error,
+    );
+  }
+
+  return refs;
 }
 
 export async function fetchPageDatabases(
@@ -2190,8 +2259,13 @@ export interface ProfilModularData {
   divisions: ProfilModularDivision[];
 }
 
-export async function fetchProfilModularData(
-  pageId: string,
+export interface ProfilOrgQuery {
+  sdmDatabaseId: string;
+  maxBatch?: number;
+}
+
+export async function fetchProfilOrgStructure(
+  query: ProfilOrgQuery,
 ): Promise<ProfilModularData> {
   const data: ProfilModularData = {
     paragraph: "",
@@ -2200,78 +2274,13 @@ export async function fetchProfilModularData(
     divisions: [],
   };
 
-  if (!pageId) return data;
+  const sdmDatabaseId = normalizeNotionId(query.sdmDatabaseId?.trim() ?? "");
+  if (!sdmDatabaseId) return data;
 
-  let foundSectionDbId = "";
-  let foundKabinetDbId = "";
-  let foundSdmDbId = "";
-
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      foundSectionDbId = dbs.childDatabases[0];
-    }
-    if (dbs.childDatabases.length >= 2) {
-      foundKabinetDbId = dbs.childDatabases[1];
-    }
-    if (dbs.mentionedDatabases.length >= 1) {
-      foundSdmDbId = dbs.mentionedDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchProfilModularData] Could not fetch page children blocks",
-      error,
-    );
-  }
-
-  // Fallbacks just in case discovery fails
-  if (!foundSectionDbId)
-    foundSectionDbId = "36e3b26d-c3be-8076-9a94-d776ed290943";
-  if (!foundKabinetDbId)
-    foundKabinetDbId = "36e3b26d-c3be-804e-b7da-f0a1f98f218e";
-  if (!foundSdmDbId) foundSdmDbId = "35c3b26d-c3be-8021-b84a-df0a98e7b1e1";
+  const maxBatch = query.maxBatch ?? 999;
 
   try {
-    // 1. Fetch Profil Organisasi Section
-    const sectionDataSourceId = await resolveDataSourceIdSafe(foundSectionDbId);
-    let sectionPages: any[] = [];
-    if (sectionDataSourceId) {
-      const response = await getNotionClientAny().dataSources.query({
-        data_source_id: sectionDataSourceId,
-      });
-      sectionPages = response.results;
-    }
-
-    let rawParagraph = "";
-    for (const page of sectionPages) {
-      const item = getTitleProperty(page, "Item") || getTitle(page);
-      const val = getRichText(page, "Deskripsi/Value");
-      if (item.toLowerCase().includes("paragraf")) {
-        rawParagraph = val;
-      } else if (item.toLowerCase().includes("kabinet")) {
-        data.cabinetName = val;
-      }
-    }
-    data.paragraph = rawParagraph;
-
-    // 2. Fetch Struktur Kabinet Config
-    const kabinetDataSourceId = await resolveDataSourceIdSafe(foundKabinetDbId);
-    let maxBatch = 1;
-    if (kabinetDataSourceId) {
-      const response = await getNotionClientAny().dataSources.query({
-        data_source_id: kabinetDataSourceId,
-      });
-      for (const page of response.results) {
-        const title = getTitleProperty(page, "Isi") || getTitle(page);
-        const val = getNumber(page, "Value");
-        if (title.toLowerCase().includes("tampilkan batch") && val !== 999) {
-          maxBatch = val;
-        }
-      }
-    }
-
-    // 3. Fetch Database SDM & Evaluasi
-    const sdmDataSourceId = await resolveDataSourceIdSafe(foundSdmDbId);
+    const sdmDataSourceId = await resolveDataSourceIdSafe(sdmDatabaseId);
     const sdmPages: any[] = [];
     if (sdmDataSourceId) {
       let cursor: string | undefined;
@@ -2506,13 +2515,44 @@ export async function fetchProfilModularData(
     }));
   } catch (error) {
     console.error(
-      "[Notion fetchProfilModularData] Failed to process database content:",
+      "[Notion fetchProfilOrgStructure] Failed to process database content:",
       error,
     );
   }
 
   return data;
 }
+
+/** @deprecated Use fetchProfilOrgStructure with CMS database IDs instead. */
+export async function fetchProfilModularData(
+  _pageId: string,
+): Promise<ProfilModularData> {
+  const {
+    fetchContainerCMSCached,
+    resolveCmsComponentDatabaseId,
+    resolveProfilMaxBatchFromCms,
+  } = await import("./notion-builder");
+  const cms = await fetchContainerCMSCached();
+  const sdmDatabaseId = resolveCmsComponentDatabaseId(
+    cms,
+    "Struktur Organisasi Graph",
+    "value2",
+  );
+  if (!sdmDatabaseId)
+    return { paragraph: "", cabinetName: "", executives: [], divisions: [] };
+  return fetchProfilOrgStructure({
+    sdmDatabaseId,
+    maxBatch: resolveProfilMaxBatchFromCms(cms),
+  });
+}
+
+export const fetchProfilOrgStructureCached = unstable_cache(
+  async (query: ProfilOrgQuery): Promise<ProfilModularData> => {
+    return fetchProfilOrgStructure(query);
+  },
+  ["notion-profil-org-structure"],
+  { revalidate: 60, tags: ["notion-profil"] },
+);
 
 export const fetchProfilModularDataCached = unstable_cache(
   async (pageId: string): Promise<ProfilModularData> => {

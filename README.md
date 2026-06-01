@@ -14,6 +14,7 @@ The portal focuses on:
 
 ## Features
 
+- **Page Builder & Universal Registry CMS:** All public pages and deep dynamic routes (Home, FAQ, KKM, Agenda, Karya, Sekretariat, Pendaftaran, including dynamic detail views like `ArchiveDetail`, `EventDetail`, and `DocPage`) are entirely driven by a Notion-backed `<PageBuilder>` layout engine. This eliminates hardcoded JSX pages by injecting server-side data (`injectedProps`) precisely into a unified `Registry` of reusable components. Non-developers can rearrange, toggle, or modify layouts seamlessly directly from Notion while maintaining a strict, unified design system.
 - **Dynamic Landing Page:** Sleek homepage featuring responsive layouts, kinetic typography, and fluid entrance animations.
 - **Cabinet Profile & KKM:** Sourced directly from Notion, organizing divisions, cabinet hierarchies, and student interest groups.
 - **Open Recruitment (Oprec):** Fully-featured landing page and a multi-step interactive application form (routes: `/pendaftaran`, `/pendaftaran/form`).
@@ -199,6 +200,26 @@ The navbar uses a flat structure (desktop & mobile), dynamically showing the rec
 | Kontak      | —              | Smooth-scrolls to footer `#kontak`    |
 
 Old URLs `/about` and `/events` redirect permanently to `/profil` and `/agenda` respectively.
+
+## Container CMS Layout Architecture (Notion Builder)
+
+The HIMA Musik portal uses a fully dynamic layout engine that pulls page structure directly from Notion. This architecture allows administrators to construct complex layouts, use reusable components, and alter the page design directly from the Notion UI without changing code.
+
+### Core Builder Flow
+
+1. **`lib/notion-builder.ts`**: Fetches layout definitions from the 8 master databases in Notion. It standardizes the data into `Pages`, `Sections`, `Components`, and `Variables`.
+2. **`components/builder/PageBuilder.tsx`**: Resolves the requested page slug (e.g. `/profil`, `/aduan`), fetches the associated sections, and orchestrates rendering.
+3. **`components/builder/SectionBuilder.tsx`**: Renders `div` wrappers for sections and parses grouped layout structures (e.g. `orderOrGroup` like `0-1`, `0-2` to create CSS Flex/Grid groupings).
+4. **`components/builder/ComponentBuilder.tsx` & `Registry.tsx`**: Maps the string identifiers from Notion (e.g. `"Title"`, `"Button"`, `"Aduan Form"`) to specific React implementations.
+
+### Component Registry
+
+All components available to the CMS must be mapped in `Registry.tsx`.
+
+- **Core Components** (`components/builder/core/`): Generic visual elements like `GenericTitle`, `GenericDescription`, and `GenericButton`. These apply unified styling and animations.
+- **Special Components** (`components/builder/special/`): Complex, functional blocks such as `AduanForm`, `StrukturOrganisasiGraph`, and `KaryaGrid`. These are extracted from legacy static views into modular components that consume `value1` and `value2` configurations from the CMS.
+
+This architecture entirely replaces hardcoded page views, routing all static routes (e.g. `/`, `/profil`, `/aduan`) through the universal `<PageBuilder slug="..." />` component.
 
 ## Content Model (Notion CMS Redesign)
 
