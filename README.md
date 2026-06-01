@@ -153,6 +153,7 @@ For components that support word-splitting decoration (like `GenericTitle` and `
 To maintain a consistent and unified design grid, the maximum width of all foreground contents inside any page rendered by the `<PageBuilder>` layout engine is dynamically driven by the CMS:
 
 - **CMS-Driven Max-Width (`maxWidthClass`)**: Configured dynamically in Notion (e.g., `7xl`, `6xl`, `max`), mapping dynamically inside `SectionBuilder.tsx` (defaulting to `max-w-7xl` or `max-w-none` for `max`).
+- **Sekretariat Viewport Width & Sidebar Alignment**: The outer `DocsLayout` container spans the entire viewport width (`w-full` instead of a restricted `max-w-360` container) so that the sticky navigation sidebar pins perfectly to the absolute leftmost edge of the screen, matching the dynamic layout behavior of full-width (`max`) content pages.
 - **Global Alignment & Dynamic Header/Footer**: The shared global header (`Navigation` component) and footer are dynamically compiled based on page definitions, using layout properties from Notion to render precise visual alignment and ordering.
 - **Section Shell Structure**:
   ```tsx

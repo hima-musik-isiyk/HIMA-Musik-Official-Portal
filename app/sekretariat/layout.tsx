@@ -13,9 +13,9 @@ export default async function DocsLayout({ children }: DocsLayoutProps) {
   const docs = await fetchAllDocs();
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-360">
+    <div className="flex min-h-[calc(100vh-5rem)] w-full">
       <DocsSidebar docs={docs} />
-      <div className="flex-1">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
