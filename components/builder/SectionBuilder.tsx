@@ -82,7 +82,10 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
         }
       } else if (
         groupDef.type === "Position" &&
-        groupDef.name === "Background"
+        (groupDef.name === "Background" ||
+          groupDef.name.includes("Absolute") ||
+          groupDef.name.includes("Span All Height") ||
+          groupDef.name.includes("Ignore Section Paddings"))
       ) {
         groupClass = "absolute inset-0 w-full h-full z-0";
       }
@@ -98,7 +101,8 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
     return <React.Fragment key={groupId}>{renderedChildren}</React.Fragment>;
   };
 
-  const isFullHeight = section.height === "Full Height";
+  const isFullHeight =
+    section.height === "Full Height" || section.height === "Full Viewport";
   const baseSectionClass = `relative flex flex-col justify-center px-6 ${isFullHeight ? "min-h-[calc(100svh-5rem)] border-b border-white/5 py-24" : "py-20 md:py-28"}`;
 
   // Check if we have background elements
@@ -107,7 +111,13 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
     const groupDef = groupDefId
       ? cmsData.groupCategories[groupDefId]
       : undefined;
-    return groupDef?.type === "Position" && groupDef?.name === "Background";
+    return (
+      groupDef?.type === "Position" &&
+      (groupDef?.name === "Background" ||
+        groupDef?.name.includes("Absolute") ||
+        groupDef?.name.includes("Span All Height") ||
+        groupDef?.name.includes("Ignore Section Paddings"))
+    );
   });
 
   const foregroundComponents = section.components.filter(

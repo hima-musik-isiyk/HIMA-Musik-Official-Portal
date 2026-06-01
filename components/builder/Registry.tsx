@@ -8,6 +8,7 @@ import { GenericLineTitle } from "./core/GenericLineTitle";
 import { GenericTitle } from "./core/GenericTitle";
 import { AduanForm } from "./special/AduanForm";
 import AgendaList from "./special/AgendaList";
+import { BerandaTempArtwork } from "./special/BerandaTempArtwork";
 import { BerandaTitle } from "./special/BerandaTitle";
 import FAQList from "./special/FAQList";
 import { KaryaGrid } from "./special/KaryaGrid";
@@ -39,4 +40,5 @@ export const componentRegistry: Record<string, RegistryComponent> = {
   "Panduan Divisi": PanduanDivisi,
   Checklists: PendaftaranChecklists,
   "KKM Grid": KKMGrid,
+  "Beranda Temp Artwork": BerandaTempArtwork,
 };

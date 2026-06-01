@@ -45,8 +45,3 @@ export const InformationCard: React.FC = () => (
     InformationCard Placeholder
   </div>
 );
-export const BerandaTempArtwork: React.FC = () => (
-  <div className="border border-white/10 p-4 text-white">
-    BerandaTempArtwork Placeholder
-  </div>
-);

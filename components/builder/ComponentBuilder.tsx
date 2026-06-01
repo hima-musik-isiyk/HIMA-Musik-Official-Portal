@@ -106,7 +106,13 @@ export const ComponentBuilder: React.FC<ComponentBuilderProps> = ({
         default:
           break;
       }
-    } else if (groupDef.type === "Position" && groupDef.name === "Background") {
+    } else if (
+      groupDef.type === "Position" &&
+      (groupDef.name === "Background" ||
+        groupDef.name.includes("Absolute") ||
+        groupDef.name.includes("Span All Height") ||
+        groupDef.name.includes("Ignore Section Paddings"))
+    ) {
       groupClass = "absolute inset-0 w-full h-full z-0";
     }
 
