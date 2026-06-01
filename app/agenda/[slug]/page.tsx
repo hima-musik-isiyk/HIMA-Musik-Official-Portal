@@ -14,15 +14,12 @@ export default async function EventDetailRoute({
   params,
 }: EventDetailRouteProps) {
   const { slug } = await params;
-  const result = await fetchEventBySlug(slug, false); // Active
+  const result = await fetchEventBySlug(slug, { allowPreview: false }); // Active
 
   if (!result) return notFound();
 
   // If this event has a parent KKM relation, let's determine the href to link back.
-  let kkmHref = "/agenda"; // Default back link
-  if (result.meta.parent_kkm_slug) {
-    kkmHref = `/kkm/${result.meta.parent_kkm_slug}`;
-  }
+  const kkmHref = "/agenda"; // Default back link
 
   return (
     <PageBuilder

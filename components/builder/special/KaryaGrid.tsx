@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 import {
@@ -12,11 +13,17 @@ import { type KaryaEntryMeta } from "@/lib/notion";
 interface KaryaGridProps {
   value1?: string;
   value2?: string;
+  value3?: string;
 }
 
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
+const passthroughLoader = ({ src }: { src: string }) => src;
 
-export const KaryaGrid: React.FC<KaryaGridProps> = () => {
+export const KaryaGrid: React.FC<KaryaGridProps> = ({
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
+}) => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [entries, setEntries] = useState<KaryaEntryMeta[]>([]);
 
@@ -212,9 +219,13 @@ export const KaryaGrid: React.FC<KaryaGridProps> = () => {
                 ) : (
                   <>
                     {entry.artworkUrl ? (
-                      <img
+                      <Image
                         src={entry.artworkUrl}
                         alt={entry.title}
+                        loader={passthroughLoader}
+                        fill
+                        unoptimized
+                        sizes="(max-width: 1024px) 100vw, 33vw"
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     ) : (

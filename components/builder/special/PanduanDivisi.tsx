@@ -112,7 +112,17 @@ const DivisionAccordionItem: React.FC<{
   );
 };
 
-export default function PanduanDivisi() {
+interface PanduanDivisiProps {
+  value1?: string;
+  value2?: string;
+  value3?: string;
+}
+
+export default function PanduanDivisi({
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
+}: PanduanDivisiProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const toggleDivision = (id: string) => {

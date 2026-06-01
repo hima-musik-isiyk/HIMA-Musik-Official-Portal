@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import React from "react";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
-import { fetchKKMDetailBySlug } from "@/lib/notion";
+import { fetchKKMEntryBySlug } from "@/lib/notion";
 
 export const revalidate = 0;
 
@@ -12,7 +12,7 @@ interface KKMDetailProps {
 
 export default async function KKMDetailPage({ params }: KKMDetailProps) {
   const { slug } = await params;
-  const result = await fetchKKMDetailBySlug(slug);
+  const result = await fetchKKMEntryBySlug(slug);
 
   if (!result) return notFound();
 

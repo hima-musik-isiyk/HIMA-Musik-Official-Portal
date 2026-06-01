@@ -48,8 +48,11 @@ const FOCUSED_SECTIONS = [
 /* ------------------------------------------------------------------ */
 
 interface DocsPortalViewProps {
-  docs: DocMeta[];
+  docs?: DocMeta[];
   initialCategories?: SekretariatCategory[];
+  value1?: string;
+  value2?: string;
+  value3?: string;
 }
 
 function normalize(value: string) {
@@ -59,6 +62,9 @@ function normalize(value: string) {
 export default function SekretariatGrid({
   docs: initialDocs,
   initialCategories = [],
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
 }: DocsPortalViewProps) {
   const [data, setData] = useState({
     docs: initialDocs || [],

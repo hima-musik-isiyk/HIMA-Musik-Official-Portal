@@ -4,6 +4,24 @@ import {
   resolveDataSourceIdSafe,
   resolveFAQDatabaseCached,
 } from "./notion";
+import { resolveFAQPageIdCached } from "./notion-builder";
+
+type NotionPropertySchema = { type?: string };
+type NotionDataSourceClient = {
+  dataSources: {
+    query: (args: {
+      data_source_id: string;
+      start_cursor?: string;
+    }) => Promise<{
+      results: NotionPage[];
+      has_more?: boolean;
+      next_cursor?: string | null;
+    }>;
+    retrieve: (args: {
+      data_source_id: string;
+    }) => Promise<{ properties?: Record<string, NotionPropertySchema> }>;
+  };
+};
 
 export type FAQEntry = {
   id: string;
@@ -23,10 +41,10 @@ export type FAQEntry = {
  * Queries the FAQ & Tanya Jawab Notion Database and returns a parsed list of entries.
  */
 export async function fetchFAQEntries(): Promise<FAQEntry[]> {
-  const pageId = process.env.NOTION_FAQ_PAGE_ID;
+  const pageId = await resolveFAQPageIdCached();
   if (!pageId) {
     console.error(
-      "[Notion FAQ] Missing NOTION_FAQ_PAGE_ID environment variable.",
+      "[Notion FAQ] Could not resolve FAQ page ID from Master Page database.",
     );
     return [];
   }
@@ -48,7 +66,9 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
       return [];
     }
 
-    const response = await (notion as any).dataSources.query({
+    const response = await (
+      notion as unknown as NotionDataSourceClient
+    ).dataSources.query({
       data_source_id: dataSourceId,
     });
 
@@ -151,9 +171,9 @@ export async function createFAQEntry(
   askerName: string,
   category: string,
 ): Promise<unknown> {
-  const pageId = process.env.NOTION_FAQ_PAGE_ID;
+  const pageId = await resolveFAQPageIdCached();
   if (!pageId) {
-    throw new Error("Missing NOTION_FAQ_PAGE_ID environment variable.");
+    throw new Error("Could not resolve FAQ page ID from Master Page database.");
   }
 
   const databaseId = await resolveFAQDatabaseCached(pageId);
@@ -174,15 +194,17 @@ export async function createFAQEntry(
     : "Lainnya";
 
   // Retrieve database properties dynamically via its Data Source
-  let dbProperties: Record<string, unknown> = {};
+  let dbProperties: Record<string, NotionPropertySchema> = {};
   try {
     const dataSourceId = await resolveDataSourceIdSafe(databaseId);
     if (dataSourceId) {
-      const ds = await (notion as any).dataSources.retrieve({
+      const ds = await (
+        notion as unknown as NotionDataSourceClient
+      ).dataSources.retrieve({
         data_source_id: dataSourceId,
       });
       if (ds && "properties" in ds) {
-        dbProperties = ds.properties as Record<string, unknown>;
+        dbProperties = ds.properties as Record<string, NotionPropertySchema>;
       }
     }
   } catch (err) {
@@ -192,7 +214,7 @@ export async function createFAQEntry(
     );
   }
 
-  const properties: Record<string, any> = {};
+  const properties: Record<string, unknown> = {};
 
   // Title: "Judul Pertanyaan" or fallback to "Pertanyaan"
   if ("Judul Pertanyaan" in dbProperties) {
@@ -235,7 +257,7 @@ export async function createFAQEntry(
 
   // Checkbox or Select: "Visibilitas"
   if ("Visibilitas" in dbProperties) {
-    const type = (dbProperties.Visibilitas as any)?.type;
+    const type = dbProperties.Visibilitas?.type;
     if (type === "checkbox") {
       properties.Visibilitas = {
         checkbox: true,
@@ -249,7 +271,7 @@ export async function createFAQEntry(
 
   return await notion.pages.create({
     parent: { database_id: databaseId },
-    properties,
+    properties: properties as never,
   });
 }
 

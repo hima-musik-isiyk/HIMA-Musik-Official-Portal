@@ -7,27 +7,23 @@ import { GenericDescription } from "./core/GenericDescription";
 import { GenericLineTitle } from "./core/GenericLineTitle";
 import { GenericTitle } from "./core/GenericTitle";
 import { AduanForm } from "./special/AduanForm";
+import AgendaList from "./special/AgendaList";
+import { BerandaTitle } from "./special/BerandaTitle";
+import FAQList from "./special/FAQList";
 import { KaryaGrid } from "./special/KaryaGrid";
+import KKMGrid from "./special/KKMGrid";
 import PanduanDivisi from "./special/PanduanDivisi";
 import PendaftaranChecklists from "./special/PendaftaranChecklists";
-import {
-  AgendaList,
-  BerandaTempArtwork,
-  FAQList,
-  InformationCard,
-  KKMGrid,
-  SekretariatGrid,
-  SekretariatSidebar,
-} from "./special/Placeholders";
+import SekretariatGrid from "./special/SekretariatGrid";
 import { StrukturOrganisasiGraph } from "./special/StrukturOrganisasiGraph";
 import TimelineSeleksi from "./special/TimelineSeleksi";
 
-export const componentRegistry: Record<
-  string,
-  React.FC<Record<string, unknown>>
-> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RegistryComponent = React.ComponentType<any>;
+
+export const componentRegistry: Record<string, RegistryComponent> = {
   Title: GenericTitle,
-  "Beranda Title": GenericTitle,
+  "Beranda Title": BerandaTitle,
   "Line Title": GenericLineTitle,
   Description: GenericDescription,
   Copy: GenericCopy,
@@ -40,10 +36,7 @@ export const componentRegistry: Record<
   "FAQ List": FAQList,
   "Agenda List": AgendaList,
   "Sekretariat Grid": SekretariatGrid,
-  "Sekretariat Sidebar": SekretariatSidebar,
   "Panduan Divisi": PanduanDivisi,
   Checklists: PendaftaranChecklists,
   "KKM Grid": KKMGrid,
-  "Information Card": InformationCard,
-  "Beranda Temp Artwork": BerandaTempArtwork,
 };

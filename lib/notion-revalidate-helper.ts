@@ -2,7 +2,6 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 import {
   fetchAgendaDatabaseIdCached,
-  fetchKaryaDatabaseIdCached,
   fetchKKMDatabaseIdCached,
   fetchRedirectDatabaseIdCached,
   getNotionClient,
@@ -10,7 +9,11 @@ import {
   resolveFAQDatabaseCached,
   resolveSekretariatDatabasesCached,
 } from "@/lib/notion";
-import { resolveProfilSdmDatabaseIdFromCms } from "@/lib/notion-builder";
+import {
+  resolveFAQPageIdCached,
+  resolveKaryaDatabaseIdFromCms,
+  resolveProfilSdmDatabaseIdFromCms,
+} from "@/lib/notion-builder";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
 
@@ -44,9 +47,7 @@ export type ContentScope =
 const NOTION_BERANDA_PAGE_ID = process.env.NOTION_BERANDA_PAGE_ID ?? "";
 const NOTION_KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
 const NOTION_AGENDA_PAGE_ID = process.env.NOTION_AGENDA_PAGE_ID ?? "";
-const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
 const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
-const NOTION_FAQ_PAGE_ID = process.env.NOTION_FAQ_PAGE_ID ?? "";
 const REDIRECT_PAGE_ID = process.env.NOTION_REDIRECT_PAGE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
@@ -93,6 +94,9 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
+  const faqPageId = await resolveFAQPageIdCached();
+  const karyaDbId = await resolveKaryaDatabaseIdFromCms();
+
   const [
     docsDbIdResolved,
     agendaDbIdResolved,
@@ -120,8 +124,8 @@ async function buildScopeMatchers() {
           heroDbId: "36e3b26d-c3be-802c-aac0-c7dbcd40ef36",
           jelajahiDbId: "36e3b26d-c3be-802c-91ac-e5ed573d89f6",
         },
-    NOTION_FAQ_PAGE_ID
-      ? resolveFAQDatabaseCached(NOTION_FAQ_PAGE_ID)
+    faqPageId
+      ? resolveFAQDatabaseCached(faqPageId)
       : "36d3b26d-c3be-8041-b2bd-d9b7f746e06e",
   ]);
 
@@ -130,10 +134,6 @@ async function buildScopeMatchers() {
   const agendaDbId = agendaDbIdResolved;
   const kkmDbId = kkmDbIdResolved;
   const faqDbId = faqDbIdResolved;
-
-  const karyaDbId = KARYA_PAGE_ID
-    ? await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID)
-    : "";
 
   const redirectDbId = REDIRECT_PAGE_ID
     ? await fetchRedirectDatabaseIdCached(REDIRECT_PAGE_ID)
@@ -155,7 +155,7 @@ async function buildScopeMatchers() {
     resolvePrimaryDataSourceId(categoriesDbId),
     resolvePrimaryDataSourceId(agendaDbId),
     resolvePrimaryDataSourceId(kkmDbId),
-    resolvePrimaryDataSourceId(karyaDbId),
+    resolvePrimaryDataSourceId(karyaDbId ?? ""),
     resolvePrimaryDataSourceId(faqDbId),
     resolvePrimaryDataSourceId(
       profilSdmDbId ?? "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",

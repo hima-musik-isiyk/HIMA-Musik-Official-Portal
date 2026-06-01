@@ -1,10 +1,12 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 import type { KKMGroup } from "@/lib/kkm-data";
 
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
+const passthroughLoader = ({ src }: { src: string }) => src;
 
 /* ------------------------------------------------------------------ */
 /*  KKM Card                                                           */
@@ -133,9 +135,13 @@ function KKMCard({ group }: { group: KKMGroup }) {
       <div className="relative z-0 mb-8 flex flex-1 items-start gap-5">
         {group.logoUrl && (
           <div className="shrink-0">
-            <img
+            <Image
               src={group.logoUrl}
               alt={`${group.name} logo`}
+              loader={passthroughLoader}
+              width={56}
+              height={56}
+              unoptimized
               className="h-14 w-14 rounded-lg border border-white/10 object-cover"
             />
           </div>
@@ -198,9 +204,15 @@ function KKMCard({ group }: { group: KKMGroup }) {
 export default function KKMGrid({
   hero,
   groups: initialGroups,
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
 }: {
   hero?: { title: string; description: string };
   groups: KKMGroup[];
+  value1?: string;
+  value2?: string;
+  value3?: string;
 }) {
   const [data, setData] = useState({
     hero: hero || { title: "", description: "" },

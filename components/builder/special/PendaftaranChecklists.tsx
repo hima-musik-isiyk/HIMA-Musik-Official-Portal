@@ -2,7 +2,17 @@ import React from "react";
 
 import { IconCheck, IconDiamond } from "@/components/Icons";
 
-export default function PendaftaranChecklists() {
+interface PendaftaranChecklistsProps {
+  value1?: string;
+  value2?: string;
+  value3?: string;
+}
+
+export default function PendaftaranChecklists({
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
+}: PendaftaranChecklistsProps) {
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">

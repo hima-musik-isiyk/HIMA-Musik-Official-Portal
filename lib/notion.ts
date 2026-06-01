@@ -136,8 +136,8 @@ export function getNotionClient(): Client {
   return client as Client;
 }
 
-function getNotionClientAny(): any {
-  return getNotionClient() as any;
+function getNotionClientAny(): ReturnType<typeof getNotionClient> {
+  return getNotionClient();
 }
 
 /* ------------------------------------------------------------------ */
@@ -550,7 +550,11 @@ export async function fetchPageChildDatabases(
         start_cursor: cursor,
       });
 
-      for (const block of response.results as any[]) {
+      for (const block of response.results as Array<{
+        type: string;
+        id: string;
+        child_database?: { title?: string };
+      }>) {
         if (block.type !== "child_database") continue;
         const title = await resolveChildDatabaseTitle(
           block.id,
@@ -588,14 +592,28 @@ export async function fetchPageDatabases(
       block_id: normalizeNotionId(pageId),
     });
 
-    for (const block of response.results as any[]) {
+    for (const block of response.results as Array<{
+      type: string;
+      id: string;
+      child_database?: { title?: string };
+      [key: string]: unknown;
+    }>) {
       if (block.type === "child_database") {
         result.childDatabases.push(block.id);
       } else {
-        const blockContent = (block as any)[block.type];
+        const blockContent = block[block.type] as {
+          rich_text?: unknown;
+        };
         if (blockContent && Array.isArray(blockContent.rich_text)) {
-          for (const rt of blockContent.rich_text) {
-            if (rt.type === "mention" && rt.mention?.type === "database") {
+          for (const rt of blockContent.rich_text as Array<{
+            type?: string;
+            mention?: { type?: string; database?: { id: string } };
+          }>) {
+            if (
+              rt.type === "mention" &&
+              rt.mention?.type === "database" &&
+              rt.mention.database
+            ) {
               result.mentionedDatabases.push(rt.mention.database.id);
             }
           }
@@ -613,7 +631,6 @@ export async function fetchPageDatabases(
 }
 
 const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
-const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID ?? "";
 const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
 const DOCS_DB_ID = "36f3b26d-c3be-8017-ba07-e3a418fa4366";
 
@@ -1042,7 +1059,7 @@ export async function fetchKKMModularData(
           data_source_id: dataSourceId,
         });
 
-        for (const page of response.results) {
+        for (const page of response.results as NotionPage[]) {
           const name = (getTitleProperty(page, "Name") || getTitle(page))
             .trim()
             .toLowerCase();
@@ -1409,16 +1426,20 @@ export const fetchAduanDatabaseIdCached = unstable_cache(
 
 export const fetchKaryaEntries = unstable_cache(
   async (): Promise<KaryaEntryMeta[]> => {
-    if (!KARYA_PAGE_ID) return [];
+    const { resolveKaryaDatabaseIdFromCms } = await import("./notion-builder");
+    const karyaDbId = await resolveKaryaDatabaseIdFromCms();
+    if (!karyaDbId) {
+      console.warn(
+        "[Notion fetchKaryaEntries] Could not resolve Karya database ID from Container CMS",
+      );
+      return [];
+    }
 
     const results: NotionPage[] = [];
     let cursor: string | undefined;
 
     try {
-      const activeDbId = await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID);
-      if (!activeDbId) return [];
-
-      const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
+      const dataSourceId = await resolveDataSourceIdSafe(karyaDbId);
       if (!dataSourceId) return [];
 
       do {
@@ -1437,8 +1458,11 @@ export const fetchKaryaEntries = unstable_cache(
     }
 
     const filteredPages = results.filter((page) => {
-      const status = getStatus(page, "Status");
-      return status === "Published";
+      const status =
+        getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
+      return status
+        ? status === "Published" || status === "Publish" || status === "Live"
+        : true;
     });
 
     const parsedEntries = await Promise.all(
@@ -2281,7 +2305,7 @@ export async function fetchProfilOrgStructure(
 
   try {
     const sdmDataSourceId = await resolveDataSourceIdSafe(sdmDatabaseId);
-    const sdmPages: any[] = [];
+    const sdmPages: NotionPage[] = [];
     if (sdmDataSourceId) {
       let cursor: string | undefined;
       do {
@@ -2289,7 +2313,7 @@ export async function fetchProfilOrgStructure(
           data_source_id: sdmDataSourceId,
           start_cursor: cursor,
         });
-        sdmPages.push(...response.results);
+        sdmPages.push(...(response.results as NotionPage[]));
         cursor = response.has_more
           ? (response.next_cursor ?? undefined)
           : undefined;
@@ -2317,9 +2341,9 @@ export async function fetchProfilOrgStructure(
     const divIds = Array.from(
       new Set(
         filteredMembers.flatMap((page) => {
-          const prop = getProperty(page, "Divisi") as any;
+          const prop = getProperty(page, "Divisi");
           if (prop?.type === "relation") {
-            return prop.relation.map((r: any) => r.id);
+            return prop.relation.map((r: { id: string }) => r.id);
           }
           return [];
         }),
@@ -2331,12 +2355,12 @@ export async function fetchProfilOrgStructure(
     await Promise.all(
       divIds.map(async (id) => {
         try {
-          const divPage = await getNotionClient().pages.retrieve({
+          const divPage = (await getNotionClient().pages.retrieve({
             page_id: id,
-          });
-          const titleProp = Object.values((divPage as any).properties).find(
-            (p: any) => p.type === "title",
-          ) as any;
+          })) as { properties: NotionPage["properties"] };
+          const titleProp = Object.values(divPage.properties).find(
+            (p) => p.type === "title",
+          ) as { title?: Array<{ plain_text: string }> } | undefined;
           const name = titleProp?.title?.[0]?.plain_text || "Unnamed Division";
           divisionMap.set(id, name);
         } catch (err) {
@@ -2355,7 +2379,7 @@ export async function fetchProfilOrgStructure(
       const roles = getMultiSelect(page, "Jabatan Kabinet");
       const status = getSelect(page, "Status Keaktifan");
 
-      const divProp = getProperty(page, "Divisi") as any;
+      const divProp = getProperty(page, "Divisi");
       const divPageId =
         divProp?.type === "relation" ? divProp.relation?.[0]?.id : null;
       const divisionName = divPageId ? divisionMap.get(divPageId) || "" : "";

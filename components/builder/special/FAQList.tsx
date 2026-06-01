@@ -235,9 +235,17 @@ const PaginationControl: React.FC<{
 
 interface FAQViewProps {
   initialEntries?: FAQEntry[];
+  value1?: string;
+  value2?: string;
+  value3?: string;
 }
 
-const FAQList: React.FC<FAQViewProps> = ({ initialEntries }) => {
+const FAQList: React.FC<FAQViewProps> = ({
+  initialEntries,
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
+}) => {
   // State Management
   const [faqs, setFaqs] = useState<FAQEntry[]>(initialEntries || []);
   const [isLoading, setIsLoading] = useState(!initialEntries);

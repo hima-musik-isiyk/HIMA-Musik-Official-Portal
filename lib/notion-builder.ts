@@ -97,11 +97,14 @@ export interface ContainerCMSData {
 }
 
 // Property helpers
+type RichTextFragment = { plain_text: string };
+type RelationFragment = { id: string };
+
 function getTitle(page: NotionPage, name: string): string {
   const prop = page.properties[name] || page.properties[name.toLowerCase()];
   if (prop?.type === "title" && prop.title.length > 0) {
     return prop.title
-      .map((t: any) => t.plain_text)
+      .map((t: RichTextFragment) => t.plain_text)
       .join("")
       .trim();
   }
@@ -112,7 +115,7 @@ function getRichText(page: NotionPage, name: string): string {
   const prop = page.properties[name] || page.properties[name.toLowerCase()];
   if (prop?.type === "rich_text" && prop.rich_text) {
     return prop.rich_text
-      .map((t: any) => t.plain_text)
+      .map((t: RichTextFragment) => t.plain_text)
       .join("")
       .trim();
   }
@@ -150,7 +153,7 @@ function getUrl(page: NotionPage, name: string): string {
 function getRelationIds(page: NotionPage, name: string): string[] {
   const prop = page.properties[name] || page.properties[name.toLowerCase()];
   if (prop?.type === "relation" && Array.isArray(prop.relation)) {
-    return prop.relation.map((r: any) => r.id);
+    return prop.relation.map((r: RelationFragment) => r.id);
   }
   return [];
 }
@@ -162,7 +165,7 @@ async function queryAll(databaseId: string): Promise<NotionPage[]> {
   const results: NotionPage[] = [];
   let cursor: string | undefined;
 
-  const client = getNotionClient() as any;
+  const client = getNotionClient();
 
   do {
     const response = await client.dataSources.query({
@@ -441,6 +444,77 @@ export const fetchContainerCMSCached = unstable_cache(
   { revalidate: 60, tags: ["notion-container"] },
 );
 
+/**
+ * Get the Master Page database ID from Container CMS
+ */
+async function getMasterPageDatabaseId(): Promise<string> {
+  const containerId = process.env.NOTION_CONTAINER_CMS_PAGE_ID;
+  if (!containerId) return "";
+
+  let childDbs = await fetchPageChildDatabases(containerId);
+  if (childDbs.length === 0) {
+    const legacy = await fetchPageDatabases(containerId);
+    childDbs = legacy.childDatabases.map((id) => ({ id, title: "" }));
+  }
+
+  const dbByTitle = Object.fromEntries(
+    childDbs
+      .filter((db) => db.title.trim())
+      .map((db) => [db.title.trim().toLowerCase(), db.id]),
+  );
+
+  return dbByTitle["master page"] || childDbs[0]?.id || "";
+}
+
+/**
+ * Resolve a page from Master Page database by name
+ */
+export async function resolvePageIdFromMasterPage(
+  pageName: string,
+): Promise<string> {
+  const masterPageDbId = await getMasterPageDatabaseId();
+  if (!masterPageDbId) return "";
+
+  const pages = await queryAll(masterPageDbId);
+  const page = pages.find(
+    (p) => getTitle(p, "Name").toLowerCase() === pageName.toLowerCase(),
+  );
+
+  return page?.id || "";
+}
+
+/**
+ * Get FAQ page ID by querying Master Page database
+ */
+export async function resolveFAQPageId(): Promise<string> {
+  return resolvePageIdFromMasterPage("FAQ");
+}
+
+/**
+ * Get Karya page ID by querying Master Page database
+ */
+export async function resolveKaryaPageId(): Promise<string> {
+  return resolvePageIdFromMasterPage("Karya");
+}
+
+/**
+ * Cached version of resolveFAQPageId
+ */
+export const resolveFAQPageIdCached = unstable_cache(
+  async () => resolveFAQPageId(),
+  ["notion-faq-page-id"],
+  { revalidate: 3600, tags: ["notion-faq"] },
+);
+
+/**
+ * Cached version of resolveKaryaPageId
+ */
+export const resolveKaryaPageIdCached = unstable_cache(
+  async () => resolveKaryaPageId(),
+  ["notion-karya-page-id"],
+  { revalidate: 3600, tags: ["notion-karya"] },
+);
+
 export type CmsValueField = "value" | "value2" | "value3";
 
 function registryFieldToCmsValue(
@@ -535,6 +609,11 @@ export async function resolveProfilSdmDatabaseIdFromCms(): Promise<
     "Struktur Organisasi Graph",
     "value2",
   );
+}
+
+export async function resolveKaryaDatabaseIdFromCms(): Promise<string | null> {
+  const cms = await fetchContainerCMSCached();
+  return resolveCmsComponentDatabaseId(cms, "Karya Grid", "value");
 }
 
 export function resolveProfilMaxBatchFromCms(cms: ContainerCMSData): number {

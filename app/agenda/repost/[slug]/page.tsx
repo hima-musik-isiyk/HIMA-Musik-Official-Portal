@@ -14,14 +14,11 @@ export default async function EventDetailRepostRoute({
   params,
 }: EventDetailRouteProps) {
   const { slug } = await params;
-  const result = await fetchEventBySlug(slug, true); // Allow draft/active
+  const result = await fetchEventBySlug(slug, { allowPreview: true }); // Allow draft/active
 
   if (!result) return notFound();
 
-  let kkmHref = "/agenda";
-  if (result.meta.parent_kkm_slug) {
-    kkmHref = `/kkm/${result.meta.parent_kkm_slug}`;
-  }
+  const kkmHref = "/agenda";
 
   // Treat as active for the repost view to bypass draft indicators
   const forcedMeta = { ...result.meta, status: "Active" };

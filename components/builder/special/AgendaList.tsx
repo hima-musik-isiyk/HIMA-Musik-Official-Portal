@@ -775,9 +775,15 @@ function EventCard({
 export default function AgendaList({
   collection: initialCollection,
   kkmGroups: initialKkmGroups,
+  value1: _value1,
+  value2: _value2,
+  value3: _value3,
 }: {
   collection: EventsCollection;
   kkmGroups: KKMGroup[];
+  value1?: string;
+  value2?: string;
+  value3?: string;
 }) {
   const [data, setData] = useState({
     collection: initialCollection || {
