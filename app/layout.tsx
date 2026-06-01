@@ -12,6 +12,7 @@ import RouteEntranceAnimator from "../components/RouteEntranceAnimator";
 import {
   fetchContainerCMSCached,
   getNavigationData,
+  NavItemDto,
 } from "../lib/notion-builder";
 
 const fraunces = Fraunces({
@@ -34,9 +35,9 @@ type RootLayoutProps = {
 };
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  let navItems = undefined;
-  let mobileNavItems = undefined;
-  let highlightItem = undefined;
+  let navItems: NavItemDto[] | undefined = undefined;
+  let mobileNavItems: NavItemDto[] | undefined = undefined;
+  let highlightItem: NavItemDto | null | undefined = undefined;
   let gsapEasing = "power3.out";
   let entranceAnimate = "true";
 
