@@ -11,6 +11,7 @@ import {
 import { type KaryaEntryMeta } from "@/lib/notion";
 
 interface KaryaGridProps {
+  entries?: KaryaEntryMeta[];
   value1?: string;
   value2?: string;
   value3?: string;
@@ -20,12 +21,15 @@ const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 const passthroughLoader = ({ src }: { src: string }) => src;
 
 export const KaryaGrid: React.FC<KaryaGridProps> = ({
+  entries: initialEntries,
   value1: _value1,
   value2: _value2,
   value3: _value3,
 }) => {
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [entries, setEntries] = useState<KaryaEntryMeta[]>([]);
+  const [entries, setEntries] = useState<KaryaEntryMeta[]>(
+    initialEntries || [],
+  );
 
   useEffect(() => {
     try {
@@ -57,6 +61,12 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
     };
 
     fetchKaryaData();
+
+    const interval = setInterval(() => {
+      fetchKaryaData();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Filters State

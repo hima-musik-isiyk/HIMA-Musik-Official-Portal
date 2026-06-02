@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { FEATURES } from "@/lib/feature-flags";
@@ -105,6 +105,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
   const pathname = usePathname();
   const currentPath = pathname ?? "/";
+  const router = useRouter();
 
   const navItems = React.useMemo(() => {
     return propNavItems || NAV_ITEMS;
@@ -165,6 +166,25 @@ const Navigation: React.FC<NavigationProps> = ({
       window.removeEventListener("toggleDocsSidebar", handleSidebarToggle);
     };
   }, [pathname, ease]);
+
+  /* ------ Prefetch all navigation routes on mount ----- */
+  useEffect(() => {
+    if (!router) return;
+    const routes = new Set<string>();
+    navItems.forEach((item) => {
+      if (item.href && !item.isAnchor) {
+        routes.add(item.href);
+      }
+    });
+    mobileNavItems.forEach((item) => {
+      if (item.href && !item.isAnchor) {
+        routes.add(item.href);
+      }
+    });
+    routes.forEach((route) => {
+      router.prefetch(route);
+    });
+  }, [navItems, mobileNavItems, router]);
 
   /* ------ Mobile menu open/close ----- */
   useEffect(() => {
@@ -240,8 +260,8 @@ const Navigation: React.FC<NavigationProps> = ({
         nonClickedMobileLinks,
         {
           opacity: 0,
-          duration: 0.16,
-          stagger: 0.01,
+          duration: 0.1,
+          stagger: 0.005,
           ease,
         },
         0,
@@ -251,10 +271,10 @@ const Navigation: React.FC<NavigationProps> = ({
           clickedMobileLink,
           {
             opacity: 0,
-            duration: 0.7,
+            duration: 0.2,
             ease,
           },
-          0.06,
+          0.02,
         );
       }
       closeTimeline
@@ -262,9 +282,9 @@ const Navigation: React.FC<NavigationProps> = ({
           mobileMenuRef.current,
           {
             autoAlpha: 0,
-            duration: 0.8,
+            duration: 0.3,
             ease,
-            delay: 0.28,
+            delay: 0.08,
           },
           0,
         )
@@ -402,10 +422,10 @@ const Navigation: React.FC<NavigationProps> = ({
     });
 
     const tl = gsap.timeline({ defaults: { ease } });
-    tl.to(circleBase, { width: diameter, height: diameter, duration: 1.2 }, 0)
-      .to(circleTop, { width: diameter, height: diameter, duration: 1.2 }, 0)
-      .to(circleTop, { opacity: 0, duration: 0.5, ease }, 0.18)
-      .to(circleBase, { opacity: 0, duration: 3.4, ease }, 0.4)
+    tl.to(circleBase, { width: diameter, height: diameter, duration: 0.4 }, 0)
+      .to(circleTop, { width: diameter, height: diameter, duration: 0.4 }, 0)
+      .to(circleTop, { opacity: 0, duration: 0.2, ease }, 0.1)
+      .to(circleBase, { opacity: 0, duration: 0.4, ease }, 0.2)
       .set([circleBase, circleTop], { width: 0, height: 0, opacity: 0 });
   };
 

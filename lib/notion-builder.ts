@@ -1,4 +1,5 @@
 import { unstable_cache as next_unstable_cache } from "next/cache";
+import { headers } from "next/headers";
 
 import {
   fetchPageChildDatabases,
@@ -8,23 +9,44 @@ import {
   resolveDataSourceIdSafe,
 } from "./notion";
 
-// Custom cache wrapper to leverage native caching
+// Custom cache wrapper with environment-aware revalidation strategy:
+// - Development: 1 second → instant page reloads when editing Notion locally.
+// - Production:  5 seconds cap → pages are served from cache instantly, but revalidated
+//   very frequently in the background, keeping page transitions extremely snappy.
+// - Reload Bypass: Detects cache-control/pragma 'no-cache' and fetches directly from Notion.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   cb: T,
   keyParts?: string[],
   options?: { revalidate?: number | false; tags?: string[] },
 ): T {
-  if (process.env.NODE_ENV !== "production") {
-    return next_unstable_cache(cb, keyParts, {
-      ...options,
-      revalidate: 1,
-    });
-  }
-  return next_unstable_cache(cb, keyParts, {
+  const revalVal =
+    process.env.NODE_ENV !== "production"
+      ? 1
+      : options?.revalidate !== undefined
+        ? options.revalidate === false
+          ? 5
+          : Math.min(options.revalidate, 5)
+        : 5;
+
+  const cachedFn = next_unstable_cache(cb, keyParts, {
     ...options,
-    revalidate: options?.revalidate ?? false,
+    revalidate: revalVal,
   });
+
+  return (async (...args: any[]) => {
+    try {
+      const reqHeaders = await headers();
+      const cacheControl = reqHeaders.get("cache-control");
+      const pragma = reqHeaders.get("pragma");
+      if (cacheControl === "no-cache" || pragma === "no-cache") {
+        return cb(...args);
+      }
+    } catch {
+      // Safely ignore during prerendering/static compilation
+    }
+    return cachedFn(...args);
+  }) as unknown as T;
 }
 
 export interface CMSVariable {

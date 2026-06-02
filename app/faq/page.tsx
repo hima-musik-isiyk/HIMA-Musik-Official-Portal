@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
-import { fetchFAQEntries, filterFAQVisibility } from "@/lib/faq";
+import {
+  fetchFAQCategoriesCached,
+  fetchFAQEntries,
+  filterFAQVisibility,
+} from "@/lib/faq";
 import { fetchContainerCMSCached } from "@/lib/notion-builder";
 
 export const metadata: Metadata = {
@@ -24,9 +28,10 @@ export const metadata: Metadata = {
 };
 
 export default async function FAQPage() {
-  const [rawEntries, cmsData] = await Promise.all([
+  const [rawEntries, cmsData, categories] = await Promise.all([
     fetchFAQEntries(),
     fetchContainerCMSCached(),
+    fetchFAQCategoriesCached(),
   ]);
   const entries = filterFAQVisibility(rawEntries);
 
@@ -35,7 +40,10 @@ export default async function FAQPage() {
       <PageBuilder
         pageData={cmsData}
         injectedProps={{
-          "FAQ List": { initialEntries: entries },
+          "FAQ List": {
+            initialEntries: entries,
+            initialCategories: categories,
+          },
         }}
       />
     </PageEntranceWrapper>

@@ -1,3 +1,6 @@
+import { unstable_cache as next_unstable_cache } from "next/cache";
+import { headers } from "next/headers";
+
 import {
   getNotionClient,
   NotionPage,
@@ -5,6 +8,46 @@ import {
   resolveFAQDatabaseCached,
 } from "./notion";
 import { resolveFAQPageIdCached } from "./notion-builder";
+
+// Custom cache wrapper with environment-aware revalidation strategy:
+// - Development: 1 second → instant page reloads when editing Notion locally.
+// - Production:  5 seconds cap → pages are served from cache instantly, but revalidated
+//   very frequently in the background, keeping page transitions extremely snappy.
+// - Reload Bypass: Detects cache-control/pragma 'no-cache' and fetches directly from Notion.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function unstable_cache<T extends (...args: any[]) => Promise<any>>(
+  cb: T,
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] },
+): T {
+  const revalVal =
+    process.env.NODE_ENV !== "production"
+      ? 1
+      : options?.revalidate !== undefined
+        ? options.revalidate === false
+          ? 5
+          : Math.min(options.revalidate, 5)
+        : 5;
+
+  const cachedFn = next_unstable_cache(cb, keyParts, {
+    ...options,
+    revalidate: revalVal,
+  });
+
+  return (async (...args: any[]) => {
+    try {
+      const reqHeaders = await headers();
+      const cacheControl = reqHeaders.get("cache-control");
+      const pragma = reqHeaders.get("pragma");
+      if (cacheControl === "no-cache" || pragma === "no-cache") {
+        return cb(...args);
+      }
+    } catch {
+      // Safely ignore during prerendering/static compilation
+    }
+    return cachedFn(...args);
+  }) as unknown as T;
+}
 
 type NotionPropertySchema = { type?: string };
 type NotionDataSourceClient = {
@@ -40,7 +83,7 @@ export type FAQEntry = {
 /**
  * Queries the FAQ & Tanya Jawab Notion Database and returns a parsed list of entries.
  */
-export async function fetchFAQEntries(): Promise<FAQEntry[]> {
+async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
   const pageId = await resolveFAQPageIdCached();
   if (!pageId) {
     console.error(
@@ -118,12 +161,16 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
       const urlObj = props["URL Referensi"];
       const refUrl = urlObj?.type === "url" && urlObj.url ? urlObj.url : "";
 
-      // 7. Kategori (Multi-select)
+      // 7. Kategori (Select or Multi-select)
       const categoryObj = props.Kategori;
-      const categories =
-        categoryObj?.type === "multi_select"
-          ? categoryObj.multi_select.map((s: { name: string }) => s.name)
-          : [];
+      let categories: string[] = [];
+      if (categoryObj?.type === "multi_select") {
+        categories = categoryObj.multi_select.map(
+          (s: { name: string }) => s.name,
+        );
+      } else if (categoryObj?.type === "select" && categoryObj.select) {
+        categories = [categoryObj.select.name];
+      }
 
       // 8. Visibilitas (Checkbox or Select)
       const visibilityObj = props.Visibilitas;
@@ -163,6 +210,95 @@ export async function fetchFAQEntries(): Promise<FAQEntry[]> {
   }
 }
 
+export const fetchFAQEntries = unstable_cache(
+  async () => {
+    return fetchFAQEntriesRaw();
+  },
+  ["notion-faq-entries"],
+  { revalidate: 60, tags: ["notion-faq"] },
+);
+
+/**
+ * Queries Kategori property options dynamically from the Notion database.
+ */
+export async function fetchFAQCategories(): Promise<string[]> {
+  const pageId = await resolveFAQPageIdCached();
+  if (!pageId)
+    return [
+      "Lainnya",
+      "Akademik",
+      "Organisasi (HIMA)",
+      "Kegiatan / Event",
+      "Pendaftaran",
+    ];
+
+  const databaseId = await resolveFAQDatabaseCached(pageId);
+  const notion = getNotionClient();
+  if (!notion)
+    return [
+      "Lainnya",
+      "Akademik",
+      "Organisasi (HIMA)",
+      "Kegiatan / Event",
+      "Pendaftaran",
+    ];
+
+  try {
+    const dataSourceId = await resolveDataSourceIdSafe(databaseId);
+    if (!dataSourceId)
+      return [
+        "Lainnya",
+        "Akademik",
+        "Organisasi (HIMA)",
+        "Kegiatan / Event",
+        "Pendaftaran",
+      ];
+
+    const ds = await (
+      notion as unknown as NotionDataSourceClient
+    ).dataSources.retrieve({
+      data_source_id: dataSourceId,
+    });
+
+    if (ds && "properties" in ds) {
+      const dbProperties = ds.properties as Record<
+        string,
+        NotionPropertySchema
+      >;
+      const kategoriProp = dbProperties["Kategori"];
+      if (
+        kategoriProp &&
+        (kategoriProp.type === "select" || kategoriProp.type === "multi_select")
+      ) {
+         
+        const selectObj =
+          (kategoriProp as any).select || (kategoriProp as any).multi_select;
+        if (selectObj && Array.isArray(selectObj.options)) {
+          return selectObj.options.map((opt: { name: string }) => opt.name);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[Notion FAQ] Failed to fetch dynamic categories:", error);
+  }
+
+  return [
+    "Lainnya",
+    "Akademik",
+    "Organisasi (HIMA)",
+    "Kegiatan / Event",
+    "Pendaftaran",
+  ];
+}
+
+export const fetchFAQCategoriesCached = unstable_cache(
+  async () => {
+    return fetchFAQCategories();
+  },
+  ["notion-faq-categories"],
+  { revalidate: 60, tags: ["notion-faq"] },
+);
+
 /**
  * Validates and writes a new public-submitted FAQ entry to the Notion database.
  */
@@ -183,15 +319,7 @@ export async function createFAQEntry(
     throw new Error("Notion client could not be initialized.");
   }
 
-  const cleanCategory = [
-    "Pendaftaran",
-    "Kegiatan",
-    "Organisasi",
-    "Akademik",
-    "Lainnya",
-  ].includes(category)
-    ? category
-    : "Lainnya";
+  const cleanCategory = category?.trim() || "Lainnya";
 
   // Retrieve database properties dynamically via its Data Source
   let dbProperties: Record<string, NotionPropertySchema> = {};

@@ -202,16 +202,20 @@ Legacy `.databases.query` is replaced with `.dataSources.query`. All database fe
 
 To achieve **instant, zero-delay page switching** across the entire portal in production, we leverage Next.js native caching combined with an on-demand revalidation architecture:
 
-- **Next.js Native Cache (`unstable_cache`):** All Notion data-fetching routines (Profil, KKM, Agenda, Karya, Sekretariat, and Beranda) utilize the native `unstable_cache` API. Hanger/loader pages are served instantly (<50ms) from the server's cache memory.
-- **Environment-Aware Caching:**
+- **Next.js Native Cache (`unstable_cache`):** All Notion data-fetching routines (Profil, KKM, Agenda, Karya, Sekretariat, FAQ, and Beranda) utilize an enhanced native `unstable_cache` wrapper. Page components are served instantly (<50ms) from memory.
+- **Instant Client-Side Route Prefetching:** The central `Navigation` component aggressively prefetches all configured public pages on component mount. This warms up Next.js's client-side router cache, enabling instantaneous switching between pages without waiting for server response latency.
+- **Snappy Micro-Animations & transitions:** Transition layers (such as the full-screen expanding circle and mobile menu close timeline) are optimized to run swiftly (under 0.4s), removing visual switching latency and making transitions feel highly responsive.
+- **Hybrid Caching & Revalidation Strategy:**
   - **Development:** Caches expire after **1 second** to ensure developers see instant updates locally as they edit Notion pages.
-  - **Production:** Caches remain stored **indefinitely** (no timer expiry) for maximum speed, relying 100% on Notion's on-demand webhook revalidation.
-- **On-Demand Webhook Revalidation:** A secure webhook listener clears and revalidates specific cache tags (e.g. `notion-kkm`, `notion-faq`, `notion-docs`) immediately when changes are detected in Notion.
-- **Client-Side SWR & Dynamic Polling:** Visual components combine instantaneous server-cached HTML delivery with secondary client-side SWR background sync and 5-second polling intervals (`FAQList`, `KKMGrid`, etc.) to keep the UI perfectly synchronized without showing loading spinners.
+  - **Production Cache Cap:** Cache lifespans are capped at a maximum of **5 seconds** (using stale-while-revalidate), guaranteeing rapid and frequent background revalidation to keep Notion content highly updated.
+  - **Dynamic Cache-Bypass on Reload:** Detects standard browser hard-reloads or page refreshes (via `cache-control: no-cache` or `pragma: no-cache` headers) and completely bypasses the cache to fetch real-time, absolute fresh data directly from the Notion API.
+  - **Page-to-Page Switching:** Normal client-side switching remains fully cached and instant (<50ms).
+- **Client-Side SWR & Dynamic Polling:** All major interactive component registries (`FAQList`, `KaryaGrid`, `AgendaList`, `SekretariatGrid`, and `KKMGrid`) combine instantaneous server-cached HTML delivery with secondary client-side SWR background sync and active 5-second background polling intervals to keep the UI perfectly synchronized with Notion without showing loading spinners or blocking fast page-switching.
+- **Dynamic FAQ Categories:** FAQ categories and filtering tags are resolved dynamically from the Notion database properties schema (`Kategori` column select options). This eliminates hardcoded categories in both the filtering tabs and question submission form dropdowns.
 
 #### Manual Force-Sync & Preview Action Bar
 
-For administrative preview scenarios or when automatic webhooks are not yet triggered:
+For administrative preview scenarios or when an immediate, manual force-sync of cached data is desired:
 
 - **Secure Revalidation Controller (`/api/notion/revalidate`):** A public, rate-limited endpoint that securely clears and revalidates all CMS caches (`events`, `beranda`, `profil`, `kkm`, `faq`) without exposing integration keys. Includes an in-memory **10-second rate-limiting cooldown** to protect Notion API rates.
 - **Interactive Action Bar (`PreviewActionBar.tsx`):** A sleek glassmorphic floating controller rendered at the top of preview routes (e.g., `/agenda/preview/[slug]`). Admins can click a "Sync data" button to trigger manual Edge Cache invalidation, showing live edits instantly upon automatic reload.

@@ -235,6 +235,7 @@ const PaginationControl: React.FC<{
 
 interface FAQViewProps {
   initialEntries?: FAQEntry[];
+  initialCategories?: string[];
   value1?: string;
   value2?: string;
   value3?: string;
@@ -242,12 +243,22 @@ interface FAQViewProps {
 
 const FAQList: React.FC<FAQViewProps> = ({
   initialEntries,
+  initialCategories,
   value1: _value1,
   value2: _value2,
   value3: _value3,
 }) => {
   // State Management
   const [faqs, setFaqs] = useState<FAQEntry[]>(initialEntries || []);
+  const [categories, setCategories] = useState<string[]>(
+    initialCategories || [
+      "Pendaftaran",
+      "Kegiatan",
+      "Organisasi",
+      "Akademik",
+      "Lainnya",
+    ],
+  );
   const [isLoading, setIsLoading] = useState(!initialEntries);
   const [_isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -271,7 +282,7 @@ const FAQList: React.FC<FAQViewProps> = ({
   // Form State
   const [formData, setFormData] = useState<FAQFormData>({
     askerName: "",
-    category: "Lainnya",
+    category: initialCategories?.[0] || "Lainnya",
     question: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -371,6 +382,9 @@ const FAQList: React.FC<FAQViewProps> = ({
       const result = await response.json();
       if (result.success && Array.isArray(result.data)) {
         setFaqs(result.data);
+        if (Array.isArray(result.categories)) {
+          setCategories(result.categories);
+        }
         if (typeof window !== "undefined") {
           window.localStorage.setItem(
             "hima_faqs_cache",
@@ -608,14 +622,7 @@ const FAQList: React.FC<FAQViewProps> = ({
 
         {/* Category filtering tabs */}
         <div className="mt-6 flex flex-wrap gap-2">
-          {[
-            "Semua",
-            "Pendaftaran",
-            "Kegiatan",
-            "Organisasi",
-            "Akademik",
-            "Lainnya",
-          ].map((cat) => (
+          {["Semua", ...categories].map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -1077,36 +1084,15 @@ const FAQList: React.FC<FAQViewProps> = ({
                         className="focus:border-gold-500 w-full appearance-none border border-white/10 bg-stone-900/50 px-4 py-3 pr-10 text-xs text-stone-200 transition-colors focus:bg-stone-900 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         style={{ borderRadius: "var(--radius-action)" }}
                       >
-                        <option
-                          className="bg-[#111] text-neutral-300"
-                          value="Pendaftaran"
-                        >
-                          Pendaftaran (Oprec)
-                        </option>
-                        <option
-                          className="bg-[#111] text-neutral-300"
-                          value="Kegiatan"
-                        >
-                          Kegiatan / Event
-                        </option>
-                        <option
-                          className="bg-[#111] text-neutral-300"
-                          value="Organisasi"
-                        >
-                          Organisasi (HIMA)
-                        </option>
-                        <option
-                          className="bg-[#111] text-neutral-300"
-                          value="Akademik"
-                        >
-                          Akademik
-                        </option>
-                        <option
-                          className="bg-[#111] text-neutral-300"
-                          value="Lainnya"
-                        >
-                          Lainnya
-                        </option>
+                        {categories.map((cat) => (
+                          <option
+                            key={cat}
+                            className="bg-[#111] text-neutral-300"
+                            value={cat}
+                          >
+                            {cat}
+                          </option>
+                        ))}
                       </select>
                       <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
                         <IconChevronDown />

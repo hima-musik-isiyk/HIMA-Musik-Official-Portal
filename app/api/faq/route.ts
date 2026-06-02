@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { sendDiscordWebhook } from "@/lib/discord";
 import {
   createFAQEntry,
+  fetchFAQCategoriesCached,
   fetchFAQEntries,
   filterFAQVisibility,
 } from "@/lib/faq";
@@ -15,12 +16,16 @@ const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
 
 export async function GET() {
   try {
-    const rawEntries = await fetchFAQEntries();
+    const [rawEntries, categories] = await Promise.all([
+      fetchFAQEntries(),
+      fetchFAQCategoriesCached(),
+    ]);
     const visibleEntries = filterFAQVisibility(rawEntries);
 
     return NextResponse.json({
       success: true,
       data: visibleEntries,
+      categories,
     });
   } catch (error) {
     console.error("[FAQ API GET] Error:", error);
