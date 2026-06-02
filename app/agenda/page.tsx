@@ -3,8 +3,6 @@ import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
 import { fetchEventsCollection, fetchKKMGroups } from "@/lib/notion";
 import { fetchContainerCMSCached } from "@/lib/notion-builder";
 
-export const revalidate = 0;
-
 export default async function AgendaPage() {
   const [collection, kkmGroups, cmsData] = await Promise.all([
     fetchEventsCollection(),

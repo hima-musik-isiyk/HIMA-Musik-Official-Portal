@@ -5,8 +5,6 @@ import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
 import { fetchFAQEntries, filterFAQVisibility } from "@/lib/faq";
 import { fetchContainerCMSCached } from "@/lib/notion-builder";
 
-export const revalidate = 0;
-
 export const metadata: Metadata = {
   title: "FAQ & Tanya Jawab | HIMA Musik",
   description:

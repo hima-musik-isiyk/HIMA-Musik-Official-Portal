@@ -4,8 +4,6 @@ import React from "react";
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import { fetchArchiveById } from "@/lib/notion";
 
-export const revalidate = 0;
-
 interface ArchiveDetailRouteProps {
   params: Promise<{ id: string }>;
 }

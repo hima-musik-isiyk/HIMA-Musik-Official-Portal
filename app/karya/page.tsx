@@ -3,8 +3,6 @@ import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
 import { fetchKaryaEntries } from "@/lib/notion";
 import { fetchContainerCMSCached } from "@/lib/notion-builder";
 
-export const revalidate = 0;
-
 export default async function KaryaPage() {
   const [entries, cmsData] = await Promise.all([
     fetchKaryaEntries(),

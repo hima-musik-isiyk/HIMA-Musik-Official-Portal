@@ -1,3 +1,5 @@
+import { unstable_cache as next_unstable_cache } from "next/cache";
+
 import {
   fetchPageChildDatabases,
   fetchPageDatabases,
@@ -6,14 +8,23 @@ import {
   resolveDataSourceIdSafe,
 } from "./notion";
 
-// Custom cache wrapper to bypass cache when needed
+// Custom cache wrapper to leverage native caching
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   cb: T,
-  _keyParts?: string[],
-  _options?: { revalidate?: number | false; tags?: string[] },
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] },
 ): T {
-  return cb;
+  if (process.env.NODE_ENV !== "production") {
+    return next_unstable_cache(cb, keyParts, {
+      ...options,
+      revalidate: 1,
+    });
+  }
+  return next_unstable_cache(cb, keyParts, {
+    ...options,
+    revalidate: options?.revalidate ?? false,
+  });
 }
 
 export interface CMSVariable {

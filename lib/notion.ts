@@ -1,5 +1,11 @@
 import { Client } from "@notionhq/client";
 import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+// Custom cache wrapper with environment-aware revalidation strategy:
+// - Development: 1 second → instant page reloads when editing Notion locally.
+// - Production:  false (never expire by timer) → pages are served from cache
+//   indefinitely and rely 100% on Notion webhook on-demand revalidation for
+//   instant updates. This is the fastest possible architecture.
+import { unstable_cache as next_unstable_cache } from "next/cache";
 import { cache } from "react";
 
 // Custom cache wrapper with environment-aware revalidation strategy:
@@ -10,11 +16,21 @@ import { cache } from "react";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   cb: T,
-  _keyParts?: string[],
-  _options?: { revalidate?: number | false; tags?: string[] },
+  keyParts?: string[],
+  options?: { revalidate?: number | false; tags?: string[] },
 ): T {
-  // Bypass all caching to fetch the absolute latest data from Notion directly and instantaneously
-  return cb;
+  if (process.env.NODE_ENV !== "production") {
+    // In development, cache for 1 second so we get instant updates
+    return next_unstable_cache(cb, keyParts, {
+      ...options,
+      revalidate: 1,
+    });
+  }
+  // In production, keep cached indefinitely until revalidated via webhook tag/path
+  return next_unstable_cache(cb, keyParts, {
+    ...options,
+    revalidate: options?.revalidate ?? false,
+  });
 }
 
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";

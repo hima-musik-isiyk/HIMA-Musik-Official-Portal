@@ -5,8 +5,6 @@ import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
 import { fetchKKMModularDataCached } from "@/lib/notion";
 import { fetchContainerCMSCached } from "@/lib/notion-builder";
 
-export const revalidate = 0;
-
 export default async function KKMPage() {
   const pageId = process.env.NOTION_KKM_PAGE_ID || "";
   const [data, cmsData] = await Promise.all([

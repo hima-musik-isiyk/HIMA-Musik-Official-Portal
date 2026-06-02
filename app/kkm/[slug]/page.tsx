@@ -4,8 +4,6 @@ import React from "react";
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import { fetchKKMEntryBySlug } from "@/lib/notion";
 
-export const revalidate = 0;
-
 interface KKMDetailProps {
   params: Promise<{ slug: string }>;
 }

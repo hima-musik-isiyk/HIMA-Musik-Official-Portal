@@ -4,8 +4,6 @@ import React from "react";
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import { fetchEventBySlug } from "@/lib/notion";
 
-export const revalidate = 0;
-
 interface EventDetailRouteProps {
   params: Promise<{ slug: string }>;
 }

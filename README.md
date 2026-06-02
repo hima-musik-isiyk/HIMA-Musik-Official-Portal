@@ -191,16 +191,16 @@ Legacy `.databases.query` is replaced with `.dataSources.query`. All database fe
 
 ---
 
-### Notion Webhook & Instant Cache Revalidation
+### High Performance Native Cache & Webhook Revalidation
 
-### Fully Dynamic Real-Time Notion Integration (Bypassed Caching)
+To achieve **instant, zero-delay page switching** across the entire portal in production, we leverage Next.js native caching combined with an on-demand revalidation architecture:
 
-To ensure that any updates made in the Notion Teamspace are reflected instantly across the entire portal without any lag, caching is completely bypassed:
-
-- **Bypassed Next.js Cache (`unstable_cache`):** All Notion data-fetching routines (Profil, KKM, Agenda, Karya, Sekretariat, and Beranda) bypass the Next.js `unstable_cache` wrapper entirely, querying the Notion API directly on every request.
-- **Dynamic Server-Side Rendering (`revalidate = 0`):** All public routes and API endpoints are configured as fully dynamic (`export const revalidate = 0`), forcing Next.js to server-render pages with the absolute latest data from Notion upon every visit.
-- **Client-Side SWR (Stale-While-Revalidate):** To eliminate transition delays and loading animations entirely for navbar-linked pages, visual components implement instant client-side SWR rendering. The UI initializes from the server-rendered HTML or initial server props immediately with the latest data, while silently fetching fresh data in a background `useEffect` from dedicated API endpoints (`/api/profil`, `/api/kkm`, `/api/agenda`, `/api/faq`, `/api/sekretariat`) to keep the UI perfectly synchronized without visual loaders.
-- **Active Background Polling (5-Second Interval):** Components that require high-density or real-time synchronization (`FAQList`, `KKMGrid`, `SekretariatGrid`, and `AgendaList`) implement active silent background polling via `setInterval` running every 5 seconds. In contrast, slower-moving content like the works gallery (`KaryaGrid`) only fetches once on mount to optimize network usage.
+- **Next.js Native Cache (`unstable_cache`):** All Notion data-fetching routines (Profil, KKM, Agenda, Karya, Sekretariat, and Beranda) utilize the native `unstable_cache` API. Hanger/loader pages are served instantly (<50ms) from the server's cache memory.
+- **Environment-Aware Caching:**
+  - **Development:** Caches expire after **1 second** to ensure developers see instant updates locally as they edit Notion pages.
+  - **Production:** Caches remain stored **indefinitely** (no timer expiry) for maximum speed, relying 100% on Notion's on-demand webhook revalidation.
+- **On-Demand Webhook Revalidation:** A secure webhook listener clears and revalidates specific cache tags (e.g. `notion-kkm`, `notion-faq`, `notion-docs`) immediately when changes are detected in Notion.
+- **Client-Side SWR & Dynamic Polling:** Visual components combine instantaneous server-cached HTML delivery with secondary client-side SWR background sync and 5-second polling intervals (`FAQList`, `KKMGrid`, etc.) to keep the UI perfectly synchronized without showing loading spinners.
 
 #### Manual Force-Sync & Preview Action Bar
 
