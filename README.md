@@ -207,7 +207,7 @@ To achieve **instant, zero-delay page switching** across the entire portal in pr
 - **Snappy Micro-Animations & transitions:** Transition layers (such as the full-screen expanding circle and mobile menu close timeline) are optimized to run swiftly (under 0.4s), removing visual switching latency and making transitions feel highly responsive.
 - **Hybrid Caching & Revalidation Strategy:**
   - **Development:** Caches expire after **1 second** to ensure developers see instant updates locally as they edit Notion pages.
-  - **Production Cache Cap:** Cache lifespans are capped at a maximum of **5 seconds** (using stale-while-revalidate), guaranteeing rapid and frequent background revalidation to keep Notion content highly updated.
+  - **Production Caching:** Caches respect their highly-optimized configured `revalidate` intervals (or remain cached indefinitely for layout/structural metadata), keeping server response times exceptionally low (<50ms) and page-switching instantaneous.
   - **Dynamic Cache-Bypass on Reload:** Detects standard browser hard-reloads or page refreshes (via `cache-control: no-cache` or `pragma: no-cache` headers) and completely bypasses the cache to fetch real-time, absolute fresh data directly from the Notion API.
   - **Page-to-Page Switching:** Normal client-side switching remains fully cached and instant (<50ms).
 - **Client-Side SWR & Dynamic Polling:** All major interactive component registries (`FAQList`, `KaryaGrid`, `AgendaList`, `SekretariatGrid`, and `KKMGrid`) combine instantaneous server-cached HTML delivery with secondary client-side SWR background sync and active 5-second background polling intervals to keep the UI perfectly synchronized with Notion without showing loading spinners or blocking fast page-switching.

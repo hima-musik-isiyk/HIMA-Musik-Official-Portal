@@ -21,13 +21,7 @@ function unstable_cache<T extends (...args: any[]) => Promise<any>>(
   options?: { revalidate?: number | false; tags?: string[] },
 ): T {
   const revalVal =
-    process.env.NODE_ENV !== "production"
-      ? 1
-      : options?.revalidate !== undefined
-        ? options.revalidate === false
-          ? 5
-          : Math.min(options.revalidate, 5)
-        : 5;
+    process.env.NODE_ENV !== "production" ? 1 : (options?.revalidate ?? false);
 
   const cachedFn = next_unstable_cache(cb, keyParts, {
     ...options,
