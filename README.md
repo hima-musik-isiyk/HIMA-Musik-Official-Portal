@@ -181,6 +181,13 @@ To ensure modular background decorations and light pillars (e.g., `<BerandaTempA
 
 This architecture entirely replaces hardcoded page views, routing all static routes (e.g. `/`, `/profil`, `/aduan`) through the universal `<PageBuilder slug="..." />` component.
 
+### Navigation-Based Route Restrictions
+
+To provide dynamic route control directly from Notion:
+
+- **Tampilkan Di Navbar / Show In Nav**: If this checkbox property is set to off or `false` in Notion for any page, both the page route (e.g., `/faq`) and all of its nested child paths/sub-routes (e.g., `/faq/some-child`) will be automatically restricted.
+- **404 Fail-Safe**: Trying to access a restricted path will instantly trigger a Next.js 404 (`notFound()`) boundary.
+
 ---
 
 ### Notion Data Sources Alignment (SDK v5.22.0)

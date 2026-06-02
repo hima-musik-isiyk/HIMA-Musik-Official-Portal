@@ -72,7 +72,20 @@ export const PageBuilder: React.FC<PageBuilderProps> = async ({
       ? createOverridePage(pathname, overrideComponent)
       : findCmsPageForPath(cmsData.pages, pathname));
 
-  if (!page) {
+  // Block route and its children if corresponding CMS page has showInNav === false
+  const normalizedPathname = normalizeCmsSlug(pathname);
+  const isBlocked = cmsData.pages.some((p) => {
+    if (p.showInNav) return false;
+    const pageSlug = normalizeCmsSlug(p.slug || "");
+    if (!pageSlug || pageSlug === "/") return false;
+
+    return (
+      normalizedPathname === pageSlug ||
+      normalizedPathname.startsWith(`${pageSlug}/`)
+    );
+  });
+
+  if (isBlocked || !page) {
     return notFound();
   }
 

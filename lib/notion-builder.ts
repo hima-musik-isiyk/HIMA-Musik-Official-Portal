@@ -389,7 +389,9 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
       name: getTitle(p, "Name"),
       slug: getRichText(p, "Slug"),
       type: getSelect(p, "Tipe"),
-      showInNav: getCheckbox(p, "Show In Nav", true),
+      showInNav:
+        getCheckbox(p, "Show In Nav", true) &&
+        getCheckbox(p, "Tampilkan Di Navbar", true),
       urutan: getRichText(p, "Urutan"),
       showFooter: getCheckbox(p, "Show Footer", true),
       sections: pSections,
