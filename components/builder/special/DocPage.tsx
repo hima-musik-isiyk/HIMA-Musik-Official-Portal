@@ -8,7 +8,8 @@ import TableOfContents from "@/components/TableOfContents";
 import type { DocMeta, NotionBlock } from "@/lib/notion-shared";
 
 interface DocPageViewProps {
-  meta: DocMeta;
+  meta?: DocMeta;
+  doc?: DocMeta;
   blocks: NotionBlock[];
   sectionHref?: string;
   sectionLabel?: string;
@@ -19,7 +20,8 @@ interface DocPageViewProps {
 }
 
 export default function DocPage({
-  meta,
+  meta: propMeta,
+  doc,
   blocks,
   sectionHref = "/sekretariat",
   sectionLabel = "Sekretariat",
@@ -28,6 +30,10 @@ export default function DocPage({
   contentBasePath = "/sekretariat",
   citationScope = "sekretariat",
 }: DocPageViewProps) {
+  const meta = propMeta || doc;
+  if (!meta) {
+    throw new Error("DocPage: meta or doc prop is required");
+  }
   const headings = extractHeadings(blocks);
 
   const formattedDate = meta.lastEdited

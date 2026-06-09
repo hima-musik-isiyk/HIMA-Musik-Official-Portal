@@ -18,7 +18,15 @@ export default async function KKMDetailPage({ params }: KKMDetailProps) {
     <PageBuilder
       overrideComponent="Doc Page"
       injectedProps={{
-        "Doc Page": { doc: result.meta, blocks: result.blocks },
+        "Doc Page": {
+          doc: result.meta,
+          blocks: result.blocks,
+          sectionHref: "/kkm",
+          sectionLabel: "KKM",
+          showCategory: false,
+          contentBasePath: "/kkm",
+          citationScope: "kkm",
+        },
       }}
     />
   );

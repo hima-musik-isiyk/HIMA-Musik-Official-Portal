@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import React from "react";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
-import { fetchEventBySlug } from "@/lib/notion";
+import { fetchEventBySlug, fetchKKMGroups } from "@/lib/notion";
 
 interface EventDetailRouteProps {
   params: Promise<{ slug: string }>;
@@ -16,7 +16,16 @@ export default async function EventDetailRepostRoute({
 
   if (!result) return notFound();
 
-  const kkmHref = "/agenda";
+  let kkmHref = "/agenda";
+  if (result.meta.ownerUnit) {
+    const kkmGroups = await fetchKKMGroups();
+    const matched = kkmGroups.find(
+      (g) => g.name.toLowerCase() === result.meta.ownerUnit?.toLowerCase(),
+    );
+    if (matched) {
+      kkmHref = `/kkm/${matched.slug}`;
+    }
+  }
 
   // Treat as active for the repost view to bypass draft indicators
   const forcedMeta = { ...result.meta, status: "Active" };

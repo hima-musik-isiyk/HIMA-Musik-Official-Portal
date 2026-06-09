@@ -3,7 +3,7 @@ import React from "react";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import PreviewActionBar from "@/components/PreviewActionBar";
-import { fetchEventBySlug } from "@/lib/notion";
+import { fetchEventBySlug, fetchKKMGroups } from "@/lib/notion";
 
 export const revalidate = 0;
 
@@ -19,7 +19,16 @@ export default async function EventDetailPreviewRoute({
 
   if (!result) return notFound();
 
-  const kkmHref = "/agenda";
+  let kkmHref = "/agenda";
+  if (result.meta.ownerUnit) {
+    const kkmGroups = await fetchKKMGroups();
+    const matched = kkmGroups.find(
+      (g) => g.name.toLowerCase() === result.meta.ownerUnit?.toLowerCase(),
+    );
+    if (matched) {
+      kkmHref = `/kkm/${matched.slug}`;
+    }
+  }
 
   return (
     <>
