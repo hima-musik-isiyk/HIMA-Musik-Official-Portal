@@ -13,10 +13,8 @@ export async function POST(request: Request) {
     const body = await request
       .json()
       .catch(() => ({}) as Record<string, unknown>);
-    const { intent, name, nim, category, message } = body as Record<
-      string,
-      unknown
-    >;
+    const { intent, name, nim, category, categoryName, message, storageDbId } =
+      body as Record<string, unknown>;
 
     if (intent !== "submit-aduan") {
       return NextResponse.json(
@@ -25,9 +23,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "Nama wajib diisi" }, { status: 400 });
+    }
+
+    if (!nim || typeof nim !== "string" || !nim.trim()) {
+      return NextResponse.json({ error: "NIM wajib diisi" }, { status: 400 });
+    }
+
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json(
-        { error: "Message is required" },
+        { error: "Pesan tidak boleh kosong." },
         { status: 400 },
       );
     }
@@ -35,9 +41,9 @@ export async function POST(request: Request) {
     const webhookUrl = process.env.DISCORD_ADUAN_WEBHOOK_URL;
     const aduanPageId = process.env.NOTION_ADUAN_PAGE_ID;
 
-    if (!webhookUrl || !aduanPageId) {
+    if (!webhookUrl || (!aduanPageId && !storageDbId)) {
       console.error(
-        "Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL or NOTION_ADUAN_PAGE_ID",
+        "Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL or NOTION_ADUAN_PAGE_ID/storageDbId",
       );
       return NextResponse.json(
         { error: "Server misconfiguration: Missing env variables" },
@@ -53,7 +59,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const activeDbId = await fetchAduanDatabaseIdCached(aduanPageId);
+    const activeDbId =
+      typeof storageDbId === "string" && storageDbId
+        ? storageDbId
+        : await fetchAduanDatabaseIdCached(aduanPageId || "");
+
     if (!activeDbId) {
       console.error(
         "Failed to resolve Aduan Database ID from parent page:",
@@ -91,7 +101,11 @@ export async function POST(request: Request) {
     const safeName = typeof name === "string" && name.trim() ? name : "Anonim";
     const safeNim = typeof nim === "string" && nim.trim() ? nim : "-";
     const safeCategory =
-      typeof category === "string" && category.trim() ? category : "Umum";
+      typeof category === "string" && category.trim() ? category : "";
+    const safeCategoryName =
+      typeof categoryName === "string" && categoryName.trim()
+        ? categoryName
+        : "Umum";
     const safeMessage = message.trim();
 
     const payload = {
@@ -106,7 +120,11 @@ export async function POST(request: Request) {
           fields: [
             { name: "Nama", value: truncate(safeName), inline: true },
             { name: "NIM", value: truncate(safeNim), inline: true },
-            { name: "Kategori", value: truncate(safeCategory), inline: true },
+            {
+              name: "Kategori",
+              value: truncate(safeCategoryName),
+              inline: true,
+            },
           ],
           footer: { text: "HIMA Musik Official Portal" },
         },
@@ -133,6 +151,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const isRelation =
+      typeof safeCategory === "string" &&
+      (safeCategory.length === 36 || safeCategory.length === 32);
+
     try {
       await notion.pages.create({
         parent: parentObj,
@@ -143,9 +165,13 @@ export async function POST(request: Request) {
           NIM: {
             rich_text: [{ text: { content: safeNim } }],
           },
-          Kategori: {
-            rich_text: [{ text: { content: safeCategory } }],
-          },
+          Kategori: isRelation
+            ? {
+                relation: [{ id: safeCategory }],
+              }
+            : {
+                rich_text: [{ text: { content: safeCategory || "Umum" } }],
+              },
           Pesan: {
             rich_text: [{ text: { content: safeMessage } }],
           },

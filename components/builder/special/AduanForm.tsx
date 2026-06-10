@@ -23,7 +23,27 @@ const STORAGE_KEY = "aduan_form_state_v1";
 const MAX_HISTORY_LENGTH = 10;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-export const AduanForm: React.FC = () => {
+type AduanFormProps = {
+  value1?: string; // Database ID Storage
+  value2?: string; // Database ID Kategori
+};
+
+export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  const fallbackCategories = [
+    { id: "Akademik", name: "Akademik" },
+    { id: "Fasilitas", name: "Fasilitas Kampus" },
+    { id: "Organisasi", name: "Internal Organisasi" },
+    { id: "Lainnya", name: "Lainnya" },
+  ];
+
+  const activeCategoriesList =
+    categories.length > 0 ? categories : fallbackCategories;
+
   const [formData, setFormData] = useState<AduanFormData>({
     name: "",
     nim: "",
@@ -43,6 +63,37 @@ export const AduanForm: React.FC = () => {
   const [hasTouchedForm, setHasTouchedForm] = useState(false);
   const [messageHistory, setMessageHistory] = useState<string[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!value2) return;
+
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const res = await fetch(`/api/aduan-categories?dbId=${value2}`);
+        if (!res.ok) throw new Error("Gagal mengambil kategori");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.categories)) {
+          setCategories(json.categories);
+          setFormData((prev) => {
+            const hasValidDynamic = json.categories.some(
+              (c: { id: string }) => c.id === prev.category,
+            );
+            if (!hasValidDynamic && json.categories.length > 0) {
+              return { ...prev, category: json.categories[0].id };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load aduan categories:", err);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [value2]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -69,13 +120,13 @@ export const AduanForm: React.FC = () => {
         return;
       }
 
-      const validCategories = [
-        "Akademik",
-        "Fasilitas",
-        "Organisasi",
-        "Lainnya",
-      ];
-      const isValidCategory = validCategories.includes(data.category);
+      const isValidCategory =
+        typeof data.category === "string" &&
+        (data.category.length === 36 ||
+          data.category.length === 32 ||
+          ["Akademik", "Fasilitas", "Organisasi", "Lainnya"].includes(
+            data.category,
+          ));
 
       if (
         typeof data.name !== "string" ||
@@ -181,7 +232,7 @@ export const AduanForm: React.FC = () => {
     setFormData({
       name: "",
       nim: "",
-      category: "Akademik",
+      category: activeCategoriesList[0]?.id || "Akademik",
       message: "",
     });
     setMessageHistory([]);
@@ -281,6 +332,11 @@ export const AduanForm: React.FC = () => {
     setSubmitError(null);
     setAutoSaveStatus("saving");
 
+    const selectedCat = activeCategoriesList.find(
+      (c) => c.id === formData.category,
+    );
+    const categoryName = selectedCat ? selectedCat.name : formData.category;
+
     try {
       const response = await fetch("/api/submit", {
         method: "POST",
@@ -289,6 +345,8 @@ export const AduanForm: React.FC = () => {
         },
         body: JSON.stringify({
           ...formData,
+          categoryName,
+          storageDbId: value1,
           intent: "submit-aduan",
         }),
       });
@@ -336,10 +394,8 @@ export const AduanForm: React.FC = () => {
         setSubmitError(
           "Gagal mengarsipkan laporan ke Notion. Coba lagi dalam beberapa saat.",
         );
-      } else if (errorMsg.includes("Message is required")) {
-        setSubmitError("Pesan tidak boleh kosong.");
       } else {
-        setSubmitError("Gagal mengirim laporan. Silakan coba lagi.");
+        setSubmitError(errorMsg);
       }
     } finally {
       setIsSubmitting(false);
@@ -401,7 +457,7 @@ export const AduanForm: React.FC = () => {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
           <div className="group relative">
             <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
-              Nama (Opsional)
+              Nama <span className="text-gold-500">*</span>
             </label>
             <input
               type="text"
@@ -409,14 +465,15 @@ export const AduanForm: React.FC = () => {
               value={formData.name}
               onChange={handleChange}
               disabled={isSubmitting}
+              required
               className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{ borderRadius: "var(--radius-action)" }}
-              placeholder="Anonim"
+              placeholder="Nama Lengkap"
             />
           </div>
           <div className="group relative">
             <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
-              NIM (Opsional)
+              NIM <span className="text-gold-500">*</span>
             </label>
             <input
               type="text"
@@ -424,41 +481,40 @@ export const AduanForm: React.FC = () => {
               value={formData.nim}
               onChange={handleChange}
               disabled={isSubmitting}
+              required
               className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{ borderRadius: "var(--radius-action)" }}
-              placeholder="12345678"
+              placeholder="NIM Anda"
             />
             <p className="mt-2 text-sm text-neutral-500">
-              Identitas Anda dijamin rahasia.
+              Data Anda kami jamin kerahasiaannya.
             </p>
           </div>
         </div>
 
         <div className="group relative">
           <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
-            Kategori
+            Kategori <span className="text-gold-500">*</span>
           </label>
           <div className="relative">
             <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              disabled={isSubmitting}
+              disabled={isSubmitting || categoriesLoading}
+              required
               className="focus:border-gold-500 focus:ring-gold-500 w-full appearance-none border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{ borderRadius: "var(--radius-action)" }}
             >
-              <option className="bg-[#111] text-neutral-300" value="Akademik">
-                Akademik
-              </option>
-              <option className="bg-[#111] text-neutral-300" value="Fasilitas">
-                Fasilitas Kampus
-              </option>
-              <option className="bg-[#111] text-neutral-300" value="Organisasi">
-                Internal Organisasi
-              </option>
-              <option className="bg-[#111] text-neutral-300" value="Lainnya">
-                Lainnya
-              </option>
+              {activeCategoriesList.map((cat) => (
+                <option
+                  key={cat.id}
+                  className="bg-[#111] text-neutral-300"
+                  value={cat.id}
+                >
+                  {cat.name}
+                </option>
+              ))}
             </select>
             <div className="text-gold-500/60 group-focus-within:text-gold-300 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
               <IconChevronDown />
@@ -468,7 +524,7 @@ export const AduanForm: React.FC = () => {
 
         <div className="group relative">
           <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
-            Pesan
+            Pesan <span className="text-gold-500">*</span>
           </label>
           <textarea
             name="message"
