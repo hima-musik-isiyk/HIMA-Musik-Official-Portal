@@ -27,7 +27,7 @@ function unstable_cache<T extends (...args: any[]) => Promise<any>>(
     revalidate: revalVal,
   });
 
-  return (async (...args: any[]) => {
+  return (async (...args: Parameters<T>) => {
     try {
       const { headers } = await import("next/headers");
       const reqHeaders = await headers();
@@ -526,11 +526,6 @@ export async function resolveDataSourceIdSafe(
   }
 }
 
-interface PageDatabases {
-  childDatabases: string[];
-  mentionedDatabases: string[];
-}
-
 export interface ChildDatabaseRef {
   id: string;
   title: string;
@@ -605,10 +600,10 @@ export async function fetchPageChildDatabases(
 
 export async function fetchPageDatabases(
   pageId: string,
-): Promise<PageDatabases> {
-  const result: PageDatabases = {
-    childDatabases: [],
-    mentionedDatabases: [],
+): Promise<{ childDatabases: string[]; mentionedDatabases: string[] }> {
+  const result = {
+    childDatabases: [] as string[],
+    mentionedDatabases: [] as string[],
   };
 
   if (!pageId) return result;
@@ -647,7 +642,7 @@ export async function fetchPageDatabases(
       }
     }
   } catch (error) {
-    console.error(
+    console.warn(
       `[Notion fetchPageDatabases] Failed for page ${pageId}:`,
       error,
     );
@@ -2649,6 +2644,23 @@ export const fetchRedirectDatabaseIdCached = unstable_cache(
 
 export const fetchRedirects = unstable_cache(
   async (): Promise<RedirectEntry[]> => {
+    try {
+      const { fetchContainerCMSCached } = await import("./notion-builder");
+      const cms = await fetchContainerCMSCached();
+      if (cms.redirects && cms.redirects.length > 0) {
+        return cms.redirects
+          .map((r) => ({
+            id: r.id,
+            name: r.name,
+            sourcePath: r.modified.trim(),
+            destinationUrl: r.destinationUrl.trim(),
+          }))
+          .filter((entry) => entry.sourcePath && entry.destinationUrl);
+      }
+    } catch (e) {
+      console.warn("[Notion fetchRedirects] CMS redirect fetch failed:", e);
+    }
+
     const pageId = process.env.NOTION_REDIRECT_PAGE_ID;
     if (!pageId) return [];
 

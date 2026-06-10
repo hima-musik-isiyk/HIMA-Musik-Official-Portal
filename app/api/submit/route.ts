@@ -89,14 +89,24 @@ export async function POST(request: Request) {
     let parentObj: Parameters<typeof notion.pages.create>[0]["parent"] = {
       database_id: activeDbId,
     };
+    let isDbPropRelation = false;
+    let isDbPropSelect = false;
     try {
-      const dbInfo = await notion.databases.retrieve({
+      const dbInfo = (await notion.databases.retrieve({
         database_id: activeDbId,
-      });
-      const dataSourceId = (dbInfo as { data_sources?: { id: string }[] })
-        .data_sources?.[0]?.id;
+      })) as {
+        data_sources?: { id: string }[];
+        properties?: Record<string, { type: string }>;
+      };
+      const dataSourceId = dbInfo.data_sources?.[0]?.id;
       if (dataSourceId) {
         parentObj = { data_source_id: dataSourceId };
+      }
+      const catProp =
+        dbInfo.properties?.["Kategori"] || dbInfo.properties?.["kategori"];
+      if (catProp) {
+        isDbPropRelation = catProp.type === "relation";
+        isDbPropSelect = catProp.type === "select";
       }
     } catch (e) {
       console.warn(
@@ -165,36 +175,55 @@ export async function POST(request: Request) {
       typeof safeCategory === "string" &&
       (safeCategory.length === 36 || safeCategory.length === 32);
 
+    const pageProps: Record<string, unknown> = {
+      Nama: {
+        title: [{ text: { content: safeName } }],
+      },
+      NIM: {
+        rich_text: [{ text: { content: safeNim } }],
+      },
+      "Kontak Pengadu": {
+        rich_text: [{ text: { content: safeContact } }],
+      },
+      Pesan: {
+        rich_text: [{ text: { content: safeMessage } }],
+      },
+      Status: {
+        status: { name: "Masuk" },
+      },
+    };
+
+    if (isDbPropRelation && isRelation) {
+      pageProps.Kategori = { relation: [{ id: safeCategory }] };
+    } else if (!isDbPropRelation && isDbPropSelect) {
+      pageProps.Kategori = { select: { name: safeCategoryName } };
+    } else if (!isDbPropRelation && !isRelation) {
+      pageProps.Kategori = {
+        rich_text: [{ text: { content: safeCategory || "Umum" } }],
+      };
+    }
+
     try {
+      console.warn(
+        "[Notion Submit] Creating page with parent:",
+        parentObj,
+        "Props:",
+        JSON.stringify(pageProps),
+      );
       await notion.pages.create({
         parent: parentObj,
-        properties: {
-          Nama: {
-            title: [{ text: { content: safeName } }],
-          },
-          NIM: {
-            rich_text: [{ text: { content: safeNim } }],
-          },
-          "Kontak Pengadu": {
-            rich_text: [{ text: { content: safeContact } }],
-          },
-          Kategori: isRelation
-            ? {
-                relation: [{ id: safeCategory }],
-              }
-            : {
-                rich_text: [{ text: { content: safeCategory || "Umum" } }],
-              },
-          Pesan: {
-            rich_text: [{ text: { content: safeMessage } }],
-          },
-          Status: {
-            status: { name: "Masuk" },
-          },
-        } as Parameters<typeof notion.pages.create>[0]["properties"],
+        properties: pageProps as Parameters<
+          typeof notion.pages.create
+        >[0]["properties"],
       });
-    } catch (notionError) {
-      console.error("Notion API Error for Aduan:", notionError);
+    } catch (notionError: unknown) {
+      const errorMsg =
+        typeof notionError === "object" &&
+        notionError !== null &&
+        "body" in notionError
+          ? (notionError as { body: unknown }).body
+          : notionError;
+      console.error("Notion API Error for Aduan:", errorMsg);
       return NextResponse.json(
         {
           error: "Failed to archive to Notion",
