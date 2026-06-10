@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { calendar } from "@/lib/googleCalendar";
+import { getCalendar } from "@/lib/googleCalendar";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -148,6 +148,7 @@ export async function POST(req: NextRequest) {
           `[Notion Calendar Webhook] Inserting new event into calendar...`,
           JSON.stringify(eventBody),
         );
+        const calendar = getCalendar();
         const res = await calendar.events.insert({
           calendarId,
           requestBody: eventBody,
@@ -168,6 +169,7 @@ export async function POST(req: NextRequest) {
           `[Notion Calendar Webhook] Patching existing event ${calId}...`,
           JSON.stringify(eventBody),
         );
+        const calendar = getCalendar();
         const res = await calendar.events.patch({
           calendarId,
           eventId: calId,
@@ -188,6 +190,7 @@ export async function POST(req: NextRequest) {
         );
       }
       // DELETE
+      const calendar = getCalendar();
       await calendar.events.delete({
         calendarId,
         eventId: calId,
