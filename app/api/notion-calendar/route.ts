@@ -13,12 +13,22 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-async function resolveAttendeeEmails(
-  relationItems: { id: string }[],
-): Promise<string[]> {
+async function resolveAttendeeEmails(items: any[]): Promise<string[]> {
   const emails: string[] = [];
-  for (const item of relationItems) {
-    const res = await fetch(`https://api.notion.com/v1/pages/${item.id}`, {
+  for (const item of items) {
+    let targetId = null;
+    if (item.type === "mention" && item.mention) {
+      targetId =
+        item.mention.page?.id ||
+        item.mention.database?.id ||
+        item.mention.user?.id;
+    } else if (item.id) {
+      targetId = item.id;
+    }
+
+    if (!targetId) continue;
+
+    const res = await fetch(`https://api.notion.com/v1/pages/${targetId}`, {
       headers: {
         Authorization: `Bearer ${process.env.NOTION_INTEGRATION_TOKEN}`,
         "Notion-Version": "2022-06-28",
@@ -87,7 +97,10 @@ export async function POST(req: NextRequest) {
     const jadwal = props["Jadwal"]?.date;
     const lokasi = props["Lokasi Pertemuan"]?.rich_text?.[0]?.plain_text ?? "";
     const calId = props["Calendar Event ID"]?.rich_text?.[0]?.plain_text ?? "";
-    const undangan = props["(AUT) Daftar Undangan"]?.relation ?? [];
+    const undangan =
+      props["(AUT) Daftar Undangan"]?.rich_text ??
+      props["(AUT) Daftar Undangan"]?.relation ??
+      [];
 
     const startDateTime = jadwal?.start;
     if (!startDateTime) {
