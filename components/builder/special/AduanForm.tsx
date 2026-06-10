@@ -7,6 +7,7 @@ import { IconChevronDown } from "@/components/Icons";
 type AduanFormData = {
   name: string;
   nim: string;
+  contact: string;
   category: string;
   message: string;
 };
@@ -47,6 +48,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
   const [formData, setFormData] = useState<AduanFormData>({
     name: "",
     nim: "",
+    contact: "",
     category: "Akademik",
     message: "",
   });
@@ -132,6 +134,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
         typeof data.name !== "string" ||
         typeof data.nim !== "string" ||
         typeof data.message !== "string" ||
+        (data.contact !== undefined && typeof data.contact !== "string") ||
         !isValidCategory
       ) {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -141,6 +144,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
       setFormData({
         name: data.name,
         nim: data.nim,
+        contact: data.contact || "",
         category: data.category,
         message: data.message,
       });
@@ -232,6 +236,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
     setFormData({
       name: "",
       nim: "",
+      contact: "",
       category: activeCategoriesList[0]?.id || "Akademik",
       message: "",
     });
@@ -430,7 +435,8 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
             setFormData({
               name: "",
               nim: "",
-              category: "Akademik",
+              contact: "",
+              category: activeCategoriesList[0]?.id || "Akademik",
               message: "",
             });
             setSubmitError(null);
@@ -457,7 +463,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
           <div className="group relative">
             <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
-              Nama <span className="text-gold-500">*</span>
+              Nama (Opsional)
             </label>
             <input
               type="text"
@@ -465,15 +471,14 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
               value={formData.name}
               onChange={handleChange}
               disabled={isSubmitting}
-              required
               className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{ borderRadius: "var(--radius-action)" }}
-              placeholder="Nama Lengkap"
+              placeholder="Nama Lengkap (kosongkan jika anonim)"
             />
           </div>
           <div className="group relative">
             <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
-              NIM <span className="text-gold-500">*</span>
+              NIM (Opsional)
             </label>
             <input
               type="text"
@@ -481,15 +486,31 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
               value={formData.nim}
               onChange={handleChange}
               disabled={isSubmitting}
-              required
               className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{ borderRadius: "var(--radius-action)" }}
-              placeholder="NIM Anda"
+              placeholder="NIM Anda (jika mahasiswa)"
             />
-            <p className="mt-2 text-sm text-neutral-500">
-              Data Anda kami jamin kerahasiaannya.
-            </p>
           </div>
+        </div>
+
+        <div className="group relative">
+          <label className="group-focus-within:text-gold-300 mb-3 block text-sm font-medium text-neutral-300 transition-colors duration-500">
+            Kontak Pengadu <span className="text-gold-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="contact"
+            value={formData.contact}
+            onChange={handleChange}
+            disabled={isSubmitting}
+            required
+            className="focus:border-gold-500 focus:ring-gold-500 w-full border border-white/10 bg-[#1a1a1a] px-4 py-3 text-base text-neutral-200 placeholder-neutral-500 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ borderRadius: "var(--radius-action)" }}
+            placeholder="Nomor WA / Email / Media Sosial yang aktif"
+          />
+          <p className="mt-2 text-sm text-neutral-500">
+            Data Anda kami jamin kerahasiaannya.
+          </p>
         </div>
 
         <div className="group relative">

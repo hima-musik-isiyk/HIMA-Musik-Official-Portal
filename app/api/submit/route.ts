@@ -13,8 +13,16 @@ export async function POST(request: Request) {
     const body = await request
       .json()
       .catch(() => ({}) as Record<string, unknown>);
-    const { intent, name, nim, category, categoryName, message, storageDbId } =
-      body as Record<string, unknown>;
+    const {
+      intent,
+      name,
+      nim,
+      contact,
+      category,
+      categoryName,
+      message,
+      storageDbId,
+    } = body as Record<string, unknown>;
 
     if (intent !== "submit-aduan") {
       return NextResponse.json(
@@ -23,12 +31,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "Nama wajib diisi" }, { status: 400 });
-    }
-
-    if (!nim || typeof nim !== "string" || !nim.trim()) {
-      return NextResponse.json({ error: "NIM wajib diisi" }, { status: 400 });
+    if (!contact || typeof contact !== "string" || !contact.trim()) {
+      return NextResponse.json(
+        { error: "Kontak Pengadu wajib diisi" },
+        { status: 400 },
+      );
     }
 
     if (!message || typeof message !== "string" || !message.trim()) {
@@ -100,6 +107,8 @@ export async function POST(request: Request) {
 
     const safeName = typeof name === "string" && name.trim() ? name : "Anonim";
     const safeNim = typeof nim === "string" && nim.trim() ? nim : "-";
+    const safeContact =
+      typeof contact === "string" && contact.trim() ? contact : "-";
     const safeCategory =
       typeof category === "string" && category.trim() ? category : "";
     const safeCategoryName =
@@ -120,6 +129,7 @@ export async function POST(request: Request) {
           fields: [
             { name: "Nama", value: truncate(safeName), inline: true },
             { name: "NIM", value: truncate(safeNim), inline: true },
+            { name: "Kontak", value: truncate(safeContact), inline: true },
             {
               name: "Kategori",
               value: truncate(safeCategoryName),
@@ -164,6 +174,9 @@ export async function POST(request: Request) {
           },
           NIM: {
             rich_text: [{ text: { content: safeNim } }],
+          },
+          "Kontak Pengadu": {
+            rich_text: [{ text: { content: safeContact } }],
           },
           Kategori: isRelation
             ? {
