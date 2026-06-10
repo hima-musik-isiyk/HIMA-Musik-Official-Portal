@@ -8,7 +8,7 @@ import {
   IconExternalLink,
   IconMusic,
 } from "@/components/Icons";
-import { type KaryaEntryMeta } from "@/lib/notion";
+import type { KaryaEntryMeta } from "@/lib/notion";
 
 interface KaryaGridProps {
   entries?: KaryaEntryMeta[];

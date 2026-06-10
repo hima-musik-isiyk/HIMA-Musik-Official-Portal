@@ -6,7 +6,6 @@ import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoin
 //   indefinitely and rely 100% on Notion webhook on-demand revalidation for
 //   instant updates. This is the fastest possible architecture.
 import { unstable_cache as next_unstable_cache } from "next/cache";
-import { headers } from "next/headers";
 import { cache } from "react";
 
 // Custom cache wrapper with environment-aware revalidation strategy:
@@ -30,6 +29,7 @@ function unstable_cache<T extends (...args: any[]) => Promise<any>>(
 
   return (async (...args: any[]) => {
     try {
+      const { headers } = await import("next/headers");
       const reqHeaders = await headers();
       const cacheControl = reqHeaders.get("cache-control");
       const pragma = reqHeaders.get("pragma");

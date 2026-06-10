@@ -3,7 +3,7 @@
 import React from "react";
 
 import { resolveCmsHref } from "@/lib/cms-links";
-import {
+import type {
   CMSComponent,
   CMSComponentRegistry,
   CMSGroupCategory,

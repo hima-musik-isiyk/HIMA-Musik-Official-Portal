@@ -1,5 +1,4 @@
 import { unstable_cache as next_unstable_cache } from "next/cache";
-import { headers } from "next/headers";
 
 import {
   fetchPageChildDatabases,
@@ -30,6 +29,7 @@ function unstable_cache<T extends (...args: any[]) => Promise<any>>(
 
   return (async (...args: any[]) => {
     try {
+      const { headers } = await import("next/headers");
       const reqHeaders = await headers();
       const cacheControl = reqHeaders.get("cache-control");
       const pragma = reqHeaders.get("pragma");
@@ -153,7 +153,6 @@ function getRichText(page: NotionPage, name: string): string {
 function getRichTextOrMentionId(page: NotionPage, name: string): string {
   const prop = page.properties[name] || page.properties[name.toLowerCase()];
   if (prop?.type === "rich_text" && prop.rich_text) {
-     
     return prop.rich_text
       .map((t: any) => {
         if (t.type === "mention" && t.mention) {
