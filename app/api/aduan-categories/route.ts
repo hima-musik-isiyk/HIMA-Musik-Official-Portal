@@ -50,11 +50,26 @@ export async function GET(request: Request) {
       if (nameProp && nameProp.type === "title" && nameProp.title.length > 0) {
         name = nameProp.title.map((t: any) => t.plain_text).join("");
       }
+
+      let order = 999;
+      const orderProp = page.properties.Order;
+      if (
+        orderProp &&
+        orderProp.type === "number" &&
+        orderProp.number !== null
+      ) {
+        order = orderProp.number;
+      }
+
       return {
         id: page.id,
         name: name,
+        order: order,
       };
     });
+
+    // Sort categories by Order ascending
+    categories.sort((a, b) => a.order - b.order);
 
     return NextResponse.json({ success: true, categories });
   } catch (error) {
