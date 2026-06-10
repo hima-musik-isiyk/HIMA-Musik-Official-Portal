@@ -74,9 +74,16 @@ export async function POST(req: NextRequest) {
   const xAction = req.headers.get("x-action");
 
   console.log(`[Notion Calendar Webhook] Triggered. x-action: ${xAction}`);
+  console.log(
+    "[Notion Calendar Webhook] Headers (Before Auth):",
+    JSON.stringify(Object.fromEntries(req.headers.entries())),
+  );
 
   // Step 1: Auth validation
   if (authHeader !== process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN) {
+    console.error(
+      "[Notion Calendar Webhook] Unauthorized! Missing/invalid token",
+    );
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -84,6 +91,15 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+
+    console.log(
+      "[Notion Calendar Webhook] Headers:",
+      JSON.stringify(Object.fromEntries(req.headers.entries())),
+    );
+    console.log(
+      "[Notion Calendar Webhook] Body:",
+      JSON.stringify(body, null, 2),
+    );
 
     // Step 3: Parse Notion payload
     const props = body.data?.properties || {};
