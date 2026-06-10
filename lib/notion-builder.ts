@@ -150,6 +150,28 @@ function getRichText(page: NotionPage, name: string): string {
   return "";
 }
 
+function getRichTextOrMentionId(page: NotionPage, name: string): string {
+  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  if (prop?.type === "rich_text" && prop.rich_text) {
+     
+    return prop.rich_text
+      .map((t: any) => {
+        if (t.type === "mention" && t.mention) {
+          if (t.mention.type === "database" && t.mention.database) {
+            return t.mention.database.id;
+          }
+          if (t.mention.type === "page" && t.mention.page) {
+            return t.mention.page.id;
+          }
+        }
+        return t.plain_text;
+      })
+      .join("")
+      .trim();
+  }
+  return "";
+}
+
 function getSelect(page: NotionPage, name: string): string {
   const prop = page.properties[name] || page.properties[name.toLowerCase()];
   if (prop?.type === "select" && prop.select) {
@@ -286,7 +308,7 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
   // Variables
   const variables: Record<string, string> = {};
   for (const p of rawVariables) {
-    variables[getTitle(p, "Variable")] = getRichText(p, "Value");
+    variables[getTitle(p, "Variable")] = getRichTextOrMentionId(p, "Value");
   }
 
   // Helper for applying variables
@@ -354,9 +376,9 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
     groupId: getRelationIds(p, "Master Group Div Category")[0] || "",
     show: getCheckbox(p, "Show", true),
     orderOrGroup: getRichText(p, "Order or Group"),
-    value: applyVariables(getRichText(p, "Value")),
-    value2: applyVariables(getRichText(p, "Value 2")),
-    value3: applyVariables(getRichText(p, "Value 3")),
+    value: applyVariables(getRichTextOrMentionId(p, "Value")),
+    value2: applyVariables(getRichTextOrMentionId(p, "Value 2")),
+    value3: applyVariables(getRichTextOrMentionId(p, "Value 3")),
   }));
 
   // Link components to sections
