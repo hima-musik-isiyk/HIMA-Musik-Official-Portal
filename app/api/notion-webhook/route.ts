@@ -1,6 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { sendDiscordWebhook } from "@/lib/discord";
 import { getCalendar } from "@/lib/googleCalendar";
+
+async function resolveDiscordTags(items: any[]): Promise<string[]> {
+  const tags: string[] = [];
+  for (const item of items) {
+    let targetId = null;
+    if (item.type === "mention" && item.mention) {
+      targetId =
+        item.mention.page?.id ||
+        item.mention.database?.id ||
+        item.mention.user?.id;
+    } else if (item.id) {
+      targetId = item.id;
+    }
+
+    if (!targetId) continue;
+
+    const res = await fetch(`https://api.notion.com/v1/pages/${targetId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.NOTION_INTEGRATION_TOKEN}`,
+        "Notion-Version": "2022-06-28",
+      },
+    });
+    const page = await res.json();
+
+    const discordProp =
+      page.properties?.["Discord ID"]?.rich_text?.[0]?.plain_text ??
+      page.properties?.["Discord"]?.rich_text?.[0]?.plain_text ??
+      null;
+
+    if (discordProp) {
+      tags.push(`<@${discordProp}>`);
+    } else {
+      const nameProp =
+        page.properties?.["Name"]?.title?.[0]?.plain_text ??
+        page.properties?.["Nama"]?.title?.[0]?.plain_text ??
+        "";
+      if (nameProp) tags.push(`**${nameProp}**`);
+    }
+  }
+  return tags;
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -107,6 +149,79 @@ export async function POST(req: NextRequest) {
 
     if (!pageId) {
       return NextResponse.json({ error: "No page ID found" }, { status: 400 });
+    }
+
+    if (xAction === "notify") {
+      const isRapat = !!props["Agenda Utama"];
+      const isTugas = !!props["Nama Tugas"] || !!props["Task"];
+
+      let title = "";
+      let desc = "";
+      let mentions: any[] = [];
+      let label = "";
+
+      if (isRapat) {
+        title = props["Agenda Utama"]?.title?.[0]?.plain_text ?? "Rapat Baru";
+        const jadwal = props["Jadwal"]?.date?.start ?? "Belum ditentukan";
+        const lokasi =
+          props["Lokasi Pertemuan"]?.rich_text?.[0]?.plain_text ??
+          "Belum ditentukan";
+        mentions =
+          props["(AUT) Daftar Undangan"]?.rich_text ??
+          props["(AUT) Daftar Undangan"]?.relation ??
+          [];
+        label = "📅 **Undangan Rapat**";
+        desc = `**Jadwal:** ${jadwal}\n**Lokasi:** ${lokasi}`;
+      } else if (isTugas) {
+        title =
+          props["Nama Tugas"]?.title?.[0]?.plain_text ??
+          props["Task"]?.title?.[0]?.plain_text ??
+          "Tugas Baru";
+        const deadline =
+          props["Deadline"]?.date?.start ??
+          props["Tenggat Waktu"]?.date?.start ??
+          "Belum ditentukan";
+        const status =
+          props["Status"]?.status?.name ??
+          props["Status"]?.select?.name ??
+          "To Do";
+        mentions =
+          props["PIC"]?.relation ??
+          props["Ditugaskan"]?.relation ??
+          props["Assignee"]?.relation ??
+          [];
+        label = "📋 **Tugas Baru**";
+        desc = `**Deadline:** ${deadline}\n**Status:** ${status}`;
+      } else {
+        return NextResponse.json(
+          { error: "Unknown database type" },
+          { status: 400 },
+        );
+      }
+
+      const tags = await resolveDiscordTags(mentions);
+      const mentionsText =
+        tags.length > 0 ? `\n**Tag:** ${tags.join(" ")}` : "";
+
+      const webhookUrl = process.env.DISCORD_TASK_MEETING_WEBHOOK_URL;
+
+      await sendDiscordWebhook(
+        webhookUrl,
+        {
+          content: tags.length > 0 ? tags.join(" ") : undefined,
+          embeds: [
+            {
+              title: `${label}: ${title}`,
+              description: `${desc}${mentionsText}`,
+              color: isRapat ? 0x3498db : 0xe67e22,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        },
+        "Notion Task/Meeting Notif",
+      );
+
+      return NextResponse.json({ success: true });
     }
 
     namaEvent = props["Agenda Utama"]?.title?.[0]?.plain_text ?? "";
