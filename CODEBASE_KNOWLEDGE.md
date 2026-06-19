@@ -116,16 +116,15 @@
 
 ### 6a. Page Routes
 
-| Route                 | File Path                                    | Type   | Data Source          | Description                             |
-| --------------------- | -------------------------------------------- | ------ | -------------------- | --------------------------------------- |
-| `/`                   | `app/page.tsx`                               | Mixed  | Static               | Landing page with Hero and Quick Links. |
-| `/profil`             | `app/(public)/profil/page.tsx`               | Server | Static               | Organization profile and vision.        |
-| `/agenda`             | `app/(public)/agenda/page.tsx`               | Server | Notion (Events)      | List of upcoming and past events.       |
-| `/agenda/[slug]`      | `app/(public)/agenda/[slug]/page.tsx`        | Server | Notion (Events)      | Event detail with rich content.         |
-| `/faq`                | `app/(public)/faq/page.tsx`                  | Server | Notion (FAQ)         | Frequently Asked Questions.             |
-| `/aduan`              | `app/(public)/aduan/page.tsx`                | Client | Mixed                | AI-powered complaint form.              |
-| `/sekretariat`        | `app/(public)/sekretariat/page.tsx`          | Server | Notion (Sekretariat) | Secretariat portal landing.             |
-| `/notion-secret-page` | `app/(internal)/notion-secret-page/page.tsx` | Client | Supabase             | Collaborative room selection.           |
+| Route            | File Path                             | Type   | Data Source          | Description                             |
+| ---------------- | ------------------------------------- | ------ | -------------------- | --------------------------------------- |
+| `/`              | `app/page.tsx`                        | Mixed  | Static               | Landing page with Hero and Quick Links. |
+| `/profil`        | `app/(public)/profil/page.tsx`        | Server | Static               | Organization profile and vision.        |
+| `/agenda`        | `app/(public)/agenda/page.tsx`        | Server | Notion (Events)      | List of upcoming and past events.       |
+| `/agenda/[slug]` | `app/(public)/agenda/[slug]/page.tsx` | Server | Notion (Events)      | Event detail with rich content.         |
+| `/faq`           | `app/(public)/faq/page.tsx`           | Server | Notion (FAQ)         | Frequently Asked Questions.             |
+| `/aduan`         | `app/(public)/aduan/page.tsx`         | Client | Mixed                | AI-powered complaint form.              |
+| `/sekretariat`   | `app/(public)/sekretariat/page.tsx`   | Server | Notion (Sekretariat) | Secretariat portal landing.             |
 
 ### 6b. API Routes
 
@@ -238,7 +237,6 @@
 ## 13. Internal Tooling Routes
 
 - **`/instagram-secret-page`**: Internal planner for Instagram grids. Uses Canva OAuth.
-- **`/notion-secret-page`**: Real-time collaborative editor using Supabase postgres changes.
 
 ---
 
