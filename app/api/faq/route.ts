@@ -78,10 +78,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Dispatch notification to Discord webhook (DISCORD_FAQ_WEBHOOK_URL or fallback)
-    const webhookUrl =
-      process.env.DISCORD_FAQ_WEBHOOK_URL ||
-      process.env.DISCORD_FORMS_WEBHOOK_URL;
+    // 2. Dispatch notification to Discord webhook (DISCORD_FAQ_WEBHOOK_URL)
+    const webhookUrl = process.env.DISCORD_FAQ_WEBHOOK_URL;
     if (webhookUrl) {
       try {
         const payload = {

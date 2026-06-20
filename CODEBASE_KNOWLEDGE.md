@@ -69,7 +69,7 @@
 
 - `Groq API` — Llama 3.1 models for text refinement in the Aduan form.
 - `Canva API` — Design asset export and integration for social media planning.
-- `Discord Webhooks` — Multi-channel notification routing (Error, Aduan, Pendaftaran).
+- `Discord Webhooks` — Multi-channel notification routing (aduan, faq, pendaftaran, karya, instagram, error).
 - `Brevo` — Transactional email delivery (recruitment receipts).
 
 ### Dev Tooling
@@ -99,16 +99,24 @@
 
 ## 5. Environment Variables
 
-| Variable                     | Required | Used In                         | Description                              |
-| ---------------------------- | -------- | ------------------------------- | ---------------------------------------- |
-| `NOTION_INTEGRATION_TOKEN`   | Yes      | `lib/notion.ts`                 | Secret token for Notion API.             |
-| `NOTION_SEKRETARIAT_PAGE_ID` | Yes      | `lib/notion.ts`                 | Modular parent Page ID for Docs portal.  |
-| `NOTION_AGENDA_PAGE_ID`      | Yes      | `lib/notion.ts`                 | Modular parent Page ID for Agenda CMS.   |
-| `GROQ_API_KEY`               | Yes      | `app/api/refine-aduan/route.ts` | API Key for Llama-3 text refinement.     |
-| `DISCORD_ADUAN_WEBHOOK_URL`  | Yes      | `app/api/submit/route.ts`       | Webhook for student complaints.          |
-| `NEXT_PUBLIC_SUPABASE_URL`   | Yes      | `lib/supabase.ts`               | Supabase endpoint.                       |
-| `CRON_SECRET`                | No       | `api/cron/supabase-keepalive`   | Auth for external cron pings.            |
-| `CANVA_CLIENT_ID/SECRET`     | No       | `lib/canva.ts`                  | OAuth credentials for Canva integration. |
+| Variable                          | Required | Used In                           | Description                              |
+| --------------------------------- | -------- | --------------------------------- | ---------------------------------------- |
+| `NOTION_INTEGRATION_TOKEN`        | Yes      | `lib/notion.ts`                   | Secret token for Notion API.             |
+| `NOTION_SEKRETARIAT_PAGE_ID`      | Yes      | `lib/notion.ts`                   | Modular parent Page ID for Docs portal.  |
+| `NOTION_AGENDA_PAGE_ID`           | Yes      | `lib/notion.ts`                   | Modular parent Page ID for Agenda CMS.   |
+| `GROQ_API_KEY`                    | Yes      | `app/api/refine-aduan/route.ts`   | API Key for Llama-3 text refinement.     |
+| `DISCORD_ADUAN_WEBHOOK_URL`       | Yes      | `app/api/submit/route.ts`         | Webhook for student complaints.          |
+| `DISCORD_FAQ_WEBHOOK_URL`         | Yes      | `app/api/faq/route.ts`            | Webhook for FAQ notifications.           |
+| `DISCORD_PENDAFTARAN_WEBHOOK_URL` | Yes      | `app/api/pendaftaran/route.ts`    | Webhook for recruitment notifications.   |
+| `DISCORD_KARYA_WEBHOOK_URL`       | Yes      | `app/api/submit-karya/route.ts`   | Webhook for work submission alerts.      |
+| `DISCORD_INSTAGRAM_WEBHOOK_URL`   | Yes      | `app/api/webhook/route.ts`        | Webhook for Instagram notifications.     |
+| `DISCORD_ERROR_WEBHOOK_URL`       | Yes      | `lib/discord.ts`                  | Webhook for application errors.          |
+| `DISCORD_EMAIL_WEBHOOK_URL`       | No       | _(none)_                          | (Upcoming) Webhook for email alerts.     |
+| `DISCORD_AGENDA_WEBHOOK_URL`      | No       | _(none)_                          | (Upcoming) Webhook for agenda alerts.    |
+| `DISCORD_TUGAS_RAPAT_WEBHOOK_URL` | No       | `app/api/notion-webhook/route.ts` | Webhook for task/meeting alerts.         |
+| `NEXT_PUBLIC_SUPABASE_URL`        | Yes      | `lib/supabase.ts`                 | Supabase endpoint.                       |
+| `CRON_SECRET`                     | No       | `api/cron/supabase-keepalive`     | Auth for external cron pings.            |
+| `CANVA_CLIENT_ID/SECRET`          | No       | `lib/canva.ts`                    | OAuth credentials for Canva integration. |
 
 ---
 

@@ -776,11 +776,10 @@ async function sendRawToDiscord(entry: any, context: WebhookContext) {
 }
 
 async function sendParsedToDiscord(embed: any) {
-  const webhookUrl =
-    process.env.DISCORD_PARSED_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL;
+  const webhookUrl = process.env.DISCORD_INSTAGRAM_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.warn("DISCORD_PARSED_WEBHOOK_URL is not configured.");
+    console.warn("DISCORD_INSTAGRAM_WEBHOOK_URL is not configured.");
     return;
   }
 

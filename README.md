@@ -66,7 +66,7 @@ The portal focuses on:
   - **Groq API:** AI-assisted text processing
   - **Brevo (Sendinblue) Transactional Email:** Automatic submission receipt emails sent to respondents after Karya form submission (`BREVO_API_KEY`, `BREVO_SENDER_EMAIL`)
   - **Canva Graph API & Sharp:** Automation for grid slice exports
-  - **Discord Webhooks:** Unified notification and error channels (`DISCORD_ADUAN_WEBHOOK_URL`, `DISCORD_FORMS_WEBHOOK_URL` [unused])
+  - **Discord Webhooks:** Unified notification and error channels (`DISCORD_ADUAN_WEBHOOK_URL`, `DISCORD_FAQ_WEBHOOK_URL`, `DISCORD_PENDAFTARAN_WEBHOOK_URL`, `DISCORD_KARYA_WEBHOOK_URL`, `DISCORD_INSTAGRAM_WEBHOOK_URL`, `DISCORD_ERROR_WEBHOOK_URL`, plus upcoming `DISCORD_EMAIL_WEBHOOK_URL`, `DISCORD_AGENDA_WEBHOOK_URL`, and `DISCORD_TUGAS_RAPAT_WEBHOOK_URL`).
 
 ## Getting Started
 

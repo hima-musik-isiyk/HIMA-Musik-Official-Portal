@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
       const mentionsText =
         tags.length > 0 ? `\n**Tag:** ${tags.join(" ")}` : "";
 
-      const webhookUrl = process.env.DISCORD_TASK_MEETING_WEBHOOK_URL;
+      const webhookUrl = process.env.DISCORD_TUGAS_RAPAT_WEBHOOK_URL;
 
       await sendDiscordWebhook(
         webhookUrl,
