@@ -311,53 +311,6 @@ export default function SekretariatGrid({
                 Lihat Histori Lengkap
               </Link>
             </div>
-
-            {/* Quick Forms Section */}
-            <div
-              data-animate="left"
-              className="border border-white/5 p-8 transition-colors hover:bg-stone-900/10"
-            >
-              <h3 className="mb-3 font-serif text-xl text-white">
-                Layanan Mandiri
-              </h3>
-              <p className="mb-6 text-xs leading-relaxed text-stone-400">
-                Butuh surat pengantar atau peminjaman alat? Ajukan langsung
-                secara online.
-              </p>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: "Surat Aktif Organisasi",
-                    href: "/sekretariat/forms/surat-aktif",
-                  },
-                  {
-                    label: "Peminjaman Alat Musik",
-                    href: "/sekretariat/forms/peminjaman-alat",
-                  },
-                ].map((form) => (
-                  <Link
-                    key={form.href}
-                    href={form.href}
-                    className="group/form flex items-center justify-between rounded-xl border border-stone-800/80 bg-stone-900/30 px-5 py-4 text-sm text-stone-300 transition-colors hover:border-stone-700 hover:bg-stone-900/50 hover:text-white"
-                  >
-                    {form.label}
-                    <svg
-                      className="group-hover/form:text-gold-400 h-4 w-4 text-stone-600 transition-transform group-hover/form:translate-x-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
-                  </Link>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </div>

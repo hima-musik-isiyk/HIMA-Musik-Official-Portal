@@ -9,7 +9,7 @@ The portal focuses on:
 - Showcasing dynamic events and Kelompok Kegiatan Mahasiswa (KKM) portals
 - Providing a public FAQ channel where students can browse answers and submit new questions (backed by a Notion database)
 - Providing an advocacy channel with AI-assisted text refinement for student aspirations
-- Serving as a central, interactive Secretariat portal for documents, SOPs, archives, and self-service requests
+- Serving as a central, interactive Secretariat portal for documents, SOPs, and archives
 - Enabling internal admin tools like Canva-to-Instagram grid planning and real-time Notion context rooms
 
 ## Features
@@ -49,7 +49,6 @@ The portal focuses on:
   - Instant play overlays and real-time playback control
 - **Pusat Administrasi & Sekretariat:**
   - Dynamic SOPs, guidelines, archives, and reports compiled from Notion
-  - Online self-service request forms (Surat Aktif Organisasi, Peminjaman Alat Musik)
   - Contextual citations and references resolved natively in real-time
 - **Internal Admin Tools:**
   - **Notion Context Rooms:** Real-time multi-admin workspace leveraging Supabase for compilation, collaboration, and instant webhooks.
@@ -67,7 +66,7 @@ The portal focuses on:
   - **Groq API:** AI-assisted text processing
   - **Brevo (Sendinblue) Transactional Email:** Automatic submission receipt emails sent to respondents after Karya form submission (`BREVO_API_KEY`, `BREVO_SENDER_EMAIL`)
   - **Canva Graph API & Sharp:** Automation for grid slice exports
-  - **Discord Webhooks:** Unified notification and error channels (`DISCORD_ADUAN_WEBHOOK_URL`, `DISCORD_FORMS_WEBHOOK_URL`)
+  - **Discord Webhooks:** Unified notification and error channels (`DISCORD_ADUAN_WEBHOOK_URL`, `DISCORD_FORMS_WEBHOOK_URL` [unused])
 
 ## Getting Started
 

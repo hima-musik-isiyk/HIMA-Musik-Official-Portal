@@ -18,12 +18,10 @@ import FAQList from "./special/FAQList";
 import { KaryaGrid } from "./special/KaryaGrid";
 import KKMGrid from "./special/KKMGrid";
 import PanduanDivisi from "./special/PanduanDivisi";
-import PeminjamanAlatForm from "./special/PeminjamanAlatForm";
 import PendaftaranChecklists from "./special/PendaftaranChecklists";
 import PendaftaranForm from "./special/PendaftaranForm";
 import SekretariatGrid from "./special/SekretariatGrid";
 import { StrukturOrganisasiGraph } from "./special/StrukturOrganisasiGraph";
-import SuratAktifForm from "./special/SuratAktifForm";
 import TimelineSeleksi from "./special/TimelineSeleksi";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +50,5 @@ export const componentRegistry: Record<string, RegistryComponent> = {
   "Event Detail": EventDetail,
   "Archive Detail": ArchiveDetail,
   "Archives List": ArchivesList,
-  "Peminjaman Alat Form": PeminjamanAlatForm,
-  "Surat Aktif Form": SuratAktifForm,
   "Pendaftaran Form": PendaftaranForm,
 };
