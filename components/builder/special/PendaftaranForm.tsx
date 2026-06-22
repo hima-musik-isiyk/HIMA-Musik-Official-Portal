@@ -4,7 +4,10 @@ import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
 import { IconChevronDown } from "@/components/Icons";
-import { divisions } from "@/lib/pendaftaran-data";
+import {
+  type Division,
+  divisions as staticDivisions,
+} from "@/lib/pendaftaran-data";
 
 type RecruitmentFormData = {
   firstChoice: string;
@@ -56,6 +59,19 @@ const NIM_PATTERN = /^\d{10,12}$/;
 const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
 
 export default function PendaftaranForm() {
+  const [divisions, setDivisions] = useState<Division[]>(staticDivisions);
+
+  useEffect(() => {
+    fetch("/api/divisions")
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setDivisions(res.data);
+        }
+      })
+      .catch((err) => console.error("Error fetching divisions in form:", err));
+  }, []);
+
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [isDivisionModalOpen, setIsDivisionModalOpen] = useState(false);

@@ -304,12 +304,6 @@ export default function SekretariatGrid({
                   <p className="text-xs text-stone-600">Belum ada aktivitas.</p>
                 )}
               </div>
-              <Link
-                href="/sekretariat/archives"
-                className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl border border-stone-800 bg-stone-900/30 py-3 text-[0.65rem] font-medium tracking-[0.2em] text-stone-500 uppercase transition-colors hover:border-stone-700 hover:text-white"
-              >
-                Lihat Histori Lengkap
-              </Link>
             </div>
           </div>
         )}

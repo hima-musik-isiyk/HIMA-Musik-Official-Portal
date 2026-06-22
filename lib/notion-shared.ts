@@ -22,15 +22,6 @@ export interface DocMeta {
   published: boolean;
 }
 
-export interface ArchiveEntry {
-  id: string;
-  title: string;
-  summary: string;
-  date: string;
-  tags: string[];
-  published: boolean;
-}
-
 export type RichTextItem = { plain_text: string };
 
 /** Normalize Notion rich_text / title fields (string, array, or object). */

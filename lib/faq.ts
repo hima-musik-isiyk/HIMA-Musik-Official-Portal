@@ -1,47 +1,9 @@
-import { unstable_cache as next_unstable_cache } from "next/cache";
 import { headers } from "next/headers";
 
-import {
-  getNotionClient,
-  NotionPage,
-  resolveDataSourceIdSafe,
-  resolveFAQDatabaseCached,
-} from "./notion";
+import { setupCache } from "./cache";
+import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 import { resolveFAQPageIdCached } from "./notion-builder";
-
-// Custom cache wrapper with environment-aware revalidation strategy:
-// - Development: 1 second → instant page reloads when editing Notion locally.
-// - Production:  5 seconds cap → pages are served from cache instantly, but revalidated
-//   very frequently in the background, keeping page transitions extremely snappy.
-// - Reload Bypass: Detects cache-control/pragma 'no-cache' and fetches directly from Notion.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function unstable_cache<T extends (...args: any[]) => Promise<any>>(
-  cb: T,
-  keyParts?: string[],
-  options?: { revalidate?: number | false; tags?: string[] },
-): T {
-  const revalVal =
-    process.env.NODE_ENV !== "production" ? 1 : (options?.revalidate ?? false);
-
-  const cachedFn = next_unstable_cache(cb, keyParts, {
-    ...options,
-    revalidate: revalVal,
-  });
-
-  return (async (...args: any[]) => {
-    try {
-      const reqHeaders = await headers();
-      const cacheControl = reqHeaders.get("cache-control");
-      const pragma = reqHeaders.get("pragma");
-      if (cacheControl === "no-cache" || pragma === "no-cache") {
-        return cb(...args);
-      }
-    } catch {
-      // Safely ignore during prerendering/static compilation
-    }
-    return cachedFn(...args);
-  }) as unknown as T;
-}
+import { DB_FAQ_STORAGE } from "./notion-db-ids";
 
 type NotionPropertySchema = { type?: string };
 type NotionDataSourceClient = {
@@ -86,7 +48,7 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
     return [];
   }
 
-  const databaseId = await resolveFAQDatabaseCached(pageId);
+  const databaseId = DB_FAQ_STORAGE;
 
   const notion = getNotionClient();
   if (!notion) {
@@ -204,13 +166,24 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
   }
 }
 
-export const fetchFAQEntries = unstable_cache(
-  async () => {
-    return fetchFAQEntriesRaw();
-  },
-  ["notion-faq-entries"],
-  { revalidate: 60, tags: ["notion-faq"] },
-);
+async function fetchFAQEntriesCached() {
+  "use cache";
+  setupCache(["notion-faq"], 60);
+  return fetchFAQEntriesRaw();
+}
+
+export async function fetchFAQEntries() {
+  try {
+    const reqHeaders = await headers();
+    if (
+      reqHeaders.get("cache-control") === "no-cache" ||
+      reqHeaders.get("pragma") === "no-cache"
+    ) {
+      return fetchFAQEntriesRaw();
+    }
+  } catch {}
+  return fetchFAQEntriesCached();
+}
 
 /**
  * Queries Kategori property options dynamically from the Notion database.
@@ -226,7 +199,7 @@ export async function fetchFAQCategories(): Promise<string[]> {
       "Pendaftaran",
     ];
 
-  const databaseId = await resolveFAQDatabaseCached(pageId);
+  const databaseId = DB_FAQ_STORAGE;
   const notion = getNotionClient();
   if (!notion)
     return [
@@ -264,8 +237,10 @@ export async function fetchFAQCategories(): Promise<string[]> {
         kategoriProp &&
         (kategoriProp.type === "select" || kategoriProp.type === "multi_select")
       ) {
+         
         const selectObj =
-          (kategoriProp as any).select || (kategoriProp as any).multi_select;
+          (kategoriProp as unknown as any).select ||
+          (kategoriProp as unknown as any).multi_select;
         if (selectObj && Array.isArray(selectObj.options)) {
           return selectObj.options.map((opt: { name: string }) => opt.name);
         }
@@ -284,13 +259,24 @@ export async function fetchFAQCategories(): Promise<string[]> {
   ];
 }
 
-export const fetchFAQCategoriesCached = unstable_cache(
-  async () => {
-    return fetchFAQCategories();
-  },
-  ["notion-faq-categories"],
-  { revalidate: 60, tags: ["notion-faq"] },
-);
+async function fetchFAQCategoriesCachedInternal() {
+  "use cache";
+  setupCache(["notion-faq"], 60);
+  return fetchFAQCategories();
+}
+
+export async function fetchFAQCategoriesCached() {
+  try {
+    const reqHeaders = await headers();
+    if (
+      reqHeaders.get("cache-control") === "no-cache" ||
+      reqHeaders.get("pragma") === "no-cache"
+    ) {
+      return fetchFAQCategories();
+    }
+  } catch {}
+  return fetchFAQCategoriesCachedInternal();
+}
 
 /**
  * Validates and writes a new public-submitted FAQ entry to the Notion database.
@@ -305,7 +291,7 @@ export async function createFAQEntry(
     throw new Error("Could not resolve FAQ page ID from Master Page database.");
   }
 
-  const databaseId = await resolveFAQDatabaseCached(pageId);
+  const databaseId = DB_FAQ_STORAGE;
 
   const notion = getNotionClient();
   if (!notion) {

@@ -10,6 +10,7 @@ const enableLocator =
 
 const nextConfig = {
   reactStrictMode: true,
+  cacheComponents: true,
   async redirects() {
     return [
       { source: "/events", destination: "/agenda", permanent: true },

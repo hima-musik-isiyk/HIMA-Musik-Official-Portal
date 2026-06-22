@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { IconChevronDown } from "@/components/Icons";
 import { getCmsGsapEasing, gsap } from "@/lib/gsap";
-import { type Division, divisions } from "@/lib/pendaftaran-data";
+import {
+  type Division,
+  divisions as staticDivisions,
+} from "@/lib/pendaftaran-data";
 
 const DivisionAccordionItem: React.FC<{
   division: Division;
@@ -125,6 +128,20 @@ export default function PanduanDivisi({
   value3: _value3,
 }: PanduanDivisiProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [divisions, setDivisions] = useState<Division[]>(staticDivisions);
+
+  useEffect(() => {
+    fetch("/api/divisions")
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setDivisions(res.data);
+        }
+      })
+      .catch((err) =>
+        console.error("Error fetching divisions in panduan:", err),
+      );
+  }, []);
 
   const toggleDivision = (id: string) => {
     setOpenSections((prev) => ({

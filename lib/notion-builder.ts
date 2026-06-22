@@ -1,47 +1,17 @@
-import { unstable_cache as next_unstable_cache } from "next/cache";
+import { headers } from "next/headers";
 
+import { setupCache } from "./cache";
+import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 import {
-  fetchPageChildDatabases,
-  fetchPageDatabases,
-  getNotionClient,
-  NotionPage,
-  resolveDataSourceIdSafe,
-} from "./notion";
-
-// Custom cache wrapper with environment-aware revalidation strategy:
-// - Development: 1 second → instant page reloads when editing Notion locally.
-// - Production:  5 seconds cap → pages are served from cache instantly, but revalidated
-//   very frequently in the background, keeping page transitions extremely snappy.
-// - Reload Bypass: Detects cache-control/pragma 'no-cache' and fetches directly from Notion.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function unstable_cache<T extends (...args: any[]) => Promise<any>>(
-  cb: T,
-  keyParts?: string[],
-  options?: { revalidate?: number | false; tags?: string[] },
-): T {
-  const revalVal =
-    process.env.NODE_ENV !== "production" ? 1 : (options?.revalidate ?? false);
-
-  const cachedFn = next_unstable_cache(cb, keyParts, {
-    ...options,
-    revalidate: revalVal,
-  });
-
-  return (async (...args: any[]) => {
-    try {
-      const { headers } = await import("next/headers");
-      const reqHeaders = await headers();
-      const cacheControl = reqHeaders.get("cache-control");
-      const pragma = reqHeaders.get("pragma");
-      if (cacheControl === "no-cache" || pragma === "no-cache") {
-        return cb(...args);
-      }
-    } catch {
-      // Safely ignore during prerendering/static compilation
-    }
-    return cachedFn(...args);
-  }) as unknown as T;
-}
+  DB_COMPONENT_TYPES,
+  DB_CONTENT_COMPONENT,
+  DB_FOOTER,
+  DB_GROUP_DIV_CATEGORY,
+  DB_PAGES,
+  DB_REDIRECT,
+  DB_SECTIONS,
+  DB_VARIABLES,
+} from "./notion-db-ids";
 
 export interface CMSVariable {
   variable: string;
@@ -231,58 +201,14 @@ async function queryAll(databaseId: string): Promise<NotionPage[]> {
 }
 
 export async function fetchContainerCMS(): Promise<ContainerCMSData> {
-  const containerId = process.env.NOTION_CONTAINER_CMS_PAGE_ID;
-  if (!containerId) {
-    console.warn("NOTION_CONTAINER_CMS_PAGE_ID is not defined.");
-    return {
-      pages: [],
-      variables: {},
-      groupCategories: {},
-      componentRegistry: {},
-      footer: [],
-      redirects: [],
-    };
-  }
-
-  let childDbs = await fetchPageChildDatabases(containerId);
-  if (childDbs.length === 0) {
-    const legacy = await fetchPageDatabases(containerId);
-    childDbs = legacy.childDatabases.map((id) => ({ id, title: "" }));
-  }
-
-  const dbByTitle = Object.fromEntries(
-    childDbs
-      .filter((db) => db.title.trim())
-      .map((db) => [db.title.trim().toLowerCase(), db.id]),
-  );
-  const pickDb = (title: string, fallbackIndex: number): string => {
-    const byName = dbByTitle[title.trim().toLowerCase()];
-    if (byName) return byName;
-    return childDbs[fallbackIndex]?.id ?? "";
-  };
-
-  if (childDbs.length < 8) {
-    console.warn(
-      `NOTION_CONTAINER_CMS_PAGE_ID expects 8 child databases; found ${childDbs.length}.`,
-    );
-    return {
-      pages: [],
-      variables: {},
-      groupCategories: {},
-      componentRegistry: {},
-      footer: [],
-      redirects: [],
-    };
-  }
-
-  const masterPageDbId = pickDb("Master Page", 0);
-  const masterSectionsDbId = pickDb("Master Sections", 1);
-  const masterComponentDbId = pickDb("Master Component", 2);
-  const masterVariableDbId = pickDb("Master Variable", 3);
-  const masterGroupDivCategoryDbId = pickDb("Master Group Div Category", 4);
-  const masterRedirectDbId = pickDb("Master Redirect", 5);
-  const footerDbId = pickDb("Footer", 6);
-  const componentsDbId = pickDb("Components", 7);
+  const masterPageDbId = DB_PAGES;
+  const masterSectionsDbId = DB_SECTIONS;
+  const masterComponentDbId = DB_CONTENT_COMPONENT;
+  const masterVariableDbId = DB_VARIABLES;
+  const masterGroupDivCategoryDbId = DB_GROUP_DIV_CATEGORY;
+  const masterRedirectDbId = DB_REDIRECT;
+  const footerDbId = DB_FOOTER;
+  const componentsDbId = DB_COMPONENT_TYPES;
 
   const [
     rawPages,
@@ -488,34 +414,30 @@ export function findCmsPageForPath(
   return prefixMatches[0];
 }
 
-export const fetchContainerCMSCached = unstable_cache(
-  async () => {
-    return fetchContainerCMS();
-  },
-  ["notion-container-cms"],
-  { revalidate: 60, tags: ["notion-container"] },
-);
+async function fetchContainerCMSCachedInternal() {
+  "use cache";
+  setupCache(["notion-container"], 60);
+  return fetchContainerCMS();
+}
+
+export async function fetchContainerCMSCached() {
+  try {
+    const reqHeaders = await headers();
+    if (
+      reqHeaders.get("cache-control") === "no-cache" ||
+      reqHeaders.get("pragma") === "no-cache"
+    ) {
+      return fetchContainerCMS();
+    }
+  } catch {}
+  return fetchContainerCMSCachedInternal();
+}
 
 /**
  * Get the Master Page database ID from Container CMS
  */
 async function getMasterPageDatabaseId(): Promise<string> {
-  const containerId = process.env.NOTION_CONTAINER_CMS_PAGE_ID;
-  if (!containerId) return "";
-
-  let childDbs = await fetchPageChildDatabases(containerId);
-  if (childDbs.length === 0) {
-    const legacy = await fetchPageDatabases(containerId);
-    childDbs = legacy.childDatabases.map((id) => ({ id, title: "" }));
-  }
-
-  const dbByTitle = Object.fromEntries(
-    childDbs
-      .filter((db) => db.title.trim())
-      .map((db) => [db.title.trim().toLowerCase(), db.id]),
-  );
-
-  return dbByTitle["master page"] || childDbs[0]?.id || "";
+  return DB_PAGES;
 }
 
 /**
@@ -552,20 +474,43 @@ export async function resolveKaryaPageId(): Promise<string> {
 /**
  * Cached version of resolveFAQPageId
  */
-export const resolveFAQPageIdCached = unstable_cache(
-  async () => resolveFAQPageId(),
-  ["notion-faq-page-id"],
-  { revalidate: 3600, tags: ["notion-faq"] },
-);
+async function resolveFAQPageIdCachedInternal() {
+  "use cache";
+  setupCache(["notion-faq"], 3600);
+  return resolveFAQPageId();
+}
 
-/**
- * Cached version of resolveKaryaPageId
- */
-export const resolveKaryaPageIdCached = unstable_cache(
-  async () => resolveKaryaPageId(),
-  ["notion-karya-page-id"],
-  { revalidate: 3600, tags: ["notion-karya"] },
-);
+export async function resolveFAQPageIdCached() {
+  try {
+    const reqHeaders = await headers();
+    if (
+      reqHeaders.get("cache-control") === "no-cache" ||
+      reqHeaders.get("pragma") === "no-cache"
+    ) {
+      return resolveFAQPageId();
+    }
+  } catch {}
+  return resolveFAQPageIdCachedInternal();
+}
+
+async function resolveKaryaPageIdCachedInternal() {
+  "use cache";
+  setupCache(["notion-karya"], 3600);
+  return resolveKaryaPageId();
+}
+
+export async function resolveKaryaPageIdCached() {
+  try {
+    const reqHeaders = await headers();
+    if (
+      reqHeaders.get("cache-control") === "no-cache" ||
+      reqHeaders.get("pragma") === "no-cache"
+    ) {
+      return resolveKaryaPageId();
+    }
+  } catch {}
+  return resolveKaryaPageIdCachedInternal();
+}
 
 export type CmsValueField = "value" | "value2" | "value3";
 

@@ -8,8 +8,6 @@ import { GenericLineTitle } from "./core/GenericLineTitle";
 import { GenericTitle } from "./core/GenericTitle";
 import { AduanForm } from "./special/AduanForm";
 import AgendaList from "./special/AgendaList";
-import ArchiveDetail from "./special/ArchiveDetail";
-import ArchivesList from "./special/ArchivesList";
 import { BerandaTempArtwork } from "./special/BerandaTempArtwork";
 import { BerandaTitle } from "./special/BerandaTitle";
 import DocPage from "./special/DocPage";
@@ -48,7 +46,5 @@ export const componentRegistry: Record<string, RegistryComponent> = {
   "Beranda Temp Artwork": BerandaTempArtwork,
   "Doc Page": DocPage,
   "Event Detail": EventDetail,
-  "Archive Detail": ArchiveDetail,
-  "Archives List": ArchivesList,
   "Pendaftaran Form": PendaftaranForm,
 };

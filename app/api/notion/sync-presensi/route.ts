@@ -2,6 +2,11 @@
 import { NextResponse } from "next/server";
 
 import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
+import {
+  DB_RAPAT,
+  DB_REKAM_PRESENSI,
+  DB_SDM_EVALUASI,
+} from "@/lib/notion-db-ids";
 
 // Global locks to prevent concurrent syncs for the same meeting
 const syncLocks = new Map<string, Promise<any>>();
@@ -117,8 +122,8 @@ export async function POST(req: Request) {
       );
 
       const notion = getNotionClient();
-      const presensiDbId = process.env.NOTION_DATABASE_ID_PRESENSI;
-      const sdmDbId = process.env.NOTION_DATABASE_ID_SDM;
+      const presensiDbId = DB_REKAM_PRESENSI;
+      const sdmDbId = DB_SDM_EVALUASI;
 
       if (!notion || !presensiDbId) {
         return NextResponse.json(
@@ -349,8 +354,8 @@ async function syncAttendee(
 async function handleBulkSync() {
   try {
     const notion = getNotionClient();
-    const rapatDbId = process.env.NOTION_DATABASE_ID_RAPAT;
-    const presensiDbId = process.env.NOTION_DATABASE_ID_PRESENSI;
+    const rapatDbId = DB_RAPAT;
+    const presensiDbId = DB_REKAM_PRESENSI;
 
     if (!notion || !rapatDbId || !presensiDbId) {
       throw new Error("Missing Notion client or Database IDs in .env");

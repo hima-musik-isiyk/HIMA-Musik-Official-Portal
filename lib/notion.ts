@@ -1,55 +1,23 @@
 import { Client } from "@notionhq/client";
 import type { BlockObjectResponse } from "@notionhq/client/build/src/api-endpoints";
-// Custom cache wrapper with environment-aware revalidation strategy:
-// - Development: 1 second → instant page reloads when editing Notion locally.
-// - Production:  false (never expire by timer) → pages are served from cache
-//   indefinitely and rely 100% on Notion webhook on-demand revalidation for
-//   instant updates. This is the fastest possible architecture.
-import { unstable_cache as next_unstable_cache } from "next/cache";
 import { cache } from "react";
 
-// Custom cache wrapper with environment-aware revalidation strategy:
-// - Development: 1 second → instant page reloads when editing Notion locally.
-// - Production:  5 seconds cap → pages are served from cache instantly, but revalidated
-//   very frequently in the background, keeping page transitions extremely snappy.
-// - Reload Bypass: Detects cache-control/pragma 'no-cache' and fetches directly from Notion.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function unstable_cache<T extends (...args: any[]) => Promise<any>>(
-  cb: T,
-  keyParts?: string[],
-  options?: { revalidate?: number | false; tags?: string[] },
-): T {
-  const revalVal =
-    process.env.NODE_ENV !== "production" ? 1 : (options?.revalidate ?? false);
-
-  const cachedFn = next_unstable_cache(cb, keyParts, {
-    ...options,
-    revalidate: revalVal,
-  });
-
-  return (async (...args: Parameters<T>) => {
-    try {
-      const { headers } = await import("next/headers");
-      const reqHeaders = await headers();
-      const cacheControl = reqHeaders.get("cache-control");
-      const pragma = reqHeaders.get("pragma");
-      if (cacheControl === "no-cache" || pragma === "no-cache") {
-        return cb(...args);
-      }
-    } catch {
-      // Safely ignore during prerendering/static compilation
-    }
-    return cachedFn(...args);
-  }) as unknown as T;
-}
-
+import { unstable_cache } from "./cache";
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
 import type { KKMGroup } from "./kkm-data";
 import {
-  ArchiveEntry,
+  DB_AGENDA_FORM_STORAGE,
+  DB_BERANDA_HERO,
+  DB_BERANDA_JELAJAHI,
+  DB_DOKUMEN_SEKRETARIAT,
+  DB_KATEGORI_DOKUMEN,
+  DB_KKM,
+  DB_KKM_HERO,
+  DB_REDIRECT,
+} from "./notion-db-ids";
+import {
   buildAnchorMap,
   DocMeta,
-  extractRichTextPlainText,
   NotionBlock,
   NotionPage,
   stripCustomTags,
@@ -531,129 +499,7 @@ export interface ChildDatabaseRef {
   title: string;
 }
 
-async function resolveChildDatabaseTitle(
-  blockId: string,
-  blockTitle: unknown,
-): Promise<string> {
-  const fromBlock = extractRichTextPlainText(blockTitle);
-  if (fromBlock) return fromBlock;
-
-  try {
-    const client = getNotionClient();
-    if (!client) return "";
-    const database = await client.databases.retrieve({
-      database_id: normalizeNotionId(blockId),
-    });
-    if ("title" in database) {
-      return extractRichTextPlainText(database.title);
-    }
-  } catch {
-    // Fall through — caller may match by block order.
-  }
-  return "";
-}
-
-export async function fetchPageChildDatabases(
-  pageId: string,
-): Promise<ChildDatabaseRef[]> {
-  const refs: ChildDatabaseRef[] = [];
-  if (!pageId) return refs;
-
-  const client = getNotionClient();
-  if (!client) return refs;
-
-  try {
-    let cursor: string | undefined;
-
-    do {
-      const response = await client.blocks.children.list({
-        block_id: normalizeNotionId(pageId),
-        start_cursor: cursor,
-      });
-
-      for (const block of response.results as Array<{
-        type: string;
-        id: string;
-        child_database?: { title?: string };
-      }>) {
-        if (block.type !== "child_database") continue;
-        const title = await resolveChildDatabaseTitle(
-          block.id,
-          block.child_database?.title,
-        );
-        refs.push({ id: block.id, title });
-      }
-
-      cursor = response.has_more
-        ? (response.next_cursor ?? undefined)
-        : undefined;
-    } while (cursor);
-  } catch (error) {
-    console.error(
-      `[Notion fetchPageChildDatabases] Failed for page ${pageId}:`,
-      error,
-    );
-  }
-
-  return refs;
-}
-
-export async function fetchPageDatabases(
-  pageId: string,
-): Promise<{ childDatabases: string[]; mentionedDatabases: string[] }> {
-  const result = {
-    childDatabases: [] as string[],
-    mentionedDatabases: [] as string[],
-  };
-
-  if (!pageId) return result;
-
-  try {
-    const response = await getNotionClient().blocks.children.list({
-      block_id: normalizeNotionId(pageId),
-    });
-
-    for (const block of response.results as Array<{
-      type: string;
-      id: string;
-      child_database?: { title?: string };
-      [key: string]: unknown;
-    }>) {
-      if (block.type === "child_database") {
-        result.childDatabases.push(block.id);
-      } else {
-        const blockContent = block[block.type] as {
-          rich_text?: unknown;
-        };
-        if (blockContent && Array.isArray(blockContent.rich_text)) {
-          for (const rt of blockContent.rich_text as Array<{
-            type?: string;
-            mention?: { type?: string; database?: { id: string } };
-          }>) {
-            if (
-              rt.type === "mention" &&
-              rt.mention?.type === "database" &&
-              rt.mention.database
-            ) {
-              result.mentionedDatabases.push(rt.mention.database.id);
-            }
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.warn(
-      `[Notion fetchPageDatabases] Failed for page ${pageId}:`,
-      error,
-    );
-  }
-
-  return result;
-}
-
 const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
-const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
-const DOCS_DB_ID = "36f3b26d-c3be-8017-ba07-e3a418fa4366";
 
 function getRelationIds(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
@@ -662,44 +508,6 @@ function getRelationIds(page: NotionPage, name: string): string[] {
   }
   return [];
 }
-
-export async function resolveSekretariatDatabases(
-  pageId: string,
-): Promise<{ docsDbId: string; categoriesDbId: string }> {
-  const result = {
-    docsDbId: "36f3b26d-c3be-8017-ba07-e3a418fa4366",
-    categoriesDbId: "36f3b26d-c3be-800a-bbfa-f34ad546ec0e",
-  };
-
-  if (!pageId) return result;
-
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 2) {
-      result.docsDbId = dbs.childDatabases[0];
-      result.categoriesDbId = dbs.childDatabases[1];
-    } else if (dbs.childDatabases.length === 1) {
-      result.docsDbId = dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion resolveSekretariatDatabases] Failed to fetch page child databases",
-      error,
-    );
-  }
-
-  return result;
-}
-
-export const resolveSekretariatDatabasesCached = unstable_cache(
-  async (
-    pageId: string,
-  ): Promise<{ docsDbId: string; categoriesDbId: string }> => {
-    return resolveSekretariatDatabases(pageId);
-  },
-  ["notion-sekretariat-databases"],
-  { revalidate: 60, tags: ["notion-docs"] },
-);
 
 export interface SekretariatCategory {
   id: string;
@@ -753,15 +561,8 @@ export interface SekretariatPortalData {
 
 export const fetchSekretariatPortalData = unstable_cache(
   async (): Promise<SekretariatPortalData> => {
-    const pageId = NOTION_SEKRETARIAT_PAGE_ID;
-    let docsDbId = DOCS_DB_ID;
-    let categoriesDbId = "";
-
-    if (pageId) {
-      const resolved = await resolveSekretariatDatabasesCached(pageId);
-      docsDbId = resolved.docsDbId;
-      categoriesDbId = resolved.categoriesDbId;
-    }
+    const docsDbId = DB_DOKUMEN_SEKRETARIAT;
+    const categoriesDbId = DB_KATEGORI_DOKUMEN;
 
     if (!docsDbId) {
       return { docs: [], categories: [] };
@@ -1053,7 +854,7 @@ export interface KKMModularData {
 }
 
 export async function fetchKKMModularData(
-  pageId: string,
+  _pageId: string,
 ): Promise<KKMModularData> {
   const data: KKMModularData = {
     hero: {
@@ -1064,17 +865,12 @@ export async function fetchKKMModularData(
     groups: [],
   };
 
-  if (!pageId) {
-    data.groups = await fetchKKMGroups();
-    return data;
-  }
-
-  const resolved = await resolveKKMDatabases(pageId);
+  const heroDbId = DB_KKM_HERO;
 
   // 1. Fetch KKM: Hero Section if found
-  if (resolved.heroDbId) {
+  if (heroDbId) {
     try {
-      const dataSourceId = await resolveDataSourceIdSafe(resolved.heroDbId);
+      const dataSourceId = await resolveDataSourceIdSafe(heroDbId);
       if (dataSourceId) {
         const response = await getNotionClientAny().dataSources.query({
           data_source_id: dataSourceId,
@@ -1118,9 +914,7 @@ export const fetchKKMEntryBySlug = cache(
   async (
     slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    const activeDbId = KKM_PAGE_ID
-      ? await fetchKKMDatabaseIdCached(KKM_PAGE_ID)
-      : "36e3b26d-c3be-8065-94be-f94365699c8d";
+    const activeDbId = DB_KKM;
 
     if (!activeDbId) return null;
 
@@ -1541,36 +1335,8 @@ export const fetchKaryaEntries = unstable_cache(
   { revalidate: 60, tags: ["notion-karya"] },
 );
 
-export async function fetchAgendaDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return "36e3b26d-c3be-80dc-aa20-e1ee3940b466";
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      return dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchAgendaDatabaseId] Failed to fetch page child databases",
-      error,
-    );
-  }
-  return "36e3b26d-c3be-80dc-aa20-e1ee3940b466";
-}
-
-export const fetchAgendaDatabaseIdCached = unstable_cache(
-  async (pageId: string): Promise<string> => {
-    return fetchAgendaDatabaseId(pageId);
-  },
-  ["notion-agenda-database-id"],
-  { revalidate: 60, tags: ["notion-agenda"] },
-);
-
 async function getActiveAgendaDbId(): Promise<string> {
-  const pageId = process.env.NOTION_AGENDA_PAGE_ID;
-  if (pageId) {
-    return await fetchAgendaDatabaseIdCached(pageId);
-  }
-  return "36e3b26d-c3be-80dc-aa20-e1ee3940b466";
+  return DB_AGENDA_FORM_STORAGE;
 }
 
 export const fetchEventsCollection = unstable_cache(
@@ -1880,122 +1646,6 @@ export const fetchDocBySlug = cache(
 );
 
 /* ------------------------------------------------------------------ */
-/*  Archives database queries                                          */
-/* ------------------------------------------------------------------ */
-
-export const fetchArchives = unstable_cache(
-  async (tag?: string): Promise<ArchiveEntry[]> => {
-    const pageId = NOTION_SEKRETARIAT_PAGE_ID;
-    let docsDbId = DOCS_DB_ID;
-
-    if (pageId) {
-      const resolved = await resolveSekretariatDatabasesCached(pageId);
-      docsDbId = resolved.docsDbId;
-    }
-
-    if (!docsDbId) return [];
-
-    const normalizedTag = tag?.trim().toLowerCase();
-    const results: NotionPage[] = [];
-    let cursor: string | undefined;
-
-    try {
-      const dataSourceId = await resolveDataSourceIdSafe(docsDbId);
-      if (!dataSourceId) return [];
-
-      do {
-        const response = await getNotionClientAny().dataSources.query({
-          data_source_id: dataSourceId,
-          start_cursor: cursor,
-        });
-        results.push(...(response.results as NotionPage[]));
-        cursor = response.has_more
-          ? (response.next_cursor ?? undefined)
-          : undefined;
-      } while (cursor);
-    } catch (error) {
-      console.error("[Notion fetchArchives] Query failed:", error);
-      return [];
-    }
-
-    return results
-      .filter((page) => {
-        const status =
-          getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
-        if (status !== "Arsip") return false;
-
-        if (!normalizedTag) return true;
-        const tags = getMultiSelect(page, "Tags");
-        return tags.some((entryTag) =>
-          entryTag.toLowerCase().includes(normalizedTag),
-        );
-      })
-      .map((page) => {
-        const title =
-          getTitleProperty(page, "Nama Dokumen") ||
-          getTitleProperty(page, "Name") ||
-          getTitle(page);
-
-        return {
-          id: page.id,
-          title,
-          summary:
-            getRichText(page, "Summary") || getRichText(page, "Slug") || "",
-          date: getDate(page, "Date") || page.created_time.split("T")[0],
-          tags: getMultiSelect(page, "Tags"),
-          published: true,
-        };
-      })
-      .sort((a, b) => {
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return b.date.localeCompare(a.date);
-      });
-  },
-  ["notion-archives"],
-  { revalidate: 60, tags: ["notion-archives"] },
-);
-
-export async function fetchArchiveById(
-  id: string,
-): Promise<{ entry: ArchiveEntry; blocks: NotionBlock[] } | null> {
-  try {
-    const page = (await getNotionClient().pages.retrieve({
-      page_id: id,
-    })) as NotionPage;
-
-    const status =
-      getStatus(page, "Status") || getStatus(page, "Status Konten CMS");
-    const isArchived = status === "Arsip";
-
-    if (!isArchived) return null;
-
-    const blocks = await fetchAllBlocks(page.id);
-    const title =
-      getTitleProperty(page, "Nama Dokumen") ||
-      getTitleProperty(page, "Name") ||
-      getTitle(page);
-
-    return {
-      entry: {
-        id: page.id,
-        title,
-        summary:
-          getRichText(page, "Summary") || getRichText(page, "Slug") || "",
-        date: getDate(page, "Date") || page.created_time.split("T")[0],
-        tags: getMultiSelect(page, "Tags"),
-        published: true,
-      },
-      blocks,
-    };
-  } catch (error) {
-    console.error("[Notion fetchArchiveById] Query failed:", error);
-    return null;
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /*  Block fetching (recursive for children)                            */
 /* ------------------------------------------------------------------ */
 
@@ -2091,74 +1741,6 @@ export async function searchDocs(query: string): Promise<
 /*  Beranda & Profil database resolution helpers                       */
 /* ------------------------------------------------------------------ */
 
-export async function resolveBerandaDatabases(
-  pageId: string,
-): Promise<{ heroDbId: string; jelajahiDbId: string }> {
-  const result = {
-    heroDbId: "36e3b26d-c3be-802c-aac0-c7dbcd40ef36",
-    jelajahiDbId: "36e3b26d-c3be-802c-91ac-e5ed573d89f6",
-  };
-  if (!pageId) return result;
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      result.heroDbId = dbs.childDatabases[0];
-    }
-    if (dbs.childDatabases.length >= 2) {
-      result.jelajahiDbId = dbs.childDatabases[1];
-    }
-  } catch (error) {
-    console.warn("[Notion resolveBerandaDatabases] Failed", error);
-  }
-  return result;
-}
-
-export const resolveBerandaDatabasesCached = unstable_cache(
-  async (
-    pageId: string,
-  ): Promise<{ heroDbId: string; jelajahiDbId: string }> => {
-    return resolveBerandaDatabases(pageId);
-  },
-  ["notion-beranda-databases"],
-  { revalidate: 60, tags: ["notion-beranda"] },
-);
-
-export async function resolveProfilDatabases(
-  pageId: string,
-): Promise<{ sectionDbId: string; kabinetDbId: string; sdmDbId: string }> {
-  const result = {
-    sectionDbId: "36e3b26d-c3be-8076-9a94-d776ed290943",
-    kabinetDbId: "36e3b26d-c3be-804e-b7da-f0a1f98f218e",
-    sdmDbId: "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",
-  };
-  if (!pageId) return result;
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      result.sectionDbId = dbs.childDatabases[0];
-    }
-    if (dbs.childDatabases.length >= 2) {
-      result.kabinetDbId = dbs.childDatabases[1];
-    }
-    if (dbs.mentionedDatabases.length >= 1) {
-      result.sdmDbId = dbs.mentionedDatabases[0];
-    }
-  } catch (error) {
-    console.warn("[Notion resolveProfilDatabases] Failed", error);
-  }
-  return result;
-}
-
-export const resolveProfilDatabasesCached = unstable_cache(
-  async (
-    pageId: string,
-  ): Promise<{ sectionDbId: string; kabinetDbId: string; sdmDbId: string }> => {
-    return resolveProfilDatabases(pageId);
-  },
-  ["notion-profil-databases"],
-  { revalidate: 60, tags: ["notion-profil"] },
-);
-
 /* ------------------------------------------------------------------ */
 /*  Modular Beranda database queries                                  */
 /* ------------------------------------------------------------------ */
@@ -2235,36 +1817,16 @@ export async function fetchModularDatabase(
 }
 
 export async function fetchBerandaModularData(
-  pageId: string,
+  _pageId: string,
 ): Promise<BerandaModularData> {
   const data: BerandaModularData = {
     heroSection: [],
     jelajahi: [],
   };
 
-  if (!pageId) return data;
-
-  let foundHeroDbId = "36e3b26d-c3be-802c-aac0-c7dbcd40ef36";
-  let foundJelajahiDbId = "36e3b26d-c3be-802c-91ac-e5ed573d89f6";
-
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      foundHeroDbId = dbs.childDatabases[0];
-    }
-    if (dbs.childDatabases.length >= 2) {
-      foundJelajahiDbId = dbs.childDatabases[1];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchBerandaModularData] Could not fetch page children blocks, falling back to static/configured database IDs",
-      error,
-    );
-  }
-
   const [heroItems, jelajahiItems] = await Promise.all([
-    fetchModularDatabase(foundHeroDbId),
-    fetchModularDatabase(foundJelajahiDbId),
+    fetchModularDatabase(DB_BERANDA_HERO),
+    fetchModularDatabase(DB_BERANDA_JELAJAHI),
   ]);
 
   data.heroSection = heroItems;
@@ -2618,30 +2180,6 @@ export interface RedirectEntry {
   destinationUrl: string;
 }
 
-export async function fetchRedirectDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return "";
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      return dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchRedirectDatabaseId] Failed to fetch page child databases",
-      error,
-    );
-  }
-  return "";
-}
-
-export const fetchRedirectDatabaseIdCached = unstable_cache(
-  async (pageId: string): Promise<string> => {
-    return fetchRedirectDatabaseId(pageId);
-  },
-  ["notion-redirect-database-id"],
-  { revalidate: 60, tags: ["notion-redirects"] },
-);
-
 export const fetchRedirects = unstable_cache(
   async (): Promise<RedirectEntry[]> => {
     try {
@@ -2661,11 +2199,8 @@ export const fetchRedirects = unstable_cache(
       console.warn("[Notion fetchRedirects] CMS redirect fetch failed:", e);
     }
 
-    const pageId = process.env.NOTION_REDIRECT_PAGE_ID;
-    if (!pageId) return [];
-
     try {
-      const activeDbId = await fetchRedirectDatabaseIdCached(pageId);
+      const activeDbId = DB_REDIRECT;
       if (!activeDbId) return [];
 
       const dataSourceId = await resolveDataSourceIdSafe(activeDbId);
@@ -2707,3 +2242,103 @@ export const fetchRedirects = unstable_cache(
   ["notion-redirects"],
   { revalidate: 60, tags: ["notion-redirects"] },
 );
+
+export type Division = {
+  id: string;
+  name: string;
+  summary: string;
+  slots: number;
+  focus: string;
+  tasks: string[];
+  skills: string[];
+  commitment: string;
+};
+
+export async function fetchDivisionsFromNotion(): Promise<Division[]> {
+  const structDbId = DB_STRUKTUR_ORGANISASI;
+  const sdmDbId = DB_SDM_EVALUASI;
+  const tasksDbId = DB_TUGAS_UTAMA_DIVISI;
+
+  if (!structDbId || !sdmDbId) {
+    const { divisions: staticDivs } = await import("./pendaftaran-data");
+    return staticDivs;
+  }
+
+  try {
+    const client = getNotionClient();
+    if (!client) {
+      const { divisions: staticDivs } = await import("./pendaftaran-data");
+      return staticDivs;
+    }
+
+    const structDataSourceId = await resolveDataSourceIdSafe(structDbId);
+    if (!structDataSourceId) {
+      const { divisions: staticDivs } = await import("./pendaftaran-data");
+      return staticDivs;
+    }
+    const structResponse = await client.dataSources.query({
+      data_source_id: structDataSourceId,
+    });
+    const structPages = structResponse.results as NotionPage[];
+
+    const sdmDataSourceId = await resolveDataSourceIdSafe(sdmDbId);
+    let sdmPages: NotionPage[] = [];
+    if (sdmDataSourceId) {
+      const sdmResponse = await client.dataSources.query({
+        data_source_id: sdmDataSourceId,
+      });
+      sdmPages = sdmResponse.results as NotionPage[];
+    }
+
+    const recruitmentPages = sdmPages.filter((page) => {
+      const status = getSelect(page, "Status Keaktifan");
+      return status === "Rekrutmen";
+    });
+
+    let taskPages: NotionPage[] = [];
+    if (tasksDbId) {
+      const tasksDataSourceId = await resolveDataSourceIdSafe(tasksDbId);
+      if (tasksDataSourceId) {
+        const tasksResponse = await client.dataSources.query({
+          data_source_id: tasksDataSourceId,
+        });
+        taskPages = tasksResponse.results as NotionPage[];
+      }
+    }
+
+    return structPages.map((page) => {
+      const name = getTitleProperty(page, "Nama Divisi") || getTitle(page);
+      const id = slugify(name);
+      const summary = getRichText(page, "Deskripsi Divisi");
+      const skills = getMultiSelect(page, "Skill Unik");
+
+      const slots = recruitmentPages.filter((rp) => {
+        const relIds = getRelationIds(rp, "02 Struktur Organisasi");
+        return relIds.includes(page.id);
+      }).length;
+
+      const divisionTasks = taskPages
+        .filter((tp) => {
+          const relIds = getRelationIds(tp, "02 Struktur Organisasi");
+          return relIds.includes(page.id);
+        })
+        .map((tp) => getTitleProperty(tp, "Tugas") || getTitle(tp))
+        .filter(Boolean);
+
+      return {
+        id,
+        name,
+        summary,
+        slots,
+        focus: summary.split(".")[0] || "",
+        tasks: divisionTasks.length > 0 ? divisionTasks : ["Tugas umum divisi"],
+        skills,
+        commitment: "Rutin mengikuti rapat dan kegiatan internal",
+      };
+    });
+  } catch (error) {
+    console.error("[fetchDivisionsFromNotion] Error:", error);
+    const { divisions: staticDivs } = await import("./pendaftaran-data");
+    return staticDivs;
+  }
+}

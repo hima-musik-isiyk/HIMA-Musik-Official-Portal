@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
 import { FEATURES } from "@/lib/feature-flags";
-import { divisions } from "@/lib/pendaftaran-data";
+import { divisions as staticDivisions } from "@/lib/pendaftaran-data";
 import useViewEntrance from "@/lib/useViewEntrance";
 import { flagViewEntranceForNextRoute } from "@/lib/view-entrance";
 
@@ -88,6 +88,20 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname);
+  const [divisions, setDivisions] = useState(staticDivisions);
+
+  useEffect(() => {
+    fetch("/api/divisions")
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setDivisions(res.data);
+        }
+      })
+      .catch((err) =>
+        console.error("Error fetching divisions in footer:", err),
+      );
+  }, []);
 
   const footerLinks = React.useMemo(() => {
     if (FEATURES.ALLOW_PENDAFTARAN) {

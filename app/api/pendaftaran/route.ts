@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
+import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
+import {
+  DB_PENDAFTARAN_STORAGE,
+  DB_SDM_EVALUASI,
+  DB_STRUKTUR_ORGANISASI,
+} from "@/lib/notion-db-ids";
 
 type PendaftaranPayload = {
   intent?: string;
@@ -65,6 +71,235 @@ const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
 const pendaftaranCooldownMs = 5 * 60 * 1000;
 
 const pendaftaranLastSubmit = new Map<string, number>();
+
+async function writePendaftaranToNotion(data: {
+  firstChoice: string;
+  secondChoice: string;
+  angkatan: string;
+  pddSubfocus: string;
+  fullName: string;
+  nim: string;
+  email: string;
+  phone: string;
+  instagram: string;
+  motivation: string;
+  experience: string;
+  availability: string[];
+  portfolio: string;
+}) {
+  const notion = getNotionClient();
+  if (!notion) return;
+
+  const storageDbId = DB_PENDAFTARAN_STORAGE;
+  if (
+    !storageDbId ||
+    storageDbId.includes("placeholder") ||
+    storageDbId.length < 32
+  ) {
+    console.warn(
+      "[Notion Pendaftaran] DB_PENDAFTARAN_STORAGE not configured. Skipping Notion write.",
+    );
+    return;
+  }
+
+  // 1. Find division page from DB_STRUKTUR_ORGANISASI
+  let divisionPageId: string | null = null;
+  const structDbId = DB_STRUKTUR_ORGANISASI;
+  if (structDbId && structDbId.length >= 32) {
+    try {
+      const dsId = await resolveDataSourceIdSafe(structDbId);
+      if (dsId) {
+        const res = await notion.dataSources.query({ data_source_id: dsId });
+        const pages = res.results as any[];
+        // find page matching slug of firstChoice
+        const slugify = (text: string) =>
+          text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        const match = pages.find((p) => {
+          let title = "";
+          for (const prop of Object.values(p.properties || {}) as any[]) {
+            if (prop.type === "title" && prop.title?.length > 0) {
+              title = prop.title.map((t: any) => t.plain_text).join("");
+              break;
+            }
+          }
+          return (
+            slugify(title) === data.firstChoice || p.id === data.firstChoice
+          );
+        });
+        if (match) {
+          divisionPageId = match.id;
+        }
+      }
+    } catch (e) {
+      console.warn("[Notion Pendaftaran] Failed to resolve division page:", e);
+    }
+  }
+
+  // 2. Find SDM slot from DB_SDM_EVALUASI
+  let sdmSlotPageId: string | null = null;
+  const sdmDbId = DB_SDM_EVALUASI;
+  if (sdmDbId && sdmDbId.length >= 32 && divisionPageId) {
+    try {
+      const dsId = await resolveDataSourceIdSafe(sdmDbId);
+      if (dsId) {
+        const res = await notion.dataSources.query({ data_source_id: dsId });
+        const pages = res.results as any[];
+        const match = pages.find((p) => {
+          let isRekrutmen = false;
+          let relatesToDivision = false;
+          for (const prop of Object.values(p.properties || {}) as any[]) {
+            if (prop.type === "select" && prop.select?.name === "Rekrutmen") {
+              isRekrutmen = true;
+            }
+            if (prop.type === "relation" && Array.isArray(prop.relation)) {
+              if (prop.relation.some((r: any) => r.id === divisionPageId)) {
+                relatesToDivision = true;
+              }
+            }
+          }
+          return isRekrutmen && relatesToDivision;
+        });
+        if (match) {
+          sdmSlotPageId = match.id;
+        }
+      }
+    } catch (e) {
+      console.warn("[Notion Pendaftaran] Failed to resolve SDM slot page:", e);
+    }
+  }
+
+  // 3. Query schema of DB_PENDAFTARAN_STORAGE to map properties
+  let dbProperties: Record<string, any> = {};
+  const storageDsId = await resolveDataSourceIdSafe(storageDbId);
+  if (storageDsId) {
+    const ds = await (notion as any).dataSources.retrieve({
+      data_source_id: storageDsId,
+    });
+    if (ds && ds.properties) {
+      dbProperties = ds.properties;
+    }
+  }
+
+  const properties: Record<string, any> = {};
+
+  for (const [name, schema] of Object.entries(dbProperties)) {
+    const type = schema.type;
+    const lowerName = name.toLowerCase();
+
+    if (type === "title") {
+      properties[name] = {
+        title: [{ text: { content: data.fullName } }],
+      };
+    } else if (type === "rich_text") {
+      if (lowerName.includes("nim")) {
+        properties[name] = { rich_text: [{ text: { content: data.nim } }] };
+      } else if (
+        lowerName.includes("whatsapp") ||
+        lowerName.includes("phone") ||
+        lowerName.includes("hp") ||
+        lowerName.includes("telepon")
+      ) {
+        properties[name] = { rich_text: [{ text: { content: data.phone } }] };
+      } else if (lowerName.includes("instagram") || lowerName.includes("ig")) {
+        properties[name] = {
+          rich_text: [{ text: { content: data.instagram } }],
+        };
+      } else if (
+        lowerName.includes("motivasi") ||
+        lowerName.includes("motivation") ||
+        lowerName.includes("alasan")
+      ) {
+        properties[name] = {
+          rich_text: [{ text: { content: data.motivation } }],
+        };
+      } else if (
+        lowerName.includes("pengalaman") ||
+        lowerName.includes("experience")
+      ) {
+        properties[name] = {
+          rich_text: [{ text: { content: data.experience } }],
+        };
+      } else if (
+        lowerName.includes("portofolio") ||
+        lowerName.includes("portfolio") ||
+        lowerName.includes("lampiran")
+      ) {
+        properties[name] = {
+          rich_text: [{ text: { content: data.portfolio } }],
+        };
+      } else if (lowerName.includes("email") || lowerName.includes("mail")) {
+        properties[name] = { rich_text: [{ text: { content: data.email } }] };
+      } else if (lowerName.includes("angkatan")) {
+        properties[name] = {
+          rich_text: [{ text: { content: data.angkatan } }],
+        };
+      }
+    } else if (
+      type === "email" &&
+      (lowerName.includes("email") || lowerName.includes("mail"))
+    ) {
+      properties[name] = { email: data.email };
+    } else if (
+      type === "url" &&
+      (lowerName.includes("portfolio") ||
+        lowerName.includes("portofolio") ||
+        lowerName.includes("lampiran") ||
+        lowerName.includes("link"))
+    ) {
+      if (data.portfolio.startsWith("http")) {
+        properties[name] = { url: data.portfolio };
+      }
+    } else if (type === "select" && lowerName.includes("angkatan")) {
+      properties[name] = { select: { name: data.angkatan } };
+    } else if (
+      type === "multi_select" &&
+      (lowerName.includes("ketersediaan") ||
+        lowerName.includes("availability") ||
+        lowerName.includes("jadwal"))
+    ) {
+      properties[name] = {
+        multi_select: data.availability.map((day) => ({ name: day })),
+      };
+    } else if (type === "relation") {
+      if (
+        sdmSlotPageId &&
+        schema.relation?.database_id?.replace(/-/g, "") ===
+          sdmDbId.replace(/-/g, "")
+      ) {
+        properties[name] = {
+          relation: [{ id: sdmSlotPageId }],
+        };
+      }
+      if (
+        divisionPageId &&
+        schema.relation?.database_id?.replace(/-/g, "") ===
+          structDbId.replace(/-/g, "")
+      ) {
+        properties[name] = {
+          relation: [{ id: divisionPageId }],
+        };
+      }
+    }
+  }
+
+  if (Object.keys(properties).length === 0) {
+    properties["Nama Lengkap"] = {
+      title: [{ text: { content: data.fullName } }],
+    };
+    properties["Email"] = { email: data.email };
+    if (divisionPageId) {
+      properties["Divisi"] = { relation: [{ id: divisionPageId }] };
+    }
+  }
+
+  await notion.pages.create({
+    parent: { database_id: storageDbId },
+    properties: properties as any,
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -248,6 +483,36 @@ export async function POST(request: Request) {
             "Retry-After": String(Math.ceil(retryAfterMs / 1000)),
           },
         },
+      );
+    }
+
+    try {
+      await writePendaftaranToNotion({
+        firstChoice,
+        secondChoice,
+        angkatan,
+        pddSubfocus,
+        fullName,
+        nim,
+        email,
+        phone,
+        instagram,
+        motivation,
+        experience,
+        availability,
+        portfolio,
+      });
+    } catch (notionError) {
+      console.error("[Pendaftaran API] Notion write failed:", notionError);
+      return NextResponse.json(
+        {
+          error: "Gagal menyimpan data pendaftaran ke Notion.",
+          details:
+            notionError instanceof Error
+              ? notionError.message
+              : String(notionError),
+        },
+        { status: 500 },
       );
     }
 

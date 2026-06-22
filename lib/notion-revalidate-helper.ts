@@ -1,19 +1,18 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { getNotionClient } from "@/lib/notion";
 import {
-  fetchAgendaDatabaseIdCached,
-  fetchKKMDatabaseIdCached,
-  fetchRedirectDatabaseIdCached,
-  getNotionClient,
-  resolveBerandaDatabasesCached,
-  resolveFAQDatabaseCached,
-  resolveSekretariatDatabasesCached,
-} from "@/lib/notion";
-import {
-  resolveFAQPageIdCached,
-  resolveKaryaDatabaseIdFromCms,
-  resolveProfilSdmDatabaseIdFromCms,
-} from "@/lib/notion-builder";
+  DB_AGENDA_FORM_STORAGE,
+  DB_BERANDA_HERO,
+  DB_BERANDA_JELAJAHI,
+  DB_DOKUMEN_SEKRETARIAT,
+  DB_FAQ_STORAGE,
+  DB_KARYA_FORM_STORAGE,
+  DB_KATEGORI_DOKUMEN,
+  DB_KKM,
+  DB_REDIRECT,
+  DB_SDM_EVALUASI,
+} from "@/lib/notion-db-ids";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
 
@@ -43,12 +42,6 @@ export type ContentScope =
   | "profil"
   | "beranda"
   | "redirects";
-
-const NOTION_BERANDA_PAGE_ID = process.env.NOTION_BERANDA_PAGE_ID ?? "";
-const NOTION_KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
-const NOTION_AGENDA_PAGE_ID = process.env.NOTION_AGENDA_PAGE_ID ?? "";
-const NOTION_SEKRETARIAT_PAGE_ID = process.env.NOTION_SEKRETARIAT_PAGE_ID ?? "";
-const REDIRECT_PAGE_ID = process.env.NOTION_REDIRECT_PAGE_ID ?? "";
 
 const dataSourceIdCache = new Map<string, string | null>();
 const parentChainCache = new Map<
@@ -94,50 +87,16 @@ async function resolvePrimaryDataSourceId(
 }
 
 async function buildScopeMatchers() {
-  const faqPageId = await resolveFAQPageIdCached();
-  const karyaDbId = await resolveKaryaDatabaseIdFromCms();
-
-  const [
-    docsDbIdResolved,
-    agendaDbIdResolved,
-    kkmDbIdResolved,
-    profilSdmDbId,
-    berandaDbResolved,
-    faqDbIdResolved,
-  ] = await Promise.all([
-    NOTION_SEKRETARIAT_PAGE_ID
-      ? resolveSekretariatDatabasesCached(NOTION_SEKRETARIAT_PAGE_ID)
-      : {
-          docsDbId: "36f3b26d-c3be-8017-ba07-e3a418fa4366",
-          categoriesDbId: "",
-        },
-    NOTION_AGENDA_PAGE_ID
-      ? fetchAgendaDatabaseIdCached(NOTION_AGENDA_PAGE_ID)
-      : "36e3b26d-c3be-80dc-aa20-e1ee3940b466",
-    NOTION_KKM_PAGE_ID
-      ? fetchKKMDatabaseIdCached(NOTION_KKM_PAGE_ID)
-      : "36e3b26d-c3be-8065-94be-f94365699c8d",
-    resolveProfilSdmDatabaseIdFromCms(),
-    NOTION_BERANDA_PAGE_ID
-      ? resolveBerandaDatabasesCached(NOTION_BERANDA_PAGE_ID)
-      : {
-          heroDbId: "36e3b26d-c3be-802c-aac0-c7dbcd40ef36",
-          jelajahiDbId: "36e3b26d-c3be-802c-91ac-e5ed573d89f6",
-        },
-    faqPageId
-      ? resolveFAQDatabaseCached(faqPageId)
-      : "36d3b26d-c3be-8041-b2bd-d9b7f746e06e",
-  ]);
-
-  const docsDbId = docsDbIdResolved.docsDbId;
-  const categoriesDbId = docsDbIdResolved.categoriesDbId;
-  const agendaDbId = agendaDbIdResolved;
-  const kkmDbId = kkmDbIdResolved;
-  const faqDbId = faqDbIdResolved;
-
-  const redirectDbId = REDIRECT_PAGE_ID
-    ? await fetchRedirectDatabaseIdCached(REDIRECT_PAGE_ID)
-    : "";
+  const docsDbId = DB_DOKUMEN_SEKRETARIAT;
+  const categoriesDbId = DB_KATEGORI_DOKUMEN;
+  const agendaDbId = DB_AGENDA_FORM_STORAGE;
+  const kkmDbId = DB_KKM;
+  const faqDbId = DB_FAQ_STORAGE;
+  const redirectDbId = DB_REDIRECT;
+  const profilSdmDbId = DB_SDM_EVALUASI;
+  const karyaDbId = DB_KARYA_FORM_STORAGE;
+  const berandaHeroDbId = DB_BERANDA_HERO;
+  const berandaJelajahiDbId = DB_BERANDA_JELAJAHI;
 
   const [
     docsDataSourceId,
@@ -157,11 +116,9 @@ async function buildScopeMatchers() {
     resolvePrimaryDataSourceId(kkmDbId),
     resolvePrimaryDataSourceId(karyaDbId ?? ""),
     resolvePrimaryDataSourceId(faqDbId),
-    resolvePrimaryDataSourceId(
-      profilSdmDbId ?? "35c3b26d-c3be-8021-b84a-df0a98e7b1e1",
-    ),
-    resolvePrimaryDataSourceId(berandaDbResolved.heroDbId),
-    resolvePrimaryDataSourceId(berandaDbResolved.jelajahiDbId),
+    resolvePrimaryDataSourceId(profilSdmDbId),
+    resolvePrimaryDataSourceId(berandaHeroDbId),
+    resolvePrimaryDataSourceId(berandaJelajahiDbId),
     resolvePrimaryDataSourceId(redirectDbId),
   ]);
 
@@ -191,15 +148,13 @@ async function buildScopeMatchers() {
       dataSourceId: faqDataSourceId,
     },
     profil: {
-      databaseId: [profilSdmDbId ?? "35c3b26d-c3be-8021-b84a-df0a98e7b1e1"]
-        .filter(Boolean)
-        .map(normalizeNotionId),
+      databaseId: [profilSdmDbId].filter(Boolean).map(normalizeNotionId),
       dataSourceId: [profilSdmDataSourceId]
         .filter(Boolean)
         .map(normalizeNotionId),
     },
     beranda: {
-      databaseId: [berandaDbResolved.heroDbId, berandaDbResolved.jelajahiDbId]
+      databaseId: [berandaHeroDbId, berandaJelajahiDbId]
         .filter(Boolean)
         .map(normalizeNotionId),
       dataSourceId: [berandaHeroDataSourceId, berandaJelajahiDataSourceId]
@@ -327,11 +282,8 @@ async function resolveEntityScopeHints(
 export function revalidateScope(scope: ContentScope) {
   if (scope === "docs") {
     revalidateTag("notion-docs", { expire: 0 });
-    revalidateTag("notion-archives", { expire: 0 });
     revalidatePath("/sekretariat");
     revalidatePath("/sekretariat/[slug]", "page");
-    revalidatePath("/sekretariat/archives");
-    revalidatePath("/sekretariat/archives/[id]", "page");
     return;
   }
 

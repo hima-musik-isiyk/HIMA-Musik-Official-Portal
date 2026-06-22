@@ -8,7 +8,10 @@ import type {
   ProfilModularDivision,
   ProfilModularExecutive,
 } from "@/lib/notion";
-import { divisions as allDivisions } from "@/lib/pendaftaran-data";
+import {
+  type Division,
+  divisions as staticDivisions,
+} from "@/lib/pendaftaran-data";
 import useViewEntrance from "@/lib/useViewEntrance";
 
 import { GenericLineTitle } from "../core/GenericLineTitle";
@@ -22,6 +25,20 @@ export const StrukturOrganisasiGraph: React.FC<
   StrukturOrganisasiGraphProps
 > = ({ value1, value2 }) => {
   const pathname = usePathname();
+  const [fallbackDivisions, setFallbackDivisions] =
+    useState<Division[]>(staticDivisions);
+
+  useEffect(() => {
+    fetch("/api/divisions")
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setFallbackDivisions(res.data);
+        }
+      })
+      .catch((err) => console.error("Error fetching divisions in graph:", err));
+  }, []);
+
   const [data, setData] = useState<{
     executives: ProfilModularExecutive[];
     divisions: ProfilModularDivision[];
@@ -118,7 +135,11 @@ export const StrukturOrganisasiGraph: React.FC<
       <OrgChart executives={executivesList} />
       <div className="mt-12">
         <GenericLineTitle value1="Divisi" variation1="Center" />
-        <DivisionCards executives={executivesList} divisions={data.divisions} />
+        <DivisionCards
+          executives={executivesList}
+          divisions={data.divisions}
+          fallbackDivisions={fallbackDivisions}
+        />
       </div>
     </div>
   );
@@ -443,11 +464,13 @@ const DivisionCard = ({
 const DivisionCards = ({
   executives,
   divisions: fetchedDivisions,
+  fallbackDivisions,
 }: {
   executives: { role: string; name: string }[];
   divisions?: ProfilModularDivision[];
+  fallbackDivisions: Division[];
 }) => {
-  const divisions = allDivisions.filter((d) => !d.id.startsWith("co-"));
+  const divisions = fallbackDivisions.filter((d) => !d.id.startsWith("co-"));
 
   const findNamesForDivision = (divisionName: string) => {
     const matches = executives.filter(
