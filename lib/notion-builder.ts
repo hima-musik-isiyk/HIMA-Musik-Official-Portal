@@ -337,9 +337,10 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
   // Master Components
   const componentsList: CMSComponent[] = rawComponents.map((p) => ({
     id: p.id,
-    typeId: getRelationIds(p, "Type")[0] || "",
+    typeId: getRelationIds(p, PROP_CONTENT_COMPONENT.COMPONENT_TYPES)[0] || "",
     variation: getTitle(p, PROP_CONTENT_COMPONENT.COMPONENT_VARIATION),
-    groupId: getRelationIds(p, "Master Group Div Category")[0] || "",
+    groupId:
+      getRelationIds(p, PROP_CONTENT_COMPONENT.GROUP_DIV_CATEGORY)[0] || "",
     show: getCheckbox(p, PROP.SHOW, true),
     orderOrGroup: getRichText(p, PROP_CONTENT_COMPONENT.ORDER_OR_GROUP),
     value: applyVariables(getRichTextOrMentionId(p, PROP.VALUE)),
@@ -352,7 +353,7 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
   for (const c of componentsList) {
     const rawP = rawComponents.find((rc) => rc.id === c.id);
     if (!rawP) continue;
-    const sectionIds = getRelationIds(rawP, "Section");
+    const sectionIds = getRelationIds(rawP, PROP_CONTENT_COMPONENT.SECTIONS);
     if (sectionIds.length > 0) {
       const sectionId = sectionIds[0];
       if (!sectionIdToComponents[sectionId])

@@ -20,7 +20,7 @@ export const BerandaTempArtwork: React.FC<BerandaTempArtworkProps> = ({
   if (isSubtle) {
     return (
       <div
-        className={`pointer-events-none absolute inset-0 z-0 overflow-hidden ${className}`}
+        className={`pointer-events-none absolute inset-0 z-0 ${className}`}
         aria-hidden="true"
       >
         {/* Subtle LightPillar */}
@@ -71,7 +71,7 @@ export const BerandaTempArtwork: React.FC<BerandaTempArtworkProps> = ({
   // Basic is Variation 2
   return (
     <div
-      className={`pointer-events-none absolute top-0 right-0 z-0 h-screen w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] ${className}`}
+      className={`pointer-events-none absolute inset-0 z-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(212,166,77,0.03)_0%,transparent_70%)] ${className}`}
       aria-hidden="true"
     />
   );

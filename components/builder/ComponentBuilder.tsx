@@ -107,7 +107,7 @@ export const ComponentBuilder: React.FC<ComponentBuilderProps> = ({
           break;
       }
     } else if (
-      groupDef.type === "Position" &&
+      (groupDef.type === "Position" || groupDef.type === "Size") &&
       (groupDef.name === "Background" ||
         groupDef.name.includes("Absolute") ||
         groupDef.name.includes("Span All Height") ||

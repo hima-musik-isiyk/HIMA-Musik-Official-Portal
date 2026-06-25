@@ -99,7 +99,7 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
             break;
         }
       } else if (
-        groupDef.type === "Position" &&
+        (groupDef.type === "Position" || groupDef.type === "Size") &&
         (groupDef.name === "Background" ||
           groupDef.name.includes("Absolute") ||
           groupDef.name.includes("Span All Height") ||
@@ -130,11 +130,19 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
       ? cmsData.groupCategories[groupDefId]
       : undefined;
     return (
-      groupDef?.type === "Position" &&
+      (groupDef?.type === "Position" || groupDef?.type === "Size") &&
       (groupDef?.name === "Background" ||
         groupDef?.name.includes("Absolute") ||
         groupDef?.name.includes("Span All Height") ||
         groupDef?.name.includes("Ignore Section Paddings"))
+    );
+  });
+
+  const hasSpanAll = bgComponents.some((c) => {
+    const groupDef = cmsData.groupCategories[c.groupId];
+    return (
+      groupDef?.name.includes("Span All Height") ||
+      groupDef?.name.includes("Ignore Section Paddings")
     );
   });
 
@@ -160,7 +168,9 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
   return (
     <section id={section.slug?.replace("#", "")} className={baseSectionClass}>
       {bgComponents.length > 0 && (
-        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div
+          className={`pointer-events-none absolute inset-0 z-0 ${hasSpanAll ? "" : "overflow-hidden"}`}
+        >
           {bgComponents.map((c) => (
             <ComponentBuilder
               key={c.id}
