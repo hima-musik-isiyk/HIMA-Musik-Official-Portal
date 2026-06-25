@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 import type { KKMGroup } from "@/lib/kkm-data";
+import { toCachedImageUrl } from "@/lib/notion-image";
 
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 const passthroughLoader = ({ src }: { src: string }) => src;
@@ -136,7 +137,7 @@ function KKMCard({ group }: { group: KKMGroup }) {
         {group.logoUrl && (
           <div className="shrink-0">
             <Image
-              src={group.logoUrl}
+              src={toCachedImageUrl(group.logoUrl)}
               alt={`${group.name} logo`}
               loader={passthroughLoader}
               width={56}
