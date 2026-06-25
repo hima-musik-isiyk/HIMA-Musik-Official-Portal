@@ -80,6 +80,7 @@ interface RegistryEntry {
   name: string;
   teamspace: string;
   cmsStatus: string;
+  syncMode: string;
   /** The actual database ID (resolved from title mention) */
   resolvedDbId: string;
 }
@@ -107,6 +108,7 @@ interface DatabaseSchema {
     targetDbId: string;
     targetDbName?: string;
   }[];
+  rowTitles?: string[];
   error?: string;
 }
 
@@ -306,12 +308,20 @@ async function fetchRegistry(): Promise<RegistryEntry[]> {
       cmsStatus = cmsProp.select.name || "";
     }
 
+    // Extract Sync Mode
+    let syncMode = "Schema Only";
+    const syncModeProp = props["Sync Mode"];
+    if (syncModeProp?.type === "select" && syncModeProp.select) {
+      syncMode = syncModeProp.select.name || "Schema Only";
+    }
+
     if (name) {
       entries.push({
         id: page.id,
         name,
         teamspace,
         cmsStatus,
+        syncMode,
         resolvedDbId: formatId(resolvedDbId),
       });
     }
@@ -528,6 +538,44 @@ async function crawlDatabase(
           }
         } catch {
           // If count fails, keep the sample count and mark as approximate
+        }
+      }
+
+      // 3.5. Crawl all row titles if Sync Mode is "Crawl Rows"
+      if (entry.syncMode === "Crawl Rows" && !schema.error) {
+        schema.rowTitles = [];
+        try {
+          let hasMore = true;
+          let cursor: string | undefined;
+          while (hasMore) {
+            const body: any = { page_size: 100 };
+            if (cursor) body.start_cursor = cursor;
+            const queryResult = await notionFetch<any>(
+              queryEndpoint,
+              "POST",
+              body,
+            );
+            const results = queryResult.results || [];
+            for (const row of results) {
+              const props = row.properties || {};
+              let titleVal = "";
+              for (const [, propValue] of Object.entries(props)) {
+                if ((propValue as any).type === "title") {
+                  titleVal = extractPlainValue(propValue);
+                  break;
+                }
+              }
+              if (titleVal) {
+                schema.rowTitles.push(titleVal);
+              }
+            }
+            hasMore = queryResult.has_more;
+            cursor = queryResult.next_cursor || undefined;
+          }
+        } catch (crawlErr: any) {
+          console.warn(
+            `   ⚠️ Failed to crawl row titles for ${entry.name}: ${crawlErr.message}`,
+          );
         }
       }
     } catch (queryErr: any) {
@@ -1133,6 +1181,37 @@ function generateGlossariumScaffold(schemas: DatabaseSchema[]): void {
   fs.writeFileSync(
     path.join(scaffoldDir, "relations.ts"),
     relLines.join("\n"),
+    "utf-8",
+  );
+
+  // 4. components.ts scaffold
+  const compLines: string[] = [];
+  compLines.push(`// Auto-generated scaffold for lib/glossarium/components.ts`);
+  for (const s of schemas) {
+    if (
+      s.registryEntry.syncMode === "Crawl Rows" &&
+      s.rowTitles &&
+      s.rowTitles.length > 0
+    ) {
+      const safeName = s.registryEntry.name
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "_");
+      compLines.push(
+        `\n// Sourced from dynamic rows of database: ${s.registryEntry.name}`,
+      );
+      compLines.push(`export const ROW_TITLES_${safeName} = [`);
+      // Remove duplicate names if any and sort them
+      const uniqueTitles = Array.from(new Set(s.rowTitles)).sort();
+      for (const title of uniqueTitles) {
+        const escapedTitle = title.replace(/"/g, '\\"');
+        compLines.push(`  "${escapedTitle}",`);
+      }
+      compLines.push(`] as const;`);
+    }
+  }
+  fs.writeFileSync(
+    path.join(scaffoldDir, "components.ts"),
+    compLines.join("\n"),
     "utf-8",
   );
 }
