@@ -744,11 +744,10 @@ function isHimaSender(entry: any, event: any) {
 }
 
 async function sendRawToDiscord(entry: any, context: WebhookContext) {
-  const webhookUrl =
-    process.env.DISCORD_RAW_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_RAW_URL;
+  const webhookUrl = process.env.DISCORD_ERROR_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.warn("DISCORD_RAW_WEBHOOK_URL is not configured.");
+    console.warn("DISCORD_ERROR_WEBHOOK_URL is not configured.");
     return;
   }
 
