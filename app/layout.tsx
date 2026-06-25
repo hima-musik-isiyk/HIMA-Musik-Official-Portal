@@ -1,7 +1,7 @@
 import "../index.css";
 
 import { Fraunces } from "next/font/google";
-import React from "react";
+import React, { Suspense } from "react";
 
 import CommandPalette from "../components/CommandPalette";
 import Footer from "../components/Footer";
@@ -71,16 +71,22 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <LocatorInitializer />
         <LegacyHashRedirectWrapper />
         <div className="fixed inset-0 z-1 bg-[#0a0a0a]" aria-hidden="true" />
-        <Navigation
-          navItems={navItems}
-          mobileNavItems={mobileNavItems}
-          highlightItem={highlightItem}
-        />
+        <Suspense>
+          <Navigation
+            navItems={navItems}
+            mobileNavItems={mobileNavItems}
+            highlightItem={highlightItem}
+          />
+        </Suspense>
         <CommandPalette />
         <main className="relative z-3 grow pt-20 pb-24 md:pb-32">
-          <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
+          <Suspense>
+            <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
+          </Suspense>
         </main>
-        <Footer />
+        <Suspense>
+          <Footer />
+        </Suspense>
       </body>
     </html>
   );

@@ -30,6 +30,7 @@ export default async function EventDetailRoute({
 
   return (
     <PageBuilder
+      pathname={`/agenda/${slug}`}
       overrideComponent="Event Detail"
       injectedProps={{
         "Event Detail": {

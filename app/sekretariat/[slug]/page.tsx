@@ -16,6 +16,7 @@ export default async function DocRoutePage({ params }: DocRouteProps) {
 
   return (
     <PageBuilder
+      pathname={`/sekretariat/${slug}`}
       overrideComponent="Doc Page"
       injectedProps={{
         "Doc Page": { doc: result.meta, blocks: result.blocks },

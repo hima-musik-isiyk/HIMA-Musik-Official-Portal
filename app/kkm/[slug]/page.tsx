@@ -16,6 +16,7 @@ export default async function KKMDetailPage({ params }: KKMDetailProps) {
 
   return (
     <PageBuilder
+      pathname={`/kkm/${slug}`}
       overrideComponent="Doc Page"
       injectedProps={{
         "Doc Page": {

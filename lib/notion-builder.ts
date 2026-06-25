@@ -74,6 +74,9 @@ export interface CMSPage {
   showFooter: boolean;
   sections: CMSSection[];
   maxWidth?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 export interface CMSRedirect {
@@ -385,6 +388,9 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
       showFooter: getCheckbox(p, "Show Footer", true),
       sections: pSections,
       maxWidth: getRichText(p, "Max Width") || "7xl",
+      seoTitle: getRichText(p, "SEO Title") || undefined,
+      seoDescription: getRichText(p, "SEO Description") || undefined,
+      seoKeywords: getRichText(p, "SEO Keywords") || undefined,
     };
   });
 

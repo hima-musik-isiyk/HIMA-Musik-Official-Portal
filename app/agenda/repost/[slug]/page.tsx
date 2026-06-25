@@ -32,6 +32,7 @@ export default async function EventDetailRepostRoute({
 
   return (
     <PageBuilder
+      pathname={`/agenda/repost/${slug}`}
       overrideComponent="Event Detail"
       injectedProps={{
         "Event Detail": {

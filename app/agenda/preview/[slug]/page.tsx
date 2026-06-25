@@ -34,6 +34,7 @@ export default async function EventDetailPreviewRoute({
     <>
       <PreviewActionBar />
       <PageBuilder
+        pathname={`/agenda/preview/${slug}`}
         overrideComponent="Event Detail"
         injectedProps={{
           "Event Detail": {
