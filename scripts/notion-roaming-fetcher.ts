@@ -841,6 +841,7 @@ function generateJsonDump(
         targetName: r.targetDbName || null,
       })),
       sampleRows: s.sampleRows,
+      rowTitles: s.rowTitles || null,
     })),
   };
 }
@@ -1056,6 +1057,20 @@ function generateGlossaryMarkdown(
         for (const [key, val] of Object.entries(firstRow)) {
           const truncated = val.length > 80 ? val.slice(0, 80) + "…" : val;
           lines.push(`| ${key} | ${escapeMarkdownTable(truncated)} |`);
+        }
+        lines.push("");
+        lines.push(`</details>`);
+        lines.push("");
+      }
+
+      // Crawled row titles
+      if (schema.rowTitles && schema.rowTitles.length > 0) {
+        lines.push(
+          `<details><summary>Crawled Rows (${schema.rowTitles.length})</summary>`,
+        );
+        lines.push("");
+        for (const title of schema.rowTitles) {
+          lines.push(`- ${title}`);
         }
         lines.push("");
         lines.push(`</details>`);
