@@ -448,16 +448,6 @@ export function findCmsPageForPath(
 
 export const fetchContainerCMSCached = unstable_cache(
   async () => {
-    if (process.env.NEXT_PHASE === "phase-production-build") {
-      return {
-        pages: [],
-        variables: {},
-        groupCategories: {},
-        componentRegistry: {},
-        footer: [],
-        redirects: [],
-      };
-    }
     try {
       return await fetchContainerCMS();
     } catch (error) {
