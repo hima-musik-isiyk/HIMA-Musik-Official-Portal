@@ -53,3 +53,7 @@ migration/env/
 # Canva tokens & logs
 .canva_session.json
 .env*
+
+# Scratch directory
+scratch/
+

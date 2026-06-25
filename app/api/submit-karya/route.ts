@@ -2,26 +2,18 @@ import { NextResponse } from "next/server";
 
 import { generateKaryaEmailTemplate, sendBrevoEmail } from "@/lib/brevo";
 import { sendDiscordWebhook } from "@/lib/discord";
-import { fetchKaryaDatabaseIdCached, getNotionClient } from "@/lib/notion";
+import { getNotionClient, resolveDatabaseId } from "@/lib/notion";
 
 export async function POST(request: Request) {
-  const KARYA_PAGE_ID = process.env.NOTION_KARYA_PAGE_ID;
   const DISCORD_WEBHOOK_URL =
     process.env.DISCORD_KARYA_WEBHOOK_URL ||
     "https://discord.com/api/webhooks/1509621771136012391/HubUQorPzJOhOnODs6xJQtiei1gpE2e6cEuQzX019NNEfLYpuBDB9Ik98X_ZgPOGqk2H";
 
-  if (!KARYA_PAGE_ID) {
-    return NextResponse.json(
-      { error: "Karya Page ID not configured" },
-      { status: 500 },
-    );
-  }
-
   try {
-    const activeDbId = await fetchKaryaDatabaseIdCached(KARYA_PAGE_ID);
+    const activeDbId = await resolveDatabaseId("02 Form & Storage: Karya");
     if (!activeDbId) {
       return NextResponse.json(
-        { error: "Karya Database ID could not be resolved from parent page" },
+        { error: "Karya Database ID could not be resolved" },
         { status: 500 },
       );
     }

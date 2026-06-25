@@ -6,7 +6,7 @@ export const revalidate = 0; // Dynamic API route
 
 export async function GET() {
   try {
-    const pageId = process.env.NOTION_KKM_PAGE_ID || "";
+    const pageId = "02 KKM";
     const data = await fetchKKMModularDataCached(pageId);
     return NextResponse.json({
       success: true,

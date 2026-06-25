@@ -6,14 +6,20 @@ import { unstable_cache } from "./cache";
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
 import type { KKMGroup } from "./kkm-data";
 import {
+  DB_ADUAN_STORAGE,
   DB_AGENDA_FORM_STORAGE,
   DB_BERANDA_HERO,
   DB_BERANDA_JELAJAHI,
   DB_DOKUMEN_SEKRETARIAT,
+  DB_FAQ_STORAGE,
+  DB_KARYA_FORM_STORAGE,
   DB_KATEGORI_DOKUMEN,
   DB_KKM,
   DB_KKM_HERO,
   DB_REDIRECT,
+  DB_SDM_EVALUASI,
+  DB_STRUKTUR_ORGANISASI,
+  DB_TUGAS_UTAMA_DIVISI,
 } from "./notion-db-ids";
 import {
   buildAnchorMap,
@@ -437,15 +443,82 @@ const DOCS_DB_ID =
 
 const dataSourceIdCache = new Map<string, string>();
 const warnedDatabaseIds = new Set<string>();
+const registryIdCache = new Map<string, string>();
 
 function normalizeNotionId(id: string): string {
-  const compact = id.replace(/-/g, "");
+  const compact = id.replace(/-/g, "").trim();
   if (!/^[0-9a-fA-F]{32}$/.test(compact)) return id;
   return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
 }
 
+export async function resolveDatabaseId(idOrName: string): Promise<string> {
+  if (!idOrName) return "";
+
+  const cleanId = idOrName.replace(/-/g, "").trim();
+  if (/^[0-9a-fA-F]{32}$/.test(cleanId)) {
+    return idOrName;
+  }
+
+  const registryDbId = process.env.NOTION_DATABASE_REGISTRY_ID;
+  if (!registryDbId) {
+    console.error("Missing NOTION_DATABASE_REGISTRY_ID environment variable");
+    return idOrName;
+  }
+
+  const normalizedSearch = idOrName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (registryIdCache.has(normalizedSearch)) {
+    return registryIdCache.get(normalizedSearch)!;
+  }
+
+  try {
+    const client = getNotionClient();
+    const dsId = await resolveDataSourceIdSafe(registryDbId);
+    if (!dsId) return idOrName;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (client as any).dataSources.query({
+      data_source_id: dsId,
+    });
+
+    for (const page of response.results) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const properties = (page as any).properties;
+      let title = "";
+      const titleProp = properties["Link"] || properties["Name"];
+      if (titleProp?.type === "title") {
+         
+        title = titleProp.title
+          .map((t: any) => t.plain_text)
+          .join("")
+          .trim();
+      }
+
+      if (title) {
+        const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "");
+        registryIdCache.set(normalizedTitle, page.id);
+      }
+    }
+
+    const resolved = registryIdCache.get(normalizedSearch);
+    if (!resolved) {
+      console.warn(
+        `Database name "${idOrName}" not found in Notion Database Registry.`,
+      );
+      return idOrName;
+    }
+    return resolved;
+  } catch (error) {
+    console.error(
+      `Error resolving database "${idOrName}" from registry:`,
+      error,
+    );
+    return idOrName;
+  }
+}
+
 export async function resolveDataSourceId(id: string): Promise<string> {
-  const normalizedId = normalizeNotionId(id);
+  const resolvedId = await resolveDatabaseId(id);
+  const normalizedId = normalizeNotionId(resolvedId);
   const cached = dataSourceIdCache.get(normalizedId);
   if (cached) return cached;
 
@@ -673,72 +746,33 @@ export const fetchAllDocs = unstable_cache(
 /* ------------------------------------------------------------------ */
 
 export async function resolveKKMDatabases(
-  pageId: string,
+  _pageId: string,
 ): Promise<{ heroDbId: string; groupsDbId: string }> {
-  const result = {
-    heroDbId: "36e3b26d-c3be-80de-a00e-dff07d738239",
-    groupsDbId: "36e3b26d-c3be-8065-94be-f94365699c8d",
+  return {
+    heroDbId: DB_KKM_HERO,
+    groupsDbId: DB_KKM,
   };
-
-  if (!pageId) return result;
-
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 2) {
-      result.heroDbId = dbs.childDatabases[0];
-      result.groupsDbId = dbs.childDatabases[1];
-    } else if (dbs.childDatabases.length === 1) {
-      const singleId = dbs.childDatabases[0];
-      if (singleId === "36e3b26d-c3be-80de-a00e-dff07d738239") {
-        result.heroDbId = singleId;
-      } else {
-        result.groupsDbId = singleId;
-      }
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion resolveKKMDatabases] Failed to fetch page child databases",
-      error,
-    );
-  }
-
-  return result;
 }
 
-export async function fetchKKMDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return "36e3b26d-c3be-8065-94be-f94365699c8d";
-  const resolved = await resolveKKMDatabases(pageId);
-  return resolved.groupsDbId;
+export async function fetchKKMDatabaseId(_pageId: string): Promise<string> {
+  return DB_KKM;
 }
 
 export const fetchKKMDatabaseIdCached = unstable_cache(
-  async (pageId: string): Promise<string> => {
-    return fetchKKMDatabaseId(pageId);
+  async (_pageId: string): Promise<string> => {
+    return fetchKKMDatabaseId(_pageId);
   },
   ["notion-kkm-database-id"],
   { revalidate: 60, tags: ["notion-kkm"] },
 );
 
-export async function resolveFAQDatabase(pageId: string): Promise<string> {
-  const defaultDbId = "36d3b26d-c3be-8041-b2bd-d9b7f746e06e";
-  if (!pageId) return defaultDbId;
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      return dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion resolveFAQDatabase] Failed to fetch page child databases",
-      error,
-    );
-  }
-  return defaultDbId;
+export async function resolveFAQDatabase(_pageId: string): Promise<string> {
+  return DB_FAQ_STORAGE;
 }
 
 export const resolveFAQDatabaseCached = unstable_cache(
-  async (pageId: string): Promise<string> => {
-    return resolveFAQDatabase(pageId);
+  async (_pageId: string): Promise<string> => {
+    return resolveFAQDatabase(_pageId);
   },
   ["notion-faq-database-id"],
   { revalidate: 60, tags: ["notion-faq"] },
@@ -1188,52 +1222,25 @@ async function resolveKaryaMediaDetails(
   return details;
 }
 
-export async function fetchKaryaDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return "";
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.childDatabases.length >= 1) {
-      return dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchKaryaDatabaseId] Failed to fetch page child databases",
-      error,
-    );
-  }
-  return "";
+export async function fetchKaryaDatabaseId(_pageId: string): Promise<string> {
+  return DB_KARYA_FORM_STORAGE;
 }
 
 export const fetchKaryaDatabaseIdCached = unstable_cache(
-  async (pageId: string): Promise<string> => {
-    return fetchKaryaDatabaseId(pageId);
+  async (_pageId: string): Promise<string> => {
+    return fetchKaryaDatabaseId(_pageId);
   },
   ["notion-karya-database-id"],
   { revalidate: 60, tags: ["notion-karya"] },
 );
 
-export async function fetchAduanDatabaseId(pageId: string): Promise<string> {
-  if (!pageId) return "";
-  try {
-    const dbs = await fetchPageDatabases(pageId);
-    if (dbs.mentionedDatabases.length > 0) {
-      return dbs.mentionedDatabases[0];
-    }
-    if (dbs.childDatabases.length > 0) {
-      return dbs.childDatabases[0];
-    }
-  } catch (error) {
-    console.warn(
-      "[Notion fetchAduanDatabaseId] Failed to fetch page child databases",
-      error,
-    );
-  }
-  return "";
+export async function fetchAduanDatabaseId(_pageId: string): Promise<string> {
+  return DB_ADUAN_STORAGE;
 }
 
 export const fetchAduanDatabaseIdCached = unstable_cache(
-  async (pageId: string): Promise<string> => {
-    return fetchAduanDatabaseId(pageId);
+  async (_pageId: string): Promise<string> => {
+    return fetchAduanDatabaseId(_pageId);
   },
   ["notion-aduan-database-id"],
   { revalidate: 60, tags: ["notion-aduan"] },
@@ -1539,15 +1546,8 @@ export const fetchDocBySlug = cache(
   async (
     slug: string,
   ): Promise<{ meta: DocMeta; blocks: NotionBlock[] } | null> => {
-    const pageId = NOTION_SEKRETARIAT_PAGE_ID;
-    let docsDbId = DOCS_DB_ID;
-    let categoriesDbId = "";
-
-    if (pageId) {
-      const resolved = await resolveSekretariatDatabasesCached(pageId);
-      docsDbId = resolved.docsDbId;
-      categoriesDbId = resolved.categoriesDbId;
-    }
+    const docsDbId = DB_DOKUMEN_SEKRETARIAT;
+    const categoriesDbId = DB_KATEGORI_DOKUMEN;
 
     if (!docsDbId) return null;
 

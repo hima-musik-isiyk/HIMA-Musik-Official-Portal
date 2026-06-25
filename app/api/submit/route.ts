@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { logErrorToDiscord, sendDiscordWebhook } from "@/lib/discord";
-import { fetchAduanDatabaseIdCached, getNotionClient } from "@/lib/notion";
+import {
+  fetchAduanDatabaseIdCached,
+  getNotionClient,
+  resolveDatabaseId,
+} from "@/lib/notion";
 
 const DISCORD_FIELD_LIMIT = 1024;
 
@@ -46,11 +50,11 @@ export async function POST(request: Request) {
     }
 
     const webhookUrl = process.env.DISCORD_ADUAN_WEBHOOK_URL;
-    const aduanPageId = process.env.NOTION_ADUAN_PAGE_ID;
+    const aduanPageId = "02 Storage: Aduan";
 
     if (!webhookUrl || (!aduanPageId && !storageDbId)) {
       console.error(
-        "Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL or NOTION_ADUAN_PAGE_ID/storageDbId",
+        "Missing environment variables: DISCORD_ADUAN_WEBHOOK_URL or aduanPageId/storageDbId",
       );
       return NextResponse.json(
         { error: "Server misconfiguration: Missing env variables" },
@@ -85,15 +89,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const resolvedDbId = await resolveDatabaseId(activeDbId);
+
     // Resolve active parent object (data_source_id vs database_id) for compatibility with Notion API v2025-09-03
     let parentObj: Parameters<typeof notion.pages.create>[0]["parent"] = {
-      database_id: activeDbId,
+      database_id: resolvedDbId,
     };
     let isDbPropRelation = false;
     let isDbPropSelect = false;
     try {
       const dbInfo = (await notion.databases.retrieve({
-        database_id: activeDbId,
+        database_id: resolvedDbId,
       })) as {
         data_sources?: { id: string }[];
         properties?: Record<string, { type: string }>;

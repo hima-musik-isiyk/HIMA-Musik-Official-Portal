@@ -66,3 +66,18 @@ export function unstable_cache<
     return cachedFn(key, serializedArgs);
   }) as unknown as T;
 }
+
+export function setupCache(tags: string[], revalidate: number) {
+  if (process.env.NODE_ENV !== "production") {
+    cacheLife({ stale: 1, revalidate: 1, expire: 1 });
+  } else {
+    cacheLife({
+      stale: revalidate,
+      revalidate: revalidate,
+      expire: revalidate * 2,
+    });
+  }
+  for (const tag of tags) {
+    cacheTag(tag);
+  }
+}

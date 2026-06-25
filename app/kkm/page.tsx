@@ -6,7 +6,7 @@ import { fetchKKMModularDataCached } from "@/lib/notion";
 import { fetchContainerCMSCached } from "@/lib/notion-builder";
 
 export default async function KKMPage() {
-  const pageId = process.env.NOTION_KKM_PAGE_ID || "";
+  const pageId = "02 KKM";
   const [data, cmsData] = await Promise.all([
     fetchKKMModularDataCached(pageId),
     fetchContainerCMSCached(),
