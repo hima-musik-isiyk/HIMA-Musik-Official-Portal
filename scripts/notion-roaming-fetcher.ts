@@ -109,6 +109,7 @@ interface DatabaseSchema {
     targetDbName?: string;
   }[];
   rowTitles?: string[];
+  crawledRows?: Record<string, string>[];
   error?: string;
 }
 
@@ -541,9 +542,10 @@ async function crawlDatabase(
         }
       }
 
-      // 3.5. Crawl all row titles if Sync Mode is "Crawl Rows"
+      // 3.5. Crawl all row titles and properties if Sync Mode is "Crawl Rows"
       if (entry.syncMode === "Crawl Rows" && !schema.error) {
         schema.rowTitles = [];
+        schema.crawledRows = [];
         try {
           let hasMore = true;
           let cursor: string | undefined;
@@ -559,15 +561,18 @@ async function crawlDatabase(
             for (const row of results) {
               const props = row.properties || {};
               let titleVal = "";
-              for (const [, propValue] of Object.entries(props)) {
+              const rowData: Record<string, string> = {};
+              for (const [propName, propValue] of Object.entries(props)) {
+                const plainVal = extractPlainValue(propValue);
+                rowData[propName] = plainVal;
                 if ((propValue as any).type === "title") {
-                  titleVal = extractPlainValue(propValue);
-                  break;
+                  titleVal = plainVal;
                 }
               }
               if (titleVal) {
                 schema.rowTitles.push(titleVal);
               }
+              schema.crawledRows.push(rowData);
             }
             hasMore = queryResult.has_more;
             cursor = queryResult.next_cursor || undefined;
@@ -1063,14 +1068,22 @@ function generateGlossaryMarkdown(
         lines.push("");
       }
 
-      // Crawled row titles
-      if (schema.rowTitles && schema.rowTitles.length > 0) {
+      // Crawled row titles and properties table
+      if (schema.crawledRows && schema.crawledRows.length > 0) {
         lines.push(
-          `<details><summary>Crawled Rows (${schema.rowTitles.length})</summary>`,
+          `<details><summary>Crawled Rows (${schema.crawledRows.length})</summary>`,
         );
         lines.push("");
-        for (const title of schema.rowTitles) {
-          lines.push(`- ${title}`);
+        const headers = schema.properties.map((p) => p.name);
+        lines.push(`| ${headers.join(" | ")} |`);
+        lines.push(`| ${headers.map(() => "---").join(" | ")} |`);
+        for (const row of schema.crawledRows) {
+          const rowVals = headers.map((h) => {
+            const val = row[h] || "";
+            const truncated = val.length > 60 ? val.slice(0, 60) + "…" : val;
+            return escapeMarkdownTable(truncated);
+          });
+          lines.push(`| ${rowVals.join(" | ")} |`);
         }
         lines.push("");
         lines.push(`</details>`);
@@ -1222,6 +1235,24 @@ function generateGlossariumScaffold(schemas: DatabaseSchema[]): void {
         compLines.push(`  "${escapedTitle}",`);
       }
       compLines.push(`] as const;`);
+
+      // Export full rows list
+      if (s.crawledRows && s.crawledRows.length > 0) {
+        compLines.push(`\nexport const ROWS_${safeName} = [`);
+        for (const row of s.crawledRows) {
+          compLines.push(`  {`);
+          for (const [key, val] of Object.entries(row)) {
+            const escapedKey = key.replace(/"/g, '\\"');
+            const escapedVal = val
+              .replace(/"/g, '\\"')
+              .replace(/\n/g, "\\n")
+              .replace(/\r/g, "");
+            compLines.push(`    "${escapedKey}": "${escapedVal}",`);
+          }
+          compLines.push(`  },`);
+        }
+        compLines.push(`] as const;`);
+      }
     }
   }
   fs.writeFileSync(
