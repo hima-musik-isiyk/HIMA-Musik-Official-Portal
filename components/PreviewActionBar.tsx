@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertTriangle,CheckCircle, Loader2, RefreshCw } from "lucide-react";
-import { useEffect,useState } from "react";
+import { AlertTriangle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function PreviewActionBar() {
   const [syncStatus, setSyncStatus] = useState<

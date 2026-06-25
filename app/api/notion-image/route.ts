@@ -4,8 +4,6 @@ import path from "node:path";
 
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
 const CACHE_DIR = path.join(
   /*turbopackIgnore: true*/ process.cwd(),
   ".next",

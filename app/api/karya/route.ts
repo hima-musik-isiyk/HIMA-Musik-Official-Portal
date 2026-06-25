@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
 import { fetchKaryaEntries } from "@/lib/notion";
 
-export const revalidate = 0; // Dynamic API route
-
 export async function GET() {
+  await connection();
   try {
     const data = await fetchKaryaEntries();
     return NextResponse.json({

@@ -14,6 +14,7 @@ import PageEntranceWrapper from "./PageEntranceWrapper";
 import { SectionBuilder } from "./SectionBuilder";
 
 interface PageBuilderProps {
+  pathname?: string;
   pageData?: ContainerCMSData;
   injectedProps?: Record<string, unknown>;
   overridePage?: CMSPage;
@@ -58,12 +59,13 @@ function createOverridePage(pathname: string, componentName: string): CMSPage {
 }
 
 export const PageBuilder: React.FC<PageBuilderProps> = async ({
+  pathname: explicitPathname,
   pageData,
   injectedProps,
   overridePage,
   overrideComponent,
 }) => {
-  const pathname = await getRequestPathname();
+  const pathname = explicitPathname || (await getRequestPathname());
   const cmsData = pageData || (await fetchContainerCMSCached());
 
   const page =

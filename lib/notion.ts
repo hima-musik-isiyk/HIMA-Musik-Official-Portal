@@ -201,7 +201,18 @@ function getProperty(
   }
 
   const matchedKey = propertyNameMap.get(normalizedName);
-  return matchedKey ? properties[matchedKey] : undefined;
+  if (matchedKey) return properties[matchedKey];
+
+  // Try partial match if exact fails
+  const target = normalizedName.replace(/[^a-z0-9]/g, "");
+  for (const [normKey, actualKey] of propertyNameMap.entries()) {
+    const strippedKey = normKey.replace(/[^a-z0-9]/g, "");
+    if (strippedKey.includes(target) || target.includes(strippedKey)) {
+      return properties[actualKey];
+    }
+  }
+
+  return undefined;
 }
 
 function getTitle(page: NotionPage): string {
@@ -484,18 +495,31 @@ export async function resolveDatabaseId(idOrName: string): Promise<string> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties = (page as any).properties;
       let title = "";
+      let targetId = page.id;
       const titleProp = properties["Link"] || properties["Name"];
+
       if (titleProp?.type === "title") {
-         
         title = titleProp.title
-          .map((t: any) => t.plain_text)
+          .map((t: { plain_text: string }) => t.plain_text)
           .join("")
           .trim();
+
+        for (const t of titleProp.title) {
+          if (t.type === "mention" && t.mention) {
+            if (t.mention.database?.id) {
+              targetId = t.mention.database.id;
+              break;
+            } else if (t.mention.page?.id) {
+              targetId = t.mention.page.id;
+              break;
+            }
+          }
+        }
       }
 
       if (title) {
         const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "");
-        registryIdCache.set(normalizedTitle, page.id);
+        registryIdCache.set(normalizedTitle, targetId);
       }
     }
 

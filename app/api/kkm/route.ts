@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
 import { fetchKKMModularDataCached } from "@/lib/notion";
 
-export const revalidate = 0; // Dynamic API route
-
 export async function GET() {
+  await connection();
   try {
     const pageId = "02 KKM";
     const data = await fetchKKMModularDataCached(pageId);

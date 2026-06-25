@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
 import { fetchRedirects } from "@/lib/notion";
 
-export const revalidate = 0; // Dynamic route handler to fetch the latest cached redirect rules on-demand
-
 export async function GET() {
+  await connection();
   try {
     const data = await fetchRedirects();
     return NextResponse.json({

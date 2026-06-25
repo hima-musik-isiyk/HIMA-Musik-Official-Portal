@@ -1,12 +1,11 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
 import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 
-export const revalidate = 0; // Dynamic API route
-
 export async function GET(request: Request) {
+  await connection();
+  const { searchParams } = new URL(request.url);
   try {
-    const { searchParams } = new URL(request.url);
     const dbId = searchParams.get("dbId");
     if (!dbId) {
       return NextResponse.json({ error: "Missing dbId" }, { status: 400 });
@@ -37,7 +36,15 @@ export async function GET(request: Request) {
       });
       results = response.results;
     } else {
-      const response = await (notion as any).databases.query({
+      const response = await (
+        notion as unknown as {
+          databases: {
+            query: (args: { database_id: string }) => Promise<{
+              results: unknown[];
+            }>;
+          };
+        }
+      ).databases.query({
         database_id: dbId,
       });
       results = response.results;
@@ -48,7 +55,9 @@ export async function GET(request: Request) {
       let name = "Untitled";
       const nameProp = page.properties.Name || page.properties.title;
       if (nameProp && nameProp.type === "title" && nameProp.title.length > 0) {
-        name = nameProp.title.map((t: any) => t.plain_text).join("");
+        name = nameProp.title
+          .map((t: { plain_text: string }) => t.plain_text)
+          .join("");
       }
 
       let order = 999;

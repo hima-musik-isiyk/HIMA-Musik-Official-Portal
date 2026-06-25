@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import React from "react";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import PreviewActionBar from "@/components/PreviewActionBar";
 import { fetchEventBySlug, fetchKKMGroups } from "@/lib/notion";
-
-export const revalidate = 0;
 
 interface EventDetailRouteProps {
   params: Promise<{ slug: string }>;
@@ -14,6 +13,7 @@ interface EventDetailRouteProps {
 export default async function EventDetailPreviewRoute({
   params,
 }: EventDetailRouteProps) {
+  await connection();
   const { slug } = await params;
   const result = await fetchEventBySlug(slug, { allowPreview: true }); // Allow draft
 

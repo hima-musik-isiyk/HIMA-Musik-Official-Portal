@@ -165,7 +165,7 @@ function normalizeManifest(
 ): InstagramManifest {
   return {
     version: 1,
-    updatedAt: data.updatedAt ?? new Date().toISOString(),
+    updatedAt: data.updatedAt ?? "2026-06-25T00:00:00.000Z",
     items: Array.isArray(data.items) ? data.items : [],
   };
 }

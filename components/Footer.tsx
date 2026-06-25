@@ -85,10 +85,14 @@ const LEGAL_LINKS = [
 ];
 
 const Footer: React.FC = () => {
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState(2026);
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname);
   const [divisions, setDivisions] = useState(staticDivisions);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   useEffect(() => {
     fetch("/api/divisions")

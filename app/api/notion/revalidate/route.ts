@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 
 import { revalidateScope } from "@/lib/notion-revalidate-helper";
 
-export const runtime = "nodejs";
-
 // In-memory rate limiting timestamp for active server instances
 let lastRevalidateTime = 0;
 const COOLDOWN_MS = 10000; // 10 seconds cooldown

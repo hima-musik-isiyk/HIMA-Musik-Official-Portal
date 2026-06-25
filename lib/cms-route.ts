@@ -1,9 +1,11 @@
 import { headers } from "next/headers";
+import { connection } from "next/server";
 
 export const CMS_PATHNAME_HEADER = "x-pathname";
 
 /** Current request pathname from proxy (no hardcoded route slugs). */
 export async function getRequestPathname(): Promise<string> {
+  await connection();
   const headerStore = await headers();
   const fromProxy = headerStore.get(CMS_PATHNAME_HEADER);
   if (fromProxy) {

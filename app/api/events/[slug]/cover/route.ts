@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { fetchEventCoverUrlBySlug } from "@/lib/notion";
 
-export const runtime = "nodejs";
-
 function safeContentType(input: string | null): string {
   if (!input) return "application/octet-stream";
   if (input.includes("\n") || input.includes("\r")) {

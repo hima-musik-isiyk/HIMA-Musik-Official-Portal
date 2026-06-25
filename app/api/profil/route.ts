@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
 import { fetchProfilOrgStructureCached } from "@/lib/notion";
 import {
@@ -7,11 +7,10 @@ import {
   resolveProfilMaxBatchFromCms,
 } from "@/lib/notion-builder";
 
-export const revalidate = 0;
-
 export async function GET(request: Request) {
+  await connection();
+  const { searchParams } = new URL(request.url);
   try {
-    const { searchParams } = new URL(request.url);
     let databaseId = searchParams.get("databaseId")?.trim() ?? "";
     const batchParam = searchParams.get("batch")?.trim();
 

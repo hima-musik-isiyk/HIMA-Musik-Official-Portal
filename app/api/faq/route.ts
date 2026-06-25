@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
 import {
@@ -8,13 +8,12 @@ import {
   filterFAQVisibility,
 } from "@/lib/faq";
 
-export const revalidate = 0; // Dynamic API route
-
 const DISCORD_FIELD_LIMIT = 1024;
 const truncate = (value: string, maxLength = DISCORD_FIELD_LIMIT) =>
   value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 
 export async function GET() {
+  await connection();
   try {
     const [rawEntries, categories] = await Promise.all([
       fetchFAQEntries(),

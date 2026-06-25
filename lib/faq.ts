@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
-
-import { setupCache } from "./cache";
+import { unstable_cache } from "./cache";
 import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 import { resolveFAQPageIdCached } from "./notion-builder";
 import { DB_FAQ_STORAGE } from "./notion-db-ids";
@@ -166,24 +164,13 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
   }
 }
 
-async function fetchFAQEntriesCached() {
-  "use cache";
-  setupCache(["notion-faq"], 60);
-  return fetchFAQEntriesRaw();
-}
-
-export async function fetchFAQEntries() {
-  try {
-    const reqHeaders = await headers();
-    if (
-      reqHeaders.get("cache-control") === "no-cache" ||
-      reqHeaders.get("pragma") === "no-cache"
-    ) {
-      return fetchFAQEntriesRaw();
-    }
-  } catch {}
-  return fetchFAQEntriesCached();
-}
+export const fetchFAQEntries = unstable_cache(
+  async () => {
+    return fetchFAQEntriesRaw();
+  },
+  ["notion-faq"],
+  { revalidate: 60, tags: ["notion-faq"] },
+);
 
 /**
  * Queries Kategori property options dynamically from the Notion database.
@@ -237,10 +224,11 @@ export async function fetchFAQCategories(): Promise<string[]> {
         kategoriProp &&
         (kategoriProp.type === "select" || kategoriProp.type === "multi_select")
       ) {
-         
-        const selectObj =
-          (kategoriProp as unknown as any).select ||
-          (kategoriProp as unknown as any).multi_select;
+        const typedProp = kategoriProp as unknown as {
+          select?: { options?: { name: string }[] };
+          multi_select?: { options?: { name: string }[] };
+        };
+        const selectObj = typedProp.select || typedProp.multi_select;
         if (selectObj && Array.isArray(selectObj.options)) {
           return selectObj.options.map((opt: { name: string }) => opt.name);
         }
@@ -259,24 +247,13 @@ export async function fetchFAQCategories(): Promise<string[]> {
   ];
 }
 
-async function fetchFAQCategoriesCachedInternal() {
-  "use cache";
-  setupCache(["notion-faq"], 60);
-  return fetchFAQCategories();
-}
-
-export async function fetchFAQCategoriesCached() {
-  try {
-    const reqHeaders = await headers();
-    if (
-      reqHeaders.get("cache-control") === "no-cache" ||
-      reqHeaders.get("pragma") === "no-cache"
-    ) {
-      return fetchFAQCategories();
-    }
-  } catch {}
-  return fetchFAQCategoriesCachedInternal();
-}
+export const fetchFAQCategoriesCached = unstable_cache(
+  async () => {
+    return fetchFAQCategories();
+  },
+  ["notion-faq-categories"],
+  { revalidate: 60, tags: ["notion-faq"] },
+);
 
 /**
  * Validates and writes a new public-submitted FAQ entry to the Notion database.

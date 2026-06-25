@@ -10,9 +10,6 @@ import {
   resolveCanvaLink,
 } from "@/lib/canva";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const bucketName =
   process.env.INSTAGRAM_SECRET_PAGE_BUCKET ?? "instagram-secret-page";
 const manifestPath = "manifest.json";

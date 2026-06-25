@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
-
-import { setupCache } from "./cache";
+import { unstable_cache } from "./cache";
 import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 import {
   DB_COMPONENT_TYPES,
@@ -98,8 +96,26 @@ export interface ContainerCMSData {
 type RichTextFragment = { plain_text: string };
 type RelationFragment = { id: string };
 
+function findProp(page: NotionPage, name: string) {
+  if (page.properties[name]) return page.properties[name];
+
+  const target = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // Try exact normalized match first
+  for (const [key, value] of Object.entries(page.properties)) {
+    if (key.toLowerCase().replace(/[^a-z0-9]/g, "") === target) return value;
+  }
+
+  // Try partial match (e.g. "01 Pages" contains "page")
+  for (const [key, value] of Object.entries(page.properties)) {
+    const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normKey.includes(target) || target.includes(normKey)) return value;
+  }
+
+  return undefined;
+}
+
 function getTitle(page: NotionPage, name: string): string {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "title" && prop.title.length > 0) {
     return prop.title
       .map((t: RichTextFragment) => t.plain_text)
@@ -110,7 +126,7 @@ function getTitle(page: NotionPage, name: string): string {
 }
 
 function getRichText(page: NotionPage, name: string): string {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "rich_text" && prop.rich_text) {
     return prop.rich_text
       .map((t: RichTextFragment) => t.plain_text)
@@ -121,20 +137,30 @@ function getRichText(page: NotionPage, name: string): string {
 }
 
 function getRichTextOrMentionId(page: NotionPage, name: string): string {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "rich_text" && prop.rich_text) {
     return prop.rich_text
-      .map((t: any) => {
-        if (t.type === "mention" && t.mention) {
-          if (t.mention.type === "database" && t.mention.database) {
-            return t.mention.database.id;
+      .map(
+        (t: {
+          type?: string;
+          plain_text?: string;
+          mention?: {
+            type?: string;
+            database?: { id: string };
+            page?: { id: string };
+          };
+        }) => {
+          if (t.type === "mention" && t.mention) {
+            if (t.mention.type === "database" && t.mention.database) {
+              return t.mention.database.id;
+            }
+            if (t.mention.type === "page" && t.mention.page) {
+              return t.mention.page.id;
+            }
           }
-          if (t.mention.type === "page" && t.mention.page) {
-            return t.mention.page.id;
-          }
-        }
-        return t.plain_text;
-      })
+          return t.plain_text;
+        },
+      )
       .join("")
       .trim();
   }
@@ -142,7 +168,7 @@ function getRichTextOrMentionId(page: NotionPage, name: string): string {
 }
 
 function getSelect(page: NotionPage, name: string): string {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "select" && prop.select) {
     return prop.select.name;
   }
@@ -154,7 +180,7 @@ function getCheckbox(
   name: string,
   defaultValue = false,
 ): boolean {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "checkbox") {
     return prop.checkbox;
   }
@@ -162,7 +188,7 @@ function getCheckbox(
 }
 
 function getUrl(page: NotionPage, name: string): string {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "url" && prop.url) {
     return prop.url;
   }
@@ -170,7 +196,7 @@ function getUrl(page: NotionPage, name: string): string {
 }
 
 function getRelationIds(page: NotionPage, name: string): string[] {
-  const prop = page.properties[name] || page.properties[name.toLowerCase()];
+  const prop = findProp(page, name);
   if (prop?.type === "relation" && Array.isArray(prop.relation)) {
     return prop.relation.map((r: RelationFragment) => r.id);
   }
@@ -414,24 +440,38 @@ export function findCmsPageForPath(
   return prefixMatches[0];
 }
 
-async function fetchContainerCMSCachedInternal() {
-  "use cache";
-  setupCache(["notion-container"], 60);
-  return fetchContainerCMS();
-}
-
-export async function fetchContainerCMSCached() {
-  try {
-    const reqHeaders = await headers();
-    if (
-      reqHeaders.get("cache-control") === "no-cache" ||
-      reqHeaders.get("pragma") === "no-cache"
-    ) {
-      return fetchContainerCMS();
+export const fetchContainerCMSCached = unstable_cache(
+  async () => {
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      return {
+        pages: [],
+        variables: {},
+        groupCategories: {},
+        componentRegistry: {},
+        footer: [],
+        redirects: [],
+      };
     }
-  } catch {}
-  return fetchContainerCMSCachedInternal();
-}
+    try {
+      return await fetchContainerCMS();
+    } catch (error) {
+      console.error(
+        "fetchContainerCMSCached failed, returning fallback:",
+        error,
+      );
+      return {
+        pages: [],
+        variables: {},
+        groupCategories: {},
+        componentRegistry: {},
+        footer: [],
+        redirects: [],
+      };
+    }
+  },
+  ["notion-container"],
+  { revalidate: 60, tags: ["notion-container"] },
+);
 
 /**
  * Get the Master Page database ID from Container CMS
@@ -474,43 +514,21 @@ export async function resolveKaryaPageId(): Promise<string> {
 /**
  * Cached version of resolveFAQPageId
  */
-async function resolveFAQPageIdCachedInternal() {
-  "use cache";
-  setupCache(["notion-faq"], 3600);
-  return resolveFAQPageId();
-}
+export const resolveFAQPageIdCached = unstable_cache(
+  async () => {
+    return await resolveFAQPageId();
+  },
+  ["notion-faq"],
+  { revalidate: 3600, tags: ["notion-faq"] },
+);
 
-export async function resolveFAQPageIdCached() {
-  try {
-    const reqHeaders = await headers();
-    if (
-      reqHeaders.get("cache-control") === "no-cache" ||
-      reqHeaders.get("pragma") === "no-cache"
-    ) {
-      return resolveFAQPageId();
-    }
-  } catch {}
-  return resolveFAQPageIdCachedInternal();
-}
-
-async function resolveKaryaPageIdCachedInternal() {
-  "use cache";
-  setupCache(["notion-karya"], 3600);
-  return resolveKaryaPageId();
-}
-
-export async function resolveKaryaPageIdCached() {
-  try {
-    const reqHeaders = await headers();
-    if (
-      reqHeaders.get("cache-control") === "no-cache" ||
-      reqHeaders.get("pragma") === "no-cache"
-    ) {
-      return resolveKaryaPageId();
-    }
-  } catch {}
-  return resolveKaryaPageIdCachedInternal();
-}
+export const resolveKaryaPageIdCached = unstable_cache(
+  async () => {
+    return await resolveKaryaPageId();
+  },
+  ["notion-karya"],
+  { revalidate: 3600, tags: ["notion-karya"] },
+);
 
 export type CmsValueField = "value" | "value2" | "value3";
 
