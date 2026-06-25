@@ -1,5 +1,4 @@
 import { unstable_cache } from "./cache";
-import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 import {
   DB_COMPONENT_TYPES,
   DB_CONTENT_COMPONENT,
@@ -9,7 +8,16 @@ import {
   DB_REDIRECT,
   DB_SECTIONS,
   DB_VARIABLES,
-} from "./notion-db-ids";
+  PROP,
+  PROP_COMPONENT_TYPES,
+  PROP_CONTENT_COMPONENT,
+  PROP_FOOTER,
+  PROP_PAGES,
+  PROP_REDIRECT,
+  PROP_SECTIONS,
+  PROP_VARIABLES,
+} from "./glossarium";
+import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 
 export interface CMSVariable {
   variable: string;
@@ -262,7 +270,10 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
   // Variables
   const variables: Record<string, string> = {};
   for (const p of rawVariables) {
-    variables[getTitle(p, "Variable")] = getRichTextOrMentionId(p, "Value");
+    variables[getTitle(p, PROP_VARIABLES.VARIABLE)] = getRichTextOrMentionId(
+      p,
+      PROP.VALUE,
+    );
   }
 
   // Helper for applying variables
@@ -284,7 +295,7 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
   for (const p of rawGroups) {
     groupCategories[p.id] = {
       id: p.id,
-      name: getTitle(p, "Name"),
+      name: getTitle(p, PROP.NAME),
       type: getSelect(p, "Type"),
     };
   }
@@ -295,44 +306,45 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
     componentRegistry[p.id] = {
       id: p.id,
       type: getSelect(p, "Type"),
-      name: getTitle(p, "Name"),
-      variation1: getRichText(p, "Variation 1"),
-      variation2: getRichText(p, "Variation 2"),
-      variation3: getRichText(p, "Variation 3"),
-      value1: getRichText(p, "Value 1"),
-      value2: getRichText(p, "Value 2"),
-      value3: getRichText(p, "Value 3"),
+      name: getTitle(p, PROP.NAME),
+      variation1: getRichText(p, PROP_COMPONENT_TYPES.VARIATION_1),
+      variation2: getRichText(p, PROP_COMPONENT_TYPES.VARIATION_2),
+      variation3: getRichText(p, PROP_COMPONENT_TYPES.VARIATION_3),
+      value1: getRichText(p, PROP_COMPONENT_TYPES.VALUE_1),
+      value2: getRichText(p, PROP_COMPONENT_TYPES.VALUE_2),
+      value3: getRichText(p, PROP_COMPONENT_TYPES.VALUE_3),
     };
   }
 
   // Footer
   const footer: CMSFooterComponent[] = rawFooter.map((p) => ({
     id: p.id,
-    name: getTitle(p, "Name"),
-    show: getCheckbox(p, "Show", true),
-    group: getSelect(p, "Group"),
+    name: getTitle(p, PROP.NAME),
+    show: getCheckbox(p, PROP.SHOW, true),
+    group: getSelect(p, PROP_FOOTER.GROUP),
   }));
 
   // Redirects
   const redirects: CMSRedirect[] = rawRedirects.map((p) => ({
     id: p.id,
-    name: getTitle(p, "Name"),
+    name: getTitle(p, PROP.NAME),
     modified: getRichText(p, "Modified"),
     destinationUrl:
-      getUrl(p, "Destination URL") || getRichText(p, "Destination URL"),
+      getUrl(p, PROP_REDIRECT.DESTINATION_URL) ||
+      getRichText(p, PROP_REDIRECT.DESTINATION_URL),
   }));
 
   // Master Components
   const componentsList: CMSComponent[] = rawComponents.map((p) => ({
     id: p.id,
     typeId: getRelationIds(p, "Type")[0] || "",
-    variation: getTitle(p, "Component Variation"),
+    variation: getTitle(p, PROP_CONTENT_COMPONENT.COMPONENT_VARIATION),
     groupId: getRelationIds(p, "Master Group Div Category")[0] || "",
-    show: getCheckbox(p, "Show", true),
-    orderOrGroup: getRichText(p, "Order or Group"),
-    value: applyVariables(getRichTextOrMentionId(p, "Value")),
-    value2: applyVariables(getRichTextOrMentionId(p, "Value 2")),
-    value3: applyVariables(getRichTextOrMentionId(p, "Value 3")),
+    show: getCheckbox(p, PROP.SHOW, true),
+    orderOrGroup: getRichText(p, PROP_CONTENT_COMPONENT.ORDER_OR_GROUP),
+    value: applyVariables(getRichTextOrMentionId(p, PROP.VALUE)),
+    value2: applyVariables(getRichTextOrMentionId(p, PROP.VALUE_2)),
+    value3: applyVariables(getRichTextOrMentionId(p, PROP.VALUE_3)),
   }));
 
   // Link components to sections
@@ -355,12 +367,12 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
     sectionComps.sort((a, b) => a.orderOrGroup.localeCompare(b.orderOrGroup));
     return {
       id: p.id,
-      pageId: getRelationIds(p, "Page")[0] || "",
-      sectionName: getTitle(p, "Section"),
-      slug: getRichText(p, "Slug"),
-      order: getRichText(p, "Order"),
-      show: getCheckbox(p, "Show", true),
-      height: getSelect(p, "Height"),
+      pageId: getRelationIds(p, PROP_SECTIONS.PAGE)[0] || "",
+      sectionName: getTitle(p, PROP_SECTIONS.SECTION),
+      slug: getRichText(p, PROP.SLUG),
+      order: getRichText(p, PROP.ORDER),
+      show: getCheckbox(p, PROP.SHOW, true),
+      height: getSelect(p, PROP_SECTIONS.HEIGHT),
       components: sectionComps,
     };
   });
@@ -378,19 +390,19 @@ export async function fetchContainerCMS(): Promise<ContainerCMSData> {
     pSections.sort((a, b) => a.order.localeCompare(b.order));
     return {
       id: p.id,
-      name: getTitle(p, "Name"),
-      slug: getRichText(p, "Slug"),
-      type: getSelect(p, "Tipe"),
+      name: getTitle(p, PROP.NAME),
+      slug: getRichText(p, PROP.SLUG),
+      type: getSelect(p, PROP_PAGES.TIPE),
       showInNav:
-        getCheckbox(p, "Show In Nav", true) &&
-        getCheckbox(p, "Tampilkan Di Navbar", true),
-      urutan: getRichText(p, "Urutan"),
-      showFooter: getCheckbox(p, "Show Footer", true),
+        getCheckbox(p, PROP_PAGES.SHOW_IN_NAV, true) &&
+        getCheckbox(p, PROP_PAGES.TAMPILKAN_DI_NAVBAR, true),
+      urutan: getRichText(p, PROP_PAGES.URUTAN),
+      showFooter: getCheckbox(p, PROP_PAGES.SHOW_FOOTER, true),
       sections: pSections,
-      maxWidth: getRichText(p, "Max Width") || "7xl",
-      seoTitle: getRichText(p, "SEO Title") || undefined,
-      seoDescription: getRichText(p, "SEO Description") || undefined,
-      seoKeywords: getRichText(p, "SEO Keywords") || undefined,
+      maxWidth: getRichText(p, PROP_PAGES.MAX_WIDTH) || "7xl",
+      seoTitle: getRichText(p, PROP_PAGES.SEO_TITLE) || undefined,
+      seoDescription: getRichText(p, PROP_PAGES.SEO_DESCRIPTION) || undefined,
+      seoKeywords: getRichText(p, PROP_PAGES.SEO_KEYWORDS) || undefined,
     };
   });
 
@@ -487,7 +499,7 @@ export async function resolvePageIdFromMasterPage(
 
   const pages = await queryAll(masterPageDbId);
   const page = pages.find(
-    (p) => getTitle(p, "Name").toLowerCase() === pageName.toLowerCase(),
+    (p) => getTitle(p, PROP.NAME).toLowerCase() === pageName.toLowerCase(),
   );
 
   return page?.id || "";

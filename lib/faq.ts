@@ -1,7 +1,7 @@
 import { unstable_cache } from "./cache";
+import { DB_FAQ_STORAGE, PROP_FAQ } from "./glossarium";
 import { getNotionClient, NotionPage, resolveDataSourceIdSafe } from "./notion";
 import { resolveFAQPageIdCached } from "./notion-builder";
-import { DB_FAQ_STORAGE } from "./notion-db-ids";
 
 type NotionPropertySchema = { type?: string };
 type NotionDataSourceClient = {
@@ -73,7 +73,7 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
       const props = page.properties;
 
       // 1. Pertanyaan (Title) - Judul Pertanyaan or Pertanyaan
-      const titleObj = props["Judul Pertanyaan"] ?? props.Pertanyaan;
+      const titleObj = props[PROP_FAQ.JUDUL_PERTANYAAN] ?? props.Pertanyaan;
       const question =
         titleObj?.type === "title"
           ? titleObj.title
@@ -82,7 +82,7 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
           : "";
 
       // 2. Nama Penanya (Rich Text)
-      const askerObj = props["Nama Penanya"];
+      const askerObj = props[PROP_FAQ.NAMA_PENANYA];
       const askerName =
         askerObj?.type === "rich_text"
           ? askerObj.rich_text
@@ -97,13 +97,13 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
       ) as FAQEntry["source"];
 
       // 4. Status (Status)
-      const statusObj = props.Status;
+      const statusObj = props[PROP_FAQ.STATUS];
       const status = (
         statusObj?.type === "status" ? statusObj.status?.name : "Masuk"
       ) as FAQEntry["status"];
 
       // 5. Jawaban (Rich Text)
-      const answerObj = props.Jawaban;
+      const answerObj = props[PROP_FAQ.JAWABAN];
       const answer =
         answerObj?.type === "rich_text"
           ? answerObj.rich_text
@@ -116,7 +116,7 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
       const refUrl = urlObj?.type === "url" && urlObj.url ? urlObj.url : "";
 
       // 7. Kategori (Select or Multi-select)
-      const categoryObj = props.Kategori;
+      const categoryObj = props[PROP_FAQ.KATEGORI];
       let categories: string[] = [];
       if (categoryObj?.type === "multi_select") {
         categories = categoryObj.multi_select.map(
@@ -127,7 +127,7 @@ async function fetchFAQEntriesRaw(): Promise<FAQEntry[]> {
       }
 
       // 8. Visibilitas (Checkbox or Select)
-      const visibilityObj = props.Visibilitas;
+      const visibilityObj = props[PROP_FAQ.VISIBILITAS];
       let visibilityVal = true;
       if (visibilityObj?.type === "checkbox") {
         visibilityVal = visibilityObj.checkbox;
@@ -301,54 +301,55 @@ export async function createFAQEntry(
   const properties: Record<string, unknown> = {};
 
   // Title: "Judul Pertanyaan" or fallback to "Pertanyaan"
-  if ("Judul Pertanyaan" in dbProperties) {
-    properties["Judul Pertanyaan"] = {
+  if (PROP_FAQ.JUDUL_PERTANYAAN in dbProperties) {
+    properties[PROP_FAQ.JUDUL_PERTANYAAN] = {
       title: [{ text: { content: question.trim() } }],
     };
   } else {
-    properties.Pertanyaan = {
+    properties["Pertanyaan"] = {
       title: [{ text: { content: question.trim() } }],
     };
   }
 
   // Rich Text: "Nama Penanya"
-  if ("Nama Penanya" in dbProperties) {
-    properties["Nama Penanya"] = {
+  if (PROP_FAQ.NAMA_PENANYA in dbProperties) {
+    properties[PROP_FAQ.NAMA_PENANYA] = {
       rich_text: [{ text: { content: askerName.trim() || "Anonim" } }],
     };
   }
 
   // Select: "Sumber"
   if ("Sumber" in dbProperties) {
-    properties.Sumber = {
+    properties["Sumber"] = {
       select: { name: "Publik" },
     };
   }
 
   // Status: "Status"
-  if ("Status" in dbProperties) {
-    properties.Status = {
+  if (PROP_FAQ.STATUS in dbProperties) {
+    properties[PROP_FAQ.STATUS] = {
       status: { name: "Masuk" },
     };
   }
 
   // Multi-select: "Kategori" (Optional)
-  if ("Kategori" in dbProperties) {
-    properties.Kategori = {
+  if (PROP_FAQ.KATEGORI in dbProperties) {
+    properties[PROP_FAQ.KATEGORI] = {
       multi_select: [{ name: cleanCategory }],
     };
   }
 
   // Checkbox or Select: "Visibilitas"
-  if ("Visibilitas" in dbProperties) {
-    const type = dbProperties.Visibilitas?.type;
+  if (PROP_FAQ.VISIBILITAS in dbProperties) {
+    const propMeta = dbProperties[PROP_FAQ.VISIBILITAS] as { type: string };
+    const type = propMeta?.type;
     if (type === "checkbox") {
-      properties.Visibilitas = {
+      properties[PROP_FAQ.VISIBILITAS] = {
         checkbox: true,
       };
-    } else {
-      properties.Visibilitas = {
-        select: { name: "Tampil" },
+    } else if (type === "select") {
+      properties[PROP_FAQ.VISIBILITAS] = {
+        select: { name: "Publik" },
       };
     }
   }

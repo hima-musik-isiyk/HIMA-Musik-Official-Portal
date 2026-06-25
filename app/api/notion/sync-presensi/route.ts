@@ -1,12 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 
+import { DB_RAPAT, DB_REKAM_PRESENSI, DB_SDM_EVALUASI } from "@/lib/glossarium";
 import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
-import {
-  DB_RAPAT,
-  DB_REKAM_PRESENSI,
-  DB_SDM_EVALUASI,
-} from "@/lib/notion-db-ids";
 
 // Global locks to prevent concurrent syncs for the same meeting
 const syncLocks = new Map<string, Promise<any>>();

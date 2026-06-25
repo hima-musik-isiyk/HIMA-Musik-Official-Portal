@@ -1,6 +1,5 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
-import { getNotionClient } from "@/lib/notion";
 import {
   DB_AGENDA_FORM_STORAGE,
   DB_BERANDA_HERO,
@@ -12,7 +11,8 @@ import {
   DB_KKM,
   DB_REDIRECT,
   DB_SDM_EVALUASI,
-} from "@/lib/notion-db-ids";
+} from "@/lib/glossarium";
+import { getNotionClient } from "@/lib/notion";
 
 export type WebhookEntityType = "page" | "database" | "data_source" | "block";
 

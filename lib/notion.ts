@@ -4,7 +4,6 @@ import { cache } from "react";
 
 import { unstable_cache } from "./cache";
 import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
-import type { KKMGroup } from "./kkm-data";
 import {
   DB_ADUAN_STORAGE,
   DB_AGENDA_FORM_STORAGE,
@@ -20,7 +19,8 @@ import {
   DB_SDM_EVALUASI,
   DB_STRUKTUR_ORGANISASI,
   DB_TUGAS_UTAMA_DIVISI,
-} from "./notion-db-ids";
+} from "./glossarium";
+import type { KKMGroup } from "./kkm-data";
 import {
   buildAnchorMap,
   DocMeta,

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
-import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 import {
   DB_PENDAFTARAN_STORAGE,
   DB_SDM_EVALUASI,
   DB_STRUKTUR_ORGANISASI,
-} from "@/lib/notion-db-ids";
+} from "@/lib/glossarium";
+import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 
 type PendaftaranPayload = {
   intent?: string;
