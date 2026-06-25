@@ -14,7 +14,7 @@ The portal focuses on:
 
 ## Features
 
-- **Page Builder & Universal Registry CMS:** All public pages and deep dynamic routes (Home, FAQ, KKM, Agenda, Karya, Sekretariat, Pendaftaran, including dynamic detail views like `ArchiveDetail`, `EventDetail`, and `DocPage`) are entirely driven by a Notion-backed `<PageBuilder>` layout engine. This eliminates hardcoded JSX pages by injecting server-side data (`injectedProps`) precisely into a unified `Registry` of reusable components. Non-developers can rearrange, toggle, or modify layouts seamlessly directly from Notion while maintaining a strict, unified design system.
+- **Page Builder & Universal Registry CMS:** All public pages and deep dynamic routes (Home, FAQ, KKM, Agenda, Karya, Sekretariat, Pendaftaran, including dynamic detail views like `EventDetail`, and `DocPage`) are entirely driven by a Notion-backed `<PageBuilder>` layout engine. This eliminates hardcoded JSX pages by injecting server-side data (`injectedProps`) precisely into a unified `Registry` of reusable components. Non-developers can rearrange, toggle, or modify layouts seamlessly directly from Notion while maintaining a strict, unified design system.
 - **Dynamic Landing Page:** Sleek homepage featuring responsive layouts, kinetic typography, and fluid entrance animations.
 - **Cabinet Profile & KKM:** Sourced directly from Notion, organizing divisions, cabinet hierarchies, and student interest groups.
 - **Open Recruitment (Oprec):** Fully-featured landing page and a multi-step interactive application form (routes: `/pendaftaran`, `/pendaftaran/form`).
