@@ -594,7 +594,9 @@ function auditRegistry(
   schemas: DatabaseSchema[],
   repoConstants: Map<string, { constant: string; value: string }>,
 ): AuditResult[] {
-  console.log("\n🔎 Phase 3: Cross-referencing with lib/notion-db-ids.ts...");
+  console.log(
+    "\n🔎 Phase 3: Cross-referencing with lib/glossarium/databases.ts...",
+  );
 
   const results: AuditResult[] = [];
   const matchedRepoKeys = new Set<string>();
@@ -813,6 +815,11 @@ function generateGlossaryMarkdown(
   const orphan = auditResults.filter((r) => r.status === "orphan_in_repo");
   const mismatch = auditResults.filter((r) => r.status === "name_mismatch");
 
+  const dbFileUrl = `file://${path.resolve(process.cwd(), "lib/glossarium/databases.ts")}`;
+  const propsFileUrl = `file://${path.resolve(process.cwd(), "lib/glossarium/properties.ts")}`;
+  const relsFileUrl = `file://${path.resolve(process.cwd(), "lib/glossarium/relations.ts")}`;
+  const compsFileUrl = `file://${path.resolve(process.cwd(), "lib/glossarium/components.ts")}`;
+
   lines.push("## 📊 Audit Summary");
   lines.push("");
   lines.push(`| Metric | Count |`);
@@ -833,13 +840,19 @@ function generateGlossaryMarkdown(
   );
   lines.push(`| API requests made | ${requestCount} |`);
   lines.push("");
+  lines.push("### 📂 Developer Contracts (Glossarium)");
+  lines.push(`- Databases: [databases.ts](${dbFileUrl})`);
+  lines.push(`- Properties: [properties.ts](${propsFileUrl})`);
+  lines.push(`- Relations: [relations.ts](${relsFileUrl})`);
+  lines.push(`- Components: [components.ts](${compsFileUrl})`);
+  lines.push("");
 
   // ── Missing from repo ──
   if (missing.length > 0) {
     lines.push("## ⚠️ Missing from Repo");
     lines.push("");
     lines.push(
-      "These databases exist in Notion but have **no constant** in `lib/notion-db-ids.ts`:",
+      `These databases exist in Notion but have **no constant** in [databases.ts](${dbFileUrl}):`,
     );
     lines.push("");
     for (const m of missing) {
@@ -853,7 +866,7 @@ function generateGlossaryMarkdown(
     lines.push("## ❌ Orphan in Repo");
     lines.push("");
     lines.push(
-      "These constants exist in `lib/notion-db-ids.ts` but were **not found** in Notion registry:",
+      `These constants exist in [databases.ts](${dbFileUrl}) but were **not found** in Notion registry:`,
     );
     lines.push("");
     for (const o of orphan) {
