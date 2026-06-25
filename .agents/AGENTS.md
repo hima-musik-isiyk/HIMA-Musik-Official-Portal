@@ -148,3 +148,11 @@ Consistent visual header style for sections:
 - **Active / Selected:** `border-gold-500/30 bg-gold-500/8 text-white`
 - **Disabled:** `disabled:cursor-not-allowed disabled:opacity-25`
 - **Focus (inputs):** `focus:border-gold-500 focus:ring-1 focus:ring-gold-500`
+
+### 3. Schema Documentation Policy
+
+To keep generated Markdown documentation readable and prevent table layouts from breaking:
+
+- **Relation Columns:** Format as `[N relations]` or item count instead of raw comma-separated UUID lists in visual tables.
+- **Cell Truncation:** Truncate text cells to maximum `60` characters in Markdown tables.
+- **Raw Data:** Always preserve 100% complete, raw, untruncated IDs and values in `scratch/notion-registry-dump.json` and generated developer scaffolds (`components.ts`).

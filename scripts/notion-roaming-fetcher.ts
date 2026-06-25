@@ -1079,7 +1079,15 @@ function generateGlossaryMarkdown(
         lines.push(`| ${headers.map(() => "---").join(" | ")} |`);
         for (const row of schema.crawledRows) {
           const rowVals = headers.map((h) => {
+            const propSchema = schema.properties.find((p) => p.name === h);
             const val = row[h] || "";
+            if (propSchema?.type === "relation") {
+              const relCount = val
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean).length;
+              return `[${relCount} relation${relCount !== 1 ? "s" : ""}]`;
+            }
             const truncated = val.length > 60 ? val.slice(0, 60) + "…" : val;
             return escapeMarkdownTable(truncated);
           });
