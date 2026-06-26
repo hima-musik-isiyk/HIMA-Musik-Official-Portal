@@ -500,6 +500,7 @@ export async function resolveDatabaseId(idOrName: string): Promise<string> {
       data_source_id: dsId,
     });
 
+    const titles: string[] = [];
     for (const page of response.results) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const properties = (page as any).properties;
@@ -527,10 +528,12 @@ export async function resolveDatabaseId(idOrName: string): Promise<string> {
       }
 
       if (title) {
+        titles.push(title);
         const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "");
         registryIdCache.set(normalizedTitle, targetId);
       }
     }
+    console.log("[Notion Registry DB Keys]:", titles);
 
     const resolved = registryIdCache.get(normalizedSearch);
     if (!resolved) {
