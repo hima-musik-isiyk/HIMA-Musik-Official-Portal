@@ -1255,24 +1255,39 @@ function CellImage({
   objectContain?: boolean;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  // Proxy via local API to solve slow Supabase CDN / CORS / connection issues
+  const proxyUrl = src.startsWith("http")
+    ? `/api/notion-image?src=${encodeURIComponent(src)}`
+    : src;
 
   return (
     <div
       className={`relative h-full w-full overflow-hidden bg-neutral-900 ${className}`}
     >
-      {!isLoaded && (
+      {!isLoaded && !hasError && (
         <div className="absolute inset-0 z-0 flex items-center justify-center">
           <div className="h-full w-full animate-pulse bg-neutral-800/60" />
         </div>
       )}
+      {hasError && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-neutral-950 p-4 text-center">
+          <span className="font-mono text-xs text-red-500">Failed to load</span>
+        </div>
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={proxyUrl}
         alt={alt}
         className={`h-full w-full transition-all duration-700 ease-out ${
           objectContain ? "object-contain" : "object-cover"
-        } ${isLoaded ? "opacity-100" : "opacity-0"}`}
+        } ${isLoaded && !hasError ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setIsLoaded(true)}
+        onError={() => {
+          setHasError(true);
+          console.error("Failed to load image:", src);
+        }}
         draggable={false}
       />
     </div>
