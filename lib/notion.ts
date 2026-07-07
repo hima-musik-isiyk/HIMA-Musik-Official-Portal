@@ -464,36 +464,17 @@ const DOCS_DB_ID =
 const dataSourceIdCache = new Map<string, string>();
 const warnedDatabaseIds = new Set<string>();
 const registryIdCache = new Map<string, string>();
+const shouldLogNotionRegistryKeys = process.env.DEBUG_NOTION_REGISTRY === "1";
+let registryWarmPromise: Promise<void> | null = null;
 
-function normalizeNotionId(id: string): string {
-  const compact = id.replace(/-/g, "").trim();
-  if (!/^[0-9a-fA-F]{32}$/.test(compact)) return id;
-  return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
-}
+async function warmRegistryIdCache(registryDbId: string): Promise<void> {
+  if (registryIdCache.size > 0) return;
+  if (registryWarmPromise) return registryWarmPromise;
 
-export async function resolveDatabaseId(idOrName: string): Promise<string> {
-  if (!idOrName) return "";
-
-  const cleanId = idOrName.replace(/-/g, "").trim();
-  if (/^[0-9a-fA-F]{32}$/.test(cleanId)) {
-    return idOrName;
-  }
-
-  const registryDbId = process.env.NOTION_DATABASE_REGISTRY_ID;
-  if (!registryDbId) {
-    console.error("Missing NOTION_DATABASE_REGISTRY_ID environment variable");
-    return idOrName;
-  }
-
-  const normalizedSearch = idOrName.toLowerCase().replace(/[^a-z0-9]/g, "");
-  if (registryIdCache.has(normalizedSearch)) {
-    return registryIdCache.get(normalizedSearch)!;
-  }
-
-  try {
+  registryWarmPromise = (async () => {
     const client = getNotionClient();
     const dsId = await resolveDataSourceIdSafe(registryDbId);
-    if (!dsId) return idOrName;
+    if (!dsId) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (client as any).dataSources.query({
@@ -533,8 +514,44 @@ export async function resolveDatabaseId(idOrName: string): Promise<string> {
         registryIdCache.set(normalizedTitle, targetId);
       }
     }
-    console.log("[Notion Registry DB Keys]:", titles);
 
+    if (shouldLogNotionRegistryKeys) {
+      console.log("[Notion Registry DB Keys]:", titles);
+    }
+  })().finally(() => {
+    registryWarmPromise = null;
+  });
+
+  return registryWarmPromise;
+}
+
+function normalizeNotionId(id: string): string {
+  const compact = id.replace(/-/g, "").trim();
+  if (!/^[0-9a-fA-F]{32}$/.test(compact)) return id;
+  return `${compact.slice(0, 8)}-${compact.slice(8, 12)}-${compact.slice(12, 16)}-${compact.slice(16, 20)}-${compact.slice(20)}`;
+}
+
+export async function resolveDatabaseId(idOrName: string): Promise<string> {
+  if (!idOrName) return "";
+
+  const cleanId = idOrName.replace(/-/g, "").trim();
+  if (/^[0-9a-fA-F]{32}$/.test(cleanId)) {
+    return idOrName;
+  }
+
+  const registryDbId = process.env.NOTION_DATABASE_REGISTRY_ID;
+  if (!registryDbId) {
+    console.error("Missing NOTION_DATABASE_REGISTRY_ID environment variable");
+    return idOrName;
+  }
+
+  const normalizedSearch = idOrName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (registryIdCache.has(normalizedSearch)) {
+    return registryIdCache.get(normalizedSearch)!;
+  }
+
+  try {
+    await warmRegistryIdCache(registryDbId);
     const resolved = registryIdCache.get(normalizedSearch);
     if (!resolved) {
       console.warn(
@@ -555,6 +572,10 @@ export async function resolveDatabaseId(idOrName: string): Promise<string> {
 export async function resolveDataSourceId(id: string): Promise<string> {
   const resolvedId = await resolveDatabaseId(id);
   const normalizedId = normalizeNotionId(resolvedId);
+  const compact = normalizedId.replace(/-/g, "").trim();
+  if (!/^[0-9a-fA-F]{32}$/.test(compact)) {
+    throw new Error(`Invalid Notion database identifier: ${id}`);
+  }
   const cached = dataSourceIdCache.get(normalizedId);
   if (cached) return cached;
 
@@ -2218,23 +2239,6 @@ export interface RedirectEntry {
 
 export const fetchRedirects = unstable_cache(
   async (): Promise<RedirectEntry[]> => {
-    try {
-      const { fetchContainerCMSCached } = await import("./notion-builder");
-      const cms = await fetchContainerCMSCached();
-      if (cms.redirects && cms.redirects.length > 0) {
-        return cms.redirects
-          .map((r) => ({
-            id: r.id,
-            name: r.name,
-            sourcePath: r.modified.trim(),
-            destinationUrl: r.destinationUrl.trim(),
-          }))
-          .filter((entry) => entry.sourcePath && entry.destinationUrl);
-      }
-    } catch (e) {
-      console.warn("[Notion fetchRedirects] CMS redirect fetch failed:", e);
-    }
-
     try {
       const activeDbId = DB_REDIRECT;
       if (!activeDbId) return [];
