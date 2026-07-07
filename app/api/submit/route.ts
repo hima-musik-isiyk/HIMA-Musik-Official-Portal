@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     const resolvedDbId = await resolveDatabaseId(activeDbId);
 
-    // Resolve active parent object (data_source_id vs database_id) for compatibility with Notion API v2025-09-03
+    // Resolve active parent object (data_source_id vs database_id) for compatibility with Notion API v2026-03-11
     let parentObj: Parameters<typeof notion.pages.create>[0]["parent"] = {
       database_id: resolvedDbId,
     };

@@ -121,7 +121,7 @@ function createNotionClient() {
   }
   return new Client({
     auth: token,
-    notionVersion: "2025-09-03",
+    notionVersion: "2026-03-11",
     fetch: (url, init) => {
       return fetch(url, {
         ...init,

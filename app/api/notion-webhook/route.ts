@@ -21,7 +21,7 @@ async function resolveDiscordTags(items: any[]): Promise<string[]> {
     const res = await fetch(`https://api.notion.com/v1/pages/${targetId}`, {
       headers: {
         Authorization: `Bearer ${process.env.NOTION_INTEGRATION_TOKEN}`,
-        "Notion-Version": "2022-06-28",
+        "Notion-Version": "2026-03-11",
       },
     });
     const page = await res.json();
@@ -73,7 +73,7 @@ async function resolveAttendeeEmails(items: any[]): Promise<string[]> {
     const res = await fetch(`https://api.notion.com/v1/pages/${targetId}`, {
       headers: {
         Authorization: `Bearer ${process.env.NOTION_INTEGRATION_TOKEN}`,
-        "Notion-Version": "2022-06-28",
+        "Notion-Version": "2026-03-11",
       },
     });
     const page = await res.json();
@@ -98,7 +98,7 @@ async function updateNotionCalendarId(pageId: string, eventId: string) {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${process.env.NOTION_INTEGRATION_TOKEN}`,
-      "Notion-Version": "2022-06-28",
+      "Notion-Version": "2026-03-11",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
