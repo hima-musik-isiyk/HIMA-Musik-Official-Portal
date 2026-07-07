@@ -1,6 +1,10 @@
 import { unstable_cache } from "./cache";
 import { cleanCmsValue } from "./cms-placeholders";
 import {
+  readContainerCMSSnapshot,
+  writeContainerCMSSnapshot,
+} from "./cms-snapshot";
+import {
   DB_COMPONENT_TYPES,
   DB_CONTENT_COMPONENT,
   DB_FOOTER,
@@ -482,10 +486,39 @@ export function findCmsPageForPath(
   return prefixMatches[0];
 }
 
+export async function fetchContainerCMSReadThrough(): Promise<ContainerCMSData> {
+  const snapshot = await readContainerCMSSnapshot();
+  if (snapshot) return snapshot;
+
+  const cms = await fetchContainerCMS();
+  const snapshotResult = await writeContainerCMSSnapshot(cms);
+  if (!snapshotResult.ok) {
+    console.warn(
+      "[CMS Snapshot] Notion fallback worked, snapshot not stored:",
+      {
+        table: snapshotResult.table,
+        key: snapshotResult.key,
+        error: snapshotResult.error,
+      },
+    );
+  }
+
+  return cms;
+}
+
+export async function syncContainerCMSSnapshot() {
+  const data = await fetchContainerCMS();
+  const snapshot = await writeContainerCMSSnapshot(data);
+  return {
+    data,
+    snapshot,
+  };
+}
+
 export const fetchContainerCMSCached = unstable_cache(
   async () => {
     try {
-      return await fetchContainerCMS();
+      return await fetchContainerCMSReadThrough();
     } catch (error) {
       console.error(
         "fetchContainerCMSCached failed, returning fallback:",

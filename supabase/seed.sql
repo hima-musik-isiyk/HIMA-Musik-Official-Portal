@@ -1,0 +1,1 @@
+-- Intentionally empty. Migrations define the required schema.

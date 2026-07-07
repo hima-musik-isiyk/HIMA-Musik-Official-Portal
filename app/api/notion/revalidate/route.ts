@@ -1,5 +1,7 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { syncContainerCMSSnapshot } from "@/lib/notion-builder";
 import { revalidateScope } from "@/lib/notion-revalidate-helper";
 
 // In-memory rate limiting timestamp for active server instances
@@ -24,8 +26,31 @@ export async function POST() {
     // Update timestamp
     lastRevalidateTime = now;
 
+    let snapshotStatus: "synced" | "skipped" | "failed" = "skipped";
+    let snapshotError: string | null = null;
+    try {
+      const { snapshot } = await syncContainerCMSSnapshot();
+      snapshotStatus = snapshot.ok ? "synced" : "failed";
+      snapshotError = snapshot.error ?? null;
+      revalidateTag("notion-container", { expire: 0 });
+    } catch (err) {
+      snapshotStatus = "failed";
+      snapshotError = err instanceof Error ? err.message : "Unknown error";
+      console.error(
+        "[Notion Public Revalidate] CMS snapshot sync failed:",
+        err,
+      );
+    }
+
     // Trigger instant cache revalidation for all relevant CMS scopes
-    const scopes = ["events", "beranda", "profil", "kkm", "faq"] as const;
+    const scopes = [
+      "events",
+      "beranda",
+      "profil",
+      "kkm",
+      "faq",
+      "redirects",
+    ] as const;
     for (const scope of scopes) {
       try {
         revalidateScope(scope);
@@ -41,6 +66,8 @@ export async function POST() {
     return NextResponse.json({
       ok: true,
       status: "success",
+      snapshotStatus,
+      snapshotError,
       message:
         "Konten website berhasil disinkronkan dengan data terbaru dari Notion!",
     });

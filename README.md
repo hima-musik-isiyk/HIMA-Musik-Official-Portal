@@ -210,6 +210,7 @@ Legacy `.databases.query` is replaced with `.dataSources.query`. All database fe
 
 To achieve **instant, zero-delay page switching** across the entire portal in production, we leverage Next.js native caching combined with an on-demand revalidation architecture:
 
+- **Supabase CMS Snapshot:** Container CMS structure is stored as a single JSON snapshot in Supabase (`cms_snapshots`, key `container-cms`). Runtime page rendering reads this snapshot first and only falls back to Notion when the snapshot is empty/unavailable. This keeps Notion as the editing source of truth while moving hot-path reads to Supabase.
 - **Next.js Native Cache (`unstable_cache`):** All Notion data-fetching routines (Profil, KKM, Agenda, Karya, Sekretariat, FAQ, and Beranda) utilize an enhanced native `unstable_cache` wrapper. Page components are served instantly (<50ms) from memory.
 - **Instant Client-Side Route Prefetching:** The central `Navigation` component aggressively prefetches all configured public pages on component mount. This warms up Next.js's client-side router cache, enabling instantaneous switching between pages without waiting for server response latency.
 - **Snappy Micro-Animations & transitions:** Transition layers (such as the full-screen expanding circle and mobile menu close timeline) are optimized to run swiftly (under 0.4s), removing visual switching latency and making transitions feel highly responsive.
@@ -225,7 +226,9 @@ To achieve **instant, zero-delay page switching** across the entire portal in pr
 
 For administrative preview scenarios or when an immediate, manual force-sync of cached data is desired:
 
-- **Secure Revalidation Controller (`/api/notion/revalidate`):** A public, rate-limited endpoint that securely clears and revalidates all CMS caches (`events`, `beranda`, `profil`, `kkm`, `faq`) without exposing integration keys. Includes an in-memory **10-second rate-limiting cooldown** to protect Notion API rates.
+- **Supabase Migration:** Apply `supabase/migrations/202607070001_create_cms_snapshots.sql` before enabling CMS snapshots in production.
+- **CMS Snapshot Sync (`/api/notion/sync-cms`):** A protected endpoint that pulls the latest Container CMS data from Notion, upserts it into Supabase, and revalidates the related Next.js tags/paths. It accepts `Authorization: Bearer $CRON_SECRET` or `Authorization: Bearer $NOTION_WEBHOOK_VERIFICATION_TOKEN`.
+- **Secure Revalidation Controller (`/api/notion/revalidate`):** A public, rate-limited endpoint that syncs the CMS snapshot, then clears and revalidates all CMS caches (`events`, `beranda`, `profil`, `kkm`, `faq`, `redirects`) without exposing integration keys. Includes an in-memory **10-second rate-limiting cooldown** to protect Notion API rates.
 - **Interactive Action Bar (`PreviewActionBar.tsx`):** A sleek glassmorphic floating controller rendered at the top of preview routes (e.g., `/agenda/preview/[slug]`). Admins can click a "Sync data" button to trigger manual Edge Cache invalidation, showing live edits instantly upon automatic reload.
 
 ---
