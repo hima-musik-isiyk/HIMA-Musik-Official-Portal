@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 
 import { IconChevronDown } from "@/components/Icons";
+import { cleanCmsValue } from "@/lib/cms-placeholders";
 
 type AduanFormData = {
   name: string;
@@ -30,6 +31,8 @@ type AduanFormProps = {
 };
 
 export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
+  const storageDatabaseId = cleanCmsValue(value1, ["Database ID Storage"]);
+  const categoryDatabaseId = cleanCmsValue(value2, ["Database ID Kategori"]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     [],
   );
@@ -67,12 +70,13 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
-    if (!value2) return;
+    if (!categoryDatabaseId) return;
 
     const fetchCategories = async () => {
       setCategoriesLoading(true);
       try {
-        const res = await fetch(`/api/aduan-categories?dbId=${value2}`);
+        const params = new URLSearchParams({ dbId: categoryDatabaseId });
+        const res = await fetch(`/api/aduan-categories?${params.toString()}`);
         if (!res.ok) throw new Error("Gagal mengambil kategori");
         const json = await res.json();
         if (json.success && Array.isArray(json.categories)) {
@@ -95,7 +99,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
     };
 
     fetchCategories();
-  }, [value2]);
+  }, [categoryDatabaseId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -351,7 +355,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
         body: JSON.stringify({
           ...formData,
           categoryName,
-          storageDbId: value1,
+          storageDbId: storageDatabaseId,
           intent: "submit-aduan",
         }),
       });

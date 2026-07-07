@@ -1,5 +1,6 @@
 import { connection, NextResponse } from "next/server";
 
+import { cleanCmsValue } from "@/lib/cms-placeholders";
 import { fetchProfilOrgStructureCached } from "@/lib/notion";
 import {
   fetchContainerCMSCached,
@@ -11,8 +12,12 @@ export async function GET(request: Request) {
   await connection();
   const { searchParams } = new URL(request.url);
   try {
-    let databaseId = searchParams.get("databaseId")?.trim() ?? "";
-    const batchParam = searchParams.get("batch")?.trim();
+    let databaseId = cleanCmsValue(searchParams.get("databaseId"), [
+      "Database ID",
+    ]);
+    const batchParam = cleanCmsValue(searchParams.get("batch"), [
+      "Tampilkan Batch dari 1 Sampai",
+    ]);
 
     const cms = await fetchContainerCMSCached();
 

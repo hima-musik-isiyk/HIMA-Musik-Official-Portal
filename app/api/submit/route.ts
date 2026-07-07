@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { cleanCmsValue } from "@/lib/cms-placeholders";
 import { logErrorToDiscord, sendDiscordWebhook } from "@/lib/discord";
 import {
   fetchAduanDatabaseIdCached,
@@ -70,10 +71,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const activeDbId =
-      typeof storageDbId === "string" && storageDbId
-        ? storageDbId
-        : await fetchAduanDatabaseIdCached(aduanPageId || "");
+    const safeStorageDbId =
+      typeof storageDbId === "string"
+        ? cleanCmsValue(storageDbId, ["Database ID Storage"])
+        : "";
+
+    const activeDbId = safeStorageDbId
+      ? safeStorageDbId
+      : await fetchAduanDatabaseIdCached(aduanPageId || "");
 
     if (!activeDbId) {
       console.error(

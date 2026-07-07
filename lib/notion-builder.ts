@@ -1,4 +1,5 @@
 import { unstable_cache } from "./cache";
+import { cleanCmsValue } from "./cms-placeholders";
 import {
   DB_COMPONENT_TYPES,
   DB_CONTENT_COMPONENT,
@@ -214,6 +215,33 @@ function getRelationIds(page: NotionPage, name: string): string[] {
   return [];
 }
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function queryNotionDataSource(
+  dataSourceId: string,
+  cursor: string | undefined,
+) {
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (attempt < 3) {
+    try {
+      return await getNotionClient().dataSources.query({
+        data_source_id: dataSourceId,
+        start_cursor: cursor,
+      });
+    } catch (error) {
+      lastError = error;
+      attempt += 1;
+      if (attempt < 3) {
+        await delay(350 * attempt);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 async function queryAll(databaseId: string): Promise<NotionPage[]> {
   const dataSourceId = await resolveDataSourceIdSafe(databaseId);
   if (!dataSourceId) return [];
@@ -221,13 +249,8 @@ async function queryAll(databaseId: string): Promise<NotionPage[]> {
   const results: NotionPage[] = [];
   let cursor: string | undefined;
 
-  const client = getNotionClient();
-
   do {
-    const response = await client.dataSources.query({
-      data_source_id: dataSourceId,
-      start_cursor: cursor,
-    });
+    const response = await queryNotionDataSource(dataSourceId, cursor);
     results.push(...(response.results as NotionPage[]));
     cursor = response.has_more
       ? (response.next_cursor ?? undefined)
@@ -567,9 +590,12 @@ export function resolveCmsComponentFieldValue(
         const v3Label = registry.value3.trim().toLowerCase();
         const target = fieldLabel.trim().toLowerCase();
 
-        if (v1Label === target) return comp.value?.trim() || null;
-        if (v2Label === target) return comp.value2?.trim() || null;
-        if (v3Label === target) return comp.value3?.trim() || null;
+        if (v1Label === target)
+          return cleanCmsValue(comp.value, [registry.value1]) || null;
+        if (v2Label === target)
+          return cleanCmsValue(comp.value2, [registry.value2]) || null;
+        if (v3Label === target)
+          return cleanCmsValue(comp.value3, [registry.value3]) || null;
       }
     }
   }
@@ -621,7 +647,13 @@ export function resolveCmsComponentDatabaseId(
       : field === "value2"
         ? comp.value2
         : comp.value3;
-  return raw?.trim() || null;
+  const registryLabel =
+    field === "value"
+      ? registry?.value1
+      : field === "value2"
+        ? registry?.value2
+        : registry?.value3;
+  return cleanCmsValue(raw, [registryLabel]) || null;
 }
 
 export async function resolveProfilSdmDatabaseIdFromCms(): Promise<

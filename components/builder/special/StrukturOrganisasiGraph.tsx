@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import RotatingText, { RotatingTextRef } from "@/components/RotatingText";
+import { cleanCmsValue } from "@/lib/cms-placeholders";
 import type {
   ProfilModularDivision,
   ProfilModularExecutive,
@@ -24,6 +25,8 @@ interface StrukturOrganisasiGraphProps {
 export const StrukturOrganisasiGraph: React.FC<
   StrukturOrganisasiGraphProps
 > = ({ value1, value2 }) => {
+  const activeDatabaseId = cleanCmsValue(value2, ["Database ID"]);
+  const activeBatch = cleanCmsValue(value1, ["Tampilkan Batch dari 1 Sampai"]);
   const pathname = usePathname();
   const [fallbackDivisions, setFallbackDivisions] =
     useState<Division[]>(staticDivisions);
@@ -70,13 +73,13 @@ export const StrukturOrganisasiGraph: React.FC<
     } catch {}
 
     const fetchProfilData = async () => {
-      if (!value2?.trim()) return;
+      if (!activeDatabaseId) return;
 
       try {
         const params = new URLSearchParams();
-        params.set("databaseId", value2.trim());
-        if (value1?.trim()) {
-          params.set("batch", value1.trim());
+        params.set("databaseId", activeDatabaseId);
+        if (activeBatch) {
+          params.set("batch", activeBatch);
         }
         const res = await fetch(`/api/profil?${params.toString()}`);
         if (res.ok) {
@@ -101,7 +104,7 @@ export const StrukturOrganisasiGraph: React.FC<
     };
 
     fetchProfilData();
-  }, [value1, value2]);
+  }, [activeBatch, activeDatabaseId]);
 
   const fallbackExecutives = [
     { role: "Ketua Himpunan", name: "Vincent Nuridzati Adittama" },

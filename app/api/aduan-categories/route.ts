@@ -1,12 +1,15 @@
 import { connection, NextResponse } from "next/server";
 
+import { cleanCmsValue } from "@/lib/cms-placeholders";
 import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
 
 export async function GET(request: Request) {
   await connection();
   const { searchParams } = new URL(request.url);
   try {
-    const dbId = searchParams.get("dbId");
+    const dbId = cleanCmsValue(searchParams.get("dbId"), [
+      "Database ID Kategori",
+    ]);
     if (!dbId) {
       return NextResponse.json({ error: "Missing dbId" }, { status: 400 });
     }
