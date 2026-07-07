@@ -87,6 +87,7 @@ export default async function CatchAllPage({ params }: CatchAllProps) {
     const { docs, categories } = await fetchSekretariatPortalData();
     injectedProps = {
       "Sekretariat Grid": { docs, initialCategories: categories },
+      "Sekretariat Sidebar": { docs },
     };
   } else if (path === "/agenda") {
     const [collection, kkmGroups] = await Promise.all([

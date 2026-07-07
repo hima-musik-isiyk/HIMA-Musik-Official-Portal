@@ -4,6 +4,7 @@ import { GenericButton } from "./core/GenericButton";
 import { GenericButtonSpan } from "./core/GenericButtonSpan";
 import { GenericCopy } from "./core/GenericCopy";
 import { GenericDescription } from "./core/GenericDescription";
+import { GenericInformationCard } from "./core/GenericInformationCard";
 import { GenericLineTitle } from "./core/GenericLineTitle";
 import { GenericTitle } from "./core/GenericTitle";
 import { AduanForm } from "./special/AduanForm";
@@ -19,6 +20,7 @@ import PanduanDivisi from "./special/PanduanDivisi";
 import PendaftaranChecklists from "./special/PendaftaranChecklists";
 import PendaftaranForm from "./special/PendaftaranForm";
 import SekretariatGrid from "./special/SekretariatGrid";
+import SekretariatSidebar from "./special/SekretariatSidebar";
 import { StrukturOrganisasiGraph } from "./special/StrukturOrganisasiGraph";
 import TimelineSeleksi from "./special/TimelineSeleksi";
 
@@ -31,6 +33,7 @@ export const componentRegistry: Record<string, RegistryComponent> = {
   "Line Title": GenericLineTitle,
   Description: GenericDescription,
   Copy: GenericCopy,
+  "Information Card": GenericInformationCard,
   Button: GenericButton,
   "Button Span": GenericButtonSpan,
   "Aduan Form": AduanForm,
@@ -40,6 +43,7 @@ export const componentRegistry: Record<string, RegistryComponent> = {
   "FAQ List": FAQList,
   "Agenda List": AgendaList,
   "Sekretariat Grid": SekretariatGrid,
+  "Sekretariat Sidebar": SekretariatSidebar,
   "Panduan Divisi": PanduanDivisi,
   Checklists: PendaftaranChecklists,
   "KKM Grid": KKMGrid,

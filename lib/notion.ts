@@ -462,6 +462,7 @@ const DOCS_DB_ID =
 */
 
 const dataSourceIdCache = new Map<string, string>();
+const childDatabaseIdCache = new Map<string, string | null>();
 const warnedDatabaseIds = new Set<string>();
 const registryIdCache = new Map<string, string>();
 const shouldLogNotionRegistryKeys = process.env.DEBUG_NOTION_REGISTRY === "1";
@@ -630,6 +631,57 @@ export interface ChildDatabaseRef {
 }
 
 const KKM_PAGE_ID = process.env.NOTION_KKM_PAGE_ID ?? "";
+const KKM_HERO_DATABASE_ID = process.env.NOTION_KKM_HERO_DATABASE_ID ?? "";
+
+async function resolveChildDatabaseId(
+  parentPageId: string,
+  title: string,
+): Promise<string | null> {
+  if (!parentPageId || !title) return null;
+
+  const cacheKey = `${normalizeNotionId(parentPageId)}:${title.toLowerCase()}`;
+  if (childDatabaseIdCache.has(cacheKey)) {
+    return childDatabaseIdCache.get(cacheKey) ?? null;
+  }
+
+  let cursor: string | undefined;
+  try {
+    do {
+      const response = await getNotionClient().blocks.children.list({
+        block_id: parentPageId,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+
+      const childDatabase = (response.results as BlockObjectResponse[]).find(
+        (block) => {
+          return (
+            block.type === "child_database" &&
+            block.child_database.title.trim().toLowerCase() ===
+              title.trim().toLowerCase()
+          );
+        },
+      );
+
+      if (childDatabase) {
+        childDatabaseIdCache.set(cacheKey, childDatabase.id);
+        return childDatabase.id;
+      }
+
+      cursor = response.has_more
+        ? (response.next_cursor ?? undefined)
+        : undefined;
+    } while (cursor);
+  } catch (error) {
+    console.error(
+      `[Notion resolveChildDatabaseId] Failed to find child database "${title}" on page ${parentPageId}:`,
+      error,
+    );
+  }
+
+  childDatabaseIdCache.set(cacheKey, null);
+  return null;
+}
 
 function getRelationIds(page: NotionPage, name: string): string[] {
   const prop = getProperty(page, name);
@@ -956,7 +1008,9 @@ export async function fetchKKMModularData(
     groups: [],
   };
 
-  const heroDbId = DB_KKM_HERO;
+  const heroDbId =
+    KKM_HERO_DATABASE_ID ||
+    (KKM_PAGE_ID ? await resolveChildDatabaseId(KKM_PAGE_ID, DB_KKM_HERO) : "");
 
   // 1. Fetch KKM: Hero Section if found
   if (heroDbId) {

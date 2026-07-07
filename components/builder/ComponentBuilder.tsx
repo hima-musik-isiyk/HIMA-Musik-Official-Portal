@@ -57,7 +57,9 @@ export const ComponentBuilder: React.FC<ComponentBuilderProps> = ({
 
   const componentName = registryDefOrRaw?.name || component.typeId;
   const resolvesLink =
-    componentName === "Button Span" || componentName === "Button";
+    componentName === "Button Span" ||
+    componentName === "Button" ||
+    componentName === "Information Card";
   const href = resolvesLink
     ? resolveCmsHref(value3 || "", cmsData, contextPageId)
     : undefined;
