@@ -5,6 +5,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import RotatingText, { RotatingTextRef } from "@/components/RotatingText";
 import { cleanCmsValue } from "@/lib/cms-placeholders";
+import {
+  fetchDivisionsOnce,
+  readCachedDivisions,
+} from "@/lib/divisions-client";
 import type {
   ProfilModularDivision,
   ProfilModularExecutive,
@@ -32,13 +36,11 @@ export const StrukturOrganisasiGraph: React.FC<
     useState<Division[]>(staticDivisions);
 
   useEffect(() => {
-    fetch("/api/divisions")
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setFallbackDivisions(res.data);
-        }
-      })
+    const cached = readCachedDivisions();
+    if (cached) setFallbackDivisions(cached);
+
+    fetchDivisionsOnce()
+      .then(setFallbackDivisions)
       .catch((err) => console.error("Error fetching divisions in graph:", err));
   }, []);
 

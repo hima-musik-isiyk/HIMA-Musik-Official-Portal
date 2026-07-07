@@ -794,8 +794,12 @@ export default function AgendaList({
     },
     kkmGroups: initialKkmGroups || [],
   });
+  const hasInitialData =
+    initialCollection !== undefined || initialKkmGroups !== undefined;
 
   useEffect(() => {
+    if (hasInitialData) return;
+
     // Try to load from localStorage cache first to bootstrap client-side SWR
     try {
       const cached = window.localStorage.getItem("hima_agenda_cache");
@@ -838,13 +842,7 @@ export default function AgendaList({
     };
 
     fetchAgendaData();
-
-    const interval = setInterval(() => {
-      fetchAgendaData();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [hasInitialData]);
 
   const collection = data.collection;
   const kkmGroups = data.kkmGroups;

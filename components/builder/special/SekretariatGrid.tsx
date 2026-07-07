@@ -70,8 +70,12 @@ export default function SekretariatGrid({
     docs: initialDocs || [],
     categories: initialCategories || [],
   });
+  const hasInitialData =
+    initialDocs !== undefined || initialCategories.length > 0;
 
   useEffect(() => {
+    if (hasInitialData) return;
+
     // Try to load from localStorage cache first to bootstrap client-side SWR
     try {
       const cached = window.localStorage.getItem("hima_sekretariat_cache");
@@ -110,13 +114,7 @@ export default function SekretariatGrid({
     };
 
     fetchSekretariatData();
-
-    const interval = setInterval(() => {
-      fetchSekretariatData();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [hasInitialData]);
 
   const docs = data.docs;
   const cardsRef = useRef<HTMLDivElement>(null);

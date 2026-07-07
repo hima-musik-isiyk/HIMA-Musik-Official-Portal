@@ -4,6 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
+import {
+  fetchDivisionsOnce,
+  readCachedDivisions,
+} from "@/lib/divisions-client";
 import { FEATURES } from "@/lib/feature-flags";
 import { divisions as staticDivisions } from "@/lib/pendaftaran-data";
 import useViewEntrance from "@/lib/useViewEntrance";
@@ -95,13 +99,11 @@ const Footer: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetch("/api/divisions")
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setDivisions(res.data);
-        }
-      })
+    const cached = readCachedDivisions();
+    if (cached) setDivisions(cached);
+
+    fetchDivisionsOnce()
+      .then(setDivisions)
       .catch((err) =>
         console.error("Error fetching divisions in footer:", err),
       );

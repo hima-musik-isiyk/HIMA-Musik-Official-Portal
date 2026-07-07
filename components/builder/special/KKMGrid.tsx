@@ -219,8 +219,11 @@ export default function KKMGrid({
     hero: hero || { title: "", description: "" },
     groups: initialGroups || [],
   });
+  const hasInitialData = hero !== undefined || initialGroups !== undefined;
 
   useEffect(() => {
+    if (hasInitialData) return;
+
     // Try to load from localStorage cache first to bootstrap client-side SWR
     try {
       const cached = window.localStorage.getItem("hima_kkm_cache");
@@ -257,13 +260,7 @@ export default function KKMGrid({
     };
 
     fetchKKMData();
-
-    const interval = setInterval(() => {
-      fetchKKMData();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [hasInitialData]);
 
   const groups = data.groups;
 

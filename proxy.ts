@@ -3,42 +3,70 @@ import { NextResponse } from "next/server";
 
 import { CMS_PATHNAME_HEADER } from "@/lib/cms-route";
 
+type RedirectEntry = {
+  sourcePath: string;
+  destinationUrl: string;
+};
+
+const REDIRECTS_CACHE_TTL_MS = 60_000;
+let redirectsCache: {
+  data: RedirectEntry[];
+  expiresAt: number;
+} | null = null;
+let redirectsFetchPromise: Promise<RedirectEntry[]> | null = null;
+
+async function fetchRedirectsCached(apiUrl: URL): Promise<RedirectEntry[]> {
+  const now = Date.now();
+  if (redirectsCache && redirectsCache.expiresAt > now) {
+    return redirectsCache.data;
+  }
+
+  if (redirectsFetchPromise) return redirectsFetchPromise;
+
+  redirectsFetchPromise = fetch(apiUrl)
+    .then(async (res) => {
+      if (!res.ok) return [];
+
+      const payload = await res.json();
+      if (!payload.success || !Array.isArray(payload.data)) return [];
+
+      redirectsCache = {
+        data: payload.data,
+        expiresAt: Date.now() + REDIRECTS_CACHE_TTL_MS,
+      };
+      return payload.data;
+    })
+    .finally(() => {
+      redirectsFetchPromise = null;
+    });
+
+  return redirectsFetchPromise;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   try {
-    // 1. Fetch redirects from our dynamic internal endpoint
     const apiUrl = new URL("/api/redirects", request.url);
-    const res = await fetch(apiUrl);
+    const redirects = await fetchRedirectsCached(apiUrl);
 
-    if (res.ok) {
-      const payload = await res.json();
-      if (payload.success && Array.isArray(payload.data)) {
-        const redirects = payload.data;
+    const match = redirects.find((entry) => {
+      const normalizedSource = entry.sourcePath.trim().toLowerCase();
+      const normalizedPath = pathname.trim().toLowerCase();
 
-        // 2. Search for a matching source path (exact case-insensitive match)
-        const match = redirects.find(
-          (entry: { sourcePath: string; destinationUrl: string }) => {
-            const normalizedSource = entry.sourcePath.trim().toLowerCase();
-            const normalizedPath = pathname.trim().toLowerCase();
+      return (
+        normalizedSource === normalizedPath ||
+        normalizedSource === `${normalizedPath}/` ||
+        `${normalizedSource}/` === normalizedPath
+      );
+    });
 
-            return (
-              normalizedSource === normalizedPath ||
-              normalizedSource === `${normalizedPath}/` ||
-              `${normalizedSource}/` === normalizedPath
-            );
-          },
-        );
+    if (match) {
+      const destination = match.destinationUrl.startsWith("http")
+        ? match.destinationUrl
+        : new URL(match.destinationUrl, request.url).toString();
 
-        if (match) {
-          // 3. Match found! Perform 307 temporary redirect
-          const destination = match.destinationUrl.startsWith("http")
-            ? match.destinationUrl
-            : new URL(match.destinationUrl, request.url).toString();
-
-          return NextResponse.redirect(destination, 307);
-        }
-      }
+      return NextResponse.redirect(destination, 307);
     }
   } catch (error) {
     // Fail-safe: log the error and allow the request to proceed without blocking

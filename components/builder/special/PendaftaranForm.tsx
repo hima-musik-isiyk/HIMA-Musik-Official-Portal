@@ -5,6 +5,10 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { IconChevronDown } from "@/components/Icons";
 import {
+  fetchDivisionsOnce,
+  readCachedDivisions,
+} from "@/lib/divisions-client";
+import {
   type Division,
   divisions as staticDivisions,
 } from "@/lib/pendaftaran-data";
@@ -62,13 +66,11 @@ export default function PendaftaranForm() {
   const [divisions, setDivisions] = useState<Division[]>(staticDivisions);
 
   useEffect(() => {
-    fetch("/api/divisions")
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setDivisions(res.data);
-        }
-      })
+    const cached = readCachedDivisions();
+    if (cached) setDivisions(cached);
+
+    fetchDivisionsOnce()
+      .then(setDivisions)
       .catch((err) => console.error("Error fetching divisions in form:", err));
   }, []);
 

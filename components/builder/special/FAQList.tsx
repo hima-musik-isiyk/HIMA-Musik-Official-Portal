@@ -262,6 +262,7 @@ const FAQList: React.FC<FAQViewProps> = ({
   const [isLoading, setIsLoading] = useState(!initialEntries);
   const [_isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasInitialEntries = initialEntries !== undefined;
 
   // Search, Filters & Row Expansion
   const [searchQuery, setSearchQuery] = useState("");
@@ -406,8 +407,11 @@ const FAQList: React.FC<FAQViewProps> = ({
     }
   };
 
-  // Initial Fetch & Active Browser Polling (5 Seconds)
+  // Initial fetch only. Public CMS freshness is handled by server
+  // revalidation/snapshot sync instead of browser polling.
   useEffect(() => {
+    if (hasInitialEntries) return;
+
     // Try to load from localStorage cache first
     try {
       const cached = window.localStorage.getItem("hima_faqs_cache");
@@ -418,13 +422,7 @@ const FAQList: React.FC<FAQViewProps> = ({
     } catch {}
 
     fetchFAQs(true);
-
-    const interval = setInterval(() => {
-      fetchFAQs(false); // Background silent updates
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [hasInitialEntries]);
 
   // Form Auto-save
   useEffect(() => {

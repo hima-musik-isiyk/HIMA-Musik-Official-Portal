@@ -30,8 +30,11 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
   const [entries, setEntries] = useState<KaryaEntryMeta[]>(
     initialEntries || [],
   );
+  const hasInitialEntries = initialEntries !== undefined;
 
   useEffect(() => {
+    if (hasInitialEntries) return;
+
     try {
       const cached = window.localStorage.getItem("hima_karya_cache");
       if (cached) {
@@ -61,13 +64,7 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
     };
 
     fetchKaryaData();
-
-    const interval = setInterval(() => {
-      fetchKaryaData();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [hasInitialEntries]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
