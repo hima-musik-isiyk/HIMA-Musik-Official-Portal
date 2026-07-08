@@ -71,5 +71,6 @@
     "patchedDependencies": {
       "@locator/babel-jsx@0.5.1": "patches/@locator__babel-jsx@0.5.1.patch"
     }
-  }
+  },
+  "packageManager": "pnpm@10.34.4"
 }

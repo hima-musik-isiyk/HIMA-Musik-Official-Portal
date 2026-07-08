@@ -5,7 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@locator/babel-jsx@0.5.1': f844c0e05dd54339b9e3b5cc85b64856730fa9307fd6676591e3022dab0b00bb
+  '@locator/babel-jsx@0.5.1':
+    hash: f844c0e05dd54339b9e3b5cc85b64856730fa9307fd6676591e3022dab0b00bb
+    path: patches/@locator__babel-jsx@0.5.1.patch
 
 importers:
 
