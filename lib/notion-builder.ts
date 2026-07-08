@@ -715,7 +715,9 @@ export function resolveProfilMaxBatchFromCms(cms: ContainerCMSData): number {
     findCmsComponentInstances(cms, "Struktur Organisasi Graph")[0]?.value ??
     "";
 
-  const parsed = Number.parseInt(batchRaw, 10);
+  const cleaned = cleanCmsValue(batchRaw, ["Tampilkan Batch dari 1 Sampai"]);
+  const batchToUse = cleaned || cms.variables.CURRENT_BATCH || "";
+  const parsed = Number.parseInt(batchToUse, 10);
   return Number.isNaN(parsed) ? 999 : parsed;
 }
 

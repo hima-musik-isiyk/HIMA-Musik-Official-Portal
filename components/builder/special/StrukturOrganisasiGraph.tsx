@@ -24,13 +24,17 @@ import { GenericLineTitle } from "../core/GenericLineTitle";
 interface StrukturOrganisasiGraphProps {
   value1?: string; // Tampilkan Batch...
   value2?: string; // Database ID...
+  cmsVariables?: Record<string, string>;
 }
 
 export const StrukturOrganisasiGraph: React.FC<
   StrukturOrganisasiGraphProps
-> = ({ value1, value2 }) => {
+> = ({ value1, value2, cmsVariables }) => {
   const activeDatabaseId = cleanCmsValue(value2, ["Database ID"]);
-  const activeBatch = cleanCmsValue(value1, ["Tampilkan Batch dari 1 Sampai"]);
+  const activeBatch =
+    cleanCmsValue(value1, ["Tampilkan Batch dari 1 Sampai"]) ||
+    cmsVariables?.CURRENT_BATCH ||
+    "";
   const pathname = usePathname();
   const [fallbackDivisions, setFallbackDivisions] =
     useState<Division[]>(staticDivisions);

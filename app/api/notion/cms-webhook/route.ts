@@ -9,8 +9,6 @@ import {
 } from "@/lib/cms-sync-events";
 import { syncContainerCMSSnapshot } from "@/lib/notion-builder";
 
-export const runtime = "nodejs";
-
 type NotionWebhookEntity = {
   id?: string;
   type?: string;

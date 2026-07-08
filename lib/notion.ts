@@ -7,6 +7,7 @@ import { classifyEventLifecycle, getEventDateSortValue } from "./event-dates";
 import {
   DB_ADUAN_STORAGE,
   DB_AGENDA_FORM_STORAGE,
+  DB_BATCH_PENDAFTARAN,
   DB_BERANDA_HERO,
   DB_BERANDA_JELAJAHI,
   DB_DOKUMEN_SEKRETARIAT,
@@ -2014,6 +2015,8 @@ export async function fetchProfilOrgStructure(
       } while (cursor);
     }
 
+    const batchMap = await fetchBatchMap();
+
     // Filter by Keaktifan and Batch
     const filteredMembers = sdmPages.filter((page) => {
       const status = getSelect(page, "Status Keaktifan");
@@ -2025,9 +2028,11 @@ export async function fetchProfilOrgStructure(
         return false;
       }
 
-      const batchStr = getSelect(page, "Batch") || "";
-      const match = batchStr.match(/Batch (\d+)/i);
-      const batchNum = match ? parseInt(match[1], 10) : 999;
+      const relatedBatchIds = getRelationIds(page, "03 Batch Pendaftaran");
+      const relatedBatch = relatedBatchIds
+        .map((id) => batchMap[id])
+        .find(Boolean);
+      const batchNum = relatedBatch ? relatedBatch.batchNum : 999;
       return batchNum <= maxBatch;
     });
 
@@ -2337,6 +2342,55 @@ export const fetchRedirects = unstable_cache(
   { revalidate: 60, tags: ["notion-redirects"] },
 );
 
+export interface BatchInfo {
+  id: string;
+  name: string;
+  batchNum: number;
+}
+
+export const fetchBatchMap = unstable_cache(
+  async (): Promise<Record<string, BatchInfo>> => {
+    const dbId = DB_BATCH_PENDAFTARAN;
+    const batchMap: Record<string, BatchInfo> = {};
+    if (!dbId) return batchMap;
+
+    try {
+      const client = getNotionClientAny();
+      const dataSourceId = await resolveDataSourceIdSafe(dbId);
+      if (!dataSourceId) return batchMap;
+
+      const results: NotionPage[] = [];
+      let cursor: string | undefined;
+      do {
+        const response = await client.dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        results.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+
+      for (const page of results) {
+        const name = getTitleProperty(page, "Name") || getTitle(page) || "";
+        const match = name.match(/Batch\s*(\d+)/i) || name.match(/(\d+)/);
+        const batchNum = match ? parseInt(match[1], 10) : 0;
+        batchMap[page.id] = {
+          id: page.id,
+          name,
+          batchNum,
+        };
+      }
+    } catch (err) {
+      console.error("[fetchBatchMap] Error:", err);
+    }
+    return batchMap;
+  },
+  ["notion-batch-map"],
+  { revalidate: 60, tags: ["notion-batch-map"] },
+);
+
 export type Division = {
   id: string;
   name: string;
@@ -2384,9 +2438,25 @@ export async function fetchDivisionsFromNotion(): Promise<Division[]> {
       sdmPages = sdmResponse.results as NotionPage[];
     }
 
+    const { fetchContainerCMSCached } = await import("./notion-builder");
+    const cms = await fetchContainerCMSCached();
+    const currentBatchStr = cms?.variables?.CURRENT_BATCH || "2";
+    const currentBatchNum = parseInt(currentBatchStr, 10);
+
+    const batchMap = await fetchBatchMap();
+
     const recruitmentPages = sdmPages.filter((page) => {
       const status = getSelect(page, "Status Keaktifan");
-      return status === "Rekrutmen";
+      if (status !== "Rekrutmen") return false;
+
+      const relatedBatchIds = getRelationIds(page, "03 Batch Pendaftaran");
+      const relatedBatch = relatedBatchIds
+        .map((id) => batchMap[id])
+        .find(Boolean);
+      const batchNum = relatedBatch ? relatedBatch.batchNum : 999;
+      return Number.isNaN(currentBatchNum)
+        ? true
+        : batchNum === currentBatchNum;
     });
 
     let taskPages: NotionPage[] = [];
