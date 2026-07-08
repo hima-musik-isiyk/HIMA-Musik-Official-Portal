@@ -148,6 +148,7 @@ export const StrukturOrganisasiGraph: React.FC<
           executives={executivesList}
           divisions={data.divisions}
           fallbackDivisions={fallbackDivisions}
+          isRecruitment={pathname.includes("pendaftaran")}
         />
       </div>
     </div>
@@ -474,12 +475,16 @@ const DivisionCards = ({
   executives,
   divisions: fetchedDivisions,
   fallbackDivisions,
+  isRecruitment,
 }: {
   executives: { role: string; name: string }[];
   divisions?: ProfilModularDivision[];
   fallbackDivisions: Division[];
+  isRecruitment: boolean;
 }) => {
-  const divisions = fallbackDivisions.filter((d) => !d.id.startsWith("co-"));
+  const divisions = fallbackDivisions.filter(
+    (d) => !d.id.startsWith("co-") && (!isRecruitment || d.slots > 0),
+  );
 
   const findNamesForDivision = (divisionName: string) => {
     const matches = executives.filter(
@@ -491,12 +496,16 @@ const DivisionCards = ({
   };
 
   if (fetchedDivisions && fetchedDivisions.length > 0) {
+    const activeDivs = isRecruitment
+      ? fetchedDivisions.filter((d) => d.slots > 0)
+      : fetchedDivisions;
+
     return (
       <div
         data-animate-stagger="0.1"
         className="grid grid-cols-1 gap-4 md:grid-cols-2"
       >
-        {fetchedDivisions.map((division) => (
+        {activeDivs.map((division) => (
           <DivisionCard
             key={division.name}
             name={division.name}

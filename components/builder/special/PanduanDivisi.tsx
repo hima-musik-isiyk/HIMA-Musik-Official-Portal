@@ -155,14 +155,16 @@ export default function PanduanDivisi({
   return (
     <div className="w-full">
       <div data-animate-stagger="0.1" className="space-y-4">
-        {divisions.map((division) => (
-          <DivisionAccordionItem
-            key={division.id}
-            division={division}
-            isOpen={Boolean(openSections[division.id])}
-            onToggle={() => toggleDivision(division.id)}
-          />
-        ))}
+        {divisions
+          .filter((division) => division.slots > 0)
+          .map((division) => (
+            <DivisionAccordionItem
+              key={division.id}
+              division={division}
+              isOpen={Boolean(openSections[division.id])}
+              onToggle={() => toggleDivision(division.id)}
+            />
+          ))}
       </div>
     </div>
   );
