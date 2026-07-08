@@ -121,7 +121,7 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
 
   const isFullHeight =
     section.height === "Full Height" || section.height === "Full Viewport";
-  const baseSectionClass = `relative flex flex-col justify-center px-6 ${isFullHeight ? "min-h-[calc(100svh-5rem)] border-b border-white/5 py-24" : "py-20 md:py-28"}`;
+  const baseSectionClass = `relative flex flex-col justify-center px-6 ${isFullHeight ? "min-h-[calc(100svh-5rem)] border-b border-white/5 py-20 md:py-24" : "py-12 md:py-16 lg:py-20"}`;
 
   // Check if we have background elements
   const bgComponents = section.components.filter((c) => {
@@ -184,7 +184,7 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
         </div>
       )}
       <div className={`relative z-10 mx-auto w-full ${maxWidthClass}`}>
-        <div className="flex flex-col gap-12">
+        <div className="flex flex-col gap-8 md:gap-10">
           {sortedGroupKeys.map((key) => renderGroup(key, fgGroups[key]))}
         </div>
       </div>

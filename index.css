@@ -218,3 +218,9 @@ body {
   transform: none;
   box-shadow: none;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

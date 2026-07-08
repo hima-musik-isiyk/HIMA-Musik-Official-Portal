@@ -50,7 +50,7 @@ const sections = [
 
 export default function PrivacyPolicyPage() {
   return (
-    <article className="mx-auto max-w-3xl px-6 py-20 text-stone-300 md:py-28">
+    <article className="mx-auto max-w-3xl px-6 py-12 text-stone-300 md:py-16">
       <p className="text-gold-500 mb-4 text-xs font-semibold tracking-[0.35em] uppercase">
         HIMA Musik ISI Yogyakarta
       </p>

@@ -79,7 +79,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           />
         </Suspense>
         <CommandPalette />
-        <main className="relative z-3 grow pt-20 pb-24 md:pb-32">
+        <main className="relative z-3 grow pt-20 pb-12 md:pb-16">
           <Suspense>
             <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
           </Suspense>

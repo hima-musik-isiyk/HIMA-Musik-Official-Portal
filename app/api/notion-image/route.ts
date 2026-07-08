@@ -4,6 +4,8 @@ import path from "node:path";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { supabaseAdmin } from "@/lib/supabase";
+
 const CACHE_DIR = path.join(
   /*turbopackIgnore: true*/ process.cwd(),
   ".next",
@@ -11,6 +13,10 @@ const CACHE_DIR = path.join(
   "notion-images",
 );
 const MAX_FILE_AGE_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
+const STORAGE_BUCKET =
+  process.env.SUPABASE_NOTION_IMAGE_BUCKET ?? "notion-images";
+
+const warnedStorageMessages = new Set<string>();
 
 function hashKey(value: string): string {
   return createHash("sha1").update(value).digest("hex");
@@ -24,12 +30,63 @@ function safeContentType(input: string | null): string {
   return input;
 }
 
+function warnStorageOnce(message: string, details?: unknown) {
+  if (warnedStorageMessages.has(message)) return;
+  warnedStorageMessages.add(message);
+  console.warn(message, details);
+}
+
 function buildCachePaths(cacheKey: string) {
   const hashed = hashKey(cacheKey);
   return {
     dataPath: path.join(CACHE_DIR, `${hashed}.bin`),
     metaPath: path.join(CACHE_DIR, `${hashed}.json`),
   };
+}
+
+function buildStoragePath(cacheKey: string): string {
+  const hashed = hashKey(cacheKey);
+  return `${hashed.slice(0, 2)}/${hashed}`;
+}
+
+async function readSupabaseStorageCache(cacheKey: string): Promise<{
+  body: Buffer;
+  contentType: string;
+} | null> {
+  if (!supabaseAdmin) return null;
+
+  const storagePath = buildStoragePath(cacheKey);
+  const { data, error } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .download(storagePath);
+
+  if (error || !data) return null;
+
+  return {
+    body: Buffer.from(await data.arrayBuffer()),
+    contentType: safeContentType(data.type || "application/octet-stream"),
+  };
+}
+
+async function writeSupabaseStorageCache(
+  cacheKey: string,
+  body: Buffer,
+  contentType: string,
+): Promise<void> {
+  if (!supabaseAdmin) return;
+
+  const storagePath = buildStoragePath(cacheKey);
+  const { error } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, body, {
+      cacheControl: "31536000",
+      contentType: safeContentType(contentType),
+      upsert: true,
+    });
+
+  if (error) {
+    warnStorageOnce("[Notion Image] Failed to write Supabase cache:", error);
+  }
 }
 
 async function readFreshCache(cacheKey: string): Promise<{
@@ -82,28 +139,16 @@ async function writeCache(
   ]);
 }
 
-function makeImageResponse(body: Buffer, contentType: string): NextResponse {
+function makeImageResponse(
+  body: Buffer,
+  contentType: string,
+  cacheStatus = "miss",
+): NextResponse {
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {
       "Content-Type": contentType,
-      // Browser cache for repeated page visits.
-      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
-    },
-  });
-}
-
-async function makeUpstreamImageResponse(
-  upstream: Response,
-): Promise<NextResponse> {
-  const body = Buffer.from(await upstream.arrayBuffer());
-
-  return new NextResponse(new Uint8Array(body), {
-    status: 200,
-    headers: {
-      "Content-Type": safeContentType(
-        upstream.headers.get("content-type") || "application/octet-stream",
-      ),
+      "X-Image-Cache": cacheStatus,
       // Browser cache for repeated page visits.
       "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     },
@@ -158,10 +203,24 @@ export async function GET(request: NextRequest) {
 
   const isVercel = Boolean(process.env.VERCEL);
 
+  const storageCached = await readSupabaseStorageCache(cacheKey);
+  if (storageCached) {
+    return makeImageResponse(
+      storageCached.body,
+      storageCached.contentType,
+      "supabase",
+    );
+  }
+
   if (!isVercel) {
     const cached = await readFreshCache(cacheKey);
     if (cached) {
-      return makeImageResponse(cached.body, cached.contentType);
+      writeSupabaseStorageCache(
+        cacheKey,
+        cached.body,
+        cached.contentType,
+      ).catch(() => {});
+      return makeImageResponse(cached.body, cached.contentType, "disk");
     }
   }
 
@@ -190,7 +249,12 @@ export async function GET(request: NextRequest) {
   // Vercel can choke on extremely long redirect Location headers for Notion's
   // signed asset URLs. Stream the upstream image instead and skip disk cache.
   if (isVercel) {
-    return await makeUpstreamImageResponse(upstream);
+    const body = Buffer.from(await upstream.arrayBuffer());
+    const contentType = safeContentType(
+      upstream.headers.get("content-type") || "application/octet-stream",
+    );
+    writeSupabaseStorageCache(cacheKey, body, contentType).catch(() => {});
+    return makeImageResponse(body, contentType, "upstream");
   }
 
   const body = Buffer.from(await upstream.arrayBuffer());
@@ -200,6 +264,7 @@ export async function GET(request: NextRequest) {
 
   // Best-effort cache persistence.
   writeCache(cacheKey, body, contentType).catch(() => {});
+  writeSupabaseStorageCache(cacheKey, body, contentType).catch(() => {});
 
-  return makeImageResponse(body, contentType);
+  return makeImageResponse(body, contentType, "upstream");
 }

@@ -2,7 +2,7 @@
 
 import { Calendar, Clock, Info } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCmsGsapEasing, gsap } from "@/lib/gsap";
 
@@ -23,8 +23,166 @@ interface Event {
   end: Date;
 }
 
-const SelectionTimelineCalendar: React.FC = () => {
+interface SelectionTimelineCalendarProps {
+  currentYear?: string;
+  currentBatch?: string;
+}
+
+interface TimelineConfig {
+  batch: string;
+  year: string;
+  events: Event[];
+}
+
+const SELECTION_TIMELINES: TimelineConfig[] = [
+  {
+    batch: "1",
+    year: "2026",
+    events: [
+      {
+        title: "Pendaftaran",
+        dateStr: "27 Feb – 03 Mar",
+        description: "Deadline: 15:00 WIB. Pastikan data diri sudah sesuai.",
+        type: "registration",
+        start: new Date("2026-02-27"),
+        end: new Date("2026-03-03T15:00:00"),
+        endTime: "15:00",
+      },
+      {
+        title: "Pengumuman Wawancara",
+        dateStr: "03 Mar",
+        description: "Pukul 18:00 WIB via kanal resmi HIMA Musik.",
+        type: "interview-announcement",
+        start: new Date("2026-03-03T18:00:00"),
+        end: new Date("2026-03-03T18:00:00"),
+        startTime: "18:00",
+      },
+      {
+        title: "Wawancara",
+        dateStr: "04 Mar",
+        description: "Waktu menyusul. Siapkan visi dan portofolio terbaikmu.",
+        type: "interview",
+        start: new Date("2026-03-04"),
+        end: new Date("2026-03-04"),
+      },
+      {
+        title: "Pengumuman Akhir",
+        dateStr: "10 Mar",
+        description: "Selamat bergabung di keluarga besar HIMA Musik!",
+        type: "final-announcement",
+        start: new Date("2026-03-10"),
+        end: new Date("2026-03-10"),
+      },
+    ],
+  },
+  {
+    batch: "2",
+    year: "2026",
+    events: [
+      {
+        title: "Pendaftaran",
+        dateStr: "27 Feb – 10 Mar",
+        description: "Deadline: 15:00 WIB. Pastikan data diri sudah sesuai.",
+        type: "registration",
+        start: new Date("2026-02-27"),
+        end: new Date("2026-03-10T15:00:00"),
+        endTime: "15:00",
+      },
+      {
+        title: "Wawancara",
+        dateStr: "11 Mar",
+        description: "Siapkan visi dan portofolio terbaikmu.",
+        type: "interview",
+        start: new Date("2026-03-11"),
+        end: new Date("2026-03-11"),
+      },
+      {
+        title: "Pengumuman Akhir",
+        dateStr: "13 Mar",
+        description: "Selamat bergabung di kepengurusan HIMA Musik!",
+        type: "final-announcement",
+        start: new Date("2026-03-13"),
+        end: new Date("2026-03-13"),
+      },
+    ],
+  },
+];
+
+const getDateOnly = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const getCalendarStart = (date: Date) => {
+  const start = getDateOnly(date);
+  const mondayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - mondayOffset);
+  return start;
+};
+
+const getCalendarDays = (events: Event[]) => {
+  const firstEvent = events[0];
+  const lastEvent = events[events.length - 1];
+  if (!firstEvent || !lastEvent) return [];
+
+  const start = getCalendarStart(firstEvent.start);
+  const end = getDateOnly(lastEvent.end);
+  const sundayOffset = (7 - end.getDay()) % 7;
+  end.setDate(end.getDate() + sundayOffset);
+
+  const dayCount = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+
+  return Array.from({ length: dayCount }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return date;
+  });
+};
+
+const formatPeriod = (events: Event[]) => {
+  const firstEvent = events[0];
+  const lastEvent = events[events.length - 1];
+  if (!firstEvent || !lastEvent) return "";
+
+  const formatter = new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  return `${formatter.format(firstEvent.start)} – ${formatter.format(lastEvent.end)}`;
+};
+
+const SelectionTimelineCalendar: React.FC<SelectionTimelineCalendarProps> = ({
+  currentYear,
+  currentBatch,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const activeYear = currentYear?.trim() || "2026";
+  const activeBatch = currentBatch?.trim() || "1";
+  const timeline = useMemo(
+    () =>
+      SELECTION_TIMELINES.find(
+        (item) => item.year === activeYear && item.batch === activeBatch,
+      ),
+    [activeYear, activeBatch],
+  );
+  const events = useMemo(() => timeline?.events ?? [], [timeline]);
+  const calendarDays = useMemo(() => getCalendarDays(events), [events]);
+  const periodLabel = useMemo(() => formatPeriod(events), [events]);
+  const eventMonthKeys = useMemo(() => {
+    const keys = new Set<string>();
+
+    for (const event of events) {
+      const cursor = getDateOnly(event.start);
+      const end = getDateOnly(event.end);
+
+      while (cursor <= end) {
+        keys.add(`${cursor.getFullYear()}-${cursor.getMonth()}`);
+        cursor.setMonth(cursor.getMonth() + 1, 1);
+      }
+    }
+
+    return keys;
+  }, [events]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timeProgress, setTimeProgress] = useState(0);
   const [hoveredEventTitle, setHoveredEventTitle] = useState<string | null>(
@@ -45,44 +203,23 @@ const SelectionTimelineCalendar: React.FC = () => {
   });
   const [simValue, setSimValue] = useState(0);
 
-  // Parse timeline data into actual Date objects
-  // Note: This is a bit manual since the data in lib/pendaftaran-data.ts is strings
-  const events: Event[] = [
-    {
-      title: "Pendaftaran",
-      dateStr: "27 Feb – 10 Mar",
-      description: "Pastikan data diri sudah sesuai.",
-      type: "registration",
-      start: new Date("2026-02-27"),
-      end: new Date("2026-03-10T15:00:00"),
-    },
-    {
-      title: "Wawancara",
-      dateStr: "11 Mar",
-      description: "Siapkan visi dan portofolio terbaikmu.",
-      type: "interview",
-      start: new Date("2026-03-11"),
-      end: new Date("2026-03-11"),
-    },
-    {
-      title: "Pengumuman Akhir",
-      dateStr: "13 Mar",
-      description: "Selamat bergabung di kepengurusan HIMA Musik!",
-      type: "final-announcement",
-      start: new Date("2026-03-13"),
-      end: new Date("2026-03-13"),
-    },
-  ];
+  useEffect(() => {
+    const firstDay = calendarDays[0];
+    const lastDay = calendarDays[calendarDays.length - 1];
+    if (!firstDay || !lastDay) return;
 
-  // Helper to generate days for the relevant weeks
-  // We'll show Feb 23 to Mar 15
-  const calendarDays: Date[] = [];
-  const startDay = new Date("2026-02-23"); // Monday
-  for (let i = 0; i < 21; i++) {
-    const d = new Date(startDay);
-    d.setDate(startDay.getDate() + i);
-    calendarDays.push(d);
-  }
+    const toDateTimeLocal = (date: Date, time: string) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}T${time}`;
+    };
+
+    setSimRange({
+      start: toDateTimeLocal(firstDay, "00:00"),
+      end: toDateTimeLocal(lastDay, "23:59"),
+    });
+  }, [calendarDays]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -153,8 +290,24 @@ const SelectionTimelineCalendar: React.FC = () => {
     });
   };
 
+  if (!timeline) {
+    return (
+      <div className="border border-white/8 bg-black/30 p-6 text-sm text-neutral-400">
+        Timeline seleksi untuk Batch {activeBatch} tahun {activeYear} belum
+        tersedia.
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="relative w-full">
+      <div className="mb-6 flex items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <p className="text-gold-500 text-xs font-semibold tracking-[0.3em] uppercase">
+          Batch {activeBatch}
+        </p>
+        <p className="text-xs text-neutral-500">{periodLabel}</p>
+      </div>
+
       {/* Desktop Calendar Grid */}
       <div className="hidden md:block">
         <div className="scrollbar-hide overflow-x-auto pb-4">
@@ -177,8 +330,9 @@ const SelectionTimelineCalendar: React.FC = () => {
                 const hasContinuous = dayEvents.some(
                   (e) => e.start.getTime() !== e.end.getTime(),
                 );
-                const isCurrentMonth =
-                  date.getMonth() === 1 || date.getMonth() === 2; // Feb or Mar
+                const isCurrentMonth = eventMonthKeys.has(
+                  `${date.getFullYear()}-${date.getMonth()}`,
+                );
 
                 return (
                   <div

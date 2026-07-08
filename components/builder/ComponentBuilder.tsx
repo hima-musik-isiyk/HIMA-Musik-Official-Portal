@@ -68,6 +68,7 @@ export const ComponentBuilder: React.FC<ComponentBuilderProps> = ({
     value1,
     value2,
     value3,
+    cmsVariables: cmsData.variables,
     href,
     variation1,
     variation2,

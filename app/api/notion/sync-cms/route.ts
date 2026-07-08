@@ -1,8 +1,7 @@
-import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { revalidateCmsCaches } from "@/lib/cms-sync";
 import { syncContainerCMSSnapshot } from "@/lib/notion-builder";
-import { revalidateScope } from "@/lib/notion-revalidate-helper";
 
 function isAuthorized(request: Request): boolean {
   const secrets = [
@@ -35,17 +34,7 @@ async function handleSync(request: Request) {
   try {
     const { data, snapshot } = await syncContainerCMSSnapshot();
 
-    revalidateTag("notion-container", { expire: 0 });
-    for (const scope of [
-      "events",
-      "beranda",
-      "profil",
-      "kkm",
-      "faq",
-      "redirects",
-    ] as const) {
-      revalidateScope(scope);
-    }
+    revalidateCmsCaches();
 
     return NextResponse.json({
       ok: true,

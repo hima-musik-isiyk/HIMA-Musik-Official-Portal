@@ -413,7 +413,7 @@ export const AduanForm: React.FC<AduanFormProps> = ({ value1, value2 }) => {
 
   if (submitted) {
     return (
-      <div className="relative w-full py-20 text-center">
+      <div className="relative w-full py-12 text-center">
         <div className="mb-8 flex items-center justify-center gap-4">
           <span
             className="bg-gold-500/40 block h-px w-8 md:w-12"

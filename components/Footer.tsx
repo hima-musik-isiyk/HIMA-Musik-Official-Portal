@@ -186,11 +186,11 @@ const Footer: React.FC = () => {
       </div>
 
       {/* ═══════════════════  MAIN CONTENT  ═══════════════════ */}
-      <div className="relative px-8 pt-24 pb-0 md:pt-20">
+      <div className="relative px-8 pt-14 pb-0 md:pt-16">
         {/* ── hero brand strip ── */}
         <div
           {...animAttrs("up")}
-          className="mx-auto mb-20 flex max-w-7xl flex-col items-center gap-10 text-center md:mb-24 md:flex-row md:gap-16 md:text-left"
+          className="mx-auto mb-12 flex max-w-7xl flex-col items-center gap-8 text-center md:mb-14 md:flex-row md:gap-12 md:text-left"
         >
           <Link href="/" className="group relative shrink-0">
             {/* pulsing aura behind logo */}
@@ -231,11 +231,11 @@ const Footer: React.FC = () => {
         <div
           data-animate-stagger="0.12"
           {...(pathname === "/" ? { "data-animate-scroll": "true" } : {})}
-          className="mx-auto mt-16 grid max-w-7xl grid-cols-1 gap-16 md:mt-20 md:grid-cols-12 md:gap-8"
+          className="mx-auto mt-12 grid max-w-7xl grid-cols-1 gap-10 md:mt-14 md:grid-cols-12 md:gap-8"
         >
           {/* Col 1 — Navigation */}
           <div {...animAttrs("up", 0, false)} className="md:col-span-4">
-            <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
+            <h4 className="mb-5 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
               <span className="bg-gold-500/40 inline-block h-px w-6" />
               Navigasi
             </h4>
@@ -277,12 +277,12 @@ const Footer: React.FC = () => {
                   "inset 0 0 0 1.5px rgba(212,166,77,0.7), inset 0 0 24px rgba(212,166,77,0.12)",
               }}
             />
-            <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
+            <h4 className="mb-5 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
               <span className="bg-gold-500/40 inline-block h-px w-6" />
               Kontak
             </h4>
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Address */}
               <div className="group">
                 <span className="mb-2 block text-[10px] font-bold tracking-[0.4em] text-stone-700 uppercase transition-colors duration-300 group-hover:text-stone-500">
@@ -365,7 +365,7 @@ const Footer: React.FC = () => {
           {/* Col 3 — Identitas / Quick CTA */}
           {FEATURES.ALLOW_PENDAFTARAN ? (
             <div {...animAttrs("up", 0, false)} className="md:col-span-4">
-              <h4 className="mb-8 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
+              <h4 className="mb-5 flex items-center gap-3 text-[0.65rem] font-bold tracking-[0.4em] text-stone-600 uppercase">
                 <span className="bg-gold-500/40 inline-block h-px w-6" />
                 Bergabung
               </h4>
@@ -374,7 +374,7 @@ const Footer: React.FC = () => {
                 {/* card inner glow */}
                 <div className="bg-gold-500/5 pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
 
-                <p className="relative mb-6 text-sm leading-[1.8] text-stone-400">
+                <p className="relative mb-5 text-sm leading-[1.7] text-stone-400">
                   Periode kepengurusan 2026 sedang membuka lowongan. Jadilah
                   bagian dari kabinet baru dan bangun bersama kami.
                 </p>
@@ -402,7 +402,7 @@ const Footer: React.FC = () => {
               </div>
 
               {/* stat nuggets */}
-              <div className="mt-8 grid grid-cols-2 gap-4">
+              <div className="mt-5 grid grid-cols-2 gap-4">
                 <div className="rounded-lg border border-stone-800/30 bg-stone-900/30 p-4 text-center transition-colors duration-300 hover:border-stone-700/50">
                   <span className="block font-serif text-2xl text-white">
                     <AnimatedYear year={currentYear - 1961} />
@@ -436,13 +436,13 @@ const Footer: React.FC = () => {
       </div>
 
       {/* ═══════════════════  BOTTOM BAR  ═══════════════════ */}
-      <div {...animAttrs("up", 0.2)} className="relative mt-20 md:mt-24">
+      <div {...animAttrs("up", 0.2)} className="relative mt-12 md:mt-14">
         {/* decorative top border */}
         <div className="mx-auto max-w-7xl px-8">
           <div className="h-px bg-linear-to-r from-transparent via-stone-800/60 to-transparent" />
         </div>
 
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-8 py-10 md:flex-row md:py-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 px-8 py-7 md:flex-row md:py-8">
           <p className="text-center text-[0.65rem] tracking-[0.5em] text-stone-700 uppercase md:text-left">
             &copy; {currentYear} HIMA Musik ISI Yogyakarta
           </p>

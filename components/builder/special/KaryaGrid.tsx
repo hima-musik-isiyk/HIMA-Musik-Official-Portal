@@ -8,6 +8,7 @@ import {
   IconExternalLink,
   IconMusic,
 } from "@/components/Icons";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import type { KaryaEntryMeta } from "@/lib/notion";
 
 interface KaryaGridProps {
@@ -20,6 +21,86 @@ interface KaryaGridProps {
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 const passthroughLoader = ({ src }: { src: string }) => src;
 
+function KaryaGridSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="overflow-hidden border border-white/5 bg-[#111]/40"
+          style={ACTION_RADIUS}
+        >
+          <LoadingSkeleton className="h-48 w-full" />
+          <div className="space-y-4 p-6">
+            <div className="flex items-center justify-between">
+              <LoadingSkeleton className="h-6 w-20 rounded-full" />
+              <LoadingSkeleton className="h-4 w-16 rounded-full" />
+            </div>
+            <LoadingSkeleton className="h-7 w-4/5 rounded" />
+            <LoadingSkeleton className="h-4 w-1/2 rounded" />
+            <div className="border-t border-white/5 pt-4">
+              <LoadingSkeleton className="h-5 w-full rounded" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function KaryaArtwork({
+  entry,
+  isPlaying,
+}: {
+  entry: KaryaEntryMeta;
+  isPlaying: boolean;
+}) {
+  const [isImageLoading, setIsImageLoading] = useState(
+    Boolean(entry.artworkUrl),
+  );
+
+  if (isPlaying) {
+    return (
+      <iframe
+        src={entry.embedUrl}
+        className="h-full w-full border-0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+
+  if (!entry.artworkUrl) {
+    return (
+      <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-900 to-stone-950">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.04)_0%,transparent_70%)]" />
+        <IconMusic className="h-10 w-10 text-neutral-800" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {isImageLoading && (
+        <LoadingSkeleton className="absolute inset-0 z-10 h-full w-full" />
+      )}
+      <Image
+        src={entry.artworkUrl}
+        alt={entry.title}
+        loader={passthroughLoader}
+        fill
+        unoptimized
+        sizes="(max-width: 1024px) 100vw, 33vw"
+        className={`h-full w-full object-cover transition duration-700 group-hover:scale-105 ${
+          isImageLoading ? "opacity-0" : "opacity-100"
+        }`}
+        onLoad={() => setIsImageLoading(false)}
+        onError={() => setIsImageLoading(false)}
+      />
+    </>
+  );
+}
+
 export const KaryaGrid: React.FC<KaryaGridProps> = ({
   entries: initialEntries,
   value1: _value1,
@@ -31,6 +112,7 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
     initialEntries || [],
   );
   const hasInitialEntries = initialEntries !== undefined;
+  const [isLoading, setIsLoading] = useState(!hasInitialEntries);
 
   useEffect(() => {
     if (hasInitialEntries) return;
@@ -60,6 +142,8 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
         }
       } catch (err) {
         console.error("Failed to fetch fresh karya data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -200,8 +284,10 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
         data-animate="up"
         className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3"
       >
-        {filteredEntries.length === 0 ? (
-          <div className="col-span-full py-24 text-center">
+        {isLoading && entries.length === 0 ? (
+          <KaryaGridSkeleton />
+        ) : filteredEntries.length === 0 ? (
+          <div className="col-span-full py-14 text-center">
             <IconMusic className="mx-auto mb-4 h-12 w-12 text-stone-700" />
             <p className="font-light text-stone-500">
               Tidak ada karya yang sesuai dengan kriteria pencarian.
@@ -216,32 +302,12 @@ export const KaryaGrid: React.FC<KaryaGridProps> = ({
             >
               {/* Media Artwork / Embed Area */}
               <div className="relative h-48 w-full overflow-hidden bg-black/50">
-                {playingId === entry.id ? (
-                  <iframe
-                    src={entry.embedUrl}
-                    className="h-full w-full border-0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
+                <KaryaArtwork
+                  entry={entry}
+                  isPlaying={playingId === entry.id}
+                />
+                {playingId !== entry.id && (
                   <>
-                    {entry.artworkUrl ? (
-                      <Image
-                        src={entry.artworkUrl}
-                        alt={entry.title}
-                        loader={passthroughLoader}
-                        fill
-                        unoptimized
-                        sizes="(max-width: 1024px) 100vw, 33vw"
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-900 to-stone-950">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,166,77,0.04)_0%,transparent_70%)]" />
-                        <IconMusic className="h-10 w-10 text-neutral-800" />
-                      </div>
-                    )}
-
                     {/* Hover Play Button Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
                       <button

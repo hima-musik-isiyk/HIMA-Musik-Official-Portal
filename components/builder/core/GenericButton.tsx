@@ -21,7 +21,11 @@ export const GenericButton: React.FC<GenericButtonProps> = ({
 }) => {
   const isDescOnRight =
     variation1 === "1" || variation1?.toLowerCase().includes("description");
-  const linkHref = href?.trim() || "#";
+  const labelKey = value1.trim().toLowerCase();
+  const fallbackHref = labelKey.includes("formulir pendaftaran")
+    ? "/pendaftaran/form"
+    : "#";
+  const linkHref = href?.trim() || fallbackHref;
 
   const btn = (
     <Link

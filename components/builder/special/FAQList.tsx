@@ -8,6 +8,7 @@ import {
   IconPlus,
   IconSend,
 } from "@/components/Icons";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import type { FAQEntry } from "@/lib/faq";
 
 // Types
@@ -646,10 +647,23 @@ const FAQList: React.FC<FAQViewProps> = ({
         >
           {/* Loading state */}
           {isLoading && (
-            <div className="border-stone-850 flex flex-col items-center justify-center border border-dashed bg-stone-950/10 py-24">
-              <p className="font-mono text-[10px] tracking-widest text-stone-500 uppercase">
-                Memuat data...
-              </p>
+            <div className="border-stone-850 border bg-stone-950/10 p-4 md:p-6">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <LoadingSkeleton className="h-4 w-32 rounded" />
+                <LoadingSkeleton className="h-4 w-20 rounded" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="grid gap-3 border border-white/5 bg-black/20 p-4 lg:grid-cols-[1.2fr_2fr_0.7fr]"
+                  >
+                    <LoadingSkeleton className="h-5 rounded" />
+                    <LoadingSkeleton className="h-5 rounded" />
+                    <LoadingSkeleton className="h-5 rounded" />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

@@ -10,6 +10,7 @@ import {
   IconExternalLink,
   IconMapPin,
 } from "@/components/Icons";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import {
   formatEventDateLabel,
   getDateOnly,
@@ -26,6 +27,37 @@ const ITEMS_PER_PAGE = 5;
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 const SCROLL_OFFSET_PADDING = 16;
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
+
+function AgendaListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex w-full flex-col overflow-hidden border border-white/6 bg-white/[0.015] md:flex-row"
+          style={ACTION_RADIUS}
+        >
+          <LoadingSkeleton className="h-44 shrink-0 md:h-auto md:w-62 lg:w-[18rem]" />
+          <div className="flex flex-1 flex-col p-5 md:p-6">
+            <div className="mb-4 flex gap-2">
+              <LoadingSkeleton className="h-6 w-24 rounded-full" />
+              <LoadingSkeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <LoadingSkeleton className="mb-4 h-8 w-3/4 rounded" />
+            <div className="mb-5 space-y-2">
+              <LoadingSkeleton className="h-4 w-full rounded" />
+              <LoadingSkeleton className="h-4 w-2/3 rounded" />
+            </div>
+            <div className="mt-auto flex gap-3">
+              <LoadingSkeleton className="h-4 w-32 rounded" />
+              <LoadingSkeleton className="h-4 w-28 rounded" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function normalizeUnitName(value: string): string {
   return value
@@ -338,7 +370,7 @@ function EventCalendar({ collection }: { collection: EventsCollection }) {
     <section
       data-animate="up"
       data-animate-duration="0.85"
-      className="mb-20 hidden md:block"
+      className="mb-12 hidden md:block"
     >
       <div className="relative overflow-hidden border border-white/8 bg-[linear-gradient(180deg,rgba(255,101,1,0.08)_0%,rgba(255,255,255,0.02)_38%,rgba(255,255,255,0.01)_100%)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,127,69,0.18)_0%,transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.06)_0%,transparent_30%)]" />
@@ -680,6 +712,7 @@ function EventCard({
   kkmHref?: string;
 }) {
   const coverUrl = entry.coverImageUrl ? toEventCoverUrl(entry.slug) : "";
+  const [isCoverLoading, setIsCoverLoading] = useState(Boolean(coverUrl));
 
   return (
     <div
@@ -698,13 +731,20 @@ function EventCard({
       />
       {coverUrl ? (
         <div className="pointer-events-none relative z-20 h-44 shrink-0 overflow-hidden border-b border-white/6 bg-stone-900 md:h-auto md:w-62 md:border-r md:border-b-0 lg:w-[18rem]">
+          {isCoverLoading && (
+            <LoadingSkeleton className="absolute inset-0 z-10 h-full w-full" />
+          )}
           <Image
             src={coverUrl}
             alt={entry.title}
             fill
             unoptimized
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            className={`object-cover transition duration-700 group-hover:scale-105 ${
+              isCoverLoading ? "opacity-0" : "opacity-100"
+            }`}
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 40vw, 22rem"
+            onLoad={() => setIsCoverLoading(false)}
+            onError={() => setIsCoverLoading(false)}
           />
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
         </div>
@@ -796,6 +836,7 @@ export default function AgendaList({
   });
   const hasInitialData =
     initialCollection !== undefined || initialKkmGroups !== undefined;
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
 
   useEffect(() => {
     if (hasInitialData) return;
@@ -838,6 +879,8 @@ export default function AgendaList({
         }
       } catch (err) {
         console.error("Failed to fetch fresh agenda data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -1197,10 +1240,12 @@ export default function AgendaList({
   return (
     <div className="relative flex-1">
       <div className="relative z-10 w-full">
-        {!hasEntries && (
+        {isLoading && !hasEntries && <AgendaListSkeleton />}
+
+        {!isLoading && !hasEntries && (
           <div
             data-animate="up"
-            className="flex flex-col items-center justify-center border border-dashed border-white/8 px-8 py-20 text-center"
+            className="flex flex-col items-center justify-center border border-dashed border-white/8 px-8 py-12 text-center"
           >
             <p className="text-sm text-stone-500">
               Belum ada agenda yang diterbitkan.

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { ContainerCMSData } from "./notion-builder";
 import { supabaseAdmin } from "./supabase";
 
@@ -11,7 +13,14 @@ type CmsSnapshotWriteResult = {
   ok: boolean;
   table: string;
   key: string;
+  syncedAt?: string;
+  contentHash?: string;
+  payloadBytes?: number;
   error?: string;
+};
+
+type CmsSnapshotWriteOptions = {
+  sourceUpdatedAt?: string | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -34,6 +43,24 @@ function warnSnapshotOnce(message: string, details?: unknown) {
   if (warnedSnapshotMessages.has(message)) return;
   warnedSnapshotMessages.add(message);
   console.warn(message, details);
+}
+
+function hashPayload(payload: ContainerCMSData) {
+  const serialized = JSON.stringify(payload);
+  return {
+    contentHash: createHash("sha256").update(serialized).digest("hex"),
+    payloadBytes: Buffer.byteLength(serialized),
+  };
+}
+
+function isMissingAuditColumnError(error: { message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+  return (
+    message.includes("content_hash") ||
+    message.includes("payload_bytes") ||
+    message.includes("last_sync_status") ||
+    message.includes("last_sync_error")
+  );
 }
 
 export async function readContainerCMSSnapshot(): Promise<ContainerCMSData | null> {
@@ -61,6 +88,7 @@ export async function readContainerCMSSnapshot(): Promise<ContainerCMSData | nul
 
 export async function writeContainerCMSSnapshot(
   payload: ContainerCMSData,
+  options: CmsSnapshotWriteOptions = {},
 ): Promise<CmsSnapshotWriteResult> {
   if (!supabaseAdmin) {
     return {
@@ -72,16 +100,40 @@ export async function writeContainerCMSSnapshot(
   }
 
   const syncedAt = new Date().toISOString();
-  const { error } = await supabaseAdmin.from(CMS_SNAPSHOTS_TABLE).upsert(
-    {
-      key: CONTAINER_CMS_SNAPSHOT_KEY,
-      payload,
-      source: "notion",
-      synced_at: syncedAt,
-      updated_at: syncedAt,
-    },
-    { onConflict: "key" },
-  );
+  const { contentHash, payloadBytes } = hashPayload(payload);
+  const row = {
+    key: CONTAINER_CMS_SNAPSHOT_KEY,
+    payload,
+    source: "notion",
+    source_updated_at: options.sourceUpdatedAt ?? null,
+    synced_at: syncedAt,
+    updated_at: syncedAt,
+    content_hash: contentHash,
+    payload_bytes: payloadBytes,
+    last_sync_status: "synced",
+    last_sync_error: null,
+  };
+
+  let { error } = await supabaseAdmin
+    .from(CMS_SNAPSHOTS_TABLE)
+    .upsert(row, { onConflict: "key" });
+
+  if (error && isMissingAuditColumnError(error)) {
+    const { error: fallbackError } = await supabaseAdmin
+      .from(CMS_SNAPSHOTS_TABLE)
+      .upsert(
+        {
+          key: CONTAINER_CMS_SNAPSHOT_KEY,
+          payload,
+          source: "notion",
+          source_updated_at: options.sourceUpdatedAt ?? null,
+          synced_at: syncedAt,
+          updated_at: syncedAt,
+        },
+        { onConflict: "key" },
+      );
+    error = fallbackError;
+  }
 
   if (error) {
     warnSnapshotOnce(
@@ -92,6 +144,9 @@ export async function writeContainerCMSSnapshot(
       ok: false,
       table: CMS_SNAPSHOTS_TABLE,
       key: CONTAINER_CMS_SNAPSHOT_KEY,
+      syncedAt,
+      contentHash,
+      payloadBytes,
       error: error.message,
     };
   }
@@ -100,5 +155,8 @@ export async function writeContainerCMSSnapshot(
     ok: true,
     table: CMS_SNAPSHOTS_TABLE,
     key: CONTAINER_CMS_SNAPSHOT_KEY,
+    syncedAt,
+    contentHash,
+    payloadBytes,
   };
 }

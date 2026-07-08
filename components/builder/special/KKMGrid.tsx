@@ -3,11 +3,40 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import type { KKMGroup } from "@/lib/kkm-data";
 import { toCachedImageUrl } from "@/lib/notion-image";
 
 const ACTION_RADIUS = { borderRadius: "var(--radius-action)" } as const;
 const passthroughLoader = ({ src }: { src: string }) => src;
+
+function KKMGridSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="rounded-[var(--radius-action)] border border-white/5 p-7"
+        >
+          <div className="mb-8 flex gap-5">
+            <LoadingSkeleton className="h-14 w-14 shrink-0 rounded-lg" />
+            <div className="min-w-0 flex-1 space-y-4">
+              <LoadingSkeleton className="h-7 w-3/5 rounded" />
+              <LoadingSkeleton className="h-4 w-2/5 rounded" />
+              <div className="space-y-2">
+                <LoadingSkeleton className="h-3 w-full rounded" />
+                <LoadingSkeleton className="h-3 w-4/5 rounded" />
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-white/5 pt-5">
+            <LoadingSkeleton className="h-4 w-1/2 rounded" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  KKM Card                                                           */
@@ -120,6 +149,8 @@ function SocialIcon({ platform }: { platform: SocialMeta["platform"] }) {
 }
 
 function KKMCard({ group }: { group: KKMGroup }) {
+  const [isLogoLoading, setIsLogoLoading] = useState(Boolean(group.logoUrl));
+
   return (
     <div
       className="group relative flex flex-col overflow-hidden rounded-[var(--radius-action)] border border-white/5 p-7 transition-colors duration-500 hover:bg-stone-900/10"
@@ -135,7 +166,10 @@ function KKMCard({ group }: { group: KKMGroup }) {
 
       <div className="relative z-0 mb-8 flex flex-1 items-start gap-5">
         {group.logoUrl && (
-          <div className="shrink-0">
+          <div className="relative shrink-0">
+            {isLogoLoading && (
+              <LoadingSkeleton className="absolute inset-0 z-10 h-14 w-14 rounded-lg" />
+            )}
             <Image
               src={toCachedImageUrl(group.logoUrl)}
               alt={`${group.name} logo`}
@@ -143,7 +177,11 @@ function KKMCard({ group }: { group: KKMGroup }) {
               width={56}
               height={56}
               unoptimized
-              className="h-14 w-14 rounded-lg border border-white/10 object-cover"
+              className={`h-14 w-14 rounded-lg border border-white/10 object-cover transition-opacity duration-300 ${
+                isLogoLoading ? "opacity-0" : "opacity-100"
+              }`}
+              onLoad={() => setIsLogoLoading(false)}
+              onError={() => setIsLogoLoading(false)}
             />
           </div>
         )}
@@ -220,6 +258,7 @@ export default function KKMGrid({
     groups: initialGroups || [],
   });
   const hasInitialData = hero !== undefined || initialGroups !== undefined;
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
 
   useEffect(() => {
     if (hasInitialData) return;
@@ -256,6 +295,8 @@ export default function KKMGrid({
         }
       } catch (err) {
         console.error("Failed to fetch fresh kkm data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -269,17 +310,19 @@ export default function KKMGrid({
       {/* KKM Grid */}
       <div
         data-animate-stagger="0.1"
-        className="mb-24 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+        className="mb-12 grid gap-6 md:mb-14 md:grid-cols-2 xl:grid-cols-3"
       >
-        {groups.map((group) => (
-          <KKMCard key={group.slug} group={group} />
-        ))}
+        {isLoading && groups.length === 0 ? (
+          <KKMGridSkeleton />
+        ) : (
+          groups.map((group) => <KKMCard key={group.slug} group={group} />)
+        )}
       </div>
 
       {/* About KKM (from AD/ART) */}
       <div
         data-animate="up"
-        className="mx-auto mb-24 max-w-3xl border border-white/5 p-8 md:p-12"
+        className="mx-auto mb-12 max-w-3xl border border-white/5 p-6 md:mb-14 md:p-8"
       >
         <div className="mb-6 flex items-center gap-4">
           <span className="bg-gold-500/40 block h-px w-6" aria-hidden="true" />

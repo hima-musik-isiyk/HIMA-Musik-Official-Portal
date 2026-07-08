@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import type { NotionContentScope } from "@/lib/notion";
 import { toCachedImageUrl } from "@/lib/notion-image";
 import type { NotionBlock } from "@/lib/notion-shared";
@@ -18,6 +19,29 @@ import {
 } from "@/lib/notion-shared";
 
 /* ------------------------------------------------------------------ */
+
+function NotionImageWithSkeleton({ src, alt }: { src: string; alt: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-stone-800">
+      {isLoading && (
+        <LoadingSkeleton className="aspect-video min-h-48 w-full" />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full transition-opacity duration-300 ${
+          isLoading ? "absolute inset-0 opacity-0" : "opacity-100"
+        }`}
+        loading="lazy"
+        onLoad={() => setIsLoading(false)}
+        onError={() => setIsLoading(false)}
+      />
+    </div>
+  );
+}
 /*  Rich-text rendering                                                */
 /* ------------------------------------------------------------------ */
 
@@ -1162,12 +1186,9 @@ function BlockRenderer({
       return (
         <figure className="my-6">
           {url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <NotionImageWithSkeleton
               src={toCachedImageUrl(url)}
               alt={caption?.map((c) => c.plain_text).join("") || ""}
-              className="w-full rounded-lg border border-stone-800"
-              loading="lazy"
             />
           )}
           {caption && caption.length > 0 && (

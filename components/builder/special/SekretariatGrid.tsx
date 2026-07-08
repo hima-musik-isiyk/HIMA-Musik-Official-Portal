@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { FEATURES } from "@/lib/feature-flags";
 import type { DocMeta, SekretariatCategory } from "@/lib/notion";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,30 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
+function SekretariatGridSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className="rounded-2xl border border-white/5 bg-stone-900/10 p-6"
+        >
+          <LoadingSkeleton className="mb-4 h-7 w-2/3 rounded" />
+          <div className="mb-6 space-y-2">
+            <LoadingSkeleton className="h-3 w-full rounded" />
+            <LoadingSkeleton className="h-3 w-4/5 rounded" />
+          </div>
+          <div className="space-y-2">
+            <LoadingSkeleton className="h-9 rounded-xl" />
+            <LoadingSkeleton className="h-9 rounded-xl" />
+            <LoadingSkeleton className="h-9 rounded-xl" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export default function SekretariatGrid({
   docs: initialDocs,
   initialCategories = [],
@@ -72,6 +97,7 @@ export default function SekretariatGrid({
   });
   const hasInitialData =
     initialDocs !== undefined || initialCategories.length > 0;
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
 
   useEffect(() => {
     if (hasInitialData) return;
@@ -110,6 +136,8 @@ export default function SekretariatGrid({
         }
       } catch (err) {
         console.error("Failed to fetch fresh sekretariat data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -185,73 +213,77 @@ export default function SekretariatGrid({
             FEATURES.SHOW_DOCS_SIDEBAR ? "lg:col-span-2" : "lg:col-span-3",
           )}
         >
-          {focusedSections.map((section) => {
-            const sectionDocs =
-              section.docs.length > 0
-                ? section.docs
-                : (groupedDocs[section.key] ?? []);
-            return (
-              <div
-                key={section.key}
-                className="group relative flex flex-col rounded-2xl border border-white/5 bg-stone-900/10 p-6 transition-all duration-300 hover:border-stone-800/80 hover:bg-stone-900/20"
-                data-animate="up"
-              >
-                <div className="relative mb-3">
-                  <h2 className="group-hover:text-gold-400 font-serif text-xl text-white transition-colors">
-                    {section.title}
-                  </h2>
-                </div>
+          {isLoading && docs.length === 0 ? (
+            <SekretariatGridSkeleton />
+          ) : (
+            focusedSections.map((section) => {
+              const sectionDocs =
+                section.docs.length > 0
+                  ? section.docs
+                  : (groupedDocs[section.key] ?? []);
+              return (
+                <div
+                  key={section.key}
+                  className="group relative flex flex-col rounded-2xl border border-white/5 bg-stone-900/10 p-6 transition-all duration-300 hover:border-stone-800/80 hover:bg-stone-900/20"
+                  data-animate="up"
+                >
+                  <div className="relative mb-3">
+                    <h2 className="group-hover:text-gold-400 font-serif text-xl text-white transition-colors">
+                      {section.title}
+                    </h2>
+                  </div>
 
-                <p className="mb-6 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
-                  {section.description}
-                </p>
+                  <p className="mb-6 text-[0.8125rem] leading-relaxed text-stone-500 transition-colors group-hover:text-stone-400">
+                    {section.description}
+                  </p>
 
-                <div className="mt-auto">
-                  {sectionDocs.length > 0 ? (
-                    <div className="space-y-2">
-                      {sectionDocs.slice(0, 3).map((doc) => (
-                        <Link
-                          key={doc.id}
-                          href={`/sekretariat/${doc.slug}`}
-                          className="group/link flex items-center gap-2.5 rounded-xl border border-transparent px-3.5 py-2 text-xs text-stone-400 transition-colors hover:border-stone-800/50 hover:bg-stone-900/30 hover:text-white"
-                        >
-                          <span className="group-hover/link:text-gold-400 text-stone-600 transition-colors">
-                            {doc.icon || (
-                              <svg
-                                className="h-3 w-3"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M9 5l7 7-7 7"
-                                />
-                              </svg>
-                            )}
-                          </span>
-                          <span className="flex-1 truncate">{doc.title}</span>
-                        </Link>
-                      ))}
-                      {sectionDocs.length > 3 && (
-                        <p className="mt-2 text-center text-[0.65rem] font-medium tracking-wide text-stone-600">
-                          +{sectionDocs.length - 3} DOKUMEN LAINNYA
+                  <div className="mt-auto">
+                    {sectionDocs.length > 0 ? (
+                      <div className="space-y-2">
+                        {sectionDocs.slice(0, 3).map((doc) => (
+                          <Link
+                            key={doc.id}
+                            href={`/sekretariat/${doc.slug}`}
+                            className="group/link flex items-center gap-2.5 rounded-xl border border-transparent px-3.5 py-2 text-xs text-stone-400 transition-colors hover:border-stone-800/50 hover:bg-stone-900/30 hover:text-white"
+                          >
+                            <span className="group-hover/link:text-gold-400 text-stone-600 transition-colors">
+                              {doc.icon || (
+                                <svg
+                                  className="h-3 w-3"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M9 5l7 7-7 7"
+                                  />
+                                </svg>
+                              )}
+                            </span>
+                            <span className="flex-1 truncate">{doc.title}</span>
+                          </Link>
+                        ))}
+                        {sectionDocs.length > 3 && (
+                          <p className="mt-2 text-center text-[0.65rem] font-medium tracking-wide text-stone-600">
+                            +{sectionDocs.length - 3} DOKUMEN LAINNYA
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="border-t border-dashed border-stone-800/50 py-8 text-center text-stone-600">
+                        <p className="text-[0.65rem] tracking-wider italic">
+                          Dokumen belum ditambahkan untuk bagian ini.
                         </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="border-t border-dashed border-stone-800/50 py-8 text-center text-stone-600">
-                      <p className="text-[0.65rem] tracking-wider italic">
-                        Dokumen belum ditambahkan untuk bagian ini.
-                      </p>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Right Column: Sidebar (Recently Updated & Forms) */}

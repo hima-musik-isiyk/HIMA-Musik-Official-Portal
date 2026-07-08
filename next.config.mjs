@@ -1,3 +1,8 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const projectPath = dirname(fileURLToPath(import.meta.url));
+
 const locatorLoader = {
   loader: "@locator/webpack-loader",
   options: { env: "development" },
@@ -11,6 +16,9 @@ const enableLocator =
 const nextConfig = {
   reactStrictMode: true,
   cacheComponents: true,
+  env: {
+    NEXT_PUBLIC_PROJECT_PATH: projectPath,
+  },
   async redirects() {
     return [
       { source: "/events", destination: "/agenda", permanent: true },

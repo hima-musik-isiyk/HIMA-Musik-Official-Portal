@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import React, { useCallback, useEffect, useState } from "react";
 
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { cn } from "@/lib/utils";
 
 interface Slide {
@@ -19,6 +20,34 @@ interface EmblaCarouselProps {
   slides: Slide[];
   className?: string;
   aspectRatio?: string;
+}
+
+function CarouselSlideImage({
+  slide,
+  priority,
+}: {
+  slide: Slide;
+  priority: boolean;
+}) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <>
+      {isLoading && <LoadingSkeleton className="absolute inset-0 z-10" />}
+      <Image
+        src={slide.src}
+        alt={slide.alt}
+        fill
+        className={`object-cover transition-opacity duration-300 ${
+          isLoading ? "opacity-0" : "opacity-100"
+        }`}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        priority={priority}
+        onLoad={() => setIsLoading(false)}
+        onError={() => setIsLoading(false)}
+      />
+    </>
+  );
 }
 
 export const EmblaCarousel: React.FC<EmblaCarouselProps> = ({
@@ -133,14 +162,7 @@ export const EmblaCarousel: React.FC<EmblaCarouselProps> = ({
               <div
                 className={cn("relative w-full overflow-hidden", aspectRatio)}
               >
-                <Image
-                  src={slide.src}
-                  alt={slide.alt}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  priority={index === 0}
-                />
+                <CarouselSlideImage slide={slide} priority={index === 0} />
               </div>
             </div>
           ))}
