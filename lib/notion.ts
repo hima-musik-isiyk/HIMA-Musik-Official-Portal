@@ -519,6 +519,7 @@ async function warmRegistryIdCache(registryDbId: string): Promise<void> {
     }
 
     if (shouldLogNotionRegistryKeys) {
+      // eslint-disable-next-line no-console
       console.log("[Notion Registry DB Keys]:", titles);
     }
   })().finally(() => {
@@ -572,6 +573,8 @@ export async function resolveDatabaseId(idOrName: string): Promise<string> {
   }
 }
 
+const dataSourceIdPromises = new Map<string, Promise<string>>();
+
 export async function resolveDataSourceId(id: string): Promise<string> {
   const resolvedId = await resolveDatabaseId(id);
   const normalizedId = normalizeNotionId(resolvedId);
@@ -582,31 +585,73 @@ export async function resolveDataSourceId(id: string): Promise<string> {
   const cached = dataSourceIdCache.get(normalizedId);
   if (cached) return cached;
 
-  try {
-    const database = await getNotionClient().databases.retrieve({
-      database_id: normalizedId,
-    });
-
-    const dataSourceId = (database as { data_sources?: Array<{ id: string }> })
-      .data_sources?.[0]?.id;
-
-    if (!dataSourceId) {
-      throw new Error(
-        `Database ${normalizedId} has no queryable data source. Check integration access in Notion.`,
-      );
-    }
-
-    dataSourceIdCache.set(normalizedId, dataSourceId);
-    return dataSourceId;
-  } catch {
-    const dataSource = await (
-      getNotionClient() as ReturnType<typeof getNotionClient>
-    ).dataSources.retrieve({
-      data_source_id: normalizedId,
-    });
-    dataSourceIdCache.set(normalizedId, dataSource.id);
-    return dataSource.id;
+  if (dataSourceIdPromises.has(normalizedId)) {
+    return dataSourceIdPromises.get(normalizedId)!;
   }
+
+  const promise = (async () => {
+    try {
+      let database: unknown;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          database = await getNotionClient().databases.retrieve({
+            database_id: normalizedId,
+          });
+          break; // Success
+        } catch (err) {
+          const isFetchFailed =
+            err instanceof Error
+              ? err.message.includes("fetch failed")
+              : String(err).includes("fetch failed");
+          if (isFetchFailed && retries > 1) {
+            retries--;
+            await new Promise((r) => setTimeout(r, 1000));
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      const dataSourceId = (
+        database as { data_sources?: Array<{ id: string }> }
+      ).data_sources?.[0]?.id;
+
+      if (!dataSourceId) {
+        throw new Error(
+          `Database ${normalizedId} has no queryable data source. Check integration access in Notion.`,
+        );
+      }
+
+      dataSourceIdCache.set(normalizedId, dataSourceId);
+      return dataSourceId;
+    } catch (err) {
+      const isFetchFailed =
+        err instanceof Error
+          ? err.message.includes("fetch failed")
+          : String(err).includes("fetch failed");
+      if (isFetchFailed) {
+        throw err;
+      }
+
+      try {
+        const dataSource = await (
+          getNotionClient() as ReturnType<typeof getNotionClient>
+        ).dataSources.retrieve({
+          data_source_id: normalizedId,
+        });
+        dataSourceIdCache.set(normalizedId, dataSource.id);
+        return dataSource.id;
+      } catch {
+        throw err;
+      }
+    } finally {
+      dataSourceIdPromises.delete(normalizedId);
+    }
+  })();
+
+  dataSourceIdPromises.set(normalizedId, promise);
+  return promise;
 }
 
 export async function resolveDataSourceIdSafe(
@@ -2417,7 +2462,7 @@ export const fetchBatchMap = unstable_cache(
         const angkatanRelation = getProperty(page, "04 Tahun Angkatan");
         const angkatanIds =
           angkatanRelation?.type === "relation"
-            ? angkatanRelation.relation.map((r: any) => r.id)
+            ? angkatanRelation.relation.map((r: { id: string }) => r.id)
             : [];
         batchMap[page.id] = {
           id: page.id,
