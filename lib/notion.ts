@@ -19,6 +19,7 @@ import {
   DB_REDIRECT,
   DB_SDM_EVALUASI,
   DB_STRUKTUR_ORGANISASI,
+  DB_TAHAPAN_REKRUTMEN,
   DB_TUGAS_UTAMA_DIVISI,
 } from "./glossarium";
 import type { KKMGroup } from "./kkm-data";
@@ -2036,49 +2037,61 @@ export async function fetchProfilOrgStructure(
       return batchNum <= maxBatch;
     });
 
-    // Collect all referenced division IDs
-    const divIds = Array.from(
-      new Set(
-        filteredMembers.flatMap((page) => {
-          const prop = getProperty(page, "Divisi");
-          if (prop?.type === "relation") {
-            return prop.relation.map((r: { id: string }) => r.id);
-          }
-          return [];
-        }),
-      ),
-    ) as string[];
+    // Collect all referenced division IDs and role IDs
+    const divIds = new Set<string>();
+    const roleIds = new Set<string>();
+    for (const page of filteredMembers) {
+      const propDiv =
+        getProperty(page, "02 Struktur Organisasi") ||
+        getProperty(page, "Divisi");
+      if (propDiv?.type === "relation") {
+        propDiv.relation.forEach((r: { id: string }) => divIds.add(r.id));
+      }
+      const propRole = getProperty(page, "04 Nama Jabatan");
+      if (propRole?.type === "relation") {
+        propRole.relation.forEach((r: { id: string }) => roleIds.add(r.id));
+      }
+    }
 
-    // Fetch referenced division names in parallel
+    // Fetch referenced titles in parallel
     const divisionMap = new Map<string, string>();
-    await Promise.all(
-      divIds.map(async (id) => {
-        try {
-          const divPage = (await getNotionClient().pages.retrieve({
-            page_id: id,
-          })) as { properties: NotionPage["properties"] };
-          const titleProp = Object.values(divPage.properties).find(
-            (p) => p.type === "title",
-          ) as { title?: Array<{ plain_text: string }> } | undefined;
-          const name = titleProp?.title?.[0]?.plain_text || "Unnamed Division";
-          divisionMap.set(id, name);
-        } catch (err) {
-          console.error(
-            `Failed to fetch division details for page ${id}:`,
-            err,
-          );
-        }
-      }),
-    );
+    const namaJabatanMap = new Map<string, string>();
+
+    const fetchTitle = async (id: string, map: Map<string, string>) => {
+      try {
+        const page = (await getNotionClient().pages.retrieve({
+          page_id: id,
+        })) as { properties: NotionPage["properties"] };
+        const titleProp = Object.values(page.properties).find(
+          (p) => p.type === "title",
+        ) as { title?: Array<{ plain_text: string }> } | undefined;
+        const name = titleProp?.title?.[0]?.plain_text || "Unnamed";
+        map.set(id, name);
+      } catch (err) {
+        console.error(`Failed to fetch title for page ${id}:`, err);
+      }
+    };
+
+    await Promise.all([
+      ...Array.from(divIds).map((id) => fetchTitle(id, divisionMap)),
+      ...Array.from(roleIds).map((id) => fetchTitle(id, namaJabatanMap)),
+    ]);
 
     // Map members to a clean structure
     const parsedMembers = filteredMembers.map((page) => {
       const name =
         getTitleProperty(page, "Nama Lengkap Staf") || getTitle(page);
-      const roles = getMultiSelect(page, "Jabatan Kabinet");
+
+      const roleRelationIds = getRelationIds(page, "04 Nama Jabatan");
+      const roles = roleRelationIds
+        .map((id) => namaJabatanMap.get(id) || "")
+        .filter(Boolean);
+
       const status = getSelect(page, "Status Keaktifan");
 
-      const divProp = getProperty(page, "Divisi");
+      const divProp =
+        getProperty(page, "02 Struktur Organisasi") ||
+        getProperty(page, "Divisi");
       const divPageId =
         divProp?.type === "relation" ? divProp.relation?.[0]?.id : null;
       const divisionName = divPageId ? divisionMap.get(divPageId) || "" : "";
@@ -2115,9 +2128,11 @@ export async function fetchProfilOrgStructure(
     const isRoleInBatchRange = (roleRegex: RegExp) => {
       return sdmPages.some((page) => {
         const roles = getMultiSelect(page, "Jabatan Kabinet");
-        const batchStr = getSelect(page, "Batch") || "";
-        const match = batchStr.match(/Batch (\d+)/i);
-        const batchNum = match ? parseInt(match[1], 10) : 999;
+        const relatedBatchIds = getRelationIds(page, "03 Batch Pendaftaran");
+        const relatedBatch = relatedBatchIds
+          .map((id) => batchMap[id])
+          .find(Boolean);
+        const batchNum = relatedBatch ? relatedBatch.batchNum : 999;
         return roles.some((r) => roleRegex.test(r)) && batchNum <= maxBatch;
       });
     };
@@ -2224,7 +2239,9 @@ export async function fetchProfilOrgStructure(
         if (specificRole) {
           cleanRole = specificRole;
         }
-        group.openPositions.push(cleanRole);
+        if (cleanRole && !cleanRole.toLowerCase().includes("untitled")) {
+          group.openPositions.push(cleanRole);
+        }
       } else {
         group.members.push(m.name);
       }
@@ -2346,6 +2363,27 @@ export interface BatchInfo {
   id: string;
   name: string;
   batchNum: number;
+  angkatanIds?: string[];
+}
+
+export interface RecruitmentTimelineEvent {
+  title: string;
+  description: string;
+  type:
+    | "registration"
+    | "interview-announcement"
+    | "interview"
+    | "final-announcement";
+  start: string;
+  end: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface RecruitmentTimelineData {
+  batch: string;
+  year: string;
+  events: RecruitmentTimelineEvent[];
 }
 
 export const fetchBatchMap = unstable_cache(
@@ -2376,10 +2414,16 @@ export const fetchBatchMap = unstable_cache(
         const name = getTitleProperty(page, "Name") || getTitle(page) || "";
         const match = name.match(/Batch\s*(\d+)/i) || name.match(/(\d+)/);
         const batchNum = match ? parseInt(match[1], 10) : 0;
+        const angkatanRelation = getProperty(page, "04 Tahun Angkatan");
+        const angkatanIds =
+          angkatanRelation?.type === "relation"
+            ? angkatanRelation.relation.map((r: any) => r.id)
+            : [];
         batchMap[page.id] = {
           id: page.id,
           name,
           batchNum,
+          angkatanIds,
         };
       }
     } catch (err) {
@@ -2389,6 +2433,122 @@ export const fetchBatchMap = unstable_cache(
   },
   ["notion-batch-map"],
   { revalidate: 60, tags: ["notion-batch-map"] },
+);
+
+function inferRecruitmentEventType(
+  title: string,
+): RecruitmentTimelineEvent["type"] {
+  const normalized = title.trim().toLowerCase();
+  if (normalized.includes("pengumuman") && normalized.includes("wawancara")) {
+    return "interview-announcement";
+  }
+  if (normalized.includes("wawancara")) {
+    return "interview";
+  }
+  if (normalized.includes("akhir")) {
+    return "final-announcement";
+  }
+  return "registration";
+}
+
+function inferRecruitmentEventDescription(title: string, batchLabel: string) {
+  const normalized = title.trim().toLowerCase();
+  if (normalized.includes("pendaftaran")) {
+    return `Jadwal pendaftaran untuk ${batchLabel}.`;
+  }
+  if (normalized.includes("wawancara")) {
+    return `Jadwal wawancara untuk ${batchLabel}.`;
+  }
+  if (normalized.includes("akhir")) {
+    return `Jadwal pengumuman akhir untuk ${batchLabel}.`;
+  }
+  return `Jadwal seleksi untuk ${batchLabel}.`;
+}
+
+export const fetchCurrentRecruitmentTimelineCached = unstable_cache(
+  async (): Promise<RecruitmentTimelineData | null> => {
+    try {
+      const { fetchContainerCMSCached } = await import("./notion-builder");
+      const cms = await fetchContainerCMSCached();
+      const currentBatch = cms?.variables?.CURRENT_BATCH?.trim() || "";
+      const currentYear = cms?.variables?.CURRENT_YEAR?.trim() || "";
+      const currentBatchNum = Number.parseInt(currentBatch, 10);
+
+      const dataSourceId = await resolveDataSourceIdSafe(DB_TAHAPAN_REKRUTMEN);
+      if (!dataSourceId) return null;
+
+      const batchMap = await fetchBatchMap();
+      const pages: NotionPage[] = [];
+      let cursor: string | undefined;
+
+      do {
+        const response = await getNotionClientAny().dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+        });
+        pages.push(...(response.results as NotionPage[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+
+      const events = pages
+        .map((page) => {
+          const relatedBatch = getRelationIds(page, "03 Batch Pendaftaran")
+            .map((id) => batchMap[id])
+            .find(Boolean);
+          const batchNum = relatedBatch?.batchNum ?? 999;
+          const batchLabel = relatedBatch?.name?.trim() || `Batch ${batchNum}`;
+          const start = getDate(page, "Date");
+          const end = getDateEnd(page, "Date") || start;
+          const title = getTitleProperty(page, "Name") || getTitle(page);
+          return {
+            title,
+            batchNum,
+            batchLabel,
+            start,
+            end,
+          };
+        })
+        .filter((item) => {
+          if (!item.start) return false;
+          if (Number.isNaN(currentBatchNum)) return true;
+          return item.batchNum === currentBatchNum;
+        })
+        .sort((a, b) => {
+          const startSort = a.start.localeCompare(b.start);
+          if (startSort !== 0) return startSort;
+          return a.title.localeCompare(b.title, undefined, { numeric: true });
+        })
+        .map<RecruitmentTimelineEvent>((item) => ({
+          title: item.title,
+          description: inferRecruitmentEventDescription(
+            item.title,
+            item.batchLabel,
+          ),
+          type: inferRecruitmentEventType(item.title),
+          start: item.start,
+          end: item.end,
+        }));
+
+      if (events.length === 0) return null;
+
+      const fallbackYear = events[0]?.start.slice(0, 4) || "";
+      return {
+        batch: currentBatch || String(currentBatchNum),
+        year: currentYear || fallbackYear,
+        events,
+      };
+    } catch (error) {
+      console.error("[fetchCurrentRecruitmentTimelineCached] Error:", error);
+      return null;
+    }
+  },
+  ["notion-current-recruitment-timeline"],
+  {
+    revalidate: 60,
+    tags: ["notion-current-recruitment-timeline", "notion-batch-map"],
+  },
 );
 
 export type Division = {
@@ -2402,27 +2562,30 @@ export type Division = {
   commitment: string;
 };
 
-export async function fetchDivisionsFromNotion(): Promise<Division[]> {
+export async function fetchDivisionsFromNotion(): Promise<{
+  divisions: Division[];
+  angkatanList: string[];
+}> {
   const structDbId = DB_STRUKTUR_ORGANISASI;
   const sdmDbId = DB_SDM_EVALUASI;
   const tasksDbId = DB_TUGAS_UTAMA_DIVISI;
 
   if (!structDbId || !sdmDbId) {
     const { divisions: staticDivs } = await import("./pendaftaran-data");
-    return staticDivs;
+    return { divisions: staticDivs, angkatanList: ["2023", "2024", "2025"] };
   }
 
   try {
     const client = getNotionClient();
     if (!client) {
       const { divisions: staticDivs } = await import("./pendaftaran-data");
-      return staticDivs;
+      return { divisions: staticDivs, angkatanList: ["2023", "2024", "2025"] };
     }
 
     const structDataSourceId = await resolveDataSourceIdSafe(structDbId);
     if (!structDataSourceId) {
       const { divisions: staticDivs } = await import("./pendaftaran-data");
-      return staticDivs;
+      return { divisions: staticDivs, angkatanList: ["2023", "2024", "2025"] };
     }
     const structResponse = await client.dataSources.query({
       data_source_id: structDataSourceId,
@@ -2470,16 +2633,87 @@ export async function fetchDivisionsFromNotion(): Promise<Division[]> {
       }
     }
 
-    return structPages.map((page) => {
+    const jobdeskIds = new Set<string>();
+    recruitmentPages.forEach((page) => {
+      const propRole = getProperty(page, "04 Jobdesk Jabatan");
+      if (propRole?.type === "relation") {
+        propRole.relation.forEach((r: { id: string }) => jobdeskIds.add(r.id));
+      }
+    });
+
+    const jobdeskMap = new Map<string, string>();
+    await Promise.all(
+      Array.from(jobdeskIds).map(async (id) => {
+        try {
+          const page = (await client.pages.retrieve({
+            page_id: id,
+          })) as { properties: NotionPage["properties"] };
+          const titleProp = Object.values(page.properties).find(
+            (p) => p.type === "title",
+          ) as { title?: Array<{ plain_text: string }> } | undefined;
+          const name = titleProp?.title?.[0]?.plain_text || "Untitled Jobdesk";
+          jobdeskMap.set(id, name);
+        } catch (err) {
+          console.error(`Failed to fetch title for jobdesk ${id}:`, err);
+        }
+      }),
+    );
+
+    let angkatanList: string[] = [];
+    const currentBatchInfo = Object.values(batchMap).find(
+      (b) => b.batchNum === currentBatchNum,
+    );
+    if (
+      currentBatchInfo &&
+      currentBatchInfo.angkatanIds &&
+      currentBatchInfo.angkatanIds.length > 0
+    ) {
+      await Promise.all(
+        currentBatchInfo.angkatanIds.map(async (id) => {
+          try {
+            const page = (await client.pages.retrieve({
+              page_id: id,
+            })) as { properties: NotionPage["properties"] };
+            const titleProp = Object.values(page.properties).find(
+              (p) => p.type === "title",
+            ) as { title?: Array<{ plain_text: string }> } | undefined;
+            const name = titleProp?.title?.[0]?.plain_text;
+            if (name) angkatanList.push(name.trim());
+          } catch (err) {
+            console.error(`Failed to fetch title for angkatan ${id}:`, err);
+          }
+        }),
+      );
+    }
+
+    angkatanList = angkatanList.sort((a, b) => a.localeCompare(b));
+    if (angkatanList.length === 0) {
+      angkatanList = ["2023", "2024", "2025"];
+    }
+
+    const divisions = structPages.map((page) => {
       const name = getTitleProperty(page, "Nama Divisi") || getTitle(page);
       const id = slugify(name);
       const summary = getRichText(page, "Deskripsi Divisi");
       const skills = getMultiSelect(page, "Skill Unik");
 
-      const slots = recruitmentPages.filter((rp) => {
+      const divisionRecruitments = recruitmentPages.filter((rp) => {
         const relIds = getRelationIds(rp, "02 Struktur Organisasi");
         return relIds.includes(page.id);
-      }).length;
+      });
+      const slots = divisionRecruitments.length;
+
+      const openPositions = divisionRecruitments
+        .flatMap((rp) => {
+          const propRole = getProperty(rp, "04 Jobdesk Jabatan");
+          if (propRole?.type === "relation") {
+            return propRole.relation.map((r: { id: string }) =>
+              jobdeskMap.get(r.id),
+            );
+          }
+          return [];
+        })
+        .filter(Boolean) as string[];
 
       const divisionTasks = taskPages
         .filter((tp) => {
@@ -2498,11 +2732,14 @@ export async function fetchDivisionsFromNotion(): Promise<Division[]> {
         tasks: divisionTasks.length > 0 ? divisionTasks : ["Tugas umum divisi"],
         skills,
         commitment: "Rutin mengikuti rapat dan kegiatan internal",
+        openPositions: Array.from(new Set(openPositions)),
       };
     });
+
+    return { divisions, angkatanList };
   } catch (error) {
     console.error("[fetchDivisionsFromNotion] Error:", error);
     const { divisions: staticDivs } = await import("./pendaftaran-data");
-    return staticDivs;
+    return { divisions: staticDivs, angkatanList: ["2023", "2024", "2025"] };
   }
 }

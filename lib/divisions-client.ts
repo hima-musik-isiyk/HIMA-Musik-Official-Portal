@@ -2,10 +2,15 @@ import type { Division } from "./pendaftaran-data";
 
 const STORAGE_KEY = "hima_divisions_cache";
 
-let inMemoryDivisions: Division[] | null = null;
-let pendingDivisionsFetch: Promise<Division[]> | null = null;
+export interface DivisionsResponse {
+  divisions: Division[];
+  angkatanList: string[];
+}
 
-export function readCachedDivisions(): Division[] | null {
+let inMemoryDivisions: DivisionsResponse | null = null;
+let pendingDivisionsFetch: Promise<DivisionsResponse> | null = null;
+
+export function readCachedDivisions(): DivisionsResponse | null {
   if (inMemoryDivisions) return inMemoryDivisions;
   if (typeof window === "undefined") return null;
 
@@ -13,7 +18,7 @@ export function readCachedDivisions(): Division[] | null {
     const cached = window.localStorage.getItem(STORAGE_KEY);
     if (!cached) return null;
     const parsed = JSON.parse(cached);
-    if (!Array.isArray(parsed)) return null;
+    if (!parsed.divisions || !Array.isArray(parsed.divisions)) return null;
     inMemoryDivisions = parsed;
     return parsed;
   } catch {
@@ -21,7 +26,7 @@ export function readCachedDivisions(): Division[] | null {
   }
 }
 
-export function fetchDivisionsOnce(): Promise<Division[]> {
+export function fetchDivisionsOnce(): Promise<DivisionsResponse> {
   if (inMemoryDivisions) return Promise.resolve(inMemoryDivisions);
   if (pendingDivisionsFetch) return pendingDivisionsFetch;
 
@@ -31,7 +36,7 @@ export function fetchDivisionsOnce(): Promise<Division[]> {
       return res.json();
     })
     .then((res) => {
-      if (!res.success || !Array.isArray(res.data)) {
+      if (!res.success || !res.data || !Array.isArray(res.data.divisions)) {
         throw new Error("Invalid divisions response");
       }
       inMemoryDivisions = res.data;

@@ -100,10 +100,10 @@ const Footer: React.FC = () => {
 
   useEffect(() => {
     const cached = readCachedDivisions();
-    if (cached) setDivisions(cached);
+    if (cached) setDivisions(cached.divisions);
 
     fetchDivisionsOnce()
-      .then(setDivisions)
+      .then((res) => setDivisions(res.divisions))
       .catch((err) =>
         console.error("Error fetching divisions in footer:", err),
       );

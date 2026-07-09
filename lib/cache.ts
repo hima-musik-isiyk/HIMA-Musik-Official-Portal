@@ -18,9 +18,9 @@ export function unstable_cache<
   options?: { revalidate?: number | false; tags?: string[] },
 ): T {
   let revalidate = options?.revalidate;
-  if (process.env.NODE_ENV !== "production") {
-    // Fast revalidation during development.
-    revalidate = 1;
+  if (process.env.NODE_ENV !== "production" && revalidate !== false) {
+    // Keep dev data fresh enough without turning render-path fetches into uncached blocking work.
+    revalidate = typeof revalidate === "number" ? Math.min(revalidate, 1) : 1;
   }
 
   // Use the native next/cache unstable_cache to avoid the closure compiler bug

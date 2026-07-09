@@ -15,7 +15,9 @@ import {
 
 type RecruitmentFormData = {
   firstChoice: string;
+  firstChoicePosition: string;
   secondChoice: string;
+  secondChoicePosition: string;
   angkatan: string;
   pddSubfocus: string;
   fullName: string;
@@ -64,13 +66,24 @@ const PHONE_PATTERN = /^(?:\+62|62|0)8\d{7,11}$/;
 
 export default function PendaftaranForm() {
   const [divisions, setDivisions] = useState<Division[]>(staticDivisions);
+  const [angkatanList, setAngkatanList] = useState<string[]>([
+    "2023",
+    "2024",
+    "2025",
+  ]);
 
   useEffect(() => {
     const cached = readCachedDivisions();
-    if (cached) setDivisions(cached);
+    if (cached) {
+      setDivisions(cached.divisions);
+      if (cached.angkatanList) setAngkatanList(cached.angkatanList);
+    }
 
     fetchDivisionsOnce()
-      .then(setDivisions)
+      .then((res) => {
+        setDivisions(res.divisions);
+        if (res.angkatanList) setAngkatanList(res.angkatanList);
+      })
       .catch((err) => console.error("Error fetching divisions in form:", err));
   }, []);
 
@@ -79,7 +92,9 @@ export default function PendaftaranForm() {
   const [isDivisionModalOpen, setIsDivisionModalOpen] = useState(false);
   const [formData, setFormData] = useState<RecruitmentFormData>({
     firstChoice: "",
+    firstChoicePosition: "",
     secondChoice: "",
+    secondChoicePosition: "",
     angkatan: "",
     pddSubfocus: "",
     fullName: "",
@@ -159,8 +174,26 @@ export default function PendaftaranForm() {
 
   const isStepComplete = (stepId: number): boolean => {
     if (stepId === 0) {
+      const firstDiv = divisions.find((d) => d.id === formData.firstChoice);
+      const requiresFirstPos =
+        firstDiv?.openPositions && firstDiv.openPositions.length > 0;
+      const hasFirstPos =
+        !requiresFirstPos || Boolean(formData.firstChoicePosition);
+
+      const secondDiv = divisions.find((d) => d.id === formData.secondChoice);
+      const requiresSecondPos =
+        secondDiv?.openPositions && secondDiv.openPositions.length > 0;
+      const hasSecondPos =
+        !formData.secondChoice ||
+        !requiresSecondPos ||
+        Boolean(formData.secondChoicePosition);
+
       return Boolean(
-        formData.firstChoice && formData.angkatan && !isAngkatanRestricted,
+        formData.firstChoice &&
+        hasFirstPos &&
+        hasSecondPos &&
+        formData.angkatan &&
+        !isAngkatanRestricted,
       );
     }
     if (stepId === 1) {
@@ -262,7 +295,9 @@ export default function PendaftaranForm() {
 
       setFormData({
         firstChoice: data.firstChoice,
+        firstChoicePosition: data.firstChoicePosition || "",
         secondChoice: data.secondChoice,
+        secondChoicePosition: data.secondChoicePosition || "",
         angkatan: data.angkatan || "",
         pddSubfocus: data.pddSubfocus || "",
         fullName: data.fullName,
@@ -375,7 +410,9 @@ export default function PendaftaranForm() {
   const handleResetDraft = () => {
     setFormData({
       firstChoice: "",
+      firstChoicePosition: "",
       secondChoice: "",
+      secondChoicePosition: "",
       angkatan: "",
       pddSubfocus: "",
       fullName: "",
@@ -401,7 +438,10 @@ export default function PendaftaranForm() {
     setFormData((prev) => ({
       ...prev,
       firstChoice: divisionId,
+      firstChoicePosition: "", // Reset when division changes
       secondChoice: prev.secondChoice === divisionId ? "" : prev.secondChoice,
+      secondChoicePosition:
+        prev.secondChoice === divisionId ? "" : prev.secondChoicePosition,
       pddSubfocus:
         divisionId === "pdd" || prev.secondChoice === "pdd"
           ? prev.pddSubfocus
@@ -414,6 +454,7 @@ export default function PendaftaranForm() {
     setFormData((prev) => ({
       ...prev,
       secondChoice: divisionId,
+      secondChoicePosition: "", // Reset when division changes
       pddSubfocus:
         prev.firstChoice === "pdd" || divisionId === "pdd"
           ? prev.pddSubfocus
@@ -503,7 +544,9 @@ export default function PendaftaranForm() {
       intent: "submit-pendaftaran",
       data: {
         firstChoice: formData.firstChoice,
+        firstChoicePosition: formData.firstChoicePosition,
         secondChoice: formData.secondChoice,
+        secondChoicePosition: formData.secondChoicePosition,
         angkatan: formData.angkatan,
         pddSubfocus: isPddSelected ? formData.pddSubfocus : "",
         fullName: trimmedFullName,
@@ -657,7 +700,9 @@ export default function PendaftaranForm() {
                 setStep(0);
                 setFormData({
                   firstChoice: "",
+                  firstChoicePosition: "",
                   secondChoice: "",
+                  secondChoicePosition: "",
                   angkatan: "",
                   pddSubfocus: "",
                   fullName: "",
@@ -802,53 +847,102 @@ export default function PendaftaranForm() {
                   </label>
                   <div className="space-y-3">
                     {divisions.map((division) => (
-                      <div key={division.id} className="flex items-center">
-                        <input
-                          type="radio"
-                          id={`choice1-${division.id}`}
-                          name="firstChoice"
-                          value={division.id}
-                          checked={formData.firstChoice === division.id}
-                          onChange={(e) =>
-                            handleFirstChoiceChange(e.target.value)
-                          }
-                          className="accent-gold-500 h-4 w-4 cursor-pointer"
-                        />
-                        <label
-                          htmlFor={`choice1-${division.id}`}
-                          className="ml-4 flex-1 cursor-pointer border border-white/10 bg-[#1a1a1a] px-4 py-3 transition-all duration-300 hover:border-white/20 hover:bg-[#222]"
-                          style={{
-                            borderRadius: "var(--radius-action)",
-                            borderColor:
-                              formData.firstChoice === division.id
-                                ? "rgba(212, 166, 77, 0.4)"
-                                : undefined,
-                            backgroundColor:
-                              formData.firstChoice === division.id
-                                ? "rgba(212, 166, 77, 0.08)"
-                                : undefined,
-                          }}
-                        >
-                          <div className="flex flex-col gap-1">
-                            <span className="text-sm font-medium text-white">
-                              {division.name}
-                            </span>
-                            <span className="text-sm text-neutral-400">
-                              {division.summary}
-                            </span>
-                          </div>
-                        </label>
+                      <div key={division.id} className="flex flex-col gap-2">
+                        <div className="flex w-full items-center">
+                          <input
+                            type="radio"
+                            id={`choice1-${division.id}`}
+                            name="firstChoice"
+                            value={division.id}
+                            checked={formData.firstChoice === division.id}
+                            onChange={(e) =>
+                              handleFirstChoiceChange(e.target.value)
+                            }
+                            className="accent-gold-500 h-4 w-4 cursor-pointer"
+                          />
+                          <label
+                            htmlFor={`choice1-${division.id}`}
+                            className="ml-4 flex-1 cursor-pointer border border-white/10 bg-[#1a1a1a] px-4 py-3 transition-all duration-300 hover:border-white/20 hover:bg-[#222]"
+                            style={{
+                              borderRadius: "var(--radius-action)",
+                              borderColor:
+                                formData.firstChoice === division.id
+                                  ? "rgba(212, 166, 77, 0.4)"
+                                  : undefined,
+                              backgroundColor:
+                                formData.firstChoice === division.id
+                                  ? "rgba(212, 166, 77, 0.08)"
+                                  : undefined,
+                            }}
+                          >
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-medium text-white">
+                                {division.name}
+                              </span>
+                              <span className="text-sm text-neutral-400">
+                                {division.summary}
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                        {formData.firstChoice === division.id &&
+                          division.openPositions &&
+                          division.openPositions.length > 0 && (
+                            <div
+                              className="relative mt-1 ml-8"
+                              data-animate="fade"
+                            >
+                              <label className="mb-2 block text-xs font-medium text-neutral-400">
+                                Jabatan <span className="text-gold-500">*</span>
+                              </label>
+                              <select
+                                value={formData.firstChoicePosition}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    firstChoicePosition: e.target.value,
+                                  }))
+                                }
+                                className="focus:border-gold-500 focus:ring-gold-500 w-full appearance-none border border-white/10 bg-[#1a1a1a] px-4 py-2 text-sm text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none"
+                                style={{ borderRadius: "var(--radius-action)" }}
+                              >
+                                <option
+                                  value=""
+                                  disabled
+                                  className="bg-[#111] text-neutral-400"
+                                >
+                                  -- Pilih Jabatan --
+                                </option>
+                                {division.openPositions.map((pos) => (
+                                  <option
+                                    key={pos}
+                                    value={pos}
+                                    className="bg-[#111] text-neutral-300"
+                                  >
+                                    {pos}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="text-gold-500/60 pointer-events-none absolute top-6 right-0 bottom-0 flex items-center pr-3 transition-colors duration-300">
+                                <IconChevronDown />
+                              </div>
+                            </div>
+                          )}
                       </div>
                     ))}
                   </div>
-                  {showStepErrors && !formData.firstChoice && (
-                    <p
-                      data-error="true"
-                      className="mt-2 text-sm text-amber-500/80"
-                    >
-                      Pilih divisi utama terlebih dahulu.
-                    </p>
-                  )}
+                  {showStepErrors &&
+                    (!formData.firstChoice ||
+                      (!formData.firstChoicePosition &&
+                        divisions.find((d) => d.id === formData.firstChoice)
+                          ?.openPositions?.length)) && (
+                      <p
+                        data-error="true"
+                        className="mt-2 text-sm text-amber-500/80"
+                      >
+                        Pilih divisi dan jabatan utama terlebih dahulu.
+                      </p>
+                    )}
                 </div>
 
                 <div data-animate="up" className="space-y-4">
@@ -888,6 +982,58 @@ export default function PendaftaranForm() {
                       <IconChevronDown />
                     </div>
                   </div>
+                  {formData.secondChoice && (
+                    <div className="relative mt-3" data-animate="fade">
+                      <label className="mb-2 block text-xs font-medium text-neutral-400">
+                        Jabatan <span className="text-gold-500">*</span>
+                      </label>
+                      <select
+                        value={formData.secondChoicePosition}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            secondChoicePosition: e.target.value,
+                          }))
+                        }
+                        className="focus:border-gold-500 focus:ring-gold-500 w-full appearance-none border border-white/10 bg-[#1a1a1a] px-4 py-2 text-sm text-neutral-200 transition-colors duration-300 focus:bg-[#222] focus:ring-1 focus:outline-none"
+                        style={{ borderRadius: "var(--radius-action)" }}
+                      >
+                        <option
+                          value=""
+                          disabled
+                          className="bg-[#111] text-neutral-400"
+                        >
+                          -- Pilih Jabatan --
+                        </option>
+                        {divisions
+                          .find((d) => d.id === formData.secondChoice)
+                          ?.openPositions?.map((pos) => (
+                            <option
+                              key={pos}
+                              value={pos}
+                              className="bg-[#111] text-neutral-300"
+                            >
+                              {pos}
+                            </option>
+                          ))}
+                      </select>
+                      <div className="text-gold-500/60 pointer-events-none absolute top-6 right-0 bottom-0 flex items-center pr-3 transition-colors duration-300">
+                        <IconChevronDown />
+                      </div>
+                    </div>
+                  )}
+                  {showStepErrors &&
+                    formData.secondChoice &&
+                    !formData.secondChoicePosition &&
+                    divisions.find((d) => d.id === formData.secondChoice)
+                      ?.openPositions?.length && (
+                      <p
+                        data-error="true"
+                        className="mt-2 text-sm text-amber-500/80"
+                      >
+                        Pilih jabatan untuk divisi Pilihan 2.
+                      </p>
+                    )}
                   <p className="mt-2 text-sm text-neutral-500">
                     Pilihan 2 tidak dapat sama dengan Pilihan 1.
                   </p>
@@ -912,24 +1058,15 @@ export default function PendaftaranForm() {
                       <option className="bg-[#111] text-neutral-300" value="">
                         — Pilih angkatan —
                       </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="2023"
-                      >
-                        2023
-                      </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="2024"
-                      >
-                        2024
-                      </option>
-                      <option
-                        className="bg-[#111] text-neutral-300"
-                        value="2025"
-                      >
-                        2025
-                      </option>
+                      {angkatanList.map((year) => (
+                        <option
+                          key={year}
+                          className="bg-[#111] text-neutral-300"
+                          value={year}
+                        >
+                          {year}
+                        </option>
+                      ))}
                     </select>
                     <div className="text-gold-500/60 pointer-events-none absolute top-0 right-0 bottom-0 flex items-center pr-4 transition-colors duration-300">
                       <IconChevronDown />
@@ -1366,12 +1503,18 @@ export default function PendaftaranForm() {
                       {divisions.find(
                         (division) => division.id === formData.firstChoice,
                       )?.name || "-"}
+                      {formData.firstChoicePosition
+                        ? ` - ${formData.firstChoicePosition}`
+                        : ""}
                     </p>
                     <p className="mt-2 text-sm text-neutral-400">
                       Pilihan 2:{" "}
                       {divisions.find(
                         (division) => division.id === formData.secondChoice,
                       )?.name || "—"}
+                      {formData.secondChoicePosition
+                        ? ` - ${formData.secondChoicePosition}`
+                        : ""}
                     </p>
                     <p className="mt-1 text-sm text-neutral-400">
                       Angkatan: {formData.angkatan || "—"}

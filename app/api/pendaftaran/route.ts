@@ -6,13 +6,19 @@ import {
   DB_SDM_EVALUASI,
   DB_STRUKTUR_ORGANISASI,
 } from "@/lib/glossarium";
-import { getNotionClient, resolveDataSourceIdSafe } from "@/lib/notion";
+import {
+  fetchDivisionsFromNotion,
+  getNotionClient,
+  resolveDataSourceIdSafe,
+} from "@/lib/notion";
 
 type PendaftaranPayload = {
   intent?: string;
   data?: {
     firstChoice?: string;
+    firstChoicePosition?: string;
     secondChoice?: string;
+    secondChoicePosition?: string;
     angkatan?: string;
     pddSubfocus?: string;
     fullName?: string;
@@ -42,7 +48,6 @@ const divisionLabels: Record<string, string> = {
   "co-bendahara": "Co-Bendahara",
 };
 
-const VALID_ANGKATAN = ["2023", "2024", "2025"];
 const ANGKATAN_RESTRICTED_POSITIONS = ["co-sekretaris", "co-bendahara"];
 const VALID_PDD_SUBFOCUS = ["desain", "publikasi", "dokumentasi"];
 
@@ -322,8 +327,16 @@ export async function POST(request: Request) {
 
     const firstChoice =
       typeof data.firstChoice === "string" ? data.firstChoice.trim() : "";
+    const firstChoicePosition =
+      typeof data.firstChoicePosition === "string"
+        ? data.firstChoicePosition.trim()
+        : "";
     const secondChoice =
       typeof data.secondChoice === "string" ? data.secondChoice.trim() : "";
+    const secondChoicePosition =
+      typeof data.secondChoicePosition === "string"
+        ? data.secondChoicePosition.trim()
+        : "";
     const angkatan =
       typeof data.angkatan === "string" ? data.angkatan.trim() : "";
     const pddSubfocus =
@@ -366,9 +379,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const { angkatanList } = await fetchDivisionsFromNotion();
+    const VALID_ANGKATAN = angkatanList;
+
     if (!angkatan || !VALID_ANGKATAN.includes(angkatan)) {
       return NextResponse.json(
-        { error: "Angkatan wajib dipilih (2023, 2024, atau 2025)." },
+        { error: "Pilihan angkatan tidak valid atau wajib diisi." },
         { status: 400 },
       );
     }
@@ -541,9 +557,15 @@ export async function POST(request: Request) {
     });
 
     const divisionLabel = divisionLabels[firstChoice] ?? firstChoice;
+    const firstChoiceFullLabel = firstChoicePosition
+      ? `${divisionLabel} - ${firstChoicePosition}`
+      : divisionLabel;
     const secondaryDivisionLabel = secondChoice
       ? (divisionLabels[secondChoice] ?? secondChoice)
       : "";
+    const secondChoiceFullLabel = secondChoicePosition
+      ? `${secondaryDivisionLabel} - ${secondChoicePosition}`
+      : secondaryDivisionLabel;
     const subfocusLabel =
       isPddSelected && pddSubfocus
         ? (pddSubfocusLabels[pddSubfocus] ?? pddSubfocus)
@@ -553,8 +575,8 @@ export async function POST(request: Request) {
     const safeNim = escapeHtml(nim);
     const safePhone = escapeHtml(phone);
     const safeInstagram = escapeHtml(instagram);
-    const safeDivisionLabel = escapeHtml(divisionLabel || "-");
-    const safeSecondaryDivisionLabel = escapeHtml(secondaryDivisionLabel);
+    const safeDivisionLabel = escapeHtml(firstChoiceFullLabel || "-");
+    const safeSecondaryDivisionLabel = escapeHtml(secondChoiceFullLabel);
     const safeSubfocusLabel = escapeHtml(subfocusLabel);
     const safeAngkatan = escapeHtml(angkatan);
     const safeAvailability = availability.map((item) => escapeHtml(item));
@@ -783,14 +805,14 @@ export async function POST(request: Request) {
                   },
                   {
                     name: "Divisi 1",
-                    value: truncate(divisionLabel),
+                    value: truncate(firstChoiceFullLabel),
                     inline: true,
                   },
-                  ...(secondaryDivisionLabel
+                  ...(secondChoiceFullLabel
                     ? [
                         {
                           name: "Divisi 2",
-                          value: truncate(secondaryDivisionLabel),
+                          value: truncate(secondChoiceFullLabel),
                           inline: true,
                         },
                       ]

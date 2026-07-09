@@ -1,5 +1,6 @@
 "use client";
 
+import useEmblaCarousel from "embla-carousel-react";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -41,10 +42,10 @@ export const StrukturOrganisasiGraph: React.FC<
 
   useEffect(() => {
     const cached = readCachedDivisions();
-    if (cached) setFallbackDivisions(cached);
+    if (cached) setFallbackDivisions(cached.divisions);
 
     fetchDivisionsOnce()
-      .then(setFallbackDivisions)
+      .then((res) => setFallbackDivisions(res.divisions))
       .catch((err) => console.error("Error fetching divisions in graph:", err));
   }, []);
 
@@ -57,8 +58,9 @@ export const StrukturOrganisasiGraph: React.FC<
     divisions: [],
     cabinetName: "",
   });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const scopeRef = useViewEntrance(pathname, [data]);
+  const scopeRef = useViewEntrance(pathname, [data, isLoading]);
 
   useEffect(() => {
     // Try to load from localStorage cache first
@@ -79,7 +81,10 @@ export const StrukturOrganisasiGraph: React.FC<
     } catch {}
 
     const fetchProfilData = async () => {
-      if (!activeDatabaseId) return;
+      if (!activeDatabaseId) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const params = new URLSearchParams();
@@ -106,6 +111,8 @@ export const StrukturOrganisasiGraph: React.FC<
         }
       } catch (err) {
         console.error("Failed to fetch fresh profil data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -136,13 +143,47 @@ export const StrukturOrganisasiGraph: React.FC<
       ? data.executives
       : fallbackExecutives;
 
-  return (
-    <div ref={scopeRef} className="w-full">
-      <div className="mt-12">
-        <GenericLineTitle value1="Badan Pengurus Harian" variation1="Center" />
+  if (isLoading) {
+    return (
+      <div className="flex w-full flex-col items-center gap-12 py-12 md:py-20">
+        <style>{`
+          @keyframes skeleton-pulse {
+            0%, 100% { opacity: 0.05; }
+            50% { opacity: 0.15; }
+          }
+          .skel-pulse {
+            animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+        `}</style>
+        <div className="skel-pulse flex w-full max-w-4xl flex-col items-center gap-8">
+          <div className="h-[72px] w-64 bg-white" />
+          <div className="h-8 w-px bg-white" />
+          <div className="h-[72px] w-64 bg-white" />
+          <div className="h-8 w-px bg-white" />
+          <div className="flex w-full justify-center gap-4 md:gap-8">
+            <div className="h-[96px] w-full max-w-[200px] bg-white" />
+            <div className="h-[96px] w-full max-w-[200px] bg-white" />
+          </div>
+        </div>
+        <div className="skel-pulse mt-8 flex w-full gap-4 md:grid md:grid-cols-2">
+          <div className="h-[280px] w-full bg-white" />
+          <div className="hidden h-[280px] w-full bg-white md:block" />
+        </div>
       </div>
-      <OrgChart executives={executivesList} />
-      <div className="mt-12">
+    );
+  }
+
+  return (
+    <div className="w-full overflow-x-hidden" ref={scopeRef}>
+      <div className="flex w-full flex-col items-center">
+        <GenericLineTitle value1="BPH" variation1="Center" />
+        <div className="mb-12 w-full md:mb-20">
+          <OrgChart
+            executives={executivesList}
+            isRecruitment={pathname.includes("pendaftaran")}
+          />
+        </div>
+
         <GenericLineTitle value1="Divisi" variation1="Center" />
         <DivisionCards
           executives={executivesList}
@@ -158,40 +199,13 @@ export const StrukturOrganisasiGraph: React.FC<
 // --- Helper components ---
 
 const BphOpenSlot = () => {
-  const [hovered, setHovered] = useState(false);
-  const rtRef = useRef<RotatingTextRef | null>(null);
   return (
-    <div
-      className="mt-1 flex items-center justify-center gap-1.5"
-      onMouseEnter={() => {
-        setHovered(true);
-        rtRef.current?.next();
-      }}
-      onMouseLeave={() => {
-        setHovered(false);
-        rtRef.current?.reset();
-      }}
-    >
+    <div className="mt-1 flex items-center justify-center gap-1.5">
       <span className="text-gold-300/80 shrink-0 font-serif text-xs tracking-wider uppercase">
         Terbuka
       </span>
-      <span className="bg-gold-500/20 text-gold-300 border-gold-500/30 inline-flex items-center rounded border px-2 py-0.5">
-        <RotatingText
-          ref={rtRef}
-          texts={["1 Posisi"]}
-          mainClassName="font-serif text-xs uppercase tracking-wider"
-          staggerFrom="last"
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "-120%" }}
-          staggerDuration={0.025}
-          splitLevelClassName="overflow-hidden pb-0.5"
-          transition={{ type: "spring", damping: 30, stiffness: 400 }}
-          rotationInterval={2000}
-          splitBy="words"
-          auto={hovered}
-          loop
-        />
+      <span className="bg-gold-500/20 text-gold-300 border-gold-500/30 inline-flex items-center rounded border px-2 py-0.5 font-serif text-xs tracking-wider uppercase">
+        1 Posisi
       </span>
     </div>
   );
@@ -199,8 +213,10 @@ const BphOpenSlot = () => {
 
 const OrgChart = ({
   executives,
+  isRecruitment,
 }: {
   executives: { role: string; name: string }[];
+  isRecruitment: boolean;
 }) => {
   const branchContainerRef = useRef<HTMLDivElement>(null);
   const sekretarisBranchRef = useRef<HTMLDivElement>(null);
@@ -303,37 +319,42 @@ const OrgChart = ({
                 </p>
               </div>
 
-              {executives.some(
-                (e) =>
-                  e.role.toLowerCase().includes("co-sekretaris") ||
-                  e.role.toLowerCase().includes("sekretaris muda"),
-              ) && (
-                <>
-                  <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
-                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
-                    <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
-                      Sekretaris Muda
-                    </p>
-                    {(() => {
-                      const found = executives.find(
-                        (e) =>
-                          e.role.toLowerCase().includes("co-sekretaris") ||
-                          e.role.toLowerCase().includes("co sekretaris") ||
-                          e.role.toLowerCase().includes("sekretaris muda"),
-                      );
-                      const isReal =
-                        found && !found.name.includes("[OPEN POSITION]");
-                      return isReal ? (
-                        <p className="text-gold-200 font-serif text-sm md:text-base">
-                          {found.name}
+              {(isRecruitment ||
+                executives.some(
+                  (e) =>
+                    e.role.toLowerCase().includes("co-sekretaris") ||
+                    e.role.toLowerCase().includes("sekretaris muda"),
+                )) &&
+                (() => {
+                  const found = executives.find(
+                    (e) =>
+                      e.role.toLowerCase().includes("co-sekretaris") ||
+                      e.role.toLowerCase().includes("co sekretaris") ||
+                      e.role.toLowerCase().includes("sekretaris muda"),
+                  );
+                  const isReal =
+                    found && !found.name.includes("[OPEN POSITION]");
+
+                  if (!isReal && !isRecruitment) return null;
+
+                  return (
+                    <>
+                      <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
+                      <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                        <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
+                          Sekretaris Muda
                         </p>
-                      ) : (
-                        <BphOpenSlot />
-                      );
-                    })()}
-                  </div>
-                </>
-              )}
+                        {isReal ? (
+                          <p className="text-gold-200 font-serif text-sm md:text-base">
+                            {found.name}
+                          </p>
+                        ) : (
+                          <BphOpenSlot />
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
             </div>
 
             <div
@@ -350,36 +371,37 @@ const OrgChart = ({
                 </p>
               </div>
 
-              {executives.some(
-                (e) =>
-                  e.role.toLowerCase().includes("co-bendahara") ||
+              {(isRecruitment ||
+                executives.some((e) =>
                   e.role.toLowerCase().includes("bendahara muda"),
-              ) && (
-                <>
-                  <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
-                  <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
-                    <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
-                      Bendahara Muda
-                    </p>
-                    {(() => {
-                      const found = executives.find(
-                        (e) =>
-                          e.role.toLowerCase().includes("co-bendahara") ||
-                          e.role.toLowerCase().includes("bendahara muda"),
-                      );
-                      const isReal =
-                        found && !found.name.includes("[OPEN POSITION]");
-                      return isReal ? (
-                        <p className="text-gold-200 font-serif text-sm md:text-base">
-                          {found.name}
+                )) &&
+                (() => {
+                  const found = executives.find((e) =>
+                    e.role.toLowerCase().includes("bendahara muda"),
+                  );
+                  const isReal =
+                    found && !found.name.includes("[OPEN POSITION]");
+
+                  if (!isReal && !isRecruitment) return null;
+
+                  return (
+                    <>
+                      <div className="border-gold-500/35 h-6 w-px border-l border-dashed" />
+                      <div className="border-gold-500/20 bg-gold-500/5 flex min-h-27.5 w-full flex-col justify-center border px-4 py-5 text-center md:px-6 md:py-6">
+                        <p className="text-gold-500/80 mb-2 text-[10px] font-semibold tracking-[0.14em] uppercase">
+                          Bendahara Muda
                         </p>
-                      ) : (
-                        <BphOpenSlot />
-                      );
-                    })()}
-                  </div>
-                </>
-              )}
+                        {isReal ? (
+                          <p className="text-gold-200 font-serif text-sm md:text-base">
+                            {found.name}
+                          </p>
+                        ) : (
+                          <BphOpenSlot />
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
             </div>
           </div>
         </div>
@@ -486,6 +508,14 @@ const DivisionCards = ({
     (d) => !d.id.startsWith("co-") && (!isRecruitment || d.slots > 0),
   );
 
+  const [emblaRef] = useEmblaCarousel({
+    align: "start",
+    loop: false,
+    breakpoints: {
+      "(min-width: 768px)": { active: false },
+    },
+  });
+
   const findNamesForDivision = (divisionName: string) => {
     const matches = executives.filter(
       (e) =>
@@ -495,47 +525,54 @@ const DivisionCards = ({
     return matches.map((m) => m.name);
   };
 
-  if (fetchedDivisions && fetchedDivisions.length > 0) {
-    const activeDivs = isRecruitment
-      ? fetchedDivisions.filter((d) => d.slots > 0)
-      : fetchedDivisions;
+  const activeDivs =
+    fetchedDivisions && fetchedDivisions.length > 0
+      ? isRecruitment
+        ? fetchedDivisions.filter((d) => d.slots > 0)
+        : fetchedDivisions.filter((d) => d.members.length > 0)
+      : [];
 
-    return (
-      <div
-        data-animate-stagger="0.1"
-        className="grid grid-cols-1 gap-4 md:grid-cols-2"
-      >
-        {activeDivs.map((division) => (
-          <DivisionCard
+  const cardsToRender =
+    activeDivs.length > 0
+      ? activeDivs.map((division) => (
+          <div
             key={division.name}
-            name={division.name}
-            members={division.members}
-            slots={division.slots}
-            openPositions={division.openPositions}
-          />
-        ))}
-      </div>
-    );
-  }
+            className="min-w-0 flex-[0_0_85%] md:w-full md:flex-initial"
+          >
+            <DivisionCard
+              name={division.name}
+              members={division.members}
+              slots={division.slots}
+              openPositions={division.openPositions}
+            />
+          </div>
+        ))
+      : divisions.map((division) => {
+          const names = findNamesForDivision(division.name);
+          return (
+            <div
+              key={division.id}
+              className="min-w-0 flex-[0_0_85%] md:w-full md:flex-initial"
+            >
+              <DivisionCard
+                name={division.name}
+                members={names}
+                slots={division.slots}
+                openPositions={[]}
+                angkatan={(division as { angkatan?: string }).angkatan}
+              />
+            </div>
+          );
+        });
 
   return (
-    <div
-      data-animate-stagger="0.1"
-      className="grid grid-cols-1 gap-4 md:grid-cols-2"
-    >
-      {divisions.map((division) => {
-        const names = findNamesForDivision(division.name);
-        return (
-          <DivisionCard
-            key={division.id}
-            name={division.name}
-            members={names}
-            slots={division.slots}
-            openPositions={[]}
-            angkatan={(division as { angkatan?: string }).angkatan}
-          />
-        );
-      })}
+    <div className="embla w-full overflow-hidden" ref={emblaRef}>
+      <div
+        data-animate-stagger="0.1"
+        className="flex gap-4 md:grid md:grid-cols-2"
+      >
+        {cardsToRender}
+      </div>
     </div>
   );
 };

@@ -487,6 +487,11 @@ export function findCmsPageForPath(
 }
 
 export async function fetchContainerCMSReadThrough(): Promise<ContainerCMSData> {
+  if (process.env.NODE_ENV !== "production") {
+    // In development, bypass the Supabase snapshot to load live data directly from Notion
+    return await fetchContainerCMS();
+  }
+
   const snapshot = await readContainerCMSSnapshot();
   if (snapshot) return snapshot;
 

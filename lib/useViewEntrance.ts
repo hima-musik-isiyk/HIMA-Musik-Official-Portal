@@ -262,6 +262,10 @@ export default function useViewEntrance(
       if (rafA !== null) window.cancelAnimationFrame(rafA);
       if (rafB !== null) window.cancelAnimationFrame(rafB);
       ctx.revert();
+      standalone.forEach((el) => el.removeAttribute("data-animated"));
+      groups.forEach(({ container }) =>
+        container.removeAttribute("data-animated"),
+      );
     };
   }, [pathname, ...deps]);
 

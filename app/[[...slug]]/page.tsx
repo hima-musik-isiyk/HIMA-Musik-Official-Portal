@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import React from "react";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
@@ -11,6 +10,7 @@ import {
 } from "@/lib/faq";
 import { FEATURES } from "@/lib/feature-flags";
 import {
+  fetchCurrentRecruitmentTimelineCached,
   fetchEventsCollection,
   fetchKaryaEntries,
   fetchKKMGroups,
@@ -101,6 +101,11 @@ export default async function CatchAllPage({ params }: CatchAllProps) {
     const entries = await fetchKaryaEntries();
     injectedProps = {
       "Karya Grid": { entries },
+    };
+  } else if (path === "/pendaftaran") {
+    const timeline = await fetchCurrentRecruitmentTimelineCached();
+    injectedProps = {
+      "Timeline Seleksi": { timeline },
     };
   } else if (path === "/faq") {
     const [rawEntries, categories] = await Promise.all([

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCmsGsapEasing, gsap } from "@/lib/gsap";
+import type { RecruitmentTimelineData } from "@/lib/notion";
 
 const DAYS_OF_WEEK = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
@@ -26,6 +27,7 @@ interface Event {
 interface SelectionTimelineCalendarProps {
   currentYear?: string;
   currentBatch?: string;
+  timelineData?: RecruitmentTimelineData | null;
 }
 
 interface TimelineConfig {
@@ -151,21 +153,58 @@ const formatPeriod = (events: Event[]) => {
   return `${formatter.format(firstEvent.start)} – ${formatter.format(lastEvent.end)}`;
 };
 
+const formatTimelineDateStr = (start: Date, end: Date) => {
+  const formatter = new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+  });
+  const startLabel = formatter.format(start);
+  const endLabel = formatter.format(end);
+  return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+};
+
 const SelectionTimelineCalendar: React.FC<SelectionTimelineCalendarProps> = ({
   currentYear,
   currentBatch,
+  timelineData,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeYear = currentYear?.trim() || "2026";
   const activeBatch = currentBatch?.trim() || "1";
-  const timeline = useMemo(
+  const timelineConfigs = useMemo<TimelineConfig[]>(() => {
+    if (timelineData === undefined) return SELECTION_TIMELINES;
+    if (timelineData === null) return [];
+
+    const mappedEvents: Event[] = timelineData.events.map((event) => {
+      const start = new Date(event.start);
+      const end = new Date(event.end);
+      return {
+        title: event.title,
+        dateStr: formatTimelineDateStr(start, end),
+        startTime: event.startTime,
+        endTime: event.endTime,
+        description: event.description,
+        type: event.type,
+        start,
+        end,
+      };
+    });
+    return [
+      {
+        batch: timelineData.batch?.trim() || activeBatch,
+        year: timelineData.year?.trim() || activeYear,
+        events: mappedEvents,
+      },
+    ];
+  }, [activeBatch, activeYear, timelineData]);
+  const activeTimeline = useMemo(
     () =>
-      SELECTION_TIMELINES.find(
+      timelineConfigs.find(
         (item) => item.year === activeYear && item.batch === activeBatch,
       ),
-    [activeYear, activeBatch],
+    [activeYear, activeBatch, timelineConfigs],
   );
-  const events = useMemo(() => timeline?.events ?? [], [timeline]);
+  const events = useMemo(() => activeTimeline?.events ?? [], [activeTimeline]);
   const calendarDays = useMemo(() => getCalendarDays(events), [events]);
   const periodLabel = useMemo(() => formatPeriod(events), [events]);
   const eventMonthKeys = useMemo(() => {
@@ -290,7 +329,7 @@ const SelectionTimelineCalendar: React.FC<SelectionTimelineCalendarProps> = ({
     });
   };
 
-  if (!timeline) {
+  if (!activeTimeline) {
     return (
       <div className="border border-white/8 bg-black/30 p-6 text-sm text-neutral-400">
         Timeline seleksi untuk Batch {activeBatch} tahun {activeYear} belum

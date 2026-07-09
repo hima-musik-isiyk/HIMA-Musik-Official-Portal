@@ -111,6 +111,22 @@ const DivisionAccordionItem: React.FC<{
                 <p className="text-sm text-neutral-300">
                   {division.commitment}
                 </p>
+                {division.openPositions &&
+                  division.openPositions.length > 0 && (
+                    <div className="mt-4">
+                      <h5 className="mb-2 text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                        Posisi Terbuka:
+                      </h5>
+                      <ul className="text-gold-300/80 space-y-1 text-sm">
+                        {division.openPositions.map((pos) => (
+                          <li key={pos} className="flex gap-2">
+                            <span>-</span>
+                            <span>{pos}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -136,10 +152,10 @@ export default function PanduanDivisi({
 
   useEffect(() => {
     const cached = readCachedDivisions();
-    if (cached) setDivisions(cached);
+    if (cached) setDivisions(cached.divisions);
 
     fetchDivisionsOnce()
-      .then(setDivisions)
+      .then((res) => setDivisions(res.divisions))
       .catch((err) =>
         console.error("Error fetching divisions in panduan:", err),
       );

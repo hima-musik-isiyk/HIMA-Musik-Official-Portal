@@ -7,6 +7,7 @@ export type Division = {
   tasks: string[];
   skills: string[];
   commitment: string;
+  openPositions?: string[];
 };
 
 export const divisions: Division[] = [
