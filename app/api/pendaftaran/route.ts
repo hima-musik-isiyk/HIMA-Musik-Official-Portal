@@ -193,7 +193,7 @@ async function writePendaftaranToNotion(data: {
       database_id: resolvedStorageDbId,
     });
     if (ds && "properties" in ds) {
-      dbProperties = ds.properties;
+      dbProperties = ds.properties as Record<string, any>;
     }
   } catch (err) {
     console.error(
