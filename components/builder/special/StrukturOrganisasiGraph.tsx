@@ -1,6 +1,5 @@
 "use client";
 
-import useEmblaCarousel from "embla-carousel-react";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -537,14 +536,6 @@ const DivisionCards = ({
     (d) => !d.id.startsWith("co-") && (!isRecruitment || d.slots > 0),
   );
 
-  const [emblaRef] = useEmblaCarousel({
-    align: "start",
-    loop: false,
-    breakpoints: {
-      "(min-width: 768px)": { active: false },
-    },
-  });
-
   const findNamesForDivision = (divisionName: string) => {
     const matches = executives.filter(
       (e) =>
@@ -564,10 +555,7 @@ const DivisionCards = ({
   const cardsToRender =
     activeDivs.length > 0
       ? activeDivs.map((division) => (
-          <div
-            key={division.name}
-            className="h-full min-w-0 flex-[0_0_85%] md:w-full md:flex-none"
-          >
+          <div key={division.name} className="h-full w-full">
             <DivisionCard
               name={division.name}
               members={division.members}
@@ -580,10 +568,7 @@ const DivisionCards = ({
       : divisions.map((division) => {
           const names = findNamesForDivision(division.name);
           return (
-            <div
-              key={division.id}
-              className="h-full min-w-0 flex-[0_0_85%] md:w-full md:flex-none"
-            >
+            <div key={division.id} className="h-full w-full">
               <DivisionCard
                 name={division.name}
                 members={names}
@@ -597,12 +582,8 @@ const DivisionCards = ({
         });
 
   return (
-    <div className="embla w-full overflow-hidden" ref={emblaRef}>
-      <div
-        data-animate-stagger="0.1"
-        className="flex gap-4 md:grid md:grid-cols-2"
-        style={{ touchAction: "pan-y" }}
-      >
+    <div className="w-full">
+      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
         {cardsToRender}
       </div>
     </div>
