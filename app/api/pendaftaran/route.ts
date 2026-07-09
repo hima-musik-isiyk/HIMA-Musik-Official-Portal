@@ -198,6 +198,27 @@ async function writePendaftaranToNotion(data: {
     );
   }
 
+  let batchPageId: string | null = null;
+  try {
+    const { fetchBatchMap } = await import("@/lib/notion");
+    const { fetchContainerCMSCached } = await import("@/lib/notion-builder");
+    const cms = await fetchContainerCMSCached();
+    const currentBatchStr = cms?.variables?.CURRENT_BATCH || "2";
+    const currentBatchNum = parseInt(currentBatchStr, 10);
+    const batchMap = await fetchBatchMap();
+    const currentBatchInfo = Object.values(batchMap).find(
+      (b) => b.batchNum === currentBatchNum,
+    );
+    if (currentBatchInfo) {
+      batchPageId = currentBatchInfo.id;
+    }
+  } catch (err) {
+    console.error(
+      "[Notion Pendaftaran] Failed to fetch current batch id:",
+      err,
+    );
+  }
+
   const properties: Record<string, any> = {};
 
   for (const [name, schema] of Object.entries(dbProperties)) {
@@ -330,6 +351,11 @@ async function writePendaftaranToNotion(data: {
     if (sdmSlotPageId) {
       properties["03 SDM & Evaluasi"] = {
         relation: [{ id: sdmSlotPageId }],
+      };
+    }
+    if (batchPageId) {
+      properties["03 Batch Pendaftaran"] = {
+        relation: [{ id: batchPageId }],
       };
     }
   }
