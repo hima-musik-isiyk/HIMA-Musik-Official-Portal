@@ -178,14 +178,28 @@ async function writePendaftaranToNotion(data: {
 
   // 3. Query schema of DB_PENDAFTARAN_STORAGE to map properties
   let dbProperties: Record<string, any> = {};
-  const storageDsId = await resolveDataSourceIdSafe(storageDbId);
-  if (storageDsId) {
-    const ds = await (notion as any).dataSources.retrieve({
-      data_source_id: storageDsId,
+  let resolvedStorageDbId = storageDbId;
+
+  try {
+    const { resolveDatabaseId } = await import("@/lib/notion");
+    resolvedStorageDbId = await resolveDatabaseId(storageDbId);
+
+    // Convert to 32-char UUID with dashes if needed
+    if (!resolvedStorageDbId.includes("-")) {
+      resolvedStorageDbId = `${resolvedStorageDbId.slice(0, 8)}-${resolvedStorageDbId.slice(8, 12)}-${resolvedStorageDbId.slice(12, 16)}-${resolvedStorageDbId.slice(16, 20)}-${resolvedStorageDbId.slice(20)}`;
+    }
+
+    const ds = await notion.databases.retrieve({
+      database_id: resolvedStorageDbId,
     });
-    if (ds && ds.properties) {
+    if (ds && "properties" in ds) {
       dbProperties = ds.properties;
     }
+  } catch (err) {
+    console.error(
+      "[Notion Pendaftaran] Failed to retrieve storage DB schema:",
+      err,
+    );
   }
 
   const properties: Record<string, any> = {};
@@ -301,7 +315,7 @@ async function writePendaftaranToNotion(data: {
   }
 
   await notion.pages.create({
-    parent: { database_id: storageDbId },
+    parent: { database_id: resolvedStorageDbId },
     properties: properties as any,
   });
 }

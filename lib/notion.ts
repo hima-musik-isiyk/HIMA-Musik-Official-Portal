@@ -2635,7 +2635,7 @@ export async function fetchDivisionsFromNotion(): Promise<{
 
     const jobdeskIds = new Set<string>();
     recruitmentPages.forEach((page) => {
-      const propRole = getProperty(page, "04 Jobdesk Jabatan");
+      const propRole = getProperty(page, "04 Nama Jabatan");
       if (propRole?.type === "relation") {
         propRole.relation.forEach((r: { id: string }) => jobdeskIds.add(r.id));
       }
@@ -2705,7 +2705,7 @@ export async function fetchDivisionsFromNotion(): Promise<{
 
       const openPositions = divisionRecruitments
         .flatMap((rp) => {
-          const propRole = getProperty(rp, "04 Jobdesk Jabatan");
+          const propRole = getProperty(rp, "04 Nama Jabatan");
           if (propRole?.type === "relation") {
             return propRole.relation.map((r: { id: string }) =>
               jobdeskMap.get(r.id),

@@ -27,7 +27,8 @@ export function readCachedDivisions(): DivisionsResponse | null {
 }
 
 export function fetchDivisionsOnce(): Promise<DivisionsResponse> {
-  if (inMemoryDivisions) return Promise.resolve(inMemoryDivisions);
+  // Always fetch fresh data to sync with Notion, do not early return just because inMemory exists
+  // if (inMemoryDivisions) return Promise.resolve(inMemoryDivisions);
   if (pendingDivisionsFetch) return pendingDivisionsFetch;
 
   pendingDivisionsFetch = fetch("/api/divisions")
