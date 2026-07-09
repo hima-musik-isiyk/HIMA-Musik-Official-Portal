@@ -427,7 +427,7 @@ const DivisionCard = ({
   const sortedMembers = useMemo(() => {
     const list = members.map((m) => {
       if (typeof m === "string") {
-        return { name: m, isKepala: false };
+        return { name: m, isKepala: true };
       }
       return m;
     });
@@ -554,17 +554,25 @@ const DivisionCards = ({
 
   const cardsToRender =
     activeDivs.length > 0
-      ? activeDivs.map((division) => (
-          <div key={division.name} className="h-full w-full">
-            <DivisionCard
-              name={division.name}
-              members={division.members}
-              slots={division.slots}
-              openPositions={division.openPositions}
-              showSlots={isRecruitment}
-            />
-          </div>
-        ))
+      ? activeDivs.map((division) => {
+          // Fallback to finding names from executives if SDM database returned no members
+          const membersToUse =
+            division.members && division.members.length > 0
+              ? division.members
+              : findNamesForDivision(division.name);
+
+          return (
+            <div key={division.name} className="h-full w-full">
+              <DivisionCard
+                name={division.name}
+                members={membersToUse}
+                slots={division.slots}
+                openPositions={division.openPositions}
+                showSlots={isRecruitment}
+              />
+            </div>
+          );
+        })
       : divisions.map((division) => {
           const names = findNamesForDivision(division.name);
           return (

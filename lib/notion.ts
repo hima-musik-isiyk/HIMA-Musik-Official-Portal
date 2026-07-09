@@ -2078,7 +2078,7 @@ export async function fetchProfilOrgStructure(
       const relatedBatch = relatedBatchIds
         .map((id) => batchMap[id])
         .find(Boolean);
-      const batchNum = relatedBatch ? relatedBatch.batchNum : 999;
+      const batchNum = relatedBatch ? relatedBatch.batchNum : 0;
       return batchNum <= maxBatch;
     });
 
