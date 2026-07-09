@@ -169,8 +169,22 @@ const SelectionTimelineCalendar: React.FC<SelectionTimelineCalendarProps> = ({
   timelineData,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeYear = currentYear?.trim() || "2026";
-  const activeBatch = currentBatch?.trim() || "1";
+
+  // When Notion timelineData is provided, use its batch/year as the active values.
+  // This prevents a mismatch when cmsVariables.CURRENT_BATCH/YEAR are missing or stale.
+  const activeYear =
+    (timelineData !== undefined && timelineData !== null
+      ? timelineData.year?.trim()
+      : undefined) ||
+    currentYear?.trim() ||
+    "2026";
+  const activeBatch =
+    (timelineData !== undefined && timelineData !== null
+      ? timelineData.batch?.trim()
+      : undefined) ||
+    currentBatch?.trim() ||
+    "1";
+
   const timelineConfigs = useMemo<TimelineConfig[]>(() => {
     if (timelineData === undefined) return SELECTION_TIMELINES;
     if (timelineData === null) return [];
@@ -197,12 +211,17 @@ const SelectionTimelineCalendar: React.FC<SelectionTimelineCalendarProps> = ({
       },
     ];
   }, [activeBatch, activeYear, timelineData]);
+
+  // When timelineData is provided, use the first (and only) config directly
+  // instead of finding by batch/year to avoid cache-mismatch failures.
   const activeTimeline = useMemo(
     () =>
-      timelineConfigs.find(
-        (item) => item.year === activeYear && item.batch === activeBatch,
-      ),
-    [activeYear, activeBatch, timelineConfigs],
+      timelineData !== undefined
+        ? timelineConfigs[0]
+        : timelineConfigs.find(
+            (item) => item.year === activeYear && item.batch === activeBatch,
+          ),
+    [activeYear, activeBatch, timelineConfigs, timelineData],
   );
   const events = useMemo(() => activeTimeline?.events ?? [], [activeTimeline]);
   const calendarDays = useMemo(() => getCalendarDays(events), [events]);
