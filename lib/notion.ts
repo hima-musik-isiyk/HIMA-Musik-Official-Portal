@@ -2012,7 +2012,7 @@ export interface ProfilModularExecutive {
 
 export interface ProfilModularDivision {
   name: string;
-  members: string[];
+  members: Array<string | { name: string; isKepala?: boolean }>;
   slots: number;
   openPositions: string[];
 }
@@ -2082,9 +2082,10 @@ export async function fetchProfilOrgStructure(
       return batchNum <= maxBatch;
     });
 
-    // Collect all referenced division IDs and role IDs
+    // Collect all referenced division IDs, role IDs, and job type IDs
     const divIds = new Set<string>();
     const roleIds = new Set<string>();
+    const tipeJabatanIds = new Set<string>();
     for (const page of filteredMembers) {
       const propDiv =
         getProperty(page, "02 Struktur Organisasi") ||
@@ -2096,11 +2097,18 @@ export async function fetchProfilOrgStructure(
       if (propRole?.type === "relation") {
         propRole.relation.forEach((r: { id: string }) => roleIds.add(r.id));
       }
+      const propTipe = getProperty(page, "04 Tipe Jabatan");
+      if (propTipe?.type === "relation") {
+        propTipe.relation.forEach((r: { id: string }) =>
+          tipeJabatanIds.add(r.id),
+        );
+      }
     }
 
     // Fetch referenced titles in parallel
     const divisionMap = new Map<string, string>();
     const namaJabatanMap = new Map<string, string>();
+    const tipeJabatanMap = new Map<string, string>();
 
     const fetchTitle = async (id: string, map: Map<string, string>) => {
       try {
@@ -2120,6 +2128,7 @@ export async function fetchProfilOrgStructure(
     await Promise.all([
       ...Array.from(divIds).map((id) => fetchTitle(id, divisionMap)),
       ...Array.from(roleIds).map((id) => fetchTitle(id, namaJabatanMap)),
+      ...Array.from(tipeJabatanIds).map((id) => fetchTitle(id, tipeJabatanMap)),
     ]);
 
     // Map members to a clean structure
@@ -2131,6 +2140,14 @@ export async function fetchProfilOrgStructure(
       const roles = roleRelationIds
         .map((id) => namaJabatanMap.get(id) || "")
         .filter(Boolean);
+
+      const typeRelationIds = getRelationIds(page, "04 Tipe Jabatan");
+      const types = typeRelationIds
+        .map((id) => tipeJabatanMap.get(id) || "")
+        .filter(Boolean);
+      const isKepala = types.some((t) =>
+        t.toLowerCase().includes("kepala divisi"),
+      );
 
       const status = getSelect(page, "Status Keaktifan");
 
@@ -2151,6 +2168,7 @@ export async function fetchProfilOrgStructure(
         roles,
         divisionName,
         isOpen,
+        isKepala,
       };
     });
 
@@ -2256,7 +2274,11 @@ export async function fetchProfilOrgStructure(
     // Group divisions dynamically
     const divGroups = new Map<
       string,
-      { members: string[]; slots: number; openPositions: string[] }
+      {
+        members: Array<{ name: string; isKepala?: boolean }>;
+        slots: number;
+        openPositions: string[];
+      }
     >();
 
     // Add all unique referenced non-BPH division names to map
@@ -2288,7 +2310,7 @@ export async function fetchProfilOrgStructure(
           group.openPositions.push(cleanRole);
         }
       } else {
-        group.members.push(m.name);
+        group.members.push({ name: m.name, isKepala: m.isKepala });
       }
     }
 

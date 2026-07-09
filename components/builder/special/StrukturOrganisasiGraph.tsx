@@ -416,15 +416,29 @@ const DivisionCard = ({
   slots,
   openPositions,
   angkatan,
+  showSlots = false,
 }: {
   name: string;
-  members: string[];
+  members: Array<string | { name: string; isKepala?: boolean }>;
   slots: number;
   openPositions: string[];
   angkatan?: string;
+  showSlots?: boolean;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const rotatingTextRef = useRef<RotatingTextRef | null>(null);
+
+  const sortedMembers = useMemo(() => {
+    const list = members.map((m) => {
+      if (typeof m === "string") {
+        return { name: m, isKepala: false };
+      }
+      return m;
+    });
+    return [...list].sort(
+      (a, b) => (b.isKepala ? 1 : 0) - (a.isKepala ? 1 : 0),
+    );
+  }, [members]);
 
   const rotatingTexts = useMemo(() => {
     const defaultText = `${slots} Posisi`;
@@ -447,19 +461,37 @@ const DivisionCard = ({
       data-animate="up"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="border-gold-500/20 bg-gold-500/5 group hover:border-gold-500/50 hover:bg-gold-500/10 relative cursor-default border p-6 text-center transition-colors duration-300"
+      className="border-gold-500/20 bg-gold-500/5 group hover:border-gold-500/50 hover:bg-gold-500/10 relative h-full cursor-default border p-6 text-center transition-colors duration-300"
     >
       <p className="text-gold-200 mb-3 font-serif text-base transition-colors duration-300 group-hover:text-white">
         {name}
       </p>
-      {members.length > 0 ? (
-        <div className="text-gold-200/60 group-hover:text-gold-200/80 mb-2 text-sm transition-colors duration-300">
-          {members.map((n) => (
-            <div key={n}>{n}</div>
+      {sortedMembers.length > 0 ? (
+        <div className="text-gold-200/60 group-hover:text-gold-200/80 mb-3 space-y-2 text-sm transition-colors duration-300">
+          {sortedMembers.map((m) => (
+            <div
+              key={m.name}
+              className="flex flex-col items-center justify-center"
+            >
+              <span
+                className={
+                  m.isKepala
+                    ? "text-gold-200 font-medium group-hover:text-white"
+                    : ""
+                }
+              >
+                {m.name}
+              </span>
+              {m.isKepala && (
+                <span className="text-gold-500 mt-0.5 text-[9px] font-semibold tracking-[0.1em] uppercase">
+                  Kepala Divisi
+                </span>
+              )}
+            </div>
           ))}
         </div>
       ) : null}
-      {slots > 0 ? (
+      {showSlots && slots > 0 ? (
         <div className="flex min-h-6 items-center justify-center text-sm font-medium">
           <div className="flex items-center gap-1.5">
             <span className="text-gold-300/80 shrink-0 font-serif text-xs tracking-wider uppercase">
@@ -537,13 +569,14 @@ const DivisionCards = ({
       ? activeDivs.map((division) => (
           <div
             key={division.name}
-            className="min-w-0 flex-[0_0_85%] md:w-full md:flex-initial"
+            className="h-full min-w-0 flex-[0_0_85%] md:w-full md:flex-none"
           >
             <DivisionCard
               name={division.name}
               members={division.members}
               slots={division.slots}
               openPositions={division.openPositions}
+              showSlots={isRecruitment}
             />
           </div>
         ))
@@ -552,7 +585,7 @@ const DivisionCards = ({
           return (
             <div
               key={division.id}
-              className="min-w-0 flex-[0_0_85%] md:w-full md:flex-initial"
+              className="h-full min-w-0 flex-[0_0_85%] md:w-full md:flex-none"
             >
               <DivisionCard
                 name={division.name}
@@ -560,6 +593,7 @@ const DivisionCards = ({
                 slots={division.slots}
                 openPositions={[]}
                 angkatan={(division as { angkatan?: string }).angkatan}
+                showSlots={isRecruitment}
               />
             </div>
           );
@@ -570,6 +604,7 @@ const DivisionCards = ({
       <div
         data-animate-stagger="0.1"
         className="flex gap-4 md:grid md:grid-cols-2"
+        style={{ touchAction: "pan-y" }}
       >
         {cardsToRender}
       </div>
