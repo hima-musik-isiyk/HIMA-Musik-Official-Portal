@@ -2513,8 +2513,8 @@ function inferRecruitmentEventDescription(title: string, batchLabel: string) {
 export const fetchCurrentRecruitmentTimelineCached = unstable_cache(
   async (): Promise<RecruitmentTimelineData | null> => {
     try {
-      const { fetchContainerCMSCached } = await import("./notion-builder");
-      const cms = await fetchContainerCMSCached();
+      const { fetchContainerCMS } = await import("./notion-builder");
+      const cms = await fetchContainerCMS();
       const currentBatch = cms?.variables?.CURRENT_BATCH?.trim() || "";
       const currentYear = cms?.variables?.CURRENT_YEAR?.trim() || "";
       const currentBatchNum = Number.parseInt(currentBatch, 10);
@@ -2638,16 +2638,17 @@ export async function fetchDivisionsFromNotion(): Promise<{
     const structPages = structResponse.results as NotionPage[];
 
     const sdmDataSourceId = await resolveDataSourceIdSafe(sdmDbId);
-    let sdmPages: NotionPage[] = [];
-    if (sdmDataSourceId) {
-      const sdmResponse = await client.dataSources.query({
-        data_source_id: sdmDataSourceId,
-      });
-      sdmPages = sdmResponse.results as NotionPage[];
+    if (!sdmDataSourceId) {
+      const { divisions: staticDivs } = await import("./pendaftaran-data");
+      return { divisions: staticDivs, angkatanList: ["2023", "2024", "2025"] };
     }
+    const sdmResponse = await client.dataSources.query({
+      data_source_id: sdmDataSourceId,
+    });
+    const sdmPages = sdmResponse.results as NotionPage[];
 
-    const { fetchContainerCMSCached } = await import("./notion-builder");
-    const cms = await fetchContainerCMSCached();
+    const { fetchContainerCMS } = await import("./notion-builder");
+    const cms = await fetchContainerCMS();
     const currentBatchStr = cms?.variables?.CURRENT_BATCH || "2";
     const currentBatchNum = parseInt(currentBatchStr, 10);
 

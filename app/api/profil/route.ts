@@ -1,9 +1,9 @@
 import { connection, NextResponse } from "next/server";
 
 import { cleanCmsValue } from "@/lib/cms-placeholders";
-import { fetchProfilOrgStructureCached } from "@/lib/notion";
+import { fetchProfilOrgStructure } from "@/lib/notion";
 import {
-  fetchContainerCMSCached,
+  fetchContainerCMS,
   resolveCmsComponentDatabaseId,
   resolveProfilMaxBatchFromCms,
 } from "@/lib/notion-builder";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       "Tampilkan Batch dari 1 Sampai",
     ]);
 
-    const cms = await fetchContainerCMSCached();
+    const cms = await fetchContainerCMS();
 
     if (!databaseId) {
       databaseId =
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       ? Number.parseInt(batchParam, 10)
       : resolveProfilMaxBatchFromCms(cms);
 
-    const data = await fetchProfilOrgStructureCached({
+    const data = await fetchProfilOrgStructure({
       sdmDatabaseId: databaseId,
       maxBatch: Number.isNaN(maxBatch) ? 999 : maxBatch,
     });

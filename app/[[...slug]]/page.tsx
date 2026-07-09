@@ -22,6 +22,8 @@ import {
   findCmsPageForPath,
 } from "@/lib/notion-builder";
 
+export const revalidate = 60;
+
 interface CatchAllProps {
   params: Promise<{ slug?: string[] }>;
 }

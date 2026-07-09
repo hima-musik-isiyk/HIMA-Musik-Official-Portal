@@ -63,11 +63,6 @@ export default function PendaftaranChecklists({
             tersebut untuk memberikan dampak nyata bagi program kerja
             HIMA.&quot;
           </p>
-          <div className="h-px w-full bg-white/5" />
-          <p className="mt-6 text-xs leading-relaxed text-neutral-500">
-            Pastikan portofolio (khusus PDD & Event) sudah dalam format PDF yang
-            rapi atau link folder yang bisa diakses publik.
-          </p>
         </div>
       </div>
     </div>
