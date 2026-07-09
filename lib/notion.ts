@@ -2613,8 +2613,8 @@ export const fetchCurrentRecruitmentTimelineCached = unstable_cache(
   },
   ["notion-current-recruitment-timeline"],
   {
-    revalidate: 60,
-    tags: ["notion-current-recruitment-timeline", "notion-batch-map"],
+    revalidate: 300,
+    tags: ["notion-container", "recruitment"],
   },
 );
 
