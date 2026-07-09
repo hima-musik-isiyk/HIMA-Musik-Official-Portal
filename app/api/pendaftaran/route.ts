@@ -96,11 +96,7 @@ async function writePendaftaranToNotion(data: {
   if (!notion) return;
 
   const storageDbId = DB_PENDAFTARAN_STORAGE;
-  if (
-    !storageDbId ||
-    storageDbId.includes("placeholder") ||
-    storageDbId.length < 32
-  ) {
+  if (!storageDbId || storageDbId.includes("placeholder")) {
     console.warn(
       "[Notion Pendaftaran] DB_PENDAFTARAN_STORAGE not configured. Skipping Notion write.",
     );
@@ -110,7 +106,7 @@ async function writePendaftaranToNotion(data: {
   // 1. Find division page from DB_STRUKTUR_ORGANISASI
   let divisionPageId: string | null = null;
   const structDbId = DB_STRUKTUR_ORGANISASI;
-  if (structDbId && structDbId.length >= 32) {
+  if (structDbId) {
     try {
       const dsId = await resolveDataSourceIdSafe(structDbId);
       if (dsId) {
@@ -146,7 +142,7 @@ async function writePendaftaranToNotion(data: {
   // 2. Find SDM slot from DB_SDM_EVALUASI
   let sdmSlotPageId: string | null = null;
   const sdmDbId = DB_SDM_EVALUASI;
-  if (sdmDbId && sdmDbId.length >= 32 && divisionPageId) {
+  if (sdmDbId && divisionPageId) {
     try {
       const dsId = await resolveDataSourceIdSafe(sdmDbId);
       if (dsId) {
@@ -305,12 +301,36 @@ async function writePendaftaranToNotion(data: {
   }
 
   if (Object.keys(properties).length === 0) {
-    properties["Nama Lengkap"] = {
+    properties["Name"] = {
       title: [{ text: { content: data.fullName } }],
     };
-    properties["Email"] = { email: data.email };
-    if (divisionPageId) {
-      properties["Divisi"] = { relation: [{ id: divisionPageId }] };
+    properties["NIM"] = {
+      rich_text: [{ text: { content: data.nim || "" } }],
+    };
+    properties["Kontak"] = {
+      rich_text: [
+        {
+          text: {
+            content: `Email: ${data.email}\nWA: ${data.phone}\nIG: ${data.instagram || "-"}`,
+          },
+        },
+      ],
+    };
+    properties["Motivasi"] = {
+      rich_text: [{ text: { content: data.motivation || "" } }],
+    };
+    if (data.portfolio) {
+      properties["Link Portfolio"] = {
+        rich_text: [{ text: { content: data.portfolio } }],
+      };
+    }
+    properties["Status Seleksi"] = {
+      status: { name: "Masuk" },
+    };
+    if (sdmSlotPageId) {
+      properties["03 SDM & Evaluasi"] = {
+        relation: [{ id: sdmSlotPageId }],
+      };
     }
   }
 
