@@ -94,6 +94,38 @@ export const PageBuilder: React.FC<PageBuilderProps> = async ({
   const visibleSections = page.sections.filter((s) => s.show);
   const entranceSlug = normalizeCmsSlug(page.slug || pathname);
 
+  const sidebarSection = visibleSections.find(
+    (s) => s.order?.trim().toLowerCase() === "sidebar",
+  );
+  const mainSections = visibleSections.filter(
+    (s) => s.order?.trim().toLowerCase() !== "sidebar",
+  );
+
+  if (sidebarSection) {
+    return (
+      <PageEntranceWrapper key={entranceSlug} slug={entranceSlug}>
+        <div className="flex min-h-[calc(100vh-5rem)] w-full">
+          <SectionBuilder
+            key={sidebarSection.id}
+            section={sidebarSection}
+            cmsData={cmsData}
+            injectedProps={injectedProps}
+          />
+          <div className="min-w-0 flex-1">
+            {mainSections.map((section) => (
+              <SectionBuilder
+                key={section.id}
+                section={section}
+                cmsData={cmsData}
+                injectedProps={injectedProps}
+              />
+            ))}
+          </div>
+        </div>
+      </PageEntranceWrapper>
+    );
+  }
+
   return (
     <PageEntranceWrapper key={entranceSlug} slug={entranceSlug}>
       <div className="w-full">

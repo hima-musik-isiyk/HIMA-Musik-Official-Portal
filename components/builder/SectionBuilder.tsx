@@ -165,6 +165,10 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
     a.localeCompare(b, undefined, { numeric: true }),
   );
 
+  if (section.order?.trim().toLowerCase() === "sidebar") {
+    return <>{sortedGroupKeys.map((key) => renderGroup(key, fgGroups[key]))}</>;
+  }
+
   return (
     <section id={section.slug?.replace("#", "")} className={baseSectionClass}>
       {bgComponents.length > 0 && (
