@@ -667,31 +667,36 @@ export function resolveCmsComponentDatabaseId(
   const instances = findCmsComponentInstances(cms, componentName);
   if (!instances.length) return null;
 
-  const registry = cms.componentRegistry[instances[0].typeId];
-  const comp = instances[0];
+  for (const comp of instances) {
+    const registry = cms.componentRegistry[comp.typeId];
+    if (registry) {
+      const byLabel = resolveCmsComponentFieldValue(
+        cms,
+        componentName,
+        registryFieldToCmsValue(registry, field),
+      );
+      if (byLabel) return byLabel;
+    }
 
-  if (registry) {
-    const byLabel = resolveCmsComponentFieldValue(
-      cms,
-      componentName,
-      registryFieldToCmsValue(registry, field),
-    );
-    if (byLabel) return byLabel;
+    const raw =
+      field === "value"
+        ? comp.value
+        : field === "value2"
+          ? comp.value2
+          : comp.value3;
+
+    const registryLabel =
+      field === "value"
+        ? registry?.value1
+        : field === "value2"
+          ? registry?.value2
+          : registry?.value3;
+
+    const cleanValue = cleanCmsValue(raw, [registryLabel || ""]);
+    if (cleanValue) return cleanValue;
   }
 
-  const raw =
-    field === "value"
-      ? comp.value
-      : field === "value2"
-        ? comp.value2
-        : comp.value3;
-  const registryLabel =
-    field === "value"
-      ? registry?.value1
-      : field === "value2"
-        ? registry?.value2
-        : registry?.value3;
-  return cleanCmsValue(raw, [registryLabel]) || null;
+  return null;
 }
 
 export async function resolveProfilSdmDatabaseIdFromCms(): Promise<

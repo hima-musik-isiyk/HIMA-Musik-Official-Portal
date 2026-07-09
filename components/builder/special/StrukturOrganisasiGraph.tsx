@@ -81,14 +81,11 @@ export const StrukturOrganisasiGraph: React.FC<
     } catch {}
 
     const fetchProfilData = async () => {
-      if (!activeDatabaseId) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
         const params = new URLSearchParams();
-        params.set("databaseId", activeDatabaseId);
+        if (activeDatabaseId) {
+          params.set("databaseId", activeDatabaseId);
+        }
         if (activeBatch) {
           params.set("batch", activeBatch);
         }
