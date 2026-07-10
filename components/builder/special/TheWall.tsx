@@ -213,7 +213,7 @@ export default function TheWall() {
 
   if (!boardId) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0a0a]">
+      <div className="flex h-[calc(100svh-5rem)] min-h-[32rem] w-full items-center justify-center bg-[#0a0a0a]">
         <div className="text-center">
           <p className="animate-pulse font-serif text-2xl text-white/50">
             The Wall
@@ -228,7 +228,7 @@ export default function TheWall() {
 
   return (
     <div
-      className="fixed inset-0 touch-none overflow-hidden bg-[#0a0a0a] select-none"
+      className="relative h-[calc(100svh-5rem)] min-h-[32rem] w-full touch-none overflow-hidden bg-[#0a0a0a] select-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

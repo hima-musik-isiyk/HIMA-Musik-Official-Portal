@@ -81,6 +81,7 @@ export const GROUP_DIV = {
   BACKGROUND: "Background",
   IGNORE_SECTION_PADDINGS: "Ignore Section Paddings",
   SPAN_ALL_HEIGHT: "Span All Height",
+  SPAN_ALL_HEIGHT_AND_WIDTH: "Span All Height and Width",
 } as const;
 
 export type GroupDivName = (typeof GROUP_DIV)[keyof typeof GROUP_DIV];
