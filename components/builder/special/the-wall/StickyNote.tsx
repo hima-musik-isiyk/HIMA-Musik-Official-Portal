@@ -105,7 +105,6 @@ export default function StickyNote({
   }, [isDragging, scale, note.id, note.board_id, onPositionChangeLocally]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.stopPropagation(); // prevent panning the board
     if (e.button !== 0) return; // only left click
     if (!isOwner) return; // Only owner can drag
     if (isEditing) return; // Don't drag while editing

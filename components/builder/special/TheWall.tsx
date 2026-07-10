@@ -36,21 +36,14 @@ export default function TheWall() {
     const w = typeof window !== "undefined" ? window.innerWidth : 1000;
     const h = typeof window !== "undefined" ? window.innerHeight : 1000;
 
-    const minX = w - BOUND_X * s;
-    const maxX = BOUND_X * s;
-    if (minX > maxX) {
-      cx = (minX + maxX) / 2;
-    } else {
-      cx = Math.max(minX, Math.min(maxX, cx));
-    }
+    // Allow panning so canvas corners can reach center of screen
+    const minX = w / 2 - BOUND_X * s;
+    const maxX = w / 2;
+    cx = Math.max(minX, Math.min(maxX, cx));
 
-    const minY = h - BOUND_Y * s;
-    const maxY = BOUND_Y * s;
-    if (minY > maxY) {
-      cy = (minY + maxY) / 2;
-    } else {
-      cy = Math.max(minY, Math.min(maxY, cy));
-    }
+    const minY = h / 2 - BOUND_Y * s;
+    const maxY = h / 2;
+    cy = Math.max(minY, Math.min(maxY, cy));
 
     return { x: cx, y: cy };
   }, []);
@@ -169,7 +162,7 @@ export default function TheWall() {
     return () => window.removeEventListener("resize", updateViewport);
   }, [position, scale]);
 
-  // Handle preventDefault for wheel on desktop trackpad zooming
+  // Handle preventDefault for wheel on desktop trackpad zooming and Safari gestures
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -178,8 +171,19 @@ export default function TheWall() {
         e.preventDefault();
       }
     };
+    const preventGesture = (e: Event) => {
+      e.preventDefault();
+    };
     el.addEventListener("wheel", preventDefaultWheel, { passive: false });
-    return () => el.removeEventListener("wheel", preventDefaultWheel);
+    el.addEventListener("gesturestart", preventGesture);
+    el.addEventListener("gesturechange", preventGesture);
+    el.addEventListener("gestureend", preventGesture);
+    return () => {
+      el.removeEventListener("wheel", preventDefaultWheel);
+      el.removeEventListener("gesturestart", preventGesture);
+      el.removeEventListener("gesturechange", preventGesture);
+      el.removeEventListener("gestureend", preventGesture);
+    };
   }, []);
 
   // Panning logic
@@ -191,9 +195,10 @@ export default function TheWall() {
   const initialPinchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only pan if clicking on the background, not on a note
-    if ((e.target as HTMLElement).closest(".sticky-note-container")) return;
-    if ((e.target as HTMLElement).closest(".wall-ui")) return;
+    const isNote = !!(e.target as HTMLElement).closest(
+      ".sticky-note-container",
+    );
+    const isUI = !!(e.target as HTMLElement).closest(".wall-ui");
 
     if (e.pointerType === "touch" || e.pointerType === "pen") {
       activePointers.current.set(e.pointerId, e);
@@ -211,7 +216,7 @@ export default function TheWall() {
           y: (pts[0].clientY + pts[1].clientY) / 2,
         };
         initialPinchPos.current = { ...position };
-      } else if (activePointers.current.size === 1) {
+      } else if (activePointers.current.size === 1 && !isNote && !isUI) {
         setIsPanning(true);
         dragStart.current = {
           x: e.clientX,
@@ -223,7 +228,7 @@ export default function TheWall() {
       return;
     }
 
-    if (e.button !== 0) return; // only left click
+    if (e.button !== 0 || isNote || isUI) return;
     setIsPanning(true);
     dragStart.current = {
       x: e.clientX,
@@ -388,15 +393,23 @@ export default function TheWall() {
     [scale, clampPosition],
   );
 
-  // Compute center for new notes using viewport state which is safe from hydration mismatches
   const viewportCenter = {
     x: (-position.x + viewport.width / 2) / scale,
     y: (-position.y + viewport.height / 2) / scale,
   };
 
+  useEffect(() => {
+    if (boardId && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPosition(
+        clampPosition((rect.width - 3000) / 2, (rect.height - 2000) / 2, 1),
+      );
+    }
+  }, [boardId, clampPosition]);
+
   if (!boardId) {
     return (
-      <div className="flex h-[calc(100svh-5rem)] min-h-[32rem] w-full items-center justify-center bg-[#0a0a0a]">
+      <div className="fixed inset-x-0 top-[5rem] bottom-0 z-40 flex w-full items-center justify-center bg-[#0a0a0a]">
         <div className="text-center">
           <p className="animate-pulse font-serif text-2xl text-white/50">
             The Wall
@@ -411,7 +424,7 @@ export default function TheWall() {
 
   return (
     <div
-      className="relative h-[calc(100svh-5rem)] min-h-[32rem] w-full touch-none overflow-hidden bg-[#0a0a0a] select-none"
+      className="fixed inset-x-0 top-[5rem] bottom-0 z-40 w-full touch-none overflow-hidden bg-[#0a0a0a] select-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -457,7 +470,18 @@ export default function TheWall() {
           onZoomOut={() => handleZoomToCenter(-0.2)}
           onReset={() => {
             setScale(1);
-            setPosition(clampPosition(0, 0, 1));
+            if (containerRef.current) {
+              const rect = containerRef.current.getBoundingClientRect();
+              setPosition(
+                clampPosition(
+                  (rect.width - 3000) / 2,
+                  (rect.height - 2000) / 2,
+                  1,
+                ),
+              );
+            } else {
+              setPosition(clampPosition(0, 0, 1));
+            }
           }}
         />
 
