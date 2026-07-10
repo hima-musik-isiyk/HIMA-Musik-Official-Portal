@@ -80,7 +80,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           />
         </Suspense>
         <CommandPalette />
-        <CmsLiveRefresh />
+        <Suspense fallback={null}>
+          <CmsLiveRefresh />
+        </Suspense>
         <main className="relative z-3 grow pt-20 pb-12 md:pb-16">
           <Suspense>
             <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
