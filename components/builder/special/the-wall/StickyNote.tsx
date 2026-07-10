@@ -29,7 +29,7 @@ const COLOR_MAP: Record<string, string> = {
   blue: "bg-blue-200 text-blue-900 border-blue-300",
   green: "bg-emerald-200 text-emerald-900 border-emerald-300",
   pink: "bg-pink-200 text-pink-900 border-pink-300",
-  gold: "bg-[#ff6501]/20 text-white border-gold-500/30",
+  gold: "bg-gold-500 text-white border-gold-600",
 };
 
 export default function StickyNote({
@@ -46,11 +46,13 @@ export default function StickyNote({
   const dragStart = useRef({ x: 0, y: 0, initialNoteX: 0, initialNoteY: 0 });
   const isOwner = Boolean(sessionId && note.session_id === sessionId);
 
-  // Deterministic random rotation based on UUID (e.g. ranges from -4deg to +4deg)
-  // UUIDs are hex strings. Take the first 4 chars, convert to int, modulo 9, minus 4.
+  // Deterministic random rotation based on UUID (ranges from -4deg to +4deg)
   const rotation = useMemo(() => {
-    const hash = parseInt(note.id.substring(0, 4), 16) || 0;
-    return (hash % 9) - 4;
+    let hash = 0;
+    for (let i = 0; i < note.id.length; i++) {
+      hash = note.id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return (Math.abs(hash) % 9) - 4;
   }, [note.id]);
 
   useEffect(() => {
@@ -141,7 +143,7 @@ export default function StickyNote({
       onPointerDown={handlePointerDown}
       className={`absolute w-64 border p-4 shadow-xl ${colorClasses} ${isOwner ? (isDragging ? "z-40 cursor-grabbing opacity-90" : "z-10 cursor-grab") : "z-10"} transition-colors`}
       style={{
-        transform: `translate(${note.x}px, ${note.y}px) rotate(${isDragging ? 0 : rotation}deg)`,
+        transform: `translate(${note.x}px, ${note.y}px) rotate(${isDragging || isEditing ? 0 : rotation}deg)`,
         // We use translate instead of left/top for better performance
         // but it requires position: absolute on the container
         left: 0,

@@ -23,6 +23,7 @@ export default function TheWall() {
     height: 1000,
   });
   const [sessionId, setSessionId] = useState<string>("");
+  const sessionIdRef = useRef<string>("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const clampPosition = useCallback((x: number, y: number, s: number) => {
@@ -56,6 +57,7 @@ export default function TheWall() {
       localStorage.setItem("the_wall_session_id", storedSession);
     }
     setSessionId(storedSession);
+    sessionIdRef.current = storedSession;
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
@@ -128,6 +130,9 @@ export default function TheWall() {
               return [...prev, payload.new as WallNoteData];
             });
           } else if (payload.eventType === "UPDATE") {
+            // Ignore our own updates to prevent race conditions during rapid consecutive local actions
+            if (payload.new.session_id === sessionIdRef.current) return;
+
             setNotes((prev) =>
               prev.map((n) =>
                 n.id === payload.new.id ? { ...n, ...payload.new } : n,
