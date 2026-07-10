@@ -22,6 +22,7 @@ import PendaftaranForm from "./special/PendaftaranForm";
 import SekretariatGrid from "./special/SekretariatGrid";
 import SekretariatSidebar from "./special/SekretariatSidebar";
 import { StrukturOrganisasiGraph } from "./special/StrukturOrganisasiGraph";
+import TheWall from "./special/TheWall";
 import TimelineSeleksi from "./special/TimelineSeleksi";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,4 +52,5 @@ export const componentRegistry: Record<string, RegistryComponent> = {
   "Doc Page": DocPage,
   "Event Detail": EventDetail,
   "Pendaftaran Form": PendaftaranForm,
+  "The Wall": TheWall,
 };

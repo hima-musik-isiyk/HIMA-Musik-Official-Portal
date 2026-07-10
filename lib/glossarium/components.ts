@@ -38,6 +38,7 @@ export const COMPONENT_NAMES = [
   "Doc Page",
   "Event Detail",
   "Pendaftaran Form",
+  "The Wall",
 ] as const;
 
 export type ComponentName = (typeof COMPONENT_NAMES)[number];
