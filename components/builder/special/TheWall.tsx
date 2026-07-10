@@ -11,6 +11,7 @@ import WallZoomControls from "./the-wall/WallZoomControls";
 
 export default function TheWall() {
   const [boardId, setBoardId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [notes, setNotes] = useState<WallNoteData[]>([]);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -26,27 +27,49 @@ export default function TheWall() {
   // Initialize and subscribe
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
+    if (!supabase) {
+      setConnectionError("Supabase credentials are missing.");
+      return;
+    }
 
     let activeBoardId: string | null = null;
 
     const fetchBoardAndNotes = async () => {
       // 1. Get active board
-      const { data: boards } = await supabase
+      const { data: boards, error: boardsError } = await supabase
         .from("the_wall_boards")
         .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
         .limit(1);
+
+      if (boardsError) {
+        setConnectionError("The Wall database is not ready.");
+        return;
+      }
+
+      if (!boards || boards.length === 0) {
+        setConnectionError("No active wall board found.");
+        return;
+      }
+
+      setConnectionError(null);
 
       if (boards && boards.length > 0) {
         activeBoardId = boards[0].id;
         setBoardId(activeBoardId);
 
         // 2. Fetch notes
-        const { data: initialNotes } = await supabase
+        const { data: initialNotes, error: notesError } = await supabase
           .from("the_wall_notes")
           .select("*")
           .eq("board_id", activeBoardId)
           .order("created_at", { ascending: true });
+
+        if (notesError) {
+          setConnectionError("Wall notes could not be loaded.");
+          return;
+        }
 
         if (initialNotes) {
           setNotes(initialNotes as WallNoteData[]);
@@ -196,7 +219,7 @@ export default function TheWall() {
             The Wall
           </p>
           <p className="mt-2 text-sm text-white/30">
-            Waiting for connection...
+            {connectionError ?? "Waiting for connection..."}
           </p>
         </div>
       </div>

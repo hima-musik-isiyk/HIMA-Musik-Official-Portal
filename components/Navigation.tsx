@@ -462,7 +462,7 @@ const Navigation: React.FC<NavigationProps> = ({
     const updateViewportState = () => {
       if (typeof window === "undefined") return;
       setIsCompactMobileMenu(window.innerHeight < 640);
-      setIsMobileViewport(window.innerWidth < 1024);
+      setIsMobileViewport(window.innerWidth < 1400);
     };
     updateViewportState();
     window.addEventListener("resize", updateViewportState);
@@ -536,7 +536,7 @@ const Navigation: React.FC<NavigationProps> = ({
         <div className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           {/* LEFT: Sidebar toggle (Mobile only, shown in /sekretariat) */}
           <div
-            className={`absolute top-1/2 left-6 z-50 -translate-y-1/2 lg:hidden ${
+            className={`absolute top-1/2 left-6 z-50 -translate-y-1/2 min-[1400px]:hidden ${
               hasMounted ? "transition-all duration-500 ease-in-out" : ""
             } ${
               isPathActive("/sekretariat")
@@ -595,15 +595,15 @@ const Navigation: React.FC<NavigationProps> = ({
             />
           </Link>
 
-          {/* CENTER: Desktop Nav — flat 7-item */}
-          <div className="hidden items-center gap-1 md:flex">
+          {/* CENTER: Desktop Nav */}
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-0 max-[1399px]:hidden 2xl:gap-1">
             {navItems.map((item) =>
               item.isAnchor ? (
                 <button
                   key={item.label}
                   type="button"
                   onClick={handleKontakClick}
-                  className="group relative px-4 py-2 text-sm font-medium tracking-[0.2em] text-neutral-500 transition-all duration-500 hover:text-white"
+                  className="group relative px-2.5 py-2 text-xs font-medium tracking-[0.14em] whitespace-nowrap text-neutral-500 transition-all duration-500 hover:text-white 2xl:px-4 2xl:text-sm 2xl:tracking-[0.2em]"
                 >
                   {item.label}
                   <span className="bg-gold-500 absolute -bottom-0.5 left-1/2 h-px w-0 -translate-x-1/2 opacity-0 transition-all duration-500 group-hover:w-1/2 group-hover:opacity-50" />
@@ -613,7 +613,7 @@ const Navigation: React.FC<NavigationProps> = ({
                   key={item.label}
                   href={item.href!}
                   onClick={markIntentionalRouteAnimation}
-                  className={`group relative px-4 py-2 text-sm font-medium tracking-[0.2em] transition-all duration-500 ${
+                  className={`group relative px-2.5 py-2 text-xs font-medium tracking-[0.14em] whitespace-nowrap transition-all duration-500 2xl:px-4 2xl:text-sm 2xl:tracking-[0.2em] ${
                     isPathActive(item.href!)
                       ? "text-gold-500"
                       : "text-neutral-500 hover:text-white"
@@ -683,7 +683,7 @@ const Navigation: React.FC<NavigationProps> = ({
             {/* Mobile hamburger */}
             <button
               type="button"
-              className="group relative z-50 flex flex-col space-y-1.5 p-2 lg:hidden"
+              className="group relative z-50 flex flex-col space-y-1.5 p-2 min-[1400px]:hidden"
               onClick={handleMenuToggle}
               aria-label="Toggle menu"
               style={{ touchAction: "manipulation" }}
@@ -712,7 +712,7 @@ const Navigation: React.FC<NavigationProps> = ({
       <div
         ref={mobileMenuRef}
         style={{ zIndex: mobileMenuLayer }}
-        className={`fixed inset-0 flex flex-col pt-24 will-change-transform lg:hidden ${
+        className={`fixed inset-0 flex flex-col pt-24 will-change-transform min-[1400px]:hidden ${
           isNavigating ? "bg-transparent" : "bg-[#0a0a0a]"
         } ${
           isMenuOpen
