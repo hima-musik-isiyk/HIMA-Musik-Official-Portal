@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo,useRef, useState } from "react";
 
 import { updateWallNotePosition } from "@/lib/the-wall-actions";
 
@@ -13,12 +13,14 @@ export interface WallNoteData {
   x: number;
   y: number;
   created_at: string;
+  session_id?: string;
 }
 
 interface StickyNoteProps {
   note: WallNoteData;
   scale: number;
   onPositionChangeLocally: (id: string, x: number, y: number) => void;
+  sessionId: string;
 }
 
 const COLOR_MAP: Record<string, string> = {
@@ -33,10 +35,21 @@ export default function StickyNote({
   note,
   scale,
   onPositionChangeLocally,
+  sessionId,
 }: StickyNoteProps) {
   const noteRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(note.content);
   const dragStart = useRef({ x: 0, y: 0, initialNoteX: 0, initialNoteY: 0 });
+  const isOwner = Boolean(sessionId && note.session_id === sessionId);
+
+  // Deterministic random rotation based on UUID (e.g. ranges from -4deg to +4deg)
+  // UUIDs are hex strings. Take the first 4 chars, convert to int, modulo 9, minus 4.
+  const rotation = useMemo(() => {
+    const hash = parseInt(note.id.substring(0, 4), 16) || 0;
+    return (hash % 9) - 4;
+  }, [note.id]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -66,6 +79,7 @@ export default function StickyNote({
         board_id: note.board_id,
         x: newX,
         y: newY,
+        session_id: sessionId,
       });
     };
 
@@ -81,10 +95,14 @@ export default function StickyNote({
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation(); // prevent panning the board
     if (e.button !== 0) return; // only left click
+    if (!isOwner) return; // Only owner can drag
+    if (isEditing) return; // Don't drag while editing
+
     const target = e.target as HTMLElement;
     // Don't drag if selecting text
     if (
-      target.tagName.toLowerCase() === "p" &&
+      (target.tagName.toLowerCase() === "p" ||
+        target.tagName.toLowerCase() === "textarea") &&
       window.getSelection()?.toString()
     )
       return;
@@ -105,9 +123,9 @@ export default function StickyNote({
     <div
       ref={noteRef}
       onPointerDown={handlePointerDown}
-      className={`absolute w-64 border p-4 shadow-xl ${colorClasses} ${isDragging ? "z-40 cursor-grabbing opacity-90" : "z-10 cursor-grab"} transition-colors`}
+      className={`absolute w-64 border p-4 shadow-xl ${colorClasses} ${isOwner ? (isDragging ? "z-40 cursor-grabbing opacity-90" : "z-10 cursor-grab") : "z-10"} transition-colors`}
       style={{
-        transform: `translate(${note.x}px, ${note.y}px)`,
+        transform: `translate(${note.x}px, ${note.y}px) rotate(${isDragging ? 0 : rotation}deg)`,
         // We use translate instead of left/top for better performance
         // but it requires position: absolute on the container
         left: 0,
@@ -119,12 +137,91 @@ export default function StickyNote({
       <div
         className={`mb-3 border-b pb-2 ${isDark ? "border-white/10 text-white/50" : "border-black/10 text-black/50"} flex items-center justify-between text-xs`}
       >
-        <span className="max-w-[150px] truncate font-semibold">
+        <span className="max-w-[120px] truncate font-semibold">
           {note.author}
         </span>
-        <span>{new Date(note.created_at).toLocaleDateString()}</span>
+        <div className="flex items-center gap-2">
+          <span>{new Date(note.created_at).toLocaleDateString()}</span>
+          {isOwner && (
+            <>
+              <button
+                className="font-bold text-blue-500 transition-colors hover:text-blue-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                title="Edit Note"
+              >
+                ✎
+              </button>
+              <button
+                className="text-lg leading-none font-bold text-red-500 transition-colors hover:text-red-700"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm("Are you sure you want to delete your note?")) {
+                    const { deleteWallNote } =
+                      await import("@/lib/the-wall-actions");
+                    await deleteWallNote({
+                      note_id: note.id,
+                      board_id: note.board_id,
+                      session_id: sessionId,
+                    });
+                  }
+                }}
+                title="Delete Note"
+              >
+                ×
+              </button>
+            </>
+          )}
+        </div>
       </div>
-      <p className="text-sm break-words whitespace-pre-wrap">{note.content}</p>
+      {isEditing ? (
+        <div className="flex flex-col gap-2">
+          <textarea
+            className="h-24 w-full resize-none bg-black/10 p-2 text-sm text-black focus:ring-1 focus:ring-black/20 focus:outline-none"
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            maxLength={500}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              className="rounded bg-black/10 px-2 py-1 text-xs hover:bg-black/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(false);
+                setEditContent(note.content);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              className="rounded bg-blue-500/80 px-2 py-1 text-xs text-white hover:bg-blue-600"
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!editContent.trim()) return;
+                setIsEditing(false);
+                const { updateWallNoteContent } =
+                  await import("@/lib/the-wall-actions");
+                await updateWallNoteContent({
+                  note_id: note.id,
+                  board_id: note.board_id,
+                  session_id: sessionId,
+                  content: editContent,
+                });
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm break-words whitespace-pre-wrap">
+          {note.content}
+        </p>
+      )}
     </div>
   );
 }

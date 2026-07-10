@@ -42,6 +42,19 @@ create policy "Public can read wall notes"
   for select
   using (true);
 
+drop policy if exists "Public can insert wall notes" on public.the_wall_notes;
+create policy "Public can insert wall notes"
+  on public.the_wall_notes
+  for insert
+  with check (true);
+
+drop policy if exists "Public can update wall notes" on public.the_wall_notes;
+create policy "Public can update wall notes"
+  on public.the_wall_notes
+  for update
+  using (true)
+  with check (true);
+
 insert into public.the_wall_boards (slug, title, is_active)
 values ('main', 'The Wall', true)
 on conflict (slug) do update

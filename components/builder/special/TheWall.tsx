@@ -22,10 +22,18 @@ export default function TheWall() {
     width: 1000,
     height: 1000,
   });
+  const [sessionId, setSessionId] = useState<string>("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize and subscribe
   useEffect(() => {
+    let storedSession = localStorage.getItem("the_wall_session_id");
+    if (!storedSession) {
+      storedSession = crypto.randomUUID();
+      localStorage.setItem("the_wall_session_id", storedSession);
+    }
+    setSessionId(storedSession);
+
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       setConnectionError("Supabase credentials are missing.");
@@ -131,15 +139,61 @@ export default function TheWall() {
     return () => window.removeEventListener("resize", updateViewport);
   }, [position, scale]);
 
+  // Handle preventDefault for wheel on desktop trackpad zooming
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const preventDefaultWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("wheel", preventDefaultWheel, { passive: false });
+    return () => el.removeEventListener("wheel", preventDefaultWheel);
+  }, []);
+
   // Panning logic
   const dragStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
+  const activePointers = useRef<Map<number, React.PointerEvent>>(new Map());
+  const initialPinchDist = useRef<number | null>(null);
+  const initialScale = useRef<number>(1);
+  const initialPinchCenter = useRef<{ x: number; y: number } | null>(null);
+  const initialPinchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return; // only left click
     // Only pan if clicking on the background, not on a note
     if ((e.target as HTMLElement).closest(".sticky-note-container")) return;
     if ((e.target as HTMLElement).closest(".wall-ui")) return;
 
+    if (e.pointerType === "touch" || e.pointerType === "pen") {
+      activePointers.current.set(e.pointerId, e);
+      if (activePointers.current.size === 2) {
+        setIsPanning(false);
+        const pts = Array.from(activePointers.current.values());
+        const dist = Math.hypot(
+          pts[0].clientX - pts[1].clientX,
+          pts[0].clientY - pts[1].clientY,
+        );
+        initialPinchDist.current = dist;
+        initialScale.current = scale;
+        initialPinchCenter.current = {
+          x: (pts[0].clientX + pts[1].clientX) / 2,
+          y: (pts[0].clientY + pts[1].clientY) / 2,
+        };
+        initialPinchPos.current = { ...position };
+      } else if (activePointers.current.size === 1) {
+        setIsPanning(true);
+        dragStart.current = {
+          x: e.clientX,
+          y: e.clientY,
+          px: position.x,
+          py: position.y,
+        };
+      }
+      return;
+    }
+
+    if (e.button !== 0) return; // only left click
     setIsPanning(true);
     dragStart.current = {
       x: e.clientX,
@@ -150,6 +204,52 @@ export default function TheWall() {
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType === "touch" || e.pointerType === "pen") {
+      if (activePointers.current.has(e.pointerId)) {
+        activePointers.current.set(e.pointerId, e);
+      }
+
+      if (
+        activePointers.current.size === 2 &&
+        initialPinchDist.current &&
+        initialPinchCenter.current &&
+        initialPinchPos.current
+      ) {
+        const pts = Array.from(activePointers.current.values());
+        const dist = Math.hypot(
+          pts[0].clientX - pts[1].clientX,
+          pts[0].clientY - pts[1].clientY,
+        );
+
+        const zoomFactor = dist / initialPinchDist.current;
+        const newScale = Math.max(
+          0.1,
+          Math.min(3, initialScale.current * zoomFactor),
+        );
+
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const mouseX = initialPinchCenter.current.x - rect.left;
+          const mouseY = initialPinchCenter.current.y - rect.top;
+
+          const scaleChange = newScale - initialScale.current;
+
+          setPosition({
+            x:
+              initialPinchPos.current.x -
+              (mouseX - initialPinchPos.current.x) *
+                (scaleChange / initialScale.current),
+            y:
+              initialPinchPos.current.y -
+              (mouseY - initialPinchPos.current.y) *
+                (scaleChange / initialScale.current),
+          });
+        }
+        setScale(newScale);
+        return;
+      }
+    }
+
     if (!isPanning) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
@@ -159,7 +259,21 @@ export default function TheWall() {
     });
   };
 
-  const handlePointerUp = () => setIsPanning(false);
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType === "touch" || e.pointerType === "pen") {
+      activePointers.current.delete(e.pointerId);
+      if (activePointers.current.size < 2) {
+        initialPinchDist.current = null;
+        initialPinchCenter.current = null;
+        initialPinchPos.current = null;
+      }
+      if (activePointers.current.size === 0) {
+        setIsPanning(false);
+      }
+      return;
+    }
+    setIsPanning(false);
+  };
 
   // Wheel to pan (or zoom if cmd/ctrl)
   const handleWheel = (e: React.WheelEvent) => {
@@ -204,6 +318,33 @@ export default function TheWall() {
     },
     [],
   );
+
+  const handleZoomToCenter = useCallback((delta: number) => {
+    setScale((prevScale) => {
+      const newScale = Math.max(0.1, Math.min(3, prevScale + delta));
+      if (newScale === prevScale) return prevScale;
+
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = rect.width / 2;
+        const mouseY = rect.height / 2;
+
+        const scaleChange = newScale - prevScale;
+        setPosition((prevPos) => ({
+          x: prevPos.x - (mouseX - prevPos.x) * (scaleChange / prevScale),
+          y: prevPos.y - (mouseY - prevPos.y) * (scaleChange / prevScale),
+        }));
+      }
+      return newScale;
+    });
+  }, []);
+
+  const handleMinimapPan = useCallback((dx: number, dy: number) => {
+    setPosition((prev) => ({
+      x: prev.x + dx,
+      y: prev.y + dy,
+    }));
+  }, []);
 
   // Compute center for new notes using viewport state which is safe from hydration mismatches
   const viewportCenter = {
@@ -260,6 +401,7 @@ export default function TheWall() {
               note={note}
               scale={scale}
               onPositionChangeLocally={handleLocalPositionChange}
+              sessionId={sessionId}
             />
           </div>
         ))}
@@ -269,17 +411,26 @@ export default function TheWall() {
       <div className="wall-ui">
         <WallZoomControls
           scale={scale}
-          onZoomIn={() => setScale((s) => Math.min(3, s + 0.1))}
-          onZoomOut={() => setScale((s) => Math.max(0.1, s - 0.1))}
+          onZoomIn={() => handleZoomToCenter(0.2)}
+          onZoomOut={() => handleZoomToCenter(-0.2)}
           onReset={() => {
             setScale(1);
             setPosition({ x: 0, y: 0 });
           }}
         />
 
-        <WallMinimap notes={notes} scale={scale} viewport={viewport} />
+        <WallMinimap
+          notes={notes}
+          scale={scale}
+          viewport={viewport}
+          onPan={handleMinimapPan}
+        />
 
-        <WallDock boardId={boardId} viewportCenter={viewportCenter} />
+        <WallDock
+          boardId={boardId}
+          viewportCenter={viewportCenter}
+          sessionId={sessionId}
+        />
       </div>
     </div>
   );

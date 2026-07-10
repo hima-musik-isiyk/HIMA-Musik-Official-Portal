@@ -88,7 +88,9 @@ const LEGAL_LINKS = [
   { name: "Terms", href: "/terms-of-service" },
 ];
 
-const Footer: React.FC = () => {
+const Footer: React.FC<{ hiddenFooterPaths?: string[] }> = ({
+  hiddenFooterPaths = [],
+}) => {
   const [currentYear, setCurrentYear] = useState(2026);
   const pathname = usePathname();
   const scopeRef = useViewEntrance(pathname);
@@ -134,8 +136,9 @@ const Footer: React.FC = () => {
     return () => window.removeEventListener("hima:highlight-kontak", handler);
   }, []);
 
-  // Don't render footer on sekretariat pages
+  // Don't render footer on sekretariat pages or hidden pages
   if (pathname?.startsWith("/sekretariat")) return null;
+  if (hiddenFooterPaths.includes(pathname || "")) return null;
 
   // Helper to return animation attributes
   const animAttrs = (variant: string, delay = 0, scroll = true) => {

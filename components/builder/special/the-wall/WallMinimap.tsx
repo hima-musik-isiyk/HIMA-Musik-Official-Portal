@@ -1,17 +1,21 @@
 "use client";
 
+import { useRef,useState } from "react";
+
 import { WallNoteData } from "./StickyNote";
 
 interface WallMinimapProps {
   notes: WallNoteData[];
   viewport: { x: number; y: number; width: number; height: number };
   scale: number;
+  onPan?: (dx: number, dy: number) => void;
 }
 
 export default function WallMinimap({
   notes,
   viewport,
   scale,
+  onPan,
 }: WallMinimapProps) {
   // Determine bounds of the minimap
   // We'll set a fixed logical size for the minimap view, e.g., 5000x5000,
@@ -55,9 +59,36 @@ export default function WallMinimap({
   const getMapW = (w: number) => w * mapScale;
   const getMapH = (h: number) => h * mapScale;
 
+  const [isDragging, setIsDragging] = useState(false);
+  const lastPos = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setIsDragging(true);
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging || !onPan) return;
+    const dx = e.clientX - lastPos.current.x;
+    const dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+
+    const canvasDx = dx / mapScale;
+    const canvasDy = dy / mapScale;
+
+    onPan(-canvasDx * scale, -canvasDy * scale);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
   return (
     <div
-      className="pointer-events-none fixed right-6 bottom-6 z-40 hidden overflow-hidden border border-white/10 bg-black/60 shadow-2xl backdrop-blur-md md:block"
+      className="fixed right-6 bottom-6 z-40 hidden overflow-hidden border border-white/10 bg-black/60 shadow-2xl backdrop-blur-md md:block"
       style={{ width: minimapWidth, height: minimapHeight }}
     >
       {/* Background Grid Representation */}
@@ -85,13 +116,18 @@ export default function WallMinimap({
 
       {/* Viewport Box */}
       <div
-        className="absolute border-2 border-white bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all duration-75"
+        className={`absolute border-2 border-white bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.2)] ${isDragging ? "cursor-grabbing" : "cursor-grab"} hover:bg-white/20`}
         style={{
           left: getMapX(viewport.x),
           top: getMapY(viewport.y),
           width: getMapW(viewport.width / scale),
           height: getMapH(viewport.height / scale),
+          transition: isDragging ? "none" : "all 0.05s linear",
         }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       />
     </div>
   );

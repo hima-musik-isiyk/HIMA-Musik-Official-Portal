@@ -1,5 +1,6 @@
 "use client";
 
+import { Turnstile } from "@marsidev/react-turnstile";
 import { useState } from "react";
 
 import { createWallNote } from "@/lib/the-wall-actions";
@@ -7,6 +8,7 @@ import { createWallNote } from "@/lib/the-wall-actions";
 interface WallDockProps {
   boardId: string;
   viewportCenter: { x: number; y: number };
+  sessionId: string;
 }
 
 const COLORS = [
@@ -17,28 +19,29 @@ const COLORS = [
   { id: "gold", bg: "bg-gold-500" },
 ];
 
-export default function WallDock({ boardId, viewportCenter }: WallDockProps) {
+export default function WallDock({
+  boardId,
+  viewportCenter,
+  sessionId,
+}: WallDockProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
   const [color, setColor] = useState("yellow");
-  const [isHuman, setIsHuman] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
-    if (!isHuman) {
-      setError("Please confirm you are human.");
+    if (!captchaToken) {
+      setError("Please complete the bot check.");
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
-
-    // Naive captcha token for bot prevention
-    const captchaToken = `wall-${Date.now()}`;
 
     const res = await createWallNote({
       board_id: boardId,
@@ -48,6 +51,7 @@ export default function WallDock({ boardId, viewportCenter }: WallDockProps) {
       x: viewportCenter.x,
       y: viewportCenter.y,
       captchaToken,
+      session_id: sessionId,
     });
 
     if (res.error) {
@@ -56,7 +60,7 @@ export default function WallDock({ boardId, viewportCenter }: WallDockProps) {
       setIsOpen(false);
       setContent("");
       setAuthor("");
-      setIsHuman(false);
+      setCaptchaToken("");
     }
     setIsSubmitting(false);
   };
@@ -116,20 +120,17 @@ export default function WallDock({ boardId, viewportCenter }: WallDockProps) {
               ))}
             </div>
 
-            <div className="flex items-center gap-3 border border-white/5 bg-black/30 p-3">
-              <input
-                type="checkbox"
-                id="bot-check"
-                checked={isHuman}
-                onChange={(e) => setIsHuman(e.target.checked)}
-                className="accent-gold-500 h-5 w-5 cursor-pointer"
+            <div className="flex justify-center py-2">
+              <Turnstile
+                siteKey={
+                  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+                  "1x00000000000000000000AA"
+                }
+                onSuccess={(token) => setCaptchaToken(token)}
+                onError={() => setError("Captcha failed. Please try again.")}
+                onExpire={() => setCaptchaToken("")}
+                options={{ theme: "dark" }}
               />
-              <label
-                htmlFor="bot-check"
-                className="cursor-pointer text-sm text-neutral-300 select-none"
-              >
-                I am not a robot
-              </label>
             </div>
 
             {error && (
@@ -138,7 +139,7 @@ export default function WallDock({ boardId, viewportCenter }: WallDockProps) {
 
             <button
               type="submit"
-              disabled={isSubmitting || !isHuman || !content.trim()}
+              disabled={isSubmitting || !captchaToken || !content.trim()}
               className="bg-gold-500/20 hover:bg-gold-500/30 border-gold-500/50 text-gold-500 w-full border py-3 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               style={{ borderRadius: "var(--radius-action, 0.5rem)" }}
             >

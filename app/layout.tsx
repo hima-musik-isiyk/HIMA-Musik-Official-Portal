@@ -41,6 +41,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   let highlightItem: NavItemDto | null | undefined = undefined;
   let gsapEasing = "power3.out";
   let entranceAnimate = "true";
+  let hiddenFooterPaths: string[] = [];
 
   try {
     const cmsData = await fetchContainerCMSCached();
@@ -49,6 +50,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       navItems = navData.navItems;
       mobileNavItems = navData.mobileNavItems;
       highlightItem = navData.highlightItem;
+
+      hiddenFooterPaths = cmsData.pages
+        .filter((p) => p.showFooter === false)
+        .map((p) => {
+          const s = p.slug?.trim() || "";
+          return s.startsWith("/") ? s : `/${s}`;
+        });
     }
     gsapEasing = cmsData?.variables?.GSAP_EASING?.trim() || gsapEasing;
     const cmsEntrance =
@@ -89,7 +97,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           </Suspense>
         </main>
         <Suspense>
-          <Footer />
+          <Footer hiddenFooterPaths={hiddenFooterPaths} />
         </Suspense>
       </body>
     </html>

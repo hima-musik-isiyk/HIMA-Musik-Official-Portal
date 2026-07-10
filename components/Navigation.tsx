@@ -722,10 +722,8 @@ const Navigation: React.FC<NavigationProps> = ({
         onClick={handleMobileMenuClick}
       >
         <div
-          className={`relative z-10 flex flex-1 flex-col items-center px-8 ${
-            isCompactMobileMenu
-              ? "justify-start space-y-4 overflow-y-auto"
-              : "justify-center space-y-8"
+          className={`relative z-10 flex flex-1 flex-col items-center justify-start overflow-y-auto px-8 pt-4 pb-24 ${
+            isCompactMobileMenu ? "space-y-4" : "space-y-6"
           }`}
         >
           {mobileNavItems.map((item, idx) => {

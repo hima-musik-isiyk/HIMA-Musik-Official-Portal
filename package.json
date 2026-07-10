@@ -21,6 +21,7 @@
     ]
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.5.3",
     "@notionhq/client": "^5.20.0",
     "@supabase/supabase-js": "^2.105.4",
     "class-variance-authority": "^0.7.1",
