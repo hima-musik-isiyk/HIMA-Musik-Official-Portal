@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback,useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
@@ -182,15 +182,10 @@ export default function TheWall() {
     [],
   );
 
-  // Compute center for new notes
-  const viewportWidth =
-    typeof window !== "undefined" ? window.innerWidth : 1000;
-  const viewportHeight =
-    typeof window !== "undefined" ? window.innerHeight : 1000;
-
+  // Compute center for new notes using viewport state which is safe from hydration mismatches
   const viewportCenter = {
-    x: (-position.x + viewportWidth / 2) / scale,
-    y: (-position.y + viewportHeight / 2) / scale,
+    x: (-position.x + viewport.width / 2) / scale,
+    y: (-position.y + viewport.height / 2) / scale,
   };
 
   if (!boardId) {
