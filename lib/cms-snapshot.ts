@@ -23,6 +23,13 @@ type CmsSnapshotWriteOptions = {
   sourceUpdatedAt?: string | null;
 };
 
+export type CmsSnapshotMeta = {
+  contentHash: string | null;
+  payloadBytes: number | null;
+  syncedAt: string | null;
+  updatedAt: string | null;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -84,6 +91,33 @@ export async function readContainerCMSSnapshot(): Promise<ContainerCMSData | nul
   }
 
   return data.payload;
+}
+
+export async function readContainerCMSSnapshotMeta(): Promise<CmsSnapshotMeta | null> {
+  if (!supabaseAdmin) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from(CMS_SNAPSHOTS_TABLE)
+    .select("content_hash,payload_bytes,synced_at,updated_at")
+    .eq("key", CONTAINER_CMS_SNAPSHOT_KEY)
+    .maybeSingle();
+
+  if (error) {
+    warnSnapshotOnce(
+      "[CMS Snapshot] Failed to read Supabase snapshot metadata:",
+      error,
+    );
+    return null;
+  }
+
+  if (!data) return null;
+
+  return {
+    contentHash: data.content_hash ?? null,
+    payloadBytes: data.payload_bytes ?? null,
+    syncedAt: data.synced_at ?? null,
+    updatedAt: data.updated_at ?? null,
+  };
 }
 
 export async function writeContainerCMSSnapshot(

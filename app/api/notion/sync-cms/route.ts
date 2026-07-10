@@ -34,7 +34,7 @@ async function handleSync(request: Request) {
   try {
     const { data, snapshot } = await syncContainerCMSSnapshot();
 
-    revalidateCmsCaches();
+    revalidateCmsCaches(data.pages);
 
     return NextResponse.json({
       ok: true,

@@ -23,8 +23,6 @@ type NotionWebhookEvent = {
   data?: NotionWebhookEntity;
 };
 
-let lastWebhookSyncAt = 0;
-
 function getWebhookSecret() {
   return (
     process.env.NOTION_CMS_WEBHOOK_SECRET ??
@@ -32,14 +30,6 @@ function getWebhookSecret() {
     process.env.NOTION_WEBHOOK_VERIFICATION_TOKEN ??
     ""
   );
-}
-
-function getSyncCooldownMs() {
-  const raw = process.env.NOTION_CMS_WEBHOOK_COOLDOWN_MS;
-  if (!raw) return 15000;
-
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 15000;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -171,29 +161,9 @@ export async function POST(request: Request) {
     ),
   );
 
-  const now = Date.now();
-  const cooldownMs = getSyncCooldownMs();
-  if (now - lastWebhookSyncAt < cooldownMs) {
-    await Promise.all(
-      identities.map((identity) =>
-        updateCmsSyncEventStatus(identity.eventId, "skipped", "cooldown"),
-      ),
-    );
-
-    return NextResponse.json({
-      ok: true,
-      status: "skipped",
-      skippedReason: "cooldown",
-      events: identities.length,
-      nextSyncAllowedInMs: cooldownMs - (now - lastWebhookSyncAt),
-    });
-  }
-
-  lastWebhookSyncAt = now;
-
   try {
     const { data, snapshot } = await syncContainerCMSSnapshot();
-    revalidateCmsCaches();
+    revalidateCmsCaches(data.pages);
 
     await Promise.all(
       identities.map((identity) =>

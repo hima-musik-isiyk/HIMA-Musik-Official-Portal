@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { PageBuilder } from "@/components/builder/PageBuilder";
 import PageEntranceWrapper from "@/components/builder/PageEntranceWrapper";
+import { getRequestPathname } from "@/lib/cms-route";
 import {
   fetchFAQCategoriesCached,
   fetchFAQEntries,
@@ -27,10 +28,10 @@ interface CatchAllProps {
 }
 
 export async function generateMetadata({
-  params,
+  params: _params,
 }: CatchAllProps): Promise<Metadata> {
-  const { slug } = await params;
-  const path = slug ? "/" + slug.join("/") : "/";
+  await _params;
+  const path = await getRequestPathname();
 
   try {
     const cmsData = await fetchContainerCMSCached();
@@ -62,8 +63,8 @@ export async function generateMetadata({
 }
 
 export default async function CatchAllPage({ params }: CatchAllProps) {
-  const { slug } = await params;
-  const path = slug ? "/" + slug.join("/") : "/";
+  await params;
+  const path = await getRequestPathname();
 
   // Check feature flags first
   if (path.startsWith("/pendaftaran")) {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { CMS_REVALIDATION_SCOPES, revalidateCmsCaches } from "@/lib/cms-sync";
-import { syncContainerCMSSnapshot } from "@/lib/notion-builder";
+import { CMSPage, syncContainerCMSSnapshot } from "@/lib/notion-builder";
 
 // In-memory rate limiting timestamp for active server instances
 let lastRevalidateTime = 0;
@@ -27,8 +27,10 @@ export async function POST() {
 
     let snapshotStatus: "synced" | "skipped" | "failed" = "skipped";
     let snapshotError: string | null = null;
+    let syncedPages: CMSPage[] = [];
     try {
-      const { snapshot } = await syncContainerCMSSnapshot();
+      const { data, snapshot } = await syncContainerCMSSnapshot();
+      syncedPages = data.pages;
       snapshotStatus = snapshot.ok ? "synced" : "failed";
       snapshotError = snapshot.error ?? null;
     } catch (err) {
@@ -41,7 +43,7 @@ export async function POST() {
     }
 
     try {
-      revalidateCmsCaches();
+      revalidateCmsCaches(syncedPages);
     } catch (err) {
       console.error("Failed to revalidate CMS caches:", err);
     }

@@ -3,6 +3,7 @@ import "../index.css";
 import { Fraunces } from "next/font/google";
 import React, { Suspense } from "react";
 
+import CmsLiveRefresh from "../components/CmsLiveRefresh";
 import CommandPalette from "../components/CommandPalette";
 import Footer from "../components/Footer";
 import LegacyHashRedirectWrapper from "../components/LegacyHashRedirectWrapper";
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           />
         </Suspense>
         <CommandPalette />
+        <CmsLiveRefresh />
         <main className="relative z-3 grow pt-20 pb-12 md:pb-16">
           <Suspense>
             <RouteEntranceAnimator>{children}</RouteEntranceAnimator>
