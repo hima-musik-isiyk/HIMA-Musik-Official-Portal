@@ -30,6 +30,7 @@ export async function createWallNote(data: {
     );
     const outcome = await res.json();
     if (!outcome.success) {
+      console.error("Turnstile failed:", outcome);
       return { error: "Security check failed. Please try again." };
     }
   } catch (err) {
