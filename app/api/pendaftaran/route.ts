@@ -79,7 +79,9 @@ const pendaftaranLastSubmit = new Map<string, number>();
 
 async function writePendaftaranToNotion(data: {
   firstChoice: string;
+  firstChoicePosition?: string;
   secondChoice: string;
+  secondChoicePosition?: string;
   angkatan: string;
   pddSubfocus: string;
   fullName: string;
@@ -103,16 +105,21 @@ async function writePendaftaranToNotion(data: {
     return;
   }
 
-  // 1. Find division page from DB_STRUKTUR_ORGANISASI
-  let divisionPageId: string | null = null;
+  // 1 & 2. Find division pages and SDM slots for choices
   const structDbId = DB_STRUKTUR_ORGANISASI;
-  if (structDbId) {
+  const sdmDbId = DB_SDM_EVALUASI;
+
+  const resolveSlot = async (choiceSlug: string, choicePosition?: string) => {
+    if (!choiceSlug || !structDbId || !sdmDbId)
+      return { divPageId: null, sdmSlotId: null };
+    let divPageId: string | null = null;
+    let sdmSlotId: string | null = null;
+
     try {
       const dsId = await resolveDataSourceIdSafe(structDbId);
       if (dsId) {
         const res = await notion.dataSources.query({ data_source_id: dsId });
         const pages = res.results as any[];
-        // find page matching slug of firstChoice
         const slugify = (text: string) =>
           text
             .toLowerCase()
@@ -126,51 +133,77 @@ async function writePendaftaranToNotion(data: {
               break;
             }
           }
-          return (
-            slugify(title) === data.firstChoice || p.id === data.firstChoice
-          );
+          return slugify(title) === choiceSlug || p.id === choiceSlug;
         });
-        if (match) {
-          divisionPageId = match.id;
-        }
+        if (match) divPageId = match.id;
       }
     } catch (e) {
       console.warn("[Notion Pendaftaran] Failed to resolve division page:", e);
     }
-  }
 
-  // 2. Find SDM slot from DB_SDM_EVALUASI
-  let sdmSlotPageId: string | null = null;
-  const sdmDbId = DB_SDM_EVALUASI;
-  if (sdmDbId && divisionPageId) {
-    try {
-      const dsId = await resolveDataSourceIdSafe(sdmDbId);
-      if (dsId) {
-        const res = await notion.dataSources.query({ data_source_id: dsId });
-        const pages = res.results as any[];
-        const match = pages.find((p) => {
-          let isRekrutmen = false;
-          let relatesToDivision = false;
-          for (const prop of Object.values(p.properties || {}) as any[]) {
-            if (prop.type === "select" && prop.select?.name === "Rekrutmen") {
-              isRekrutmen = true;
-            }
-            if (prop.type === "relation" && Array.isArray(prop.relation)) {
-              if (prop.relation.some((r: any) => r.id === divisionPageId)) {
-                relatesToDivision = true;
+    if (divPageId) {
+      try {
+        const dsId = await resolveDataSourceIdSafe(sdmDbId);
+        if (dsId) {
+          const res = await notion.dataSources.query({ data_source_id: dsId });
+          const pages = res.results as any[];
+          const slugify = (text: string) =>
+            text
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "");
+          const targetPosSlug = choicePosition ? slugify(choicePosition) : "";
+
+          const match = pages.find((p) => {
+            let isRekrutmen = false;
+            let relatesToDivision = false;
+            let isStafMuda = false;
+            let titleStr = "";
+            for (const prop of Object.values(p.properties || {}) as any[]) {
+              if (prop.type === "select" && prop.select?.name === "Rekrutmen") {
+                isRekrutmen = true;
+              }
+              if (prop.type === "relation" && Array.isArray(prop.relation)) {
+                if (prop.relation.some((r: any) => r.id === divPageId)) {
+                  relatesToDivision = true;
+                }
+              }
+              if (prop.type === "title" && prop.title?.length > 0) {
+                titleStr = prop.title.map((t: any) => t.plain_text).join("");
+                if (titleStr.toLowerCase().includes("staf muda")) {
+                  isStafMuda = true;
+                }
               }
             }
-          }
-          return isRekrutmen && relatesToDivision;
-        });
-        if (match) {
-          sdmSlotPageId = match.id;
+
+            if (!isRekrutmen || !relatesToDivision) return false;
+            if (isStafMuda && !targetPosSlug.includes("muda")) return false;
+
+            if (targetPosSlug && titleStr) {
+              return slugify(titleStr).includes(targetPosSlug);
+            }
+            return true; // Match the first valid one
+          });
+          if (match) sdmSlotId = match.id;
         }
+      } catch (e) {
+        console.warn(
+          "[Notion Pendaftaran] Failed to resolve SDM slot page:",
+          e,
+        );
       }
-    } catch (e) {
-      console.warn("[Notion Pendaftaran] Failed to resolve SDM slot page:", e);
     }
-  }
+    return { divPageId, sdmSlotId };
+  };
+
+  const firstSlot = await resolveSlot(
+    data.firstChoice,
+    data.firstChoicePosition,
+  );
+  const secondSlot = await resolveSlot(
+    data.secondChoice,
+    data.secondChoicePosition,
+  );
 
   // 3. Query schema of DB_PENDAFTARAN_STORAGE to map properties
   let dbProperties: Record<string, any> = {};
@@ -301,22 +334,28 @@ async function writePendaftaranToNotion(data: {
       };
     } else if (type === "relation") {
       if (
-        sdmSlotPageId &&
         schema.relation?.database_id?.replace(/-/g, "") ===
-          sdmDbId.replace(/-/g, "")
+        sdmDbId.replace(/-/g, "")
       ) {
-        properties[name] = {
-          relation: [{ id: sdmSlotPageId }],
-        };
+        if (lowerName.includes("pilihan 1") && firstSlot.sdmSlotId) {
+          properties[name] = { relation: [{ id: firstSlot.sdmSlotId }] };
+        } else if (lowerName.includes("pilihan 2") && secondSlot.sdmSlotId) {
+          properties[name] = { relation: [{ id: secondSlot.sdmSlotId }] };
+        } else if (!lowerName.includes("pilihan 2") && firstSlot.sdmSlotId) {
+          properties[name] = { relation: [{ id: firstSlot.sdmSlotId }] };
+        }
       }
       if (
-        divisionPageId &&
         schema.relation?.database_id?.replace(/-/g, "") ===
-          structDbId.replace(/-/g, "")
+        structDbId.replace(/-/g, "")
       ) {
-        properties[name] = {
-          relation: [{ id: divisionPageId }],
-        };
+        if (lowerName.includes("pilihan 1") && firstSlot.divPageId) {
+          properties[name] = { relation: [{ id: firstSlot.divPageId }] };
+        } else if (lowerName.includes("pilihan 2") && secondSlot.divPageId) {
+          properties[name] = { relation: [{ id: secondSlot.divPageId }] };
+        } else if (!lowerName.includes("pilihan 2") && firstSlot.divPageId) {
+          properties[name] = { relation: [{ id: firstSlot.divPageId }] };
+        }
       }
     }
   }
@@ -348,9 +387,17 @@ async function writePendaftaranToNotion(data: {
     properties["Status Seleksi"] = {
       status: { name: "Masuk" },
     };
-    if (sdmSlotPageId) {
+    if (firstSlot.sdmSlotId) {
+      properties["03 SDM & Evaluasi Pilihan 1"] = {
+        relation: [{ id: firstSlot.sdmSlotId }],
+      };
       properties["03 SDM & Evaluasi"] = {
-        relation: [{ id: sdmSlotPageId }],
+        relation: [{ id: firstSlot.sdmSlotId }],
+      };
+    }
+    if (secondSlot.sdmSlotId) {
+      properties["03 SDM & Evaluasi Pilihan 2"] = {
+        relation: [{ id: secondSlot.sdmSlotId }],
       };
     }
     if (batchPageId) {
@@ -565,7 +612,9 @@ export async function POST(request: Request) {
     try {
       await writePendaftaranToNotion({
         firstChoice,
+        firstChoicePosition,
         secondChoice,
+        secondChoicePosition,
         angkatan,
         pddSubfocus,
         fullName,
