@@ -1,7 +1,7 @@
 "use client";
 
-import { Turnstile } from "@marsidev/react-turnstile";
-import { useState } from "react";
+import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
+import { useRef,useState } from "react";
 
 import { createWallNote } from "@/lib/the-wall-actions";
 
@@ -32,6 +32,8 @@ export default function WallDock({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const turnstileRef = useRef<TurnstileInstance>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
@@ -56,6 +58,8 @@ export default function WallDock({
 
     if (res.error) {
       setError(res.error);
+      turnstileRef.current?.reset();
+      setCaptchaToken("");
     } else {
       setIsOpen(false);
       setContent("");
@@ -122,6 +126,7 @@ export default function WallDock({
 
             <div className="flex justify-center py-2">
               <Turnstile
+                ref={turnstileRef}
                 siteKey={
                   process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
                   "1x00000000000000000000AA"
