@@ -25,6 +25,36 @@ export default function TheWall() {
   const [sessionId, setSessionId] = useState<string>("");
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const clampPosition = useCallback((x: number, y: number, s: number) => {
+    let cx = x;
+    let cy = y;
+
+    // Bounds of the wall content
+    const BOUND_X = 3000;
+    const BOUND_Y = 2000;
+
+    const w = typeof window !== "undefined" ? window.innerWidth : 1000;
+    const h = typeof window !== "undefined" ? window.innerHeight : 1000;
+
+    const minX = w - BOUND_X * s;
+    const maxX = BOUND_X * s;
+    if (minX > maxX) {
+      cx = (minX + maxX) / 2;
+    } else {
+      cx = Math.max(minX, Math.min(maxX, cx));
+    }
+
+    const minY = h - BOUND_Y * s;
+    const maxY = BOUND_Y * s;
+    if (minY > maxY) {
+      cy = (minY + maxY) / 2;
+    } else {
+      cy = Math.max(minY, Math.min(maxY, cy));
+    }
+
+    return { x: cx, y: cy };
+  }, []);
+
   // Initialize and subscribe
   useEffect(() => {
     let storedSession = localStorage.getItem("the_wall_session_id");
@@ -234,16 +264,17 @@ export default function TheWall() {
 
           const scaleChange = newScale - initialScale.current;
 
-          setPosition({
-            x:
+          setPosition(
+            clampPosition(
               initialPinchPos.current.x -
-              (mouseX - initialPinchPos.current.x) *
-                (scaleChange / initialScale.current),
-            y:
+                (mouseX - initialPinchPos.current.x) *
+                  (scaleChange / initialScale.current),
               initialPinchPos.current.y -
-              (mouseY - initialPinchPos.current.y) *
-                (scaleChange / initialScale.current),
-          });
+                (mouseY - initialPinchPos.current.y) *
+                  (scaleChange / initialScale.current),
+              newScale,
+            ),
+          );
         }
         setScale(newScale);
         return;
@@ -253,10 +284,13 @@ export default function TheWall() {
     if (!isPanning) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    setPosition({
-      x: dragStart.current.px + dx,
-      y: dragStart.current.py + dy,
-    });
+    setPosition(
+      clampPosition(
+        dragStart.current.px + dx,
+        dragStart.current.py + dy,
+        scale,
+      ),
+    );
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -296,19 +330,21 @@ export default function TheWall() {
         const mouseY = e.clientY - rect.top;
 
         const scaleChange = newScale - scale;
-        setPosition((prev) => ({
-          x: prev.x - (mouseX - prev.x) * (scaleChange / scale),
-          y: prev.y - (mouseY - prev.y) * (scaleChange / scale),
-        }));
+        setPosition((prev) =>
+          clampPosition(
+            prev.x - (mouseX - prev.x) * (scaleChange / scale),
+            prev.y - (mouseY - prev.y) * (scaleChange / scale),
+            newScale,
+          ),
+        );
       }
 
       setScale(newScale);
     } else {
       // Pan
-      setPosition((prev) => ({
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY,
-      }));
+      setPosition((prev) =>
+        clampPosition(prev.x - e.deltaX, prev.y - e.deltaY, scale),
+      );
     }
   };
 
@@ -319,32 +355,38 @@ export default function TheWall() {
     [],
   );
 
-  const handleZoomToCenter = useCallback((delta: number) => {
-    setScale((prevScale) => {
-      const newScale = Math.max(0.1, Math.min(3, prevScale + delta));
-      if (newScale === prevScale) return prevScale;
+  const handleZoomToCenter = useCallback(
+    (delta: number) => {
+      setScale((prevScale) => {
+        const newScale = Math.max(0.1, Math.min(3, prevScale + delta));
+        if (newScale === prevScale) return prevScale;
 
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const mouseX = rect.width / 2;
-        const mouseY = rect.height / 2;
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const mouseX = rect.width / 2;
+          const mouseY = rect.height / 2;
 
-        const scaleChange = newScale - prevScale;
-        setPosition((prevPos) => ({
-          x: prevPos.x - (mouseX - prevPos.x) * (scaleChange / prevScale),
-          y: prevPos.y - (mouseY - prevPos.y) * (scaleChange / prevScale),
-        }));
-      }
-      return newScale;
-    });
-  }, []);
+          const scaleChange = newScale - prevScale;
+          setPosition((prevPos) =>
+            clampPosition(
+              prevPos.x - (mouseX - prevPos.x) * (scaleChange / prevScale),
+              prevPos.y - (mouseY - prevPos.y) * (scaleChange / prevScale),
+              newScale,
+            ),
+          );
+        }
+        return newScale;
+      });
+    },
+    [clampPosition],
+  );
 
-  const handleMinimapPan = useCallback((dx: number, dy: number) => {
-    setPosition((prev) => ({
-      x: prev.x + dx,
-      y: prev.y + dy,
-    }));
-  }, []);
+  const handleMinimapPan = useCallback(
+    (dx: number, dy: number) => {
+      setPosition((prev) => clampPosition(prev.x + dx, prev.y + dy, scale));
+    },
+    [scale, clampPosition],
+  );
 
   // Compute center for new notes using viewport state which is safe from hydration mismatches
   const viewportCenter = {
@@ -415,7 +457,7 @@ export default function TheWall() {
           onZoomOut={() => handleZoomToCenter(-0.2)}
           onReset={() => {
             setScale(1);
-            setPosition({ x: 0, y: 0 });
+            setPosition(clampPosition(0, 0, 1));
           }}
         />
 

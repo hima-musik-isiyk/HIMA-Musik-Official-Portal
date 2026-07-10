@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef,useState } from "react";
+import { useRef, useState } from "react";
 
 import { WallNoteData } from "./StickyNote";
 
@@ -18,28 +18,11 @@ export default function WallMinimap({
   onPan,
 }: WallMinimapProps) {
   // Determine bounds of the minimap
-  // We'll set a fixed logical size for the minimap view, e.g., 5000x5000,
-  // or calculate based on min/max of notes.
-  // For a generic infinite canvas, let's track the bounding box of all notes + current viewport
-
-  let minX = viewport.x;
-  let maxX = viewport.x + viewport.width / scale;
-  let minY = viewport.y;
-  let maxY = viewport.y + viewport.height / scale;
-
-  notes.forEach((note) => {
-    if (note.x < minX) minX = note.x;
-    if (note.x + 250 > maxX) maxX = note.x + 250; // approx width
-    if (note.y < minY) minY = note.y;
-    if (note.y + 250 > maxY) maxY = note.y + 250; // approx height
-  });
-
-  // Add some padding
-  const padding = 1000;
-  minX -= padding;
-  maxX += padding;
-  minY -= padding;
-  maxY += padding;
+  // We set a fixed size for the wall to solve drift issues and limit infinite space.
+  const minX = -3000;
+  const maxX = 3000;
+  const minY = -2000;
+  const maxY = 2000;
 
   const width = maxX - minX;
   const height = maxY - minY;

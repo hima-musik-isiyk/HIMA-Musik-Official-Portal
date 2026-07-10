@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo,useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { updateWallNotePosition } from "@/lib/the-wall-actions";
 
@@ -59,8 +59,14 @@ export default function StickyNote({
       const deltaX = (e.clientX - dragStart.current.x) / scale;
       const deltaY = (e.clientY - dragStart.current.y) / scale;
 
-      const newX = dragStart.current.initialNoteX + deltaX;
-      const newY = dragStart.current.initialNoteY + deltaY;
+      const newX = Math.max(
+        -3000,
+        Math.min(3000, dragStart.current.initialNoteX + deltaX),
+      );
+      const newY = Math.max(
+        -2000,
+        Math.min(2000, dragStart.current.initialNoteY + deltaY),
+      );
 
       onPositionChangeLocally(note.id, newX, newY);
     };
@@ -70,8 +76,14 @@ export default function StickyNote({
 
       const deltaX = (e.clientX - dragStart.current.x) / scale;
       const deltaY = (e.clientY - dragStart.current.y) / scale;
-      const newX = dragStart.current.initialNoteX + deltaX;
-      const newY = dragStart.current.initialNoteY + deltaY;
+      const newX = Math.max(
+        -3000,
+        Math.min(3000, dragStart.current.initialNoteX + deltaX),
+      );
+      const newY = Math.max(
+        -2000,
+        Math.min(2000, dragStart.current.initialNoteY + deltaY),
+      );
 
       // Optimistically done in move, now commit to DB
       await updateWallNotePosition({
