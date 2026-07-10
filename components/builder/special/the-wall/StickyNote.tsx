@@ -20,6 +20,7 @@ interface StickyNoteProps {
   note: WallNoteData;
   scale: number;
   onPositionChangeLocally: (id: string, x: number, y: number) => void;
+  onContentChangeLocally: (id: string, content: string) => void;
   sessionId: string;
 }
 
@@ -35,6 +36,7 @@ export default function StickyNote({
   note,
   scale,
   onPositionChangeLocally,
+  onContentChangeLocally,
   sessionId,
 }: StickyNoteProps) {
   const noteRef = useRef<HTMLDivElement>(null);
@@ -84,6 +86,9 @@ export default function StickyNote({
         -2000,
         Math.min(2000, dragStart.current.initialNoteY + deltaY),
       );
+
+      // Final local update to lock position before DB request
+      onPositionChangeLocally(note.id, newX, newY);
 
       // Optimistically done in move, now commit to DB
       await updateWallNotePosition({
@@ -214,6 +219,10 @@ export default function StickyNote({
                 e.stopPropagation();
                 if (!editContent.trim()) return;
                 setIsEditing(false);
+
+                // Optimistically update locally
+                onContentChangeLocally(note.id, editContent);
+
                 const { updateWallNoteContent } =
                   await import("@/lib/the-wall-actions");
                 await updateWallNoteContent({

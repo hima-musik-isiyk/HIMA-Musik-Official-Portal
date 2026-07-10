@@ -29,20 +29,20 @@ export default function TheWall() {
     let cx = x;
     let cy = y;
 
-    // Bounds of the wall content
-    const BOUND_X = 3000;
-    const BOUND_Y = 2000;
+    // Bounds of the wall content (matches StickyNote limits)
+    const MAX_X = 3000;
+    const MAX_Y = 2000;
 
     const w = typeof window !== "undefined" ? window.innerWidth : 1000;
     const h = typeof window !== "undefined" ? window.innerHeight : 1000;
 
     // Allow panning so canvas corners can reach center of screen
-    const minX = w / 2 - BOUND_X * s;
-    const maxX = w / 2;
+    const minX = w / 2 - MAX_X * s;
+    const maxX = w / 2 + MAX_X * s;
     cx = Math.max(minX, Math.min(maxX, cx));
 
-    const minY = h / 2 - BOUND_Y * s;
-    const maxY = h / 2;
+    const minY = h / 2 - MAX_Y * s;
+    const maxY = h / 2 + MAX_Y * s;
     cy = Math.max(minY, Math.min(maxY, cy));
 
     return { x: cx, y: cy };
@@ -162,10 +162,8 @@ export default function TheWall() {
     return () => window.removeEventListener("resize", updateViewport);
   }, [position, scale]);
 
-  // Handle preventDefault for wheel on desktop trackpad zooming and Safari gestures
+  // Handle preventDefault for wheel on desktop trackpad zooming and Safari gestures globally
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
     const preventDefaultWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -174,15 +172,22 @@ export default function TheWall() {
     const preventGesture = (e: Event) => {
       e.preventDefault();
     };
-    el.addEventListener("wheel", preventDefaultWheel, { passive: false });
-    el.addEventListener("gesturestart", preventGesture);
-    el.addEventListener("gesturechange", preventGesture);
-    el.addEventListener("gestureend", preventGesture);
+
+    // Attach to document to ensure we catch all trackpad events while Wall is active
+    document.addEventListener("wheel", preventDefaultWheel, { passive: false });
+    document.addEventListener("gesturestart", preventGesture, {
+      passive: false,
+    });
+    document.addEventListener("gesturechange", preventGesture, {
+      passive: false,
+    });
+    document.addEventListener("gestureend", preventGesture, { passive: false });
+
     return () => {
-      el.removeEventListener("wheel", preventDefaultWheel);
-      el.removeEventListener("gesturestart", preventGesture);
-      el.removeEventListener("gesturechange", preventGesture);
-      el.removeEventListener("gestureend", preventGesture);
+      document.removeEventListener("wheel", preventDefaultWheel);
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("gestureend", preventGesture);
     };
   }, []);
 
@@ -360,6 +365,15 @@ export default function TheWall() {
     [],
   );
 
+  const handleLocalContentChange = useCallback(
+    (id: string, content: string) => {
+      setNotes((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, content } : n)),
+      );
+    },
+    [],
+  );
+
   const handleZoomToCenter = useCallback(
     (delta: number) => {
       setScale((prevScale) => {
@@ -400,10 +414,9 @@ export default function TheWall() {
 
   useEffect(() => {
     if (boardId && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setPosition(
-        clampPosition((rect.width - 3000) / 2, (rect.height - 2000) / 2, 1),
-      );
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      setPosition(clampPosition(w / 2, h / 2, 1)); // (0,0) perfectly centered
     }
   }, [boardId, clampPosition]);
 
@@ -456,6 +469,7 @@ export default function TheWall() {
               note={note}
               scale={scale}
               onPositionChangeLocally={handleLocalPositionChange}
+              onContentChangeLocally={handleLocalContentChange}
               sessionId={sessionId}
             />
           </div>
@@ -471,16 +485,11 @@ export default function TheWall() {
           onReset={() => {
             setScale(1);
             if (containerRef.current) {
-              const rect = containerRef.current.getBoundingClientRect();
-              setPosition(
-                clampPosition(
-                  (rect.width - 3000) / 2,
-                  (rect.height - 2000) / 2,
-                  1,
-                ),
-              );
+              const w = window.innerWidth;
+              const h = window.innerHeight;
+              setPosition(clampPosition(w / 2, h / 2, 1));
             } else {
-              setPosition(clampPosition(0, 0, 1));
+              setPosition(clampPosition(500, 500, 1));
             }
           }}
         />

@@ -72,7 +72,7 @@ export default function WallMinimap({
   return (
     <div
       className="fixed right-6 bottom-6 z-40 hidden overflow-hidden border border-white/10 bg-black/60 shadow-2xl backdrop-blur-md md:block"
-      style={{ width: minimapWidth, height: minimapHeight }}
+      style={{ width: minimapWidth, height: height * mapScale }}
     >
       {/* Background Grid Representation */}
       <div
