@@ -1,5 +1,7 @@
 import "../index.css";
 
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Fraunces } from "next/font/google";
 import React, { Suspense } from "react";
 
@@ -99,6 +101,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <Suspense>
           <Footer hiddenFooterPaths={hiddenFooterPaths} />
         </Suspense>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
