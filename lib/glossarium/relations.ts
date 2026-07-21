@@ -40,7 +40,8 @@ export const RELATION_MAP = {
     PROYEK: "03 Proyek",
     REKAM_PRESENSI: "03 Rekam Presensi",
     TUGAS_TICKET: "03 Tugas/Ticket",
-    PENDAFTARAN: "02 Storage: Pendaftaran",
+    PENDAFTARAN_PILIHAN_1: "02 Storage: Pendaftaran",
+    PENDAFTARAN_PILIHAN_2: "02 Storage: Pendaftaran",
     KEUANGAN: "Keuangan",
   },
   "03 Kategori Aduan": {
@@ -63,7 +64,8 @@ export const RELATION_MAP = {
   },
   "02 Storage: Pendaftaran": {
     BATCH_PENDAFTARAN: "03 Batch Pendaftaran",
-    SDM_EVALUASI: "03 SDM & Evaluasi",
+    SDM_EVALUASI_PILIHAN_1: "03 SDM & Evaluasi",
+    SDM_EVALUASI_PILIHAN_2: "03 SDM & Evaluasi",
   },
   "04 Jobdesk Jabatan": {
     NAMA_JABATAN: "04 Nama Jabatan",

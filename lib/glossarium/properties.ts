@@ -313,8 +313,10 @@ export const PROP_SDM = {
   REKAM_PRESENSI: "03 Rekam Presensi",
   /** Relation → 03 Tugas/Ticket */
   TUGAS_TICKET: "03 Tugas/Ticket",
-  /** Relation → 02 Storage: Pendaftaran */
-  PENDAFTARAN: "02 Storage: Pendaftaran",
+  /** Relation → 02 Storage: Pendaftaran (Pilihan 1) */
+  PENDAFTARAN_PILIHAN_1: "02 Storage: Pendaftaran Pilihan 1",
+  /** Relation → 02 Storage: Pendaftaran (Pilihan 2) */
+  PENDAFTARAN_PILIHAN_2: "02 Storage: Pendaftaran Pilihan 2",
   /** Relation → Keuangan */
   KEUANGAN: "Keuangan",
 } as const;
@@ -405,8 +407,12 @@ export const PROP_PENDAFTARAN = {
   SUBMISSION_TIME: "Submission Time",
   /** Relation → 03 Batch Pendaftaran */
   BATCH_PENDAFTARAN: "03 Batch Pendaftaran",
-  /** Relation → 03 SDM & Evaluasi */
-  SDM_EVALUASI: "03 SDM & Evaluasi",
+  /** Relation → 03 SDM & Evaluasi (Pilihan 1) */
+  SDM_EVALUASI_PILIHAN_1: "03 SDM & Evaluasi Pilihan 1",
+  /** Relation → 03 SDM & Evaluasi (Pilihan 2) */
+  SDM_EVALUASI_PILIHAN_2: "03 SDM & Evaluasi Pilihan 2",
+  PILIHAN_1: "Pilihan 1",
+  PILIHAN_2: "Pilihan 2",
 } as const;
 
 export type StatusSeleksi = "Masuk" | "Interview" | "Diterima" | "Ditolak";

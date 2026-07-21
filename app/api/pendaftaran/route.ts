@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import { sendDiscordWebhook } from "@/lib/discord";
 import {
+  DB_BATCH_PENDAFTARAN,
   DB_PENDAFTARAN_STORAGE,
   DB_SDM_EVALUASI,
   DB_STRUKTUR_ORGANISASI,
+  PROP_PENDAFTARAN,
 } from "@/lib/glossarium";
 import {
   fetchDivisionsFromNotion,
@@ -235,9 +237,19 @@ async function writePendaftaranToNotion(data: {
     const dataSourceId = dbInfo.data_sources?.[0]?.id;
     if (dataSourceId) {
       parentObj = { data_source_id: dataSourceId };
+
+      const dataSourceInfo = (await notion.dataSources.retrieve({
+        data_source_id: dataSourceId,
+      })) as {
+        properties?: Record<string, any>;
+      };
+
+      if (dataSourceInfo?.properties) {
+        dbProperties = dataSourceInfo.properties;
+      }
     }
 
-    if (dbInfo?.properties) {
+    if (Object.keys(dbProperties).length === 0 && dbInfo?.properties) {
       dbProperties = dbInfo.properties;
     }
   } catch (err) {
@@ -268,159 +280,135 @@ async function writePendaftaranToNotion(data: {
     );
   }
 
+  const resolveRelationTargetIds = async (database: string) => {
+    const databaseId = await resolveDatabaseId(database);
+    const dataSourceId = await resolveDataSourceIdSafe(databaseId);
+
+    return [databaseId, dataSourceId]
+      .filter((id): id is string => Boolean(id))
+      .map((id) => id.replace(/-/g, ""));
+  };
+
+  const [sdmTargetIds, batchTargetIds] = await Promise.all([
+    resolveRelationTargetIds(sdmDbId),
+    resolveRelationTargetIds(DB_BATCH_PENDAFTARAN),
+  ]);
+
+  const relationTargets = (schema: any, targetIds: string[]) => {
+    const relationIds = [
+      schema.relation?.database_id,
+      schema.relation?.data_source_id,
+    ]
+      .filter((id): id is string => Boolean(id))
+      .map((id) => id.replace(/-/g, ""));
+
+    return relationIds.some((id) => targetIds.includes(id));
+  };
+
+  const requiredSchema: Array<[string, string]> = [
+    [PROP_PENDAFTARAN.NAME, "title"],
+    [PROP_PENDAFTARAN.NIM, "rich_text"],
+    [PROP_PENDAFTARAN.KONTAK, "rich_text"],
+    [PROP_PENDAFTARAN.MOTIVASI, "rich_text"],
+    [PROP_PENDAFTARAN.LINK_PORTFOLIO, "rich_text"],
+    [PROP_PENDAFTARAN.STATUS_SELEKSI, "status"],
+    [PROP_PENDAFTARAN.BATCH_PENDAFTARAN, "relation"],
+    [PROP_PENDAFTARAN.SDM_EVALUASI_PILIHAN_1, "relation"],
+    [PROP_PENDAFTARAN.SDM_EVALUASI_PILIHAN_2, "relation"],
+  ];
+  const incompatibleSchema = requiredSchema.filter(
+    ([name, type]) => dbProperties[name]?.type !== type,
+  );
+
+  if (incompatibleSchema.length > 0) {
+    throw new Error(
+      `Notion registration schema mismatch: ${incompatibleSchema
+        .map(([name, type]) => `${name} (${type})`)
+        .join(", ")}`,
+    );
+  }
+  if (!batchPageId) {
+    throw new Error("Current Notion registration batch could not be resolved.");
+  }
+  if (!firstSlot.sdmSlotId) {
+    throw new Error(
+      `Notion recruitment slot could not be resolved for first choice: ${data.firstChoice}`,
+    );
+  }
+  if (data.secondChoice && !secondSlot.sdmSlotId) {
+    throw new Error(
+      `Notion recruitment slot could not be resolved for second choice: ${data.secondChoice}`,
+    );
+  }
+
   const properties: Record<string, any> = {};
 
   for (const [name, schema] of Object.entries(dbProperties)) {
     const type = schema.type;
-    const lowerName = name.toLowerCase();
 
-    if (type === "title") {
+    if (name === PROP_PENDAFTARAN.NAME && type === "title") {
       properties[name] = {
         title: [{ text: { content: data.fullName } }],
       };
-    } else if (type === "rich_text") {
-      if (lowerName.includes("nim")) {
-        properties[name] = { rich_text: [{ text: { content: data.nim } }] };
-      } else if (
-        lowerName.includes("whatsapp") ||
-        lowerName.includes("phone") ||
-        lowerName.includes("hp") ||
-        lowerName.includes("telepon")
-      ) {
-        properties[name] = { rich_text: [{ text: { content: data.phone } }] };
-      } else if (lowerName.includes("instagram") || lowerName.includes("ig")) {
-        properties[name] = {
-          rich_text: [{ text: { content: data.instagram } }],
-        };
-      } else if (
-        lowerName.includes("motivasi") ||
-        lowerName.includes("motivation") ||
-        lowerName.includes("alasan")
-      ) {
-        properties[name] = {
-          rich_text: [{ text: { content: data.motivation } }],
-        };
-      } else if (
-        lowerName.includes("pengalaman") ||
-        lowerName.includes("experience")
-      ) {
-        properties[name] = {
-          rich_text: [{ text: { content: data.experience } }],
-        };
-      } else if (
-        lowerName.includes("portofolio") ||
-        lowerName.includes("portfolio") ||
-        lowerName.includes("lampiran")
-      ) {
-        properties[name] = {
-          rich_text: [{ text: { content: data.portfolio } }],
-        };
-      } else if (lowerName.includes("email") || lowerName.includes("mail")) {
-        properties[name] = { rich_text: [{ text: { content: data.email } }] };
-      } else if (lowerName.includes("angkatan")) {
-        properties[name] = {
-          rich_text: [{ text: { content: data.angkatan } }],
-        };
-      }
+    } else if (name === PROP_PENDAFTARAN.NIM && type === "rich_text") {
+      properties[name] = { rich_text: [{ text: { content: data.nim } }] };
+    } else if (name === PROP_PENDAFTARAN.KONTAK && type === "rich_text") {
+      properties[name] = {
+        rich_text: [
+          {
+            text: {
+              content: `Email: ${data.email}\nWA: ${data.phone}\nIG: ${data.instagram || "-"}`,
+            },
+          },
+        ],
+      };
+    } else if (name === PROP_PENDAFTARAN.MOTIVASI && type === "rich_text") {
+      properties[name] = {
+        rich_text: [{ text: { content: data.motivation } }],
+      };
     } else if (
-      type === "email" &&
-      (lowerName.includes("email") || lowerName.includes("mail"))
-    ) {
-      properties[name] = { email: data.email };
-    } else if (
-      type === "url" &&
-      (lowerName.includes("portfolio") ||
-        lowerName.includes("portofolio") ||
-        lowerName.includes("lampiran") ||
-        lowerName.includes("link"))
-    ) {
-      if (data.portfolio.startsWith("http")) {
-        properties[name] = { url: data.portfolio };
-      }
-    } else if (type === "select" && lowerName.includes("angkatan")) {
-      properties[name] = { select: { name: data.angkatan } };
-    } else if (
-      type === "multi_select" &&
-      (lowerName.includes("ketersediaan") ||
-        lowerName.includes("availability") ||
-        lowerName.includes("jadwal"))
+      name === PROP_PENDAFTARAN.LINK_PORTFOLIO &&
+      type === "rich_text"
     ) {
       properties[name] = {
-        multi_select: data.availability.map((day) => ({ name: day })),
+        rich_text: [{ text: { content: data.portfolio } }],
       };
+    } else if (
+      name === PROP_PENDAFTARAN.STATUS_SELEKSI &&
+      type === "status"
+    ) {
+      properties[name] = { status: { name: "Masuk" } };
     } else if (type === "relation") {
       if (
-        schema.relation?.database_id?.replace(/-/g, "") ===
-        sdmDbId.replace(/-/g, "")
+        name === PROP_PENDAFTARAN.SDM_EVALUASI_PILIHAN_1 &&
+        relationTargets(schema, sdmTargetIds)
       ) {
-        if (lowerName.includes("pilihan 1") && firstSlot.sdmSlotId) {
-          properties[name] = { relation: [{ id: firstSlot.sdmSlotId }] };
-        } else if (lowerName.includes("pilihan 2") && secondSlot.sdmSlotId) {
-          properties[name] = { relation: [{ id: secondSlot.sdmSlotId }] };
-        } else if (!lowerName.includes("pilihan 2") && firstSlot.sdmSlotId) {
-          properties[name] = { relation: [{ id: firstSlot.sdmSlotId }] };
-        }
-      }
-      if (
-        schema.relation?.database_id?.replace(/-/g, "") ===
-        structDbId.replace(/-/g, "")
+        properties[name] = { relation: [{ id: firstSlot.sdmSlotId }] };
+      } else if (
+        name === PROP_PENDAFTARAN.SDM_EVALUASI_PILIHAN_2 &&
+        relationTargets(schema, sdmTargetIds) &&
+        secondSlot.sdmSlotId
       ) {
-        if (lowerName.includes("pilihan 1") && firstSlot.divPageId) {
-          properties[name] = { relation: [{ id: firstSlot.divPageId }] };
-        } else if (lowerName.includes("pilihan 2") && secondSlot.divPageId) {
-          properties[name] = { relation: [{ id: secondSlot.divPageId }] };
-        } else if (!lowerName.includes("pilihan 2") && firstSlot.divPageId) {
-          properties[name] = { relation: [{ id: firstSlot.divPageId }] };
-        }
+        properties[name] = { relation: [{ id: secondSlot.sdmSlotId }] };
+      } else if (
+        name === PROP_PENDAFTARAN.BATCH_PENDAFTARAN &&
+        relationTargets(schema, batchTargetIds)
+      ) {
+        properties[name] = { relation: [{ id: batchPageId }] };
       }
     }
   }
 
+  if (Object.keys(dbProperties).length === 0) {
+    throw new Error(
+      "Notion storage schema is unavailable. Check integration access to the registration data source.",
+    );
+  }
+
   if (Object.keys(properties).length === 0) {
-    properties["Name"] = {
-      title: [{ text: { content: data.fullName } }],
-    };
-    properties["NIM"] = {
-      rich_text: [{ text: { content: data.nim || "" } }],
-    };
-    properties["Kontak"] = {
-      rich_text: [
-        {
-          text: {
-            content: `Email: ${data.email}\nWA: ${data.phone}\nIG: ${data.instagram || "-"}`,
-          },
-        },
-      ],
-    };
-    properties["Motivasi"] = {
-      rich_text: [{ text: { content: data.motivation || "" } }],
-    };
-    if (data.portfolio) {
-      properties["Link Portfolio"] = {
-        rich_text: [{ text: { content: data.portfolio } }],
-      };
-    }
-    properties["Status Seleksi"] = {
-      status: { name: "Masuk" },
-    };
-    if (firstSlot.sdmSlotId) {
-      properties["03 SDM & Evaluasi Pilihan 1"] = {
-        relation: [{ id: firstSlot.sdmSlotId }],
-      };
-      properties["03 SDM & Evaluasi"] = {
-        relation: [{ id: firstSlot.sdmSlotId }],
-      };
-    }
-    if (secondSlot.sdmSlotId) {
-      properties["03 SDM & Evaluasi Pilihan 2"] = {
-        relation: [{ id: secondSlot.sdmSlotId }],
-      };
-    }
-    if (batchPageId) {
-      properties["03 Batch Pendaftaran"] = {
-        relation: [{ id: batchPageId }],
-      };
-    }
+    throw new Error(
+      "Notion storage schema was loaded, but no compatible registration fields were found.",
+    );
   }
 
   await notion.pages.create({
