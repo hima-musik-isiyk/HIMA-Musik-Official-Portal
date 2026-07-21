@@ -7,6 +7,8 @@ import {
   DB_SDM_EVALUASI,
   DB_STRUKTUR_ORGANISASI,
   PROP_PENDAFTARAN,
+  PROP_SDM,
+  PROP_STRUKTUR_ORGANISASI,
 } from "@/lib/glossarium";
 import {
   fetchDivisionsFromNotion,
@@ -112,30 +114,111 @@ async function writePendaftaranToNotion(data: {
   const structDbId = DB_STRUKTUR_ORGANISASI;
   const sdmDbId = DB_SDM_EVALUASI;
 
+  let batchPageId: string | null = null;
+  try {
+    const { fetchBatchMap } = await import("@/lib/notion");
+    const { fetchContainerCMSCached } = await import("@/lib/notion-builder");
+    const cms = await fetchContainerCMSCached();
+    const currentBatchStr = cms?.variables?.CURRENT_BATCH || "2";
+    const currentBatchNum = parseInt(currentBatchStr, 10);
+    const batchMap = await fetchBatchMap();
+    const currentBatchInfo = Object.values(batchMap).find(
+      (batch) => batch.batchNum === currentBatchNum,
+    );
+    if (currentBatchInfo) {
+      batchPageId = currentBatchInfo.id;
+    }
+  } catch (err) {
+    console.error(
+      "[Notion Pendaftaran] Failed to fetch current batch id:",
+      err,
+    );
+  }
+
+  const dataSourcePagesCache = new Map<string, Promise<any[]>>();
+  const queryAllDataSourcePages = (dataSourceId: string) => {
+    const cached = dataSourcePagesCache.get(dataSourceId);
+    if (cached) return cached;
+
+    const request = (async () => {
+      const pages: any[] = [];
+      let cursor: string | undefined;
+
+      do {
+        const response = await notion.dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+          page_size: 100,
+        });
+        pages.push(...(response.results as any[]));
+        cursor = response.has_more
+          ? (response.next_cursor ?? undefined)
+          : undefined;
+      } while (cursor);
+
+      return pages;
+    })();
+
+    dataSourcePagesCache.set(dataSourceId, request);
+    return request;
+  };
+
+  const relatedPageIds = (page: any, propertyName: string): string[] => {
+    const property = page.properties?.[propertyName];
+    return property?.type === "relation" && Array.isArray(property.relation)
+      ? property.relation.map((relation: { id: string }) => relation.id)
+      : [];
+  };
+
+  const pageTitleCache = new Map<string, string>();
+  const fetchPageTitle = async (pageId: string) => {
+    const cached = pageTitleCache.get(pageId);
+    if (cached !== undefined) return cached;
+
+    const page = (await notion.pages.retrieve({ page_id: pageId })) as {
+      properties?: Record<string, any>;
+    };
+    const titleProperty = Object.values(page.properties || {}).find(
+      (property) => property.type === "title",
+    );
+    const title =
+      titleProperty?.type === "title"
+        ? titleProperty.title
+            .map((text: { plain_text?: string }) => text.plain_text || "")
+            .join("")
+            .trim()
+        : "";
+    pageTitleCache.set(pageId, title);
+    return title;
+  };
+
   const resolveSlot = async (choiceSlug: string, choicePosition?: string) => {
-    if (!choiceSlug || !structDbId || !sdmDbId)
+    if (!choiceSlug || !structDbId || !sdmDbId || !batchPageId)
       return { divPageId: null, sdmSlotId: null };
     let divPageId: string | null = null;
     let sdmSlotId: string | null = null;
 
+    const slugify = (text: string) =>
+      text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
     try {
       const dsId = await resolveDataSourceIdSafe(structDbId);
       if (dsId) {
-        const res = await notion.dataSources.query({ data_source_id: dsId });
-        const pages = res.results as any[];
-        const slugify = (text: string) =>
-          text
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
+        const pages = await queryAllDataSourcePages(dsId);
         const match = pages.find((p) => {
-          let title = "";
-          for (const prop of Object.values(p.properties || {}) as any[]) {
-            if (prop.type === "title" && prop.title?.length > 0) {
-              title = prop.title.map((t: any) => t.plain_text).join("");
-              break;
-            }
-          }
+          const titleProperty =
+            p.properties?.[PROP_STRUKTUR_ORGANISASI.NAMA_DIVISI];
+          const title =
+            titleProperty?.type === "title"
+              ? titleProperty.title
+                  .map((text: { plain_text?: string }) =>
+                    text.plain_text || "",
+                  )
+                  .join("")
+              : "";
           return slugify(title) === choiceSlug || p.id === choiceSlug;
         });
         if (match) divPageId = match.id;
@@ -148,46 +231,43 @@ async function writePendaftaranToNotion(data: {
       try {
         const dsId = await resolveDataSourceIdSafe(sdmDbId);
         if (dsId) {
-          const res = await notion.dataSources.query({ data_source_id: dsId });
-          const pages = res.results as any[];
-          const slugify = (text: string) =>
-            text
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/^-+|-+$/g, "");
+          const pages = await queryAllDataSourcePages(dsId);
           const targetPosSlug = choicePosition ? slugify(choicePosition) : "";
+          const candidates = pages.filter((page) => {
+            const status =
+              page.properties?.[PROP_SDM.STATUS_KEAKTIFAN]?.select?.name;
+            const divisionIds = relatedPageIds(
+              page,
+              PROP_SDM.STRUKTUR_ORGANISASI,
+            );
+            const batchIds = relatedPageIds(page, PROP_SDM.BATCH_PENDAFTARAN);
 
-          const match = pages.find((p) => {
-            let isRekrutmen = false;
-            let relatesToDivision = false;
-            let isStafMuda = false;
-            let titleStr = "";
-            for (const prop of Object.values(p.properties || {}) as any[]) {
-              if (prop.type === "select" && prop.select?.name === "Rekrutmen") {
-                isRekrutmen = true;
-              }
-              if (prop.type === "relation" && Array.isArray(prop.relation)) {
-                if (prop.relation.some((r: any) => r.id === divPageId)) {
-                  relatesToDivision = true;
-                }
-              }
-              if (prop.type === "title" && prop.title?.length > 0) {
-                titleStr = prop.title.map((t: any) => t.plain_text).join("");
-                if (titleStr.toLowerCase().includes("staf muda")) {
-                  isStafMuda = true;
-                }
-              }
-            }
-
-            if (!isRekrutmen || !relatesToDivision) return false;
-            if (isStafMuda && !targetPosSlug.includes("muda")) return false;
-
-            if (targetPosSlug && titleStr) {
-              return slugify(titleStr).includes(targetPosSlug);
-            }
-            return true; // Match the first valid one
+            return (
+              status === "Rekrutmen" &&
+              divisionIds.includes(divPageId!) &&
+              batchIds.includes(batchPageId!)
+            );
           });
-          if (match) sdmSlotId = match.id;
+
+          if (targetPosSlug) {
+            const candidatesWithRoles = await Promise.all(
+              candidates.map(async (candidate) => {
+                const roleIds = relatedPageIds(candidate, PROP_SDM.NAMA_JABATAN);
+                const roleTitles = await Promise.all(
+                  roleIds.map((roleId) => fetchPageTitle(roleId)),
+                );
+                return { candidate, roleTitles };
+              }),
+            );
+            const match = candidatesWithRoles.find(({ roleTitles }) =>
+              roleTitles.some((roleTitle) =>
+                slugify(roleTitle) === targetPosSlug,
+              ),
+            );
+            if (match) sdmSlotId = match.candidate.id;
+          } else if (candidates.length === 1) {
+            sdmSlotId = candidates[0].id;
+          }
         }
       } catch (e) {
         console.warn(
@@ -255,27 +335,6 @@ async function writePendaftaranToNotion(data: {
   } catch (err) {
     console.error(
       "[Notion Pendaftaran] Failed to retrieve storage DB schema:",
-      err,
-    );
-  }
-
-  let batchPageId: string | null = null;
-  try {
-    const { fetchBatchMap } = await import("@/lib/notion");
-    const { fetchContainerCMSCached } = await import("@/lib/notion-builder");
-    const cms = await fetchContainerCMSCached();
-    const currentBatchStr = cms?.variables?.CURRENT_BATCH || "2";
-    const currentBatchNum = parseInt(currentBatchStr, 10);
-    const batchMap = await fetchBatchMap();
-    const currentBatchInfo = Object.values(batchMap).find(
-      (b) => b.batchNum === currentBatchNum,
-    );
-    if (currentBatchInfo) {
-      batchPageId = currentBatchInfo.id;
-    }
-  } catch (err) {
-    console.error(
-      "[Notion Pendaftaran] Failed to fetch current batch id:",
       err,
     );
   }
