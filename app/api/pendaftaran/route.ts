@@ -9,6 +9,7 @@ import {
 import {
   fetchDivisionsFromNotion,
   getNotionClient,
+  resolveDatabaseId,
   resolveDataSourceIdSafe,
 } from "@/lib/notion";
 
@@ -208,9 +209,11 @@ async function writePendaftaranToNotion(data: {
   // 3. Query schema of DB_PENDAFTARAN_STORAGE to map properties
   let dbProperties: Record<string, any> = {};
   let resolvedStorageDbId = storageDbId;
+  let parentObj: Parameters<typeof notion.pages.create>[0]["parent"] = {
+    database_id: storageDbId,
+  };
 
   try {
-    const { resolveDatabaseId } = await import("@/lib/notion");
     resolvedStorageDbId = await resolveDatabaseId(storageDbId);
 
     // Convert to 32-char UUID with dashes if needed
@@ -218,11 +221,24 @@ async function writePendaftaranToNotion(data: {
       resolvedStorageDbId = `${resolvedStorageDbId.slice(0, 8)}-${resolvedStorageDbId.slice(8, 12)}-${resolvedStorageDbId.slice(12, 16)}-${resolvedStorageDbId.slice(16, 20)}-${resolvedStorageDbId.slice(20)}`;
     }
 
-    const ds = await notion.databases.retrieve({
+    parentObj = {
       database_id: resolvedStorageDbId,
-    });
-    if (ds && "properties" in ds) {
-      dbProperties = ds.properties as Record<string, any>;
+    };
+
+    const dbInfo = (await notion.databases.retrieve({
+      database_id: resolvedStorageDbId,
+    })) as {
+      data_sources?: { id: string }[];
+      properties?: Record<string, any>;
+    };
+
+    const dataSourceId = dbInfo.data_sources?.[0]?.id;
+    if (dataSourceId) {
+      parentObj = { data_source_id: dataSourceId };
+    }
+
+    if (dbInfo?.properties) {
+      dbProperties = dbInfo.properties;
     }
   } catch (err) {
     console.error(
@@ -408,7 +424,7 @@ async function writePendaftaranToNotion(data: {
   }
 
   await notion.pages.create({
-    parent: { database_id: resolvedStorageDbId },
+    parent: parentObj,
     properties: properties as any,
   });
 }
